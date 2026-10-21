@@ -234,7 +234,7 @@ export function S4Model() {
                 {on && <rect x={3} y={y} width={K.w - 6} height={CARD_ROW} fill={theme.accentTint} />}
                 {on && <rect x={3} y={y} width={5} height={CARD_ROW} fill={theme.accent} />}
                 <circle cx={36} cy={y + CARD_ROW / 2} r={15} fill={lit[i] > 0 ? theme.accent : theme.line} />
-                <text x={36} y={y + CARD_ROW / 2 + 6} textAnchor="middle" fill={theme.paper} style={{ font: `700 17px ${theme.font}` }}>
+                <text x={36} y={y + CARD_ROW / 2 + 6.5} textAnchor="middle" fill={theme.paper} style={{ font: `700 18px ${theme.font}` }}>
                   {String(i + 1)}
                 </text>
                 <text x={64} y={y + CARD_ROW / 2 + 7} fill={theme.ink} style={{ font: `700 20px ${theme.font}` }}>

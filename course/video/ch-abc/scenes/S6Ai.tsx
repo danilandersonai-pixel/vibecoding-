@@ -171,6 +171,12 @@ export function S6Ai() {
               </g>
             )
           })}
+          {/* кусочки — для наглядности, настоящий токенизатор режет иначе */}
+          <g opacity={split}>
+            <Label x={X.x + X.w - 20} y={S6.tokensY + 74} anchor="end" size={18} color={theme.soft} weight={600}>
+              условно
+            </Label>
+          </g>
           <g opacity={price}>
             <Label x={X.x + 20} y={S6.tokensY + 74} anchor="start" size={20} color={theme.alt} weight={600}>
               токены: в них считают цену и лимиты

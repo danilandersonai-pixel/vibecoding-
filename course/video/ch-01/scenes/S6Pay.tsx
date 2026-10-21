@@ -65,7 +65,7 @@ export function S6Pay() {
   const refresh = interpolate(frame, [b(3) + 90, b(3) + 98, b(3) + 135, b(3) + 145], [0, 1, 1, 0], clamp)
   const weekIn = useAppear(b(3) + 60)
   const days = Math.max(0, Math.min(7, (frame - b(3) - 70) / 9))
-  const weekUsed = days <= 0 ? 0 : WEEK[Math.min(6, Math.ceil(days) - 1)] * Math.min(1, days / Math.ceil(days))
+  const weekUsed = interpolate(days, [0, 1, 2, 3, 4, 5, 6, 7], [0, ...WEEK], clamp)
   // общий лимит: чат и Claude Code тратят одно и то же
   const share = useAppear(b(4) + 8) * interpolate(frame, [b(5) - 6, b(5) + 4], [1, 0], clamp)
   const pipes = interpolate(frame, [b(4) + 25, b(4) + 55], [0, 1], clamp)
