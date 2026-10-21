@@ -1,11 +1,11 @@
 import { theme } from '../theme'
 import { Actor, type ActorProps } from './Actor'
-import { Person } from './Person'
+import { Person, type Mood, type Pose } from './Person'
 
-export function Coach({ color = theme.accent, ...props }: ActorProps & { color?: string }) {
+export function Coach({ color = theme.accent, pose, mood, ...props }: ActorProps & { color?: string; pose?: Pose; mood?: Mood }) {
   return (
     <Actor {...props}>
-      <Person color={color} accessory="whistle" />
+      <Person color={color} accessory="whistle" pose={pose} mood={mood} />
     </Actor>
   )
 }
