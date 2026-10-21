@@ -4,19 +4,20 @@ import { Notes } from '../blocks/Notes'
 import { Practice } from '../blocks/Practice'
 import { Quiz } from '../blocks/Quiz'
 import { BlockView } from '../components/BlockView'
+import { RouteLink } from '../components/RouteLink'
 import { getDay } from '../content/load'
 import { DAY_COUNT } from '../router'
 
 function Nav({ n }: { n: number }) {
   return (
     <nav className="day-nav">
-      <a href="#/">
+      <RouteLink to="#/">
         <span aria-hidden="true">← </span>К карте
-      </a>
+      </RouteLink>
       {n < DAY_COUNT && (
-        <a href={`#/day/${n + 1}`}>
+        <RouteLink to={`#/day/${n + 1}`}>
           Следующий день<span aria-hidden="true"> →</span>
-        </a>
+        </RouteLink>
       )}
     </nav>
   )

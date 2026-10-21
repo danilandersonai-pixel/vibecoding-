@@ -1,6 +1,8 @@
 import { Player, type PlayerRef } from '@remotion/player'
 import { useEffect, useRef, useState } from 'react'
 import { totalFrames } from '../../video/lib/timeline'
+import { getClaude, type DownloadsLike } from '../claude'
+import { saveVideo } from './download'
 import { HotspotLayer } from './HotspotLayer'
 import { videos } from './registry'
 import { useNarration, useRussianVoice } from './useNarration'
@@ -18,7 +20,24 @@ export function VideoBlock({ videoId, title }: { videoId: string; title: string 
   const [playing, setPlaying] = useState(false)
   const voice = useRussianVoice()
   const [voiceOn, setVoiceOn] = useState(true)
+  const [downloads, setDownloads] = useState<DownloadsLike | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const mp4 = entry?.mp4Url
   useNarration(playerRef, entry?.script.cues ?? [], voice, voiceOn && playing)
+
+  useEffect(() => {
+    const claude = getClaude()
+    if (!mp4 || !claude) return
+    let alive = true
+    claude
+      .use('downloads')
+      .then((d) => alive && setDownloads(d as DownloadsLike | null))
+      .catch(() => undefined)
+    return () => {
+      alive = false
+    }
+  }, [mp4])
 
   useEffect(() => {
     const p = playerRef.current
@@ -96,10 +115,22 @@ export function VideoBlock({ videoId, title }: { videoId: string; title: string 
         )}
       </div>
       {!playing && script.hotspots.some((h) => frame >= h.from && frame < h.to) && <p className="video-hint">На паузе можно нажать на подсвеченную часть кадра.</p>}
-      {mp4Url && (
-        <a className="video-download" href={mp4Url} download>
-          Скачать MP4
-        </a>
+      {mp4Url && downloads && (
+        <p className="video-download">
+          <button
+            type="button"
+            className="btn"
+            disabled={saving}
+            onClick={async () => {
+              setSaving(true)
+              setSaveError(await saveVideo(mp4Url, `${videoId}.mp4`, downloads))
+              setSaving(false)
+            }}
+          >
+            Скачать MP4
+          </button>
+          {saveError && <span className="ai-error"> {saveError}</span>}
+        </p>
       )}
     </figure>
   )

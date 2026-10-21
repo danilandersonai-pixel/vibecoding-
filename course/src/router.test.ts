@@ -1,5 +1,6 @@
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { parseRoute } from './router'
+import { navigate, parseRoute, useRoute } from './router'
 
 describe('parseRoute', () => {
   it('открывает день по номеру', () => {
@@ -10,5 +11,15 @@ describe('parseRoute', () => {
     expect(parseRoute('#/day/0')).toEqual({ name: 'map' })
     expect(parseRoute('#/abc')).toEqual({ name: 'map' })
     expect(parseRoute('')).toEqual({ name: 'map' })
+  })
+})
+
+describe('navigate', () => {
+  it('переключает маршрут из скрипта', async () => {
+    const { result } = renderHook(() => useRoute())
+    act(() => navigate('#/day/2'))
+    await waitFor(() => expect(result.current).toEqual({ name: 'day', n: 2 }))
+    act(() => navigate('#/'))
+    await waitFor(() => expect(result.current).toEqual({ name: 'map' }))
   })
 })

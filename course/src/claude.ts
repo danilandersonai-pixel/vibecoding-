@@ -15,6 +15,8 @@ export type SampleLike = ((input: string, opts?: SampleOptions) => Promise<{ tex
   json(input: string, opts?: SampleOptions): Promise<unknown>
 }
 
+export type DownloadsLike = { save(req: { filename: string; data: Blob }): Promise<unknown> }
+
 export type ClaudeLike = { use(name: string): Promise<unknown> }
 
 declare global {

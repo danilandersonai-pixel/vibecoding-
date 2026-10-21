@@ -1,6 +1,7 @@
 import { getDay } from '../content/load'
 import { dayStatus, type DayStatus } from '../progress/model'
 import { useCourseProgress } from '../progress/courseProgress'
+import { RouteLink } from '../components/RouteLink'
 import { DAY_COUNT } from '../router'
 
 const STATUS_LABEL: Record<DayStatus, string> = { 'not-started': 'не начат', 'in-progress': 'в процессе', done: 'пройден' }
@@ -52,12 +53,12 @@ export function MapPage() {
               .filter((s) => (s.day?.week ?? Math.ceil(s.n / 7)) === week.n)
               .map(({ n, day, status }) => (
                 <li key={n}>
-                  <a className={`day-card is-${status}`} href={`#/day/${n}`} data-testid="day-card">
+                  <RouteLink className={`day-card is-${status}`} to={`#/day/${n}`} testId="day-card">
                     <span className="day-num">День {n}</span>
                     <span className="day-title">{day?.title ?? 'Тема уточняется'}</span>
                     <span className="day-status">{STATUS_LABEL[status]}</span>
                     {(!day || day.status === 'draft') && <span className="badge">готовится</span>}
-                  </a>
+                  </RouteLink>
                 </li>
               ))}
           </ol>
