@@ -12,15 +12,19 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "lint": "oxlint",
-    "extract:book": "node scripts/extract-book.mjs ../vibe-coding-na-praktike-2026-10.html content src/styles/figures.css"
+    "extract:book": "node scripts/extract-book.mjs ../vibe-coding-na-praktike-2026-10.html content src/styles/figures.css",
+    "studio": "remotion studio video/index.ts"
   },
   "dependencies": {
+    "@remotion/player": "4.0.537",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "remotion": "4.0.537",
     "zod": "4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
+    "@remotion/cli": "4.0.537",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.8",
