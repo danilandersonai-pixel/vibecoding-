@@ -171,3 +171,14 @@
 .video-hint{margin:6px 0 0;font:400 .85rem/1.4 var(--font-ui);color:var(--ink-soft)}
 .video-download{display:inline-block;margin-top:8px;font:500 .9rem/1.4 var(--font-ui)}
 @media (max-width: 640px){.video-hotspot-note{left:6px;right:6px;bottom:6px;padding:6px 10px;font-size:.78rem;line-height:1.35}}
+
+/* Подпись шага — над кнопками, чтобы на телефоне не сжиматься в узкий столбец. */
+.diagram-steps{flex-wrap:wrap}
+.diagram-steps p{flex:1 1 100%;order:-1}
+.diagram-steps button:last-of-type{margin-left:auto}
+.card-list{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+/* На узком экране схемы книги шире блока и прокручиваются внутри него — иначе подписи не прочитать. */
+@media (max-width: 640px){
+  .idea .figure,.diagram-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .idea .figure svg,.diagram-stage{min-width:600px}
+}

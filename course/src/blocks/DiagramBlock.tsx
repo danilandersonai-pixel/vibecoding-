@@ -15,8 +15,9 @@ export function DiagramBlock({ block }: { block: Diagram }) {
 
   return (
     <figure className="block diagram">
-      <div className="diagram-stage">
-        <Figure id={block.figure} />
+      <div className="diagram-scroll">
+        <div className="diagram-stage">
+          <Figure id={block.figure} />
         {block.hotspots.map((h) => (
           <button
             key={h.id}
@@ -27,7 +28,8 @@ export function DiagramBlock({ block }: { block: Diagram }) {
             aria-pressed={open === h.id}
             onClick={() => setOpen(open === h.id ? null : h.id)}
           />
-        ))}
+          ))}
+        </div>
       </div>
       {active && (
         <div className="hotspot-note" role="status">
