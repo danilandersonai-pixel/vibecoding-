@@ -16,6 +16,13 @@ export const theme = {
   risk: '#C4432C',
   riskTint: 'rgba(196,67,44,.10)',
   codeBg: '#EFEEE8',
+  // Тёмный терминал (как fg-term в книге)
+  termBg: '#1E2027',
+  termBar: '#2A2D37',
+  termText: '#DADCE3',
+  termOk: '#6FD3A6',
+  termErr: '#FF8C7A',
+  termDim: '#8B90A0',
   font: "'Onest', 'Segoe UI', Roboto, Arial, sans-serif",
   mono: "'JetBrains Mono', Menlo, Consolas, monospace",
 } as const
