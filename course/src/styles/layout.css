@@ -32,3 +32,47 @@
 .block-soon-title{font:600 .95rem/1.4 var(--font-ui);margin:6px 0 0}
 .block-soon .soon{margin:4px 0}
 .book-link{display:inline-block;margin:4px 0 8px;font:500 .9rem/1.4 var(--font-ui)}
+
+.idea h3{font-size:1.05rem;margin:18px 0 6px}
+.figure{margin:12px 0}
+.diagram{margin:16px 0}
+.diagram-stage{position:relative}
+.diagram-stage .figure{margin:0}
+.hotspot{position:absolute;padding:0;border:2px dashed transparent;border-radius:8px;background:transparent}
+.hotspot:hover,.hotspot:focus-visible{border-color:var(--accent);outline:none}
+.hotspot.is-open{border-color:var(--accent);border-style:solid;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.hotspot-note{margin:8px 0;padding:10px 14px;border-left:3px solid var(--accent);background:var(--tint);border-radius:0 8px 8px 0;font-family:var(--font-ui);font-size:.92rem}
+.hotspot-note p{margin:4px 0 0}
+.diagram-steps{display:flex;align-items:center;gap:10px;margin:8px 0;font-family:var(--font-ui);font-size:.92rem}
+.diagram-steps p{flex:1;margin:0}
+.diagram figcaption{font:400 .82rem/1.4 var(--font-ui);color:var(--ink-soft);margin-top:6px}
+
+.btn,.quiz-result button,.diagram-steps button,.card-actions button{padding:6px 12px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);color:var(--ink);font:500 .9rem/1.3 var(--font-ui)}
+.diagram-steps button:disabled{opacity:.45;cursor:default}
+.quiz-list{padding-left:1.2em;margin:8px 0}
+.quiz-question{margin:0 0 18px}
+.quiz-q{font-weight:600;margin:0 0 8px;font-family:var(--font-ui)}
+.quiz-options{display:flex;flex-direction:column;gap:6px}
+.quiz-option{text-align:left;padding:8px 12px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);color:var(--ink);font:400 .95rem/1.4 var(--font-ui)}
+.quiz-option:not(:disabled):hover{border-color:var(--accent)}
+.quiz-option:disabled{cursor:default}
+.quiz-option.is-correct{border-color:var(--fig-ok);background:color-mix(in srgb,var(--fig-ok) 12%,var(--paper))}
+.quiz-option.is-wrong{border-color:var(--fig-risk);background:color-mix(in srgb,var(--fig-risk) 10%,var(--paper))}
+.quiz-explain{margin:8px 0 0;font:400 .9rem/1.45 var(--font-ui)}
+.quiz-explain.is-correct strong{color:var(--fig-ok)}
+.quiz-explain.is-wrong strong{color:var(--fig-risk)}
+.quiz-best{font:500 .9rem/1.4 var(--font-ui);color:var(--accent-ink)}
+.quiz-result{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:var(--font-ui);font-weight:600}
+
+.notes{display:flex;flex-direction:column;gap:6px;font:500 .9rem/1.4 var(--font-ui)}
+.notes textarea{width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);color:var(--ink);font:400 .95rem/1.5 var(--font-body);resize:vertical}
+.cards h3{font-size:1rem;margin:18px 0 8px}
+.card-list{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.card{border:1px solid var(--rule);border-radius:10px;padding:10px 12px;background:var(--paper);display:flex;flex-direction:column;gap:6px}
+.card.is-know{border-color:var(--fig-ok)}
+.card.is-repeat{border-color:var(--warn)}
+.card-term{all:unset;cursor:pointer;font:600 .98rem/1.3 var(--font-ui);color:var(--ink)}
+.card-term:focus-visible{outline:2px solid var(--accent)}
+.card-def{margin:0;font:400 .9rem/1.45 var(--font-ui);color:var(--ink-soft)}
+.card-actions{display:flex;gap:6px;margin-top:auto}
+.card-actions button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-ink)}

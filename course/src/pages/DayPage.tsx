@@ -1,3 +1,6 @@
+import { Cards } from '../blocks/Cards'
+import { Notes } from '../blocks/Notes'
+import { Quiz } from '../blocks/Quiz'
 import { BlockView } from '../components/BlockView'
 import { getDay } from '../content/load'
 import { DAY_COUNT } from '../router'
@@ -65,7 +68,7 @@ export function DayPage({ n }: { n: number }) {
 
       <section className="day-section" aria-labelledby="quiz">
         <h2 id="quiz">Проверка понимания</h2>
-        <Soon />
+        {day.quiz.length ? <Quiz day={day} /> : <Soon />}
       </section>
 
       <section className="day-section" aria-labelledby="practice">
@@ -80,7 +83,8 @@ export function DayPage({ n }: { n: number }) {
 
       <section className="day-section" aria-labelledby="summary">
         <h2 id="summary">Итог дня</h2>
-        <Soon />
+        <Notes dayId={day.id} />
+        <Cards day={day} />
       </section>
 
       <Nav n={n} />
