@@ -12,6 +12,11 @@
   },
   "blocks": [
     {
+      "type": "video",
+      "videoId": "ch-abc",
+      "title": "Как устроено приложение"
+    },
+    {
       "type": "idea",
       "id": "restaurant",
       "title": "Приложение устроено как ресторан",

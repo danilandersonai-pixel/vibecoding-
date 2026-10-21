@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import { chAbcScript } from './ch-abc/script'
 import { pilotRlsScript } from './pilot-rls/script'
 import type { VideoScript } from './types'
 
@@ -17,5 +18,11 @@ export const catalog: Record<string, CatalogEntry> = {
     kind: 'chapter',
     script: pilotRlsScript,
     load: () => import('./pilot-rls/PilotRls'),
+  },
+  'ch-abc': {
+    title: 'Как устроено приложение',
+    kind: 'chapter',
+    script: chAbcScript,
+    load: () => import('./ch-abc/Video'),
   },
 }
