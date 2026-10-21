@@ -9,7 +9,8 @@
     "preview": "vite preview --port 4173 --strictPort",
     "test": "vitest run",
     "e2e": "playwright test",
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "extract:book": "node scripts/extract-book.mjs ../vibe-coding-na-praktike-2026-10.html content src/styles/figures.css"
   },
   "dependencies": {
     "react": "19.3.1",
