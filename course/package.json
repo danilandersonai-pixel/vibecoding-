@@ -14,7 +14,8 @@
     "lint": "oxlint",
     "extract:book": "node scripts/extract-book.mjs ../vibe-coding-na-praktike-2026-10.html content src/styles/figures.css",
     "studio": "remotion studio video/index.ts",
-    "render:pilot": "node scripts/render-video.mjs pilot-rls out/pilot-rls.mp4"
+    "render:pilot": "node scripts/render-video.mjs pilot-rls out/pilot-rls.mp4",
+    "build:mentor": "node scripts/build-mentor.mjs content/days ../mentor/days"
   },
   "dependencies": {
     "@remotion/player": "4.0.537",
