@@ -33,3 +33,5 @@ export function PilotRls() {
     </AbsoluteFill>
   )
 }
+
+export default PilotRls

@@ -31,11 +31,11 @@ npm run lint       # линтер
 ## Ролики
 
 ```bash
-npm run studio       # Remotion Studio: смотреть и править сцены
-npm run render:pilot # out/pilot-rls.mp4, проверка лимита 20 МБ
+npm run studio                                      # Remotion Studio: смотреть и править сцены
+npm run render:video -- pilot-rls out/pilot-rls.mp4 # MP4 ролика по его id, проверка лимита 20 МБ
 ```
 
-Сценарий ролика — `video/pilot-rls/script.ts`: тайминги считаются из длины реплик, анимации сцен привязаны к началу реплик.
+Все ролики перечислены в `video/catalog.ts` (название, вид, сценарий, ленивая загрузка сцен): по нему строятся композиции Remotion и реестр сайта `src/video/registry.ts`. Сценарий ролика — например `video/pilot-rls/script.ts`: тайминги считаются из длины реплик, анимации сцен привязаны к началу реплик.
 
 ## Публикация
 

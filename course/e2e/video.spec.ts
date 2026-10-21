@@ -14,3 +14,12 @@ test('ролик дня 4 играет, на паузе открывается �
   await page.getByRole('button', { name: 'client/18' }).click()
   await expect(page.getByText(/Подменённый номер/)).toBeVisible()
 })
+
+test('если код ролика не загрузился, блок это говорит, а день остаётся на месте', async ({ page }) => {
+  // ломаем все куски кода, кроме основного: ролик грузится отдельным файлом
+  await page.route('**/assets/*.js', (route) => (route.request().url().includes('/assets/index-') ? route.continue() : route.abort()))
+  await page.goto('/#/day/4')
+  await expect(page.getByText('Ролик не загрузился')).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Вход для двух ролей и защита данных' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Смотреть' })).toHaveCount(0)
+})
