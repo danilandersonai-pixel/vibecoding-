@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import { ch01Script } from './ch-01/script'
 import { chAbcScript } from './ch-abc/script'
 import { pilotRlsScript } from './pilot-rls/script'
 import type { VideoScript } from './types'
@@ -24,5 +25,11 @@ export const catalog: Record<string, CatalogEntry> = {
     kind: 'chapter',
     script: chAbcScript,
     load: () => import('./ch-abc/Video'),
+  },
+  'ch-01': {
+    title: 'Вайб-кодинг: шкала, а не выключатель',
+    kind: 'chapter',
+    script: ch01Script,
+    load: () => import('./ch-01/Video'),
   },
 }
