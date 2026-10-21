@@ -23,3 +23,13 @@ test('если код ролика не загрузился, блок это г
   await expect(page.getByRole('heading', { level: 1, name: 'Вход для двух ролей и защита данных' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Смотреть' })).toHaveCount(0)
 })
+
+test('день 4 с роликом на телефоне (390 px) — без горизонтальной прокрутки', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/#/day/4')
+  await expect(page.getByRole('button', { name: 'Смотреть' })).toBeVisible()
+  // кадр ролика уже нарисован: ленивый код сцен загрузился
+  await expect(page.locator('.video-stage svg').first()).toBeVisible()
+  const fits = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+  expect(fits).toBe(true)
+})

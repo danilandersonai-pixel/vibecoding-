@@ -10,11 +10,14 @@ type Props = {
   duration: number
   transition?: Transition
   camera?: CameraKey[]
+  /** Полнокадровое наложение (вспышка, затемнение): поверх холста и вне камеры — не двигается вместе с ней. */
+  overlay?: ReactNode
   children: ReactNode
 }
 
-// Сцена-холст 1280×720: бумажный фон, переход на входе и выходе, камера внутри холста.
-export function KitScene({ chip, duration, transition = 'fade', camera, children }: Props) {
+// Сцена-холст 1280×720: бумажный фон, переход на входе и выходе, камера внутри холста;
+// наложение и плашка — поверх, вне камеры.
+export function KitScene({ chip, duration, transition = 'fade', camera, overlay, children }: Props) {
   const frame = useCurrentFrame()
   const t = transitionAt(frame, duration, transition)
   const cam = cameraAt(frame, camera ?? [])
@@ -27,6 +30,11 @@ export function KitScene({ chip, duration, transition = 'fade', camera, children
         <svg viewBox="0 0 1280 720" width={1280} height={720} style={{ fontFamily: theme.font }}>
           <g transform={view}>{children}</g>
         </svg>
+        {overlay !== undefined && (
+          <svg viewBox="0 0 1280 720" width={1280} height={720} style={{ position: 'absolute', left: 0, top: 0, fontFamily: theme.font }}>
+            {overlay}
+          </svg>
+        )}
         <div style={{ position: 'absolute', left: 32, top: 24, padding: '6px 14px', borderRadius: 999, background: theme.accentTint, color: theme.accent, font: `600 20px ${theme.font}` }}>{chip}</div>
       </AbsoluteFill>
     </AbsoluteFill>

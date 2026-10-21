@@ -1,17 +1,11 @@
-import type { Cue, VideoHotspot, VideoScript } from '../types'
-import { L } from './layout'
+import { cameraAt, toScreen, TRANSITION_FRAMES, type CameraKey, type Transition } from '../kit/camera'
+import { buildScript, type SceneDef, type Timing } from '../kit/script'
+import type { VideoHotspot } from '../types'
+import { L, SHOT } from './layout'
 
 // Сценарий пилотного ролика дня 4: «Почему тренер не увидит чужих подопечных».
-// Тайминги считаются из длины реплик, а анимации сцен привязаны к началу реплик (beat),
-// поэтому правка текста не рассинхронизирует картинку и субтитры.
-
-const FPS = 30
-const CPS = 13 // знаков в секунду — темп чтения субтитров и синтеза речи
-const LEAD = 0.6
-const GAP = 0.45
-const TAIL = 1.6
-
-type SceneDef = { id: string; lines: string[] }
+// Тайминги считаются из длины реплик (темп «живее» из набора), а анимации сцен, камера
+// и горячие точки привязаны к началу реплик (beat): правка текста не рассинхронизирует картинку.
 
 const SCENES: SceneDef[] = [
   {
@@ -32,6 +26,7 @@ const SCENES: SceneDef[] = [
       'Семнадцать — это номер Анны в базе.',
       'Сервер передаёт запрос в базу: дай тренировки клиента 17.',
       'База находит строки Анны и отправляет их обратно.',
+      'Запрос — это просьба к серверу, а ответ — то, что сервер прислал обратно.',
       'На экране — её жим и присед за неделю. Всё работает.',
       'Заметьте: номер в адресе пришёл с телефона.',
       'А всё, что приходит с телефона, можно подменить.',
@@ -64,6 +59,7 @@ const SCENES: SceneDef[] = [
       'База возвращает пустой список. Без ошибок и подсказок.',
       'Спрятать кнопку в интерфейсе — не защита. Интерфейс можно обойти.',
       'Правило в базе работает для любого запроса, откуда бы он ни пришёл.',
+      'В Supabase турникет — это политика на SQL: строку читает только её владелец.',
     ],
   },
   {
@@ -73,101 +69,134 @@ const SCENES: SceneDef[] = [
       'Заведите второго пользователя и войдите под ним.',
       'Откройте адрес чужой записи — с номером первого пользователя.',
       'Должно быть пусто. Видите чужое — RLS выключен или правило неверное.',
+      'Частая причина — таблицу создал агент через SQL: там RLS сам не включается.',
+      'Попросите агента включить RLS и написать политику, а потом проверьте снова.',
+      'И помните: секретный ключ обходит все правила — ему место только на сервере.',
       'Запрос, который проверит все таблицы, есть в главе 7 книги.',
       'А наставник на дне 4 проверит это вместе с вами.',
     ],
   },
 ]
 
-function lineSeconds(text: string): number {
-  return Math.max(2.6, text.length / CPS + 0.5)
-}
+export type Staging = { transition: Transition; camera: CameraKey[] }
 
-function build() {
-  const scenes: VideoScript['scenes'] = []
-  const cues: Cue[] = []
-  const beats: Record<string, number[]> = {}
-  let start = 0
-  for (const def of SCENES) {
-    let t = LEAD
-    beats[def.id] = []
-    for (const text of def.lines) {
-      const dur = lineSeconds(text)
-      const from = start + Math.round(t * FPS)
-      beats[def.id].push(from - start)
-      cues.push({ from, to: start + Math.round((t + dur) * FPS), text })
-      t += dur + GAP
-    }
-    const durationInFrames = Math.round((t - GAP + TAIL) * FPS)
-    scenes.push({ id: def.id, durationInFrames })
-    start += durationInFrames
+type Shot = { x: number; y: number; zoom: number }
+const key = (at: number, shot: Shot): CameraKey => ({ at, ...shot })
+
+// Переход и камера каждой сцены: камера едет к тому, о чём реплика, и стоит, пока открыта горячая точка.
+function staging({ beat }: Timing): Record<string, Staging> {
+  const b = (id: string) => (i: number) => beat(id, i)
+  const s1 = b('s1-coaches')
+  const s2 = b('s2-request')
+  const s3 = b('s3-attack')
+  const s4 = b('s4-turnstile')
+  const s5 = b('s5-check')
+  return {
+    's1-coaches': {
+      transition: 'fade',
+      camera: [
+        // тренеры крупно → весь кадр, когда появляются подопечные
+        key(0, SHOT.coaches),
+        key(s1(1) - 6, SHOT.coaches),
+        key(s1(1) + 24, SHOT.whole),
+        // наезд на базу и ключи: «шкафчики рядом, ключи — свои»
+        key(s1(3) - 6, SHOT.whole),
+        key(s1(3) + 24, SHOT.base),
+      ],
+    },
+    's2-request': {
+      transition: 'slide',
+      camera: [
+        // Анна с телефоном → весь путь запроса
+        key(0, SHOT.close),
+        key(s2(1) - 12, SHOT.close),
+        key(s2(1) + 18, SHOT.whole),
+        // экран со списком крупно → назад к подсказке про адрес (на ней горячая точка)
+        key(s2(6) - 6, SHOT.whole),
+        key(s2(6) + 20, SHOT.phone),
+        key(s2(7) - 10, SHOT.phone),
+        key(s2(7) + 14, SHOT.whole),
+      ],
+    },
+    's3-attack': {
+      transition: 'zoom',
+      camera: [
+        // подмена номера крупно (горячая точка client/18) → путь запроса
+        key(0, SHOT.close),
+        key(s3(4), SHOT.close),
+        key(s3(4) + 24, SHOT.whole),
+        // телефон, где кнопки «Олег» не было
+        key(s3(8) - 6, SHOT.whole),
+        key(s3(8) + 20, SHOT.phone),
+      ],
+    },
+    's4-turnstile': {
+      transition: 'slide',
+      camera: [
+        // база крупно → турникеты и проверка пропусков (горячая точка «Политика RLS»)
+        key(0, SHOT.s4db),
+        key(s4(1), SHOT.s4db),
+        key(s4(1) + 30, SHOT.whole),
+        // медленный наезд на код политики
+        key(s4(10) - 6, SHOT.whole),
+        key(s4(10) + 60, SHOT.s4code),
+      ],
+    },
+    's5-check': {
+      transition: 'fade',
+      camera: [
+        // проверка → вторая доска «что делать» → назад к книге и наставнику
+        key(0, SHOT.whole),
+        key(s5(4) - 4, SHOT.whole),
+        key(s5(4) + 26, SHOT.board2),
+        key(s5(7) - 4, SHOT.board2),
+        key(s5(7) + 26, SHOT.whole),
+      ],
+    },
   }
-  return { scenes, cues, beats }
 }
 
-const built = build()
+type Rect = { x: number; y: number; w: number; h: number }
 
-/** Кадр (от начала сцены), на котором начинается реплика i сцены. */
-export function beat(sceneId: string, i: number): number {
-  const b = built.beats[sceneId]?.[i]
-  if (b === undefined) throw new Error(`Нет реплики ${i} в сцене ${sceneId}`)
-  return b
-}
-
-/** Длина сцены в кадрах. */
-export function sceneDuration(sceneId: string): number {
-  const s = built.scenes.find((x) => x.id === sceneId)
-  if (!s) throw new Error(`Нет сцены ${sceneId}`)
-  return s.durationInFrames
-}
-
-function abs(sceneId: string, frame: number): number {
-  let start = 0
-  for (const s of built.scenes) {
-    if (s.id === sceneId) return start + frame
-    start += s.durationInFrames
+function hotspots(t: Timing): VideoHotspot[] {
+  const cams = staging(t)
+  // Окно точки — в кадрах сцены; рамка объекта на холсте переводится в кадр по камере в начале окна.
+  const spot = (id: string, from: number, to: number, r: Rect, title: string, text: string): VideoHotspot => {
+    const s = toScreen(r, cameraAt(from, cams[id].camera))
+    return { from: t.abs(id, from), to: t.abs(id, to), x: Math.round(s.x), y: Math.round(s.y), w: Math.round(s.w), h: Math.round(s.h), title, text }
   }
-  throw new Error(`Нет сцены ${sceneId}`)
+  const end = (id: string) => t.sceneEnd(id) - t.abs(id, 0) - TRANSITION_FRAMES
+  return [
+    spot(
+      's2-request',
+      t.beat('s2-request', 7) + 14,
+      end('s2-request'),
+      { x: L.callout.x - 170, y: L.callout.y - 45, w: 340, h: 90 },
+      'Запрос',
+      'Адрес client/17 собирает приложение на телефоне. Человек может поменять его вручную — например, в инструментах браузера.',
+    ),
+    spot(
+      's3-attack',
+      t.beat('s3-attack', 2) + 25, // номер уже подменён
+      t.beat('s3-attack', 4),
+      { x: L.phone.x - 90, y: L.outY - 34, w: 180, h: 68 },
+      'client/18',
+      'Подменённый номер. Сервер без проверки владельца не отличит его от настоящего — это и есть IDOR.',
+    ),
+    spot(
+      's4-turnstile',
+      t.beat('s4-turnstile', 2),
+      t.beat('s4-turnstile', 10) - 6,
+      { x: L.s4gateX - 60, y: L.s4rowsY[0] - 60, w: 120, h: L.s4rowsY[2] - L.s4rowsY[0] + 120 },
+      'Политика RLS',
+      'Правило в самой базе: строку можно прочитать, только если её владелец — тот, кто вошёл. В Supabase: using (auth.uid() = user_id).',
+    ),
+  ]
 }
 
-function sceneEnd(sceneId: string): number {
-  const s = built.scenes.find((x) => x.id === sceneId)!
-  return abs(sceneId, s.durationInFrames)
-}
+const built = buildScript('pilot-rls', SCENES, hotspots)
 
-const hotspots: VideoHotspot[] = [
-  {
-    from: abs('s2-request', beat('s2-request', 6)),
-    to: sceneEnd('s2-request'),
-    x: L.callout.x - 170,
-    y: L.callout.y - 45,
-    w: 340,
-    h: 90,
-    title: 'Запрос',
-    text: 'Адрес client/17 собирает приложение на телефоне. Человек может поменять его вручную — например, в инструментах браузера.',
-  },
-  {
-    from: abs('s3-attack', beat('s3-attack', 2)),
-    to: abs('s3-attack', beat('s3-attack', 4)),
-    x: L.packetAbovePhone.x - 130,
-    y: L.packetAbovePhone.y - 45,
-    w: 260,
-    h: 90,
-    title: 'client/18',
-    text: 'Подменённый номер. Сервер без проверки владельца не отличит его от настоящего — это и есть IDOR.',
-  },
-  {
-    from: abs('s4-turnstile', beat('s4-turnstile', 2)),
-    to: sceneEnd('s4-turnstile'),
-    x: L.s4gateX - 60,
-    y: L.s4rowsY[0] - 60,
-    w: 120,
-    h: L.s4rowsY[2] - L.s4rowsY[0] + 120,
-    title: 'Политика RLS',
-    text: 'Правило в самой базе: строку можно прочитать, только если её владелец — тот, кто вошёл. В Supabase: using (auth.uid() = user_id).',
-  },
-]
-
-export const pilotRlsScript: VideoScript = { id: 'pilot-rls', fps: 30, width: 1280, height: 720, scenes: built.scenes, cues: built.cues, hotspots }
-
-export const SCENE_IDS = SCENES.map((s) => s.id)
+export const pilotRlsScript = built.script
+export const beat = built.beat
+export const sceneDuration = (id: string) => built.sceneEnd(id) - built.abs(id, 0)
+export const STAGING = staging(built)

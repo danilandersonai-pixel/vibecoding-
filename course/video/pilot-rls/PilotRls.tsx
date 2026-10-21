@@ -1,4 +1,5 @@
 import { AbsoluteFill, Sequence } from 'remotion'
+import { HotspotFrames } from '../kit/HotspotFrames'
 import { sceneStart } from '../lib/timeline'
 import { Subtitles } from '../lib/Subtitles'
 import { theme } from '../theme'
@@ -18,7 +19,8 @@ const SCENES: Record<string, () => React.JSX.Element> = {
 }
 
 // Пилотный ролик дня 4: пять сцен подряд и субтитры поверх.
-export function PilotRls() {
+// showHotspots — рамки горячих точек для проверочных кадров; в обычном рендере и на сайте выключено.
+export function PilotRls({ showHotspots = false }: { showHotspots?: boolean }) {
   return (
     <AbsoluteFill style={{ background: theme.paper }}>
       {pilotRlsScript.scenes.map((s) => {
@@ -30,6 +32,7 @@ export function PilotRls() {
         )
       })}
       <Subtitles cues={pilotRlsScript.cues} />
+      {showHotspots && <HotspotFrames hotspots={pilotRlsScript.hotspots} />}
     </AbsoluteFill>
   )
 }

@@ -7,6 +7,14 @@ export type CameraKey = { at: number; x: number; y: number; zoom: number }
 
 export type Transition = 'fade' | 'slide' | 'zoom'
 
+/** Длина появления и ухода сцены, кадров: в эти кадры сцена движется, горячим точкам там не место. */
+export const TRANSITION_FRAMES = 10
+
+/** Прямоугольник холста → где он на экране при камере cam (так же, как сдвигает холст KitScene). */
+export function toScreen(r: { x: number; y: number; w: number; h: number }, cam: { x: number; y: number; zoom: number }) {
+  return { x: 640 + (r.x - cam.x) * cam.zoom, y: 360 + (r.y - cam.y) * cam.zoom, w: r.w * cam.zoom, h: r.h * cam.zoom }
+}
+
 const WHOLE = { x: 640, y: 360, zoom: 1 }
 const ease = Easing.inOut(Easing.cubic)
 const easeOut = Easing.out(Easing.cubic)
@@ -26,7 +34,7 @@ export function cameraAt(frame: number, keys: CameraKey[]): { x: number; y: numb
 }
 
 /** Переход сцены: появление в первые length кадров и уход в последние length; в середине { 1, 0, 1 }. */
-export function transitionAt(frame: number, duration: number, kind: Transition, length = 10): { opacity: number; dx: number; scale: number } {
+export function transitionAt(frame: number, duration: number, kind: Transition, length = TRANSITION_FRAMES): { opacity: number; dx: number; scale: number } {
   const entering = frame < duration - frame
   const p = Math.min(1, Math.max(0, Math.min(frame, duration - frame) / length))
   if (p >= 1) return { opacity: 1, dx: 0, scale: 1 }

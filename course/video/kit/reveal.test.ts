@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { grow, revealCount, typed } from './reveal'
+import { grow, revealCount, stepAt, typed } from './reveal'
 
 describe('typed', () => {
   it('на кадре 15 при 30 знаках в секунду набрано 15 знаков', () => {
@@ -80,5 +80,24 @@ describe('grow', () => {
   it('нулевая длина — мгновенно', () => {
     expect(grow(9, 10, 0)).toBe(0)
     expect(grow(10, 10, 0)).toBe(1)
+  })
+})
+
+describe('stepAt', () => {
+  const steps: [number, string][] = [
+    [0, 'stand'],
+    [30, 'point'],
+    [90, 'cheer'],
+  ]
+
+  it('берёт последний шаг, чей кадр уже наступил', () => {
+    expect(stepAt(29, steps)).toBe('stand')
+    expect(stepAt(30, steps)).toBe('point')
+    expect(stepAt(89, steps)).toBe('point')
+    expect(stepAt(500, steps)).toBe('cheer')
+  })
+
+  it('до первого шага — первый', () => {
+    expect(stepAt(-5, [[10, 'a'], [20, 'b']])).toBe('a')
   })
 })

@@ -21,3 +21,10 @@ export function grow(frame: number, start: number, length: number): number {
   const t = Math.min(1, Math.max(0, (frame - start) / length))
   return t * t * (3 - 2 * t)
 }
+
+/** Значение по шагам [кадр, значение] (кадры по возрастанию): последнее, чей кадр наступил; до первого — первое. Удобно для поз героя по репликам. */
+export function stepAt<T>(frame: number, steps: [number, T][]): T {
+  let value = steps[0][1]
+  for (const [at, v] of steps) if (frame >= at) value = v
+  return value
+}

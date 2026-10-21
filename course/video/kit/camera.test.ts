@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cameraAt, transitionAt, type CameraKey } from './camera'
+import { cameraAt, toScreen, transitionAt, type CameraKey } from './camera'
 
 const KEYS: CameraKey[] = [
   { at: 0, x: 640, y: 360, zoom: 1 },
@@ -100,5 +100,22 @@ describe('transitionAt', () => {
     const t = transitionAt(5, 10, 'fade')
     expect(t.opacity).toBeGreaterThan(0)
     expect(t.opacity).toBeLessThanOrEqual(1)
+  })
+})
+
+describe('toScreen', () => {
+  it('без приближения прямоугольник остаётся на месте', () => {
+    expect(toScreen({ x: 100, y: 50, w: 200, h: 80 }, { x: 640, y: 360, zoom: 1 })).toEqual({ x: 100, y: 50, w: 200, h: 80 })
+  })
+
+  it('точка, на которую смотрит камера, — в центре кадра, размеры растут в zoom раз', () => {
+    expect(toScreen({ x: 300, y: 200, w: 10, h: 20 }, { x: 300, y: 200, zoom: 2 })).toEqual({ x: 640, y: 360, w: 20, h: 40 })
+  })
+
+  it('совпадает со сдвигом холста в KitScene: translate(640 − x·zoom, 360 − y·zoom) scale(zoom)', () => {
+    const cam = { x: 420, y: 310, zoom: 1.3 }
+    const r = toScreen({ x: 250, y: 100, w: 60, h: 40 }, cam)
+    expect(r.x).toBeCloseTo(640 - cam.x * cam.zoom + 250 * cam.zoom)
+    expect(r.y).toBeCloseTo(360 - cam.y * cam.zoom + 100 * cam.zoom)
   })
 })

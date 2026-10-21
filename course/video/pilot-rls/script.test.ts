@@ -1,44 +1,45 @@
 import { describe, expect, it } from 'vitest'
-import { sceneStart, totalFrames, validateScript } from '../lib/timeline'
-import { pilotRlsScript } from './script'
+import { cameraAt, TRANSITION_FRAMES } from '../kit/camera'
+import { scriptProblems } from '../kit/checks'
+import { sceneStart } from '../lib/timeline'
+import { pilotRlsScript, STAGING } from './script'
 
 describe('сценарий пилотного ролика про RLS', () => {
-  it('проходит проверку таймлайна', () => {
-    expect(validateScript(pilotRlsScript)).toEqual([])
+  it('проходит проверки ролика главы', () => {
+    expect(scriptProblems(pilotRlsScript, 'chapter')).toEqual([])
   })
 
-  it('длится от 3 до 5 минут', () => {
-    expect(totalFrames(pilotRlsScript)).toBeGreaterThanOrEqual(5400)
-    expect(totalFrames(pilotRlsScript)).toBeLessThanOrEqual(9000)
-  })
-
-  it('в каждой сцене есть реплики, и все они внутри своей сцены', () => {
-    expect(pilotRlsScript.scenes).toHaveLength(5)
-    for (const scene of pilotRlsScript.scenes) {
-      const start = sceneStart(pilotRlsScript, scene.id)
-      const end = start + scene.durationInFrames
-      const inside = pilotRlsScript.cues.filter((c) => c.from >= start && c.to <= end)
-      expect(inside.length, scene.id).toBeGreaterThan(0)
-    }
-    const inSomeScene = (from: number, to: number) =>
-      pilotRlsScript.scenes.some((s) => {
-        const start = sceneStart(pilotRlsScript, s.id)
-        return from >= start && to <= start + s.durationInFrames
-      })
-    expect(pilotRlsScript.cues.every((c) => inSomeScene(c.from, c.to))).toBe(true)
-  })
-
-  it('реплику успевают прочитать и произнести (не быстрее 15 знаков в секунду)', () => {
-    for (const c of pilotRlsScript.cues) expect(c.text.length / ((c.to - c.from) / 30), c.text).toBeLessThanOrEqual(15)
-  })
-
-  it('горячих точек ровно три, все в кадре', () => {
-    expect(pilotRlsScript.hotspots).toHaveLength(3)
+  it('горячих точек ровно три — запрос, подменённый номер, политика RLS, — все в кадре', () => {
+    expect(pilotRlsScript.hotspots.map((h) => h.title)).toEqual(['Запрос', 'client/18', 'Политика RLS'])
     for (const h of pilotRlsScript.hotspots) {
-      expect(h.x).toBeGreaterThanOrEqual(0)
-      expect(h.y).toBeGreaterThanOrEqual(0)
-      expect(h.x + h.w).toBeLessThanOrEqual(1280)
-      expect(h.y + h.h).toBeLessThanOrEqual(720)
+      expect(h.x, h.title).toBeGreaterThanOrEqual(0)
+      expect(h.y, h.title).toBeGreaterThanOrEqual(0)
+      expect(h.x + h.w, h.title).toBeLessThanOrEqual(1280)
+      expect(h.y + h.h, h.title).toBeLessThanOrEqual(720)
+    }
+  })
+
+  it('у каждой сцены есть переход и камера, которая хоть раз двигается', () => {
+    for (const s of pilotRlsScript.scenes) {
+      const { camera } = STAGING[s.id]
+      const spots = new Set(camera.map((k) => `${k.x} ${k.y} ${k.zoom}`))
+      expect(spots.size, s.id).toBeGreaterThan(1)
+    }
+  })
+
+  it('окна горячих точек — на неподвижных кадрах: камера стоит, переход сцены не идёт', () => {
+    for (const h of pilotRlsScript.hotspots) {
+      const scene = pilotRlsScript.scenes.find((s) => {
+        const start = sceneStart(pilotRlsScript, s.id)
+        return h.from >= start && h.to <= start + s.durationInFrames
+      })
+      expect(scene, h.title).toBeDefined()
+      const start = sceneStart(pilotRlsScript, scene!.id)
+      const keys = STAGING[scene!.id].camera
+      const still = cameraAt(h.from - start, keys)
+      for (let f = h.from; f < h.to; f++) expect(cameraAt(f - start, keys), `${h.title}, кадр ${f}`).toEqual(still)
+      expect(h.from - start, h.title).toBeGreaterThanOrEqual(TRANSITION_FRAMES)
+      expect(start + scene!.durationInFrames - h.to, h.title).toBeGreaterThanOrEqual(TRANSITION_FRAMES)
     }
   })
 })
