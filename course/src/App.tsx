@@ -1,13 +1,17 @@
 import { FigureDefs } from './components/FigureDefs'
+import { DayPage } from './pages/DayPage'
+import { MapPage } from './pages/MapPage'
+import { ProgressProvider } from './progress/ProgressContext'
+import { useRoute } from './router'
 
 export default function App() {
+  const route = useRoute()
   return (
-    <main className="shell">
-      <FigureDefs />
-      <header className="shell-head">
-        <h1>Вайб-кодинг: курс на 21 день</h1>
-        <p>По книге «Вайб-кодинг на практике»</p>
-      </header>
-    </main>
+    <ProgressProvider>
+      <main className="shell">
+        <FigureDefs />
+        {route.name === 'day' ? <DayPage key={route.n} n={route.n} /> : <MapPage />}
+      </main>
+    </ProgressProvider>
   )
 }
