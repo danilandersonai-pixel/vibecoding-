@@ -13,7 +13,8 @@
     "e2e": "playwright test",
     "lint": "oxlint",
     "extract:book": "node scripts/extract-book.mjs ../vibe-coding-na-praktike-2026-10.html content src/styles/figures.css",
-    "studio": "remotion studio video/index.ts"
+    "studio": "remotion studio video/index.ts",
+    "render:pilot": "node scripts/render-video.mjs pilot-rls out/pilot-rls.mp4"
   },
   "dependencies": {
     "@remotion/player": "4.0.537",

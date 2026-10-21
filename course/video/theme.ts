@@ -9,6 +9,8 @@ export const theme = {
   zone: 'rgba(28,30,34,.035)',
   accent: '#2B3FBF',
   accentTint: 'rgba(43,63,191,.12)',
+  alt: '#B7791F',
+  altTint: 'rgba(183,121,31,.12)',
   ok: '#2E7D5B',
   okTint: 'rgba(46,125,91,.12)',
   risk: '#C4432C',
