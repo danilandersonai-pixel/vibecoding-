@@ -1,3 +1,4 @@
+import { AiHelper } from '../blocks/AiHelper'
 import { DiagramBlock } from '../blocks/DiagramBlock'
 import { IdeaBlock } from '../blocks/IdeaBlock'
 import { Scenario } from '../blocks/Scenario'
@@ -19,6 +20,8 @@ export function BlockView({ block, dayId }: { block: Block; dayId: string }) {
       if (block.kind === 'prompt-builder') return <PromptBuilder block={block} dayId={dayId} />
       if (block.kind === 'find-the-bug') return <FindTheBug block={block} dayId={dayId} />
       return <SortTrainer block={block} dayId={dayId} />
+    case 'ai-helper':
+      return <AiHelper block={block} />
     default:
       return (
         <div className="block block-soon">

@@ -5,6 +5,16 @@ export type DocRef = { get(): Promise<DocSnapshot>; set(data: Record<string, unk
 export type DbLike = { doc(path: string): DocRef }
 export type UserLike = { id(): Promise<string | null> }
 
+export type SampleOptions = {
+  onText?: (u: { text: string; delta: string }) => void
+  signal?: AbortSignal
+  modelTier?: 'default' | 'complex' | 'quick'
+  cache?: boolean
+}
+export type SampleLike = ((input: string, opts?: SampleOptions) => Promise<{ text: string; truncated: boolean }>) & {
+  json(input: string, opts?: SampleOptions): Promise<unknown>
+}
+
 export type ClaudeLike = { use(name: string): Promise<unknown> }
 
 declare global {
