@@ -77,4 +77,25 @@ describe('useProgress', () => {
     await waitFor(() => expect(result.current.storeKind).toBe('claude'))
     expect(result.current.progress.days['day-01'].steps).toEqual({ s1: true, s2: true })
   })
+
+  it('после подключения базы прогресс продолжает сохраняться и в браузере', async () => {
+    const { db, writes } = fakeDb(markStep(emptyProgress(), 'day-01', 's1', true))
+    const user = { id: async () => 'u1' }
+    ;(window as { claude?: unknown }).claude = { use: async (name: string) => (name === 'db' ? db : name === 'user' ? user : null) }
+    const { result } = renderHook(() => useProgress())
+    await waitFor(() => expect(result.current.storeKind).toBe('claude'))
+    act(() => result.current.update((p) => markStep(p, 'day-01', 's3', true)))
+    await waitFor(() => expect(localStorage.getItem(KEY)).toContain('s3'), { timeout: 2000 })
+    expect(JSON.stringify(writes.at(-1)?.data)).toContain('s3')
+  })
+
+  it('при уходе со страницы сохраняет сразу, не дожидаясь задержки', async () => {
+    const { result } = renderHook(() => useProgress())
+    act(() => result.current.update((p) => markStep(p, 'day-01', 'last', true)))
+    expect(localStorage.getItem(KEY) ?? '').not.toContain('last')
+    act(() => {
+      window.dispatchEvent(new Event('pagehide'))
+    })
+    expect(localStorage.getItem(KEY)).toContain('last')
+  })
 })

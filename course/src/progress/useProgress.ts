@@ -30,6 +30,8 @@ export function useProgress(): { progress: Progress; update(fn: (p: Progress) =>
     // Одна запись за раз: правки, пришедшие во время записи, уходят следующей записью.
     do {
       again.current = false
+      // Браузер — зеркало и при подключённой базе: без неё человек увидит свежий прогресс, а не старый.
+      if (store.current !== boot) void boot.save(latest.current)
       try {
         await store.current.save(latest.current)
       } catch (e) {
@@ -37,17 +39,36 @@ export function useProgress(): { progress: Progress; update(fn: (p: Progress) =>
       }
     } while (again.current)
     saving.current = false
-  }, [])
+  }, [boot])
 
   useEffect(() => {
     latest.current = progress
     if (!dirty.current) return
     dirty.current = false
     clearTimeout(timer.current)
-    timer.current = setTimeout(() => void flush(), SAVE_DELAY_MS)
+    timer.current = setTimeout(() => {
+      timer.current = undefined
+      void flush()
+    }, SAVE_DELAY_MS)
   }, [progress, flush])
 
-  useEffect(() => () => clearTimeout(timer.current), [])
+  // Уход со страницы: несохранённое пишется сразу, не дожидаясь задержки.
+  useEffect(() => {
+    const now = () => {
+      if (timer.current === undefined) return
+      clearTimeout(timer.current)
+      timer.current = undefined
+      void flush()
+    }
+    const onVisibility = () => document.visibilityState === 'hidden' && now()
+    window.addEventListener('pagehide', now)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('pagehide', now)
+      document.removeEventListener('visibilitychange', onVisibility)
+      clearTimeout(timer.current)
+    }
+  }, [flush])
 
   useEffect(() => {
     const claude = getClaude()

@@ -32,6 +32,22 @@ describe('DaySchema', () => {
     expect(DaySchema.safeParse(day).success).toBe(false)
   })
 
+  it('отклоняет карточку сортировки с несуществующей корзиной', () => {
+    const day = clone(validDay)
+    const sort = day.blocks.find((b) => 'kind' in b && b.kind === 'sort')! as { items: { bucket: string }[] }
+    sort.items[0].bucket = 'нет-такой'
+    const r = DaySchema.safeParse(day)
+    expect(r.success).toBe(false)
+    expect(r.error!.issues.some((i) => i.path.includes('bucket'))).toBe(true)
+  })
+
+  it('отклоняет «найди ошибку» с номером строки за концом кода', () => {
+    const day = clone(validDay)
+    const bug = day.blocks.find((b) => 'kind' in b && b.kind === 'find-the-bug')! as { bugLines: number[]; lines: string[] }
+    bug.bugLines = [bug.lines.length]
+    expect(DaySchema.safeParse(day).success).toBe(false)
+  })
+
   it('принимает черновик только с обязательными полями', () => {
     const r = DaySchema.safeParse({ id: 'day-10', number: 10, week: 2, status: 'draft', title: 'Черновик', goal: 'Цель' })
     expect(r.success).toBe(true)

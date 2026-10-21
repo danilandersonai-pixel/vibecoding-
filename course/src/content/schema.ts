@@ -126,6 +126,17 @@ export const DaySchema = z
       }
     })
     day.blocks.forEach((b, i) => {
+      if (b.type === 'trainer' && b.kind === 'sort') {
+        const ids = new Set(b.buckets.map((x) => x.id))
+        b.items.forEach((it, j) => {
+          if (!ids.has(it.bucket)) ctx.addIssue({ code: 'custom', path: ['blocks', i, 'items', j, 'bucket'], message: `Нет корзины «${it.bucket}»` })
+        })
+      }
+      if (b.type === 'trainer' && b.kind === 'find-the-bug') {
+        b.bugLines.forEach((l, j) => {
+          if (l >= b.lines.length) ctx.addIssue({ code: 'custom', path: ['blocks', i, 'bugLines', j], message: `Строки ${l} нет в коде` })
+        })
+      }
       if (b.type !== 'scenario') return
       if (!b.nodes[b.start]) ctx.addIssue({ code: 'custom', path: ['blocks', i, 'start'], message: `Нет стартового узла «${b.start}»` })
       for (const [name, node] of Object.entries(b.nodes)) {
