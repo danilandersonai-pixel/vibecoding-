@@ -128,3 +128,28 @@
 .ai-review li{margin:4px 0}
 .is-ok-part strong{color:var(--fig-ok)}
 .is-weak-part strong{color:var(--fig-risk)}
+
+.btn-small{padding:3px 10px;font-size:.8rem}
+.copy{display:inline-flex;flex-direction:column;align-items:flex-end;gap:6px}
+.copy-manual{display:flex;flex-direction:column;gap:4px;width:min(100%,420px)}
+.copy-hint{font:500 .8rem/1.3 var(--font-ui);color:var(--warn)}
+.copy-manual textarea{width:100%;font:400 .82rem/1.5 var(--font-code);padding:6px 8px;border:1px solid var(--rule);border-radius:6px;background:var(--code-bg);color:var(--ink)}
+.practice-count{font:500 .85rem/1.4 var(--font-ui);color:var(--ink-soft);margin:0 0 8px}
+.practice-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.practice-step{border:1px solid var(--rule);border-radius:10px;padding:10px 14px}
+.practice-step.is-done{border-color:var(--fig-ok)}
+.practice-title{display:flex;gap:10px;align-items:flex-start;font:600 .98rem/1.4 var(--font-ui);cursor:pointer}
+.practice-title input{margin-top:.3em;width:18px;height:18px;flex:none;accent-color:var(--fig-ok)}
+.prompt-box{margin:10px 0 0;border-radius:8px;background:var(--code-bg);overflow:hidden}
+.prompt-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:6px 10px 0;font:600 .78rem/1.6 var(--font-ui);color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em}
+.prompt-head .copy{text-transform:none;letter-spacing:0}
+.prompt-box pre{margin:0;padding:6px 10px 10px;white-space:pre-wrap;word-break:break-word;font:400 .85rem/1.55 var(--font-code)}
+.practice-done{margin:8px 0 0;font:400 .88rem/1.45 var(--font-ui);color:var(--ink-soft)}
+.mentor h3{font-size:.98rem;margin:14px 0 6px}
+.mentor-command{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:8px 12px;border-radius:8px;background:var(--code-bg)}
+.mentor-command code{font-size:.95rem;padding-top:2px}
+.mentor-checklist,.mentor-questions{margin:0;padding-left:1.2em;font:400 .93rem/1.5 var(--font-ui)}
+.mentor-checklist li{margin:3px 0}
+.mentor-accept{display:flex;gap:10px;align-items:center;margin:16px 0 4px;padding:10px 14px;border:1px solid var(--rule);border-radius:10px;font:600 .95rem/1.3 var(--font-ui);cursor:pointer}
+.mentor-accept input{width:18px;height:18px;accent-color:var(--fig-ok)}
+.mentor-accept.is-on{border-color:var(--fig-ok);color:var(--fig-ok)}

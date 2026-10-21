@@ -1,5 +1,7 @@
 import { Cards } from '../blocks/Cards'
+import { MentorBlock } from '../blocks/MentorBlock'
 import { Notes } from '../blocks/Notes'
+import { Practice } from '../blocks/Practice'
 import { Quiz } from '../blocks/Quiz'
 import { BlockView } from '../components/BlockView'
 import { getDay } from '../content/load'
@@ -73,12 +75,12 @@ export function DayPage({ n }: { n: number }) {
 
       <section className="day-section" aria-labelledby="practice">
         <h2 id="practice">Практика</h2>
-        <Soon />
+        {day.practice.length ? <Practice dayId={day.id} steps={day.practice} /> : <Soon />}
       </section>
 
       <section className="day-section" aria-labelledby="mentor">
         <h2 id="mentor">Наставник</h2>
-        <Soon />
+        {day.mentor.checklist.length ? <MentorBlock day={day} /> : <Soon />}
       </section>
 
       <section className="day-section" aria-labelledby="summary">
