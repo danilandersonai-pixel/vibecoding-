@@ -114,6 +114,13 @@ export function beat(sceneId: string, i: number): number {
   return b
 }
 
+/** Длина сцены в кадрах. */
+export function sceneDuration(sceneId: string): number {
+  const s = built.scenes.find((x) => x.id === sceneId)
+  if (!s) throw new Error(`Нет сцены ${sceneId}`)
+  return s.durationInFrames
+}
+
 function abs(sceneId: string, frame: number): number {
   let start = 0
   for (const s of built.scenes) {

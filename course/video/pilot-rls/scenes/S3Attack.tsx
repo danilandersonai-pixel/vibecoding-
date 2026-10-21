@@ -6,9 +6,10 @@ import { Phone } from '../../actors/Phone'
 import { Server } from '../../actors/Server'
 import { theme } from '../../theme'
 import { DB_ROWS, L } from '../layout'
-import { beat } from '../script'
-import { Arrow, Label, Stage } from '../kit'
-import { useAppear, useTrack } from '../hooks'
+import { beat, sceneDuration } from '../script'
+import { KitScene } from '../../kit/KitScene'
+import { Arrow, Label } from '../../kit/parts'
+import { useAppear, useTrack } from '../../kit/hooks'
 import { PhoneScreen } from './S2Request'
 
 const ID = 's3-attack'
@@ -34,7 +35,7 @@ export function S3Attack() {
   const rowHi = frame >= b(3) && frame < b(7)
 
   return (
-    <Stage chip="3 / 5 · Подмена номера">
+    <KitScene chip="3 / 5 · Подмена номера" duration={sceneDuration(ID)}>
       <Hacker x={90} y={430} scale={0.6} label="Кто-то" enterAt={b(0)} />
       <Phone x={L.phone.x} y={L.phone.y}>
         <PhoneScreen tapAt={b(2)} listAt={b(5) + 70} list={['Олег: присед 90', 'Олег: вес 84 кг', 'Олег: колено']} listColor={theme.risk} />
@@ -73,6 +74,6 @@ export function S3Attack() {
         </Label>
       </g>
       <rect x={0} y={0} width={1280} height={720} fill={theme.risk} opacity={flash} />
-    </Stage>
+    </KitScene>
   )
 }

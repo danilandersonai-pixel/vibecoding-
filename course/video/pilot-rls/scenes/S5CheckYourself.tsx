@@ -1,9 +1,10 @@
 import { useCurrentFrame } from 'remotion'
 import { Phone } from '../../actors/Phone'
 import { theme } from '../../theme'
-import { beat } from '../script'
-import { Card, Label, Stage } from '../kit'
-import { useAppear } from '../hooks'
+import { beat, sceneDuration } from '../script'
+import { KitScene } from '../../kit/KitScene'
+import { Card, Label } from '../../kit/parts'
+import { useAppear } from '../../kit/hooks'
 
 const ID = 's5-check'
 const STEPS = ['Заведите второго пользователя', 'Войдите под ним', 'Откройте чужой адрес: client/17', 'Должно быть пусто']
@@ -18,7 +19,7 @@ export function S5CheckYourself() {
   const mentor = useAppear(b(5))
 
   return (
-    <Stage chip="5 / 5 · Проверьте у себя">
+    <KitScene chip="5 / 5 · Проверьте у себя" duration={sceneDuration(ID)}>
       <Label x={90} y={120} anchor="start" size={40} weight={700}>
         Проверка за 2 минуты
       </Label>
@@ -64,6 +65,6 @@ export function S5CheckYourself() {
           </text>
         </Card>
       </g>
-    </Stage>
+    </KitScene>
   )
 }

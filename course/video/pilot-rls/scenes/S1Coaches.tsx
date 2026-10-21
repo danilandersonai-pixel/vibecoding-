@@ -2,9 +2,10 @@ import { Client } from '../../actors/Client'
 import { Coach } from '../../actors/Coach'
 import { Database } from '../../actors/Database'
 import { theme } from '../../theme'
-import { beat } from '../script'
-import { Arrow, Label, Stage } from '../kit'
-import { useAppear } from '../hooks'
+import { beat, sceneDuration } from '../script'
+import { KitScene } from '../../kit/KitScene'
+import { Arrow, Label } from '../../kit/parts'
+import { useAppear } from '../../kit/hooks'
 
 const ID = 's1-coaches'
 const MARINA = ['Анна', 'Света', 'Катя']
@@ -20,7 +21,7 @@ export function S1Coaches() {
   const visible = Math.round(rowsIn * rows.length)
 
   return (
-    <Stage chip="1 / 5 · Одна база на всех">
+    <KitScene chip="1 / 5 · Одна база на всех" duration={sceneDuration(ID)}>
       <Coach x={250} y={170} color={theme.accent} label="Марина" enterAt={b(0)} />
       <Coach x={1030} y={170} color={theme.alt} label="Дима" enterAt={b(0) + 8} />
       {MARINA.map((n, i) => (
@@ -44,6 +45,6 @@ export function S1Coaches() {
           ?
         </text>
       </g>
-    </Stage>
+    </KitScene>
   )
 }

@@ -6,9 +6,10 @@ import { Phone } from '../../actors/Phone'
 import { Server } from '../../actors/Server'
 import { theme } from '../../theme'
 import { DB_ROWS, L } from '../layout'
-import { beat } from '../script'
-import { Arrow, Label, Stage } from '../kit'
-import { useAppear, useTrack } from '../hooks'
+import { beat, sceneDuration } from '../script'
+import { KitScene } from '../../kit/KitScene'
+import { Arrow, Label } from '../../kit/parts'
+import { useAppear, useTrack } from '../../kit/hooks'
 
 const ID = 's2-request'
 
@@ -58,7 +59,7 @@ export function S2Request() {
   const warn = useAppear(b(7))
 
   return (
-    <Stage chip="2 / 5 · Как ходит запрос">
+    <KitScene chip="2 / 5 · Как ходит запрос" duration={sceneDuration(ID)}>
       <Client x={90} y={430} scale={0.6} label="Анна" color={theme.accent} enterAt={b(0) - 10} />
       <Phone x={L.phone.x} y={L.phone.y}>
         <PhoneScreen tapAt={b(0) + 30} listAt={b(5)} list={['Жим 45 кг × 8', 'Присед 60 × 10', 'Тяга 70 × 6']} />
@@ -88,6 +89,6 @@ export function S2Request() {
           ✎ можно подменить
         </Label>
       </g>
-    </Stage>
+    </KitScene>
   )
 }

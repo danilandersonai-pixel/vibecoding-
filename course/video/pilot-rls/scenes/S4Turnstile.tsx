@@ -5,9 +5,10 @@ import { Packet } from '../../actors/Packet'
 import { Turnstile } from '../../actors/Turnstile'
 import { theme } from '../../theme'
 import { L } from '../layout'
-import { beat } from '../script'
-import { Card, Label, Stage } from '../kit'
-import { useAppear, useTrack } from '../hooks'
+import { beat, sceneDuration } from '../script'
+import { KitScene } from '../../kit/KitScene'
+import { Card, Label } from '../../kit/parts'
+import { useAppear, useTrack } from '../../kit/hooks'
 
 const ID = 's4-turnstile'
 const ROWS = [
@@ -40,7 +41,7 @@ export function S4Turnstile() {
   const gateFocus = frame >= b(4) && frame < b(5)
 
   return (
-    <Stage chip="4 / 5 · RLS — турникет у строки">
+    <KitScene chip="4 / 5 · RLS — турникет у строки" duration={sceneDuration(ID)}>
       <g opacity={dbIn}>
         <rect x={L.s4db.x - 170} y={L.s4rowsY[0] - 70} width={340} height={L.s4rowsY[2] - L.s4rowsY[0] + 140} rx={18} fill={theme.paper} stroke={theme.line} strokeWidth={3} />
         <Label x={L.s4db.x} y={L.s4rowsY[2] + 110} size={22}>
@@ -120,6 +121,6 @@ export function S4Turnstile() {
           правило в базе — для любого запроса
         </Label>
       </g>
-    </Stage>
+    </KitScene>
   )
 }
