@@ -10,6 +10,11 @@
       "type": "video",
       "videoId": "ch-03",
       "title": "Проблема 70%"
+    },
+    {
+      "type": "video",
+      "videoId": "ch-06",
+      "title": "Прототип за вечер"
     }
   ]
 }
