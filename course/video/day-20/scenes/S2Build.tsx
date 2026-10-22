@@ -34,6 +34,8 @@ export function S2Build() {
   // доска 1: что первым? места ступеней — после отъезда камеры (b(0) + 86)
   const what = appear(frame, b(0) + 30, 10) * (1 - appear(frame, b(3), 8))
   const laneSlot = [0, 1, 2, 3].map((i) => appear(frame, b(0) + 92 + i * 8, 10))
+  // свободные места на ступенях гаснут, когда все карточки сели (до окна точки «Очередь по тяжести»)
+  const cardSlots = 1 - appear(frame, b(5) + 60, 10)
   const example = useAppear(b(0) + 150)
   const headAt = [b(1) + 10, b(1) + 100, b(2) + 10, b(2) + 70]
 
@@ -100,8 +102,10 @@ export function S2Build() {
             </g>
           )
         })}
+        {/* беда Ксении: крестик в конце строки, «всё пропало» — под списком, текст строки не закрывает */}
         <g opacity={lost}>
-          <Pill x={L.x + L.w - 76} y={listRowTop(idx('save')) + 26} text="всё пропало" color={theme.risk} fill={theme.white} size={18} compact />
+          <Mark x={L.x + L.w - 28} y={listRowTop(idx('save')) + 26} ok={false} r={13} />
+          <Pill x={L.x + L.w / 2} y={L.y + S2_LIST_H + 28} text="Ксения: всё пропало" color={theme.risk} fill={theme.riskTint} size={18} compact />
         </g>
       </g>
 
@@ -115,7 +119,7 @@ export function S2Build() {
 
       {/* четыре ступени: места, заголовки — по реплике */}
       <g opacity={example}>
-        <Pill x={LN.x + LN.w - 150} y={62} text="ступени — наш пример" color={theme.soft} fill={theme.paper} size={18} compact />
+        <Pill x={LN.x + LN.w - 150} y={56} text="ступени — наш пример" color={theme.soft} fill={theme.paper} size={18} compact />
       </g>
       {LEVELS.map((lv, i) => {
         const y = laneY(i)
@@ -125,7 +129,7 @@ export function S2Build() {
             <g opacity={laneSlot[i] * (1 - on)}>
               <Slot x={LN.x} y={y} w={LN.head} h={LN.h} text={`ступень ${lv.n}`} />
             </g>
-            <g opacity={laneSlot[i]}>
+            <g opacity={laneSlot[i] * cardSlots}>
               {[0, 1].map((k) => {
                 const p = cardAt(i, k)
                 return <Slot key={k} x={p.x} y={p.y} w={C.w} h={C.h} color={theme.grid} />

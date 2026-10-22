@@ -41,8 +41,8 @@ function Dumbbell({ x, y, color }: { x: number; y: number; color: string }) {
 
 // Сцена 3 (подводный камень): «Исправь все шесть замечаний» одной задачей → утром один коммит на 23 файла,
 // без новых тестов → после выкладки у Полины тренировки съехали на день (такого в списке не было) →
-// поиск делением пополам приводит к этому коммиту, но не к правке внутри → у Ксении снова ошибка →
-// откат уносит все шесть правок, удачные тоже: «шаг вперёд — два назад».
+// это «шаг вперёд — два назад» → поиск делением пополам приводит к этому коммиту, но не к правке внутри →
+// у Ксении снова ошибка → откат уносит все шесть правок, а чинить всё равно по одному.
 export function S3All() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
@@ -68,14 +68,15 @@ export function S3All() {
   const shiftFrom = b(3) + 104
   const plusDay = useAppear(b(3) + 122)
   const polinaSay = useAppear(b(3) + 128)
-  const notListed = useAppear(b(3) + 160)
+  const notListed = useAppear(b(3) + 140)
+  const twoBack = useAppear(b(3) + 150)
 
   // поиск делением пополам → этот коммит; какая из шести?
   const bisectLabel = useAppear(b(4) + 6)
   const goodAt = [0, 1, 2, 3].map((i) => b(4) + 16 + i * 8)
   const badAt = b(4) + 56
   const thisOne = useAppear(b(4) + 76)
-  const which = BIG.fixes.map((_, i) => appear(frame, b(4) + 118 + i * 6, 8) * (1 - appear(frame, b(6) + 10, 8)))
+  const which = BIG.fixes.map((_, i) => appear(frame, b(4) + 118 + i * 6, 8))
 
   // у Ксении снова ошибка — главная беда осталась
   const kseniaSay = useAppear(b(5) + 30)
@@ -84,10 +85,8 @@ export function S3All() {
 
   // откат: уходят все шесть, удачные тоже
   const revert = useAppear(b(6) + 4)
-  const goodMarks = BIG.fixes.map((_, i) => appear(frame, b(6) + 16 + i * 4, 8))
   const strikeAt = BIG.fixes.map((_, i) => b(6) + 40 + i * 6)
   const alsoGood = useAppear(b(6) + 70)
-  const twoBack = useAppear(b(6) + 120)
 
   const agent = stepAt<AgentPose>(frame, [
     [0, 'idle'],
@@ -159,13 +158,10 @@ export function S3All() {
                 {f}
               </RowText>
             </g>
-            {i === SAVE ? (
+            {/* ✗ — только у сохранения: Ксения проверила; про остальные неизвестно */}
+            {i === SAVE && (
               <g opacity={bad}>
                 <Mark x={CM.x + CM.w - 40} y={y - 7} ok={false} r={13} />
-              </g>
-            ) : (
-              <g opacity={goodMarks[i]}>
-                <Mark x={CM.x + CM.w - 40} y={y - 7} ok r={13} />
               </g>
             )}
           </g>
@@ -253,10 +249,7 @@ export function S3All() {
         </g>
       ))}
       <g opacity={appear(frame, badAt, 8)}>
-        <circle cx={BS.x + 4 * BS.dx + 10} cy={BS.y} r={20} fill={theme.risk} />
-        <Label x={BS.x + 4 * BS.dx + 10} y={BS.y + 7} size={20} weight={800} color={theme.white}>
-          ?
-        </Label>
+        <circle cx={BS.x + 4 * BS.dx + 10} cy={BS.y} r={18} fill={theme.riskTint} stroke={theme.risk} strokeWidth={3} />
       </g>
       <g opacity={thisOne}>
         <Label x={BS.x + 4 * BS.dx + 40} y={BS.y + 7} anchor="start" size={20} weight={700} color={theme.risk}>
@@ -273,7 +266,7 @@ export function S3All() {
         <Pill x={S3.stayed.x} y={S3.stayed.y} text="главная беда осталась" color={theme.risk} fill={theme.riskTint} size={18} compact />
       </g>
       <g opacity={twoBack}>
-        <Pill x={S3.twoBack.x} y={S3.twoBack.y} text="шаг вперёд — два назад" color={theme.alt} fill={theme.altTint} size={20} compact />
+        <Pill x={S3.twoBack.x} y={S3.twoBack.y} text="шаг вперёд — два назад" color={theme.alt} fill={theme.altTint} size={18} compact />
       </g>
     </KitScene>
   )
