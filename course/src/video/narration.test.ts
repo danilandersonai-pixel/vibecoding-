@@ -45,6 +45,14 @@ describe('spokenText', () => {
     expect(spokenText('У Haiku, Sonnet и Opus 5.5')).toBe('У хайку, сонет и опус 5 5')
     expect(spokenText('3 × 10 → 30')).toBe('3 на 10, 30')
   })
+  it('ккал после числа — с верным окончанием', () => {
+    expect(spokenText('1 ккал')).toBe('1 килокалория')
+    expect(spokenText('21 ккал')).toBe('21 килокалория')
+    expect(spokenText('3 ккал')).toBe('3 килокалории')
+    expect(spokenText('12 ккал')).toBe('12 килокалорий')
+    expect(spokenText('111 ккал')).toBe('111 килокалорий')
+    expect(spokenText('1159 ккал')).toBe('1159 килокалорий')
+  })
   it('русский текст без латиницы не меняет, внутри слов не заменяет', () => {
     expect(spokenText('Анна сохранила подход.')).toBe('Анна сохранила подход.')
     expect(spokenText('Planner и APIs')).toBe('Planner и APIs')
