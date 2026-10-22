@@ -1,7 +1,7 @@
 import type { PlayerRef } from '@remotion/player'
 import { useEffect, useState, type RefObject } from 'react'
 import type { Cue } from '../../video/types'
-import { cueStarting, pickRussianVoice } from './narration'
+import { cueStarting, pickRussianVoice, spokenText } from './narration'
 
 function synth(): SpeechSynthesis | null {
   return typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis : null
@@ -35,7 +35,7 @@ export function useNarration(playerRef: RefObject<PlayerRef | null>, cues: Cue[]
       prev = detail.frame
       if (!cue) return
       s.cancel()
-      const u = new SpeechSynthesisUtterance(cue.text)
+      const u = new SpeechSynthesisUtterance(spokenText(cue.text))
       u.voice = voice
       u.lang = 'ru-RU'
       u.rate = 1.05
