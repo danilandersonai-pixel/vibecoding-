@@ -54,8 +54,8 @@ export function S5Task() {
   const keep = [appear(frame, b(1) + 6), appear(frame, b(1) + 26)]
   const keepTag = appear(frame, b(1) + 40)
   const blocked = interpolate(frame, [b(1) + 44, b(1) + 56], [0, 1], CLAMP)
-  // «тесты — договор» звучит в конце реплики; плашка под рамкой точки
-  const deal = appear(frame, b(1) + 110)
+  // плашка под рамкой точки: стоит до открытия окна «Права агента»
+  const deal = appear(frame, b(1) + 60)
 
   // доска 2: части записки
   const partAt = [b(2) + 30, b(3) + 10, b(4) + 10, b(5) + 10]
