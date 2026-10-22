@@ -8,6 +8,11 @@
   "blocks": [
     {
       "type": "video",
+      "videoId": "ch-05",
+      "title": "Читать код, который написал ИИ"
+    },
+    {
+      "type": "video",
       "videoId": "ch-04",
       "title": "Что остаётся человеку"
     }

@@ -3,6 +3,7 @@ import { ch01Script } from './ch-01/script'
 import { ch02Script } from './ch-02/script'
 import { ch03Script } from './ch-03/script'
 import { ch04Script } from './ch-04/script'
+import { ch05Script } from './ch-05/script'
 import { ch06Script } from './ch-06/script'
 import { ch12Script } from './ch-12/script'
 import { chAbcScript } from './ch-abc/script'
@@ -60,6 +61,12 @@ export const catalog: Record<string, CatalogEntry> = {
     kind: 'chapter',
     script: ch06Script,
     load: () => import('./ch-06/Video'),
+  },
+  'ch-05': {
+    title: 'Читать код, который написал ИИ',
+    kind: 'chapter',
+    script: ch05Script,
+    load: () => import('./ch-05/Video'),
   },
   'ch-04': {
     title: 'Что остаётся человеку',
