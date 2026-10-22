@@ -6,7 +6,7 @@ import type { Mood, Pose } from '../../actors/Person'
 import { KitScene } from '../../kit/KitScene'
 import { appear, CLAMP, trackAt } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
-import { Pill } from '../../kit/props'
+import { Pill, Slot } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { CYCLE, LIBRARY, S1, S1_CAL_H, S1_CAL_W, S1_LIB_H, S1_TABLE_H, S1_TPL_H, TEMPLATE } from '../layout'
@@ -113,21 +113,15 @@ export function S1Build() {
 
       {/* пунктирные места: шаблон, недели и календари */}
       <g opacity={slots * (1 - tplIn)}>
-        <rect x={T.x} y={T.y} width={T.w} height={S1_TPL_H} rx={12} fill="none" stroke={theme.grid} strokeWidth={3} strokeDasharray="10 8" />
-        <Label x={T.x + T.w / 2} y={T.y + S1_TPL_H / 2 + 8} size={22} weight={700} color={theme.line}>
-          шаблон
-        </Label>
+        <Slot x={T.x} y={T.y} w={T.w} h={S1_TPL_H} r={12} text="шаблон" />
       </g>
       {CYCLE.map((wk, i) => (
         <g key={wk.week} opacity={slots * (1 - appear(frame, weekAt[i]))}>
-          <rect x={W.x + i * (W.w + W.gap)} y={W.y} width={W.w} height={W.h} rx={10} fill="none" stroke={theme.grid} strokeWidth={3} strokeDasharray="8 6" />
+          <Slot x={W.x + i * (W.w + W.gap)} y={W.y} w={W.w} h={W.h} />
         </g>
       ))}
       <g opacity={slots * (1 - appear(frame, b(4) - 10))}>
-        <rect x={S1.anna.x - S1_CAL_W / 2} y={S1.cal.y} width={S1_CAL_W} height={S1_CAL_H} rx={12} fill="none" stroke={theme.grid} strokeWidth={3} strokeDasharray="10 8" />
-        <Label x={S1.anna.x} y={S1.cal.y + S1_CAL_H / 2 + 8} size={20} weight={700} color={theme.line}>
-          календарь
-        </Label>
+        <Slot x={S1.anna.x - S1_CAL_W / 2} y={S1.cal.y} w={S1_CAL_W} h={S1_CAL_H} r={12} text="календарь" />
       </g>
 
       {/* 1 · библиотека упражнений */}
@@ -226,7 +220,7 @@ export function S1Build() {
       <Table x={TB.exercises.x} y={TB.exercises.y} title="Упражнения" fields={['название', 'группа мышц']} at={tableAt[0]} />
       <Table x={TB.templates.x} y={TB.templates.y} title="Шаблоны" fields={['название', 'упражнения по неделям']} at={tableAt[1]} />
       <Table x={TB.workouts.x} y={TB.workouts.y} title="Тренировки" fields={['подопечный, дата', 'план — ?']} at={tableAt[2]} mark={1} markAt={b(6) + 20} />
-      <Table x={TB.sets.x} y={TB.sets.y} title="Подходы" fields={['тренировка', 'повторы, вес']} at={tableAt[3]} />
+      <Table x={TB.sets.x} y={TB.sets.y} title="Подходы" fields={['тренировка, упражнение', 'повторы, вес']} at={tableAt[3]} />
       <Arrow x1={TB.templates.x - 4} y1={TB.templates.y + S1_TABLE_H / 2} x2={TB.exercises.x + TW + 4} y2={TB.exercises.y + S1_TABLE_H / 2} color={theme.accent} draw={linkDraw} />
       <Arrow x1={TB.sets.x - 4} y1={TB.sets.y + S1_TABLE_H / 2} x2={TB.workouts.x + TW + 4} y2={TB.workouts.y + S1_TABLE_H / 2} color={theme.accent} draw={linkDraw} />
       <Arrow x1={TB.workouts.x + TW / 2} y1={TB.workouts.y - 4} x2={TB.templates.x + TW / 2} y2={TB.templates.y + S1_TABLE_H + 4} color={theme.alt} dashed draw={askDraw} />

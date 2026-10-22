@@ -5,7 +5,7 @@ import { Phone } from '../../actors/Phone'
 import { KitScene } from '../../kit/KitScene'
 import { appear, CLAMP } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
-import { Mark, PhoneScreen, Pill } from '../../kit/props'
+import { Mark, PhoneScreen, Pill, Slot } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { Diff, type DiffLine } from '../../kit/screens/Diff'
 import { Editor } from '../../kit/screens/Editor'
@@ -65,7 +65,7 @@ export function S3Check() {
   const fixAt = b(6) + 10
   const redAt = b(5) + 50
   const greenAt = b(6) + 40
-  const redOk = appear(frame, b(5) + 140) * interpolate(frame, [b(6) + 90, b(6) + 100], [1, 0], CLAMP)
+  const redOk = appear(frame, b(5) + 140) * (frame < greenAt ? 1 : 0)
   const greenOk = appear(frame, b(6) + 100)
   const agent = stepAt<AgentPose>(frame, [
     [0, 'idle'],
@@ -131,10 +131,7 @@ export function S3Check() {
         return (
           <g key={n.text}>
             <g opacity={slots * (1 - g)}>
-              <rect x={N.x - 125} y={n.y - 18} width={250} height={36} rx={18} fill="none" stroke={theme.grid} strokeWidth={2.5} strokeDasharray="8 6" />
-              <Label x={N.x} y={n.y + 7} size={20} weight={600} color={theme.line}>
-                {n.slot}
-              </Label>
+              <Slot x={N.x - 125} y={n.y - 18} w={250} h={36} r={18} text={n.slot} />
             </g>
             <g opacity={g}>
               <Pill x={N.x} y={n.y} w={250} text={n.text} color={theme.ok} fill={theme.okTint} size={20} compact />
@@ -160,16 +157,10 @@ export function S3Check() {
 
       {/* пунктирные места: поломка нарочно и прогон теста */}
       <g opacity={holders * (1 - appear(frame, breakAt - 6))}>
-        <rect x={S3.diff.x} y={S3.diff.y} width={S3.diff.w} height={diffHeight(2)} rx={12} fill="none" stroke={theme.grid} strokeWidth={3} strokeDasharray="10 8" />
-        <Label x={S3.diff.x + S3.diff.w / 2} y={S3.diff.y + diffHeight(2) / 2 + 8} size={22} weight={700} color={theme.line}>
-          поломка нарочно
-        </Label>
+        <Slot x={S3.diff.x} y={S3.diff.y} w={S3.diff.w} h={diffHeight(2)} r={12} text="поломка нарочно" />
       </g>
       <g opacity={holders * (1 - appear(frame, redAt - 6))}>
-        <rect x={S3.term.x} y={S3.term.y} width={S3.term.w} height={terminalHeight(TERM_RED.length)} rx={12} fill="none" stroke={theme.grid} strokeWidth={3} strokeDasharray="10 8" />
-        <Label x={S3.term.x + S3.term.w / 2} y={S3.term.y + terminalHeight(TERM_RED.length) / 2 + 8} size={22} weight={700} color={theme.line}>
-          прогон теста
-        </Label>
+        <Slot x={S3.term.x} y={S3.term.y} w={S3.term.w} h={terminalHeight(TERM_RED.length)} r={12} text="прогон теста" />
       </g>
 
       {/* поломка нарочно и возврат копии */}

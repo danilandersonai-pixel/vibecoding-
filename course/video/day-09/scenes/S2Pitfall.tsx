@@ -6,7 +6,7 @@ import type { Mood, Pose } from '../../actors/Person'
 import { KitScene } from '../../kit/KitScene'
 import { appear, CLAMP, trackAt } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
-import { Callout, Mark, Pill } from '../../kit/props'
+import { Callout, Mark, Pill, Slot } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { BOARD2, S2, S2_CARD_H, S2_TPL_H, TEMPLATE } from '../layout'
@@ -70,6 +70,8 @@ export function S2Pitfall() {
   const tplEditHi = appear(frame, b(6) + 10, 8)
   const tplEditStrike = interpolate(frame, [b(6) + 16, b(6) + 28], [0, 1], CLAMP)
   const tplEditAt = b(6) + 32
+  // после правки стрелка «копия» — уже прошлое: серая, а над тренировкой Анны — «сделана до правки»
+  const past = appear(frame, b(6) + 20)
   const newDraw = interpolate(frame, [b(6) + 50, b(6) + 66], [0, 1], CLAMP)
   const newCard = appear(frame, b(6) + 60)
   // пунктирные места: новое назначение (способ 1) и вопрос о будущих неделях
@@ -142,7 +144,7 @@ export function S2Pitfall() {
                   <g>
                     <rect x={x + 10} y={cy - R / 2 + 6} width={w - 20} height={R - 12} rx={8} fill={theme.riskTint} stroke={theme.risk} strokeWidth={2.5} strokeDasharray="8 6" />
                     <Label x={x + w / 2} y={cy + 7} size={20} weight={700} color={theme.risk}>
-                      подходы удалены
+                      Присед: подходы удалены
                     </Label>
                   </g>
                 ) : (
@@ -217,7 +219,7 @@ export function S2Pitfall() {
                   <g>
                     <rect x={T.x + 10} y={cy - R / 2 + 6} width={T.w - 20} height={R - 12} rx={8} fill="none" stroke={theme.risk} strokeWidth={2.5} strokeDasharray="8 6" />
                     <Label x={T.x + T.w / 2} y={cy + 7} size={20} weight={700} color={theme.risk}>
-                      удалено
+                      Присед — удалено
                     </Label>
                   </g>
                 ) : (
@@ -263,10 +265,15 @@ export function S2Pitfall() {
           {frame < tplEditAt && <Strike x={P1.x + C.left + 16} y={C.top + 74} w={100} draw={tplEditStrike} color={theme.alt} />}
         </MiniCard>
       </g>
-      <Arrow x1={P1.x + C.left + C.w + 4} y1={C.top + C.h / 2} x2={P1.x + C.right - 4} y2={C.top + C.h / 2} color={theme.accent} draw={copyDraw} />
+      <Arrow x1={P1.x + C.left + C.w + 4} y1={C.top + C.h / 2} x2={P1.x + C.right - 4} y2={C.top + C.h / 2} color={past > 0.5 ? theme.line : theme.accent} draw={copyDraw} />
       <g opacity={copyDraw}>
-        <Label x={P1.x + (C.left + C.w + C.right) / 2} y={C.top + C.h / 2 - 14} size={18} weight={700} color={theme.accent}>
+        <Label x={P1.x + (C.left + C.w + C.right) / 2} y={C.top + C.h / 2 - 14} size={18} weight={700} color={past > 0.5 ? theme.soft : theme.accent}>
           копия
+        </Label>
+      </g>
+      <g opacity={past}>
+        <Label x={P1.x + C.right + C.w / 2} y={C.top - 10} size={18} weight={700} color={theme.ok}>
+          сделана до правки
         </Label>
       </g>
       <g opacity={annaCopy}>
@@ -283,10 +290,7 @@ export function S2Pitfall() {
       </g>
       <Arrow x1={P1.x + C.left + C.w + 4} y1={C.top + C.h - 10} x2={P1.x + C.right - 4} y2={C.bottom + C.h / 2} color={theme.accent} draw={newDraw} />
       <g opacity={newSlot}>
-        <rect x={P1.x + C.right} y={C.bottom} width={C.w} height={C.h} rx={12} fill="none" stroke={theme.grid} strokeWidth={3} strokeDasharray="10 8" />
-        <Label x={P1.x + C.right + C.w / 2} y={C.bottom + C.h / 2 + 8} size={20} weight={700} color={theme.line}>
-          новое назначение
-        </Label>
+        <Slot x={P1.x + C.right} y={C.bottom} w={C.w} h={C.h} r={12} text="новое назначение" />
       </g>
       <g opacity={newCard}>
         <MiniCard x={P1.x + C.right} y={C.bottom} title="Новое назначение" color={theme.accent}>
@@ -313,10 +317,7 @@ export function S2Pitfall() {
 
       {/* способ 2: версии шаблона — сначала пунктирное место */}
       <g opacity={slot2}>
-        <rect x={P2.x} y={P2.y} width={P2.w} height={P2.h} rx={14} fill="none" stroke={theme.grid} strokeWidth={3} strokeDasharray="10 8" />
-        <Label x={P2.x + P2.w / 2} y={P2.y + P2.h / 2 + 8} size={22} weight={700} color={theme.line}>
-          способ 2
-        </Label>
+        <Slot x={P2.x} y={P2.y} w={P2.w} h={P2.h} r={14} text="способ 2" />
       </g>
       <g opacity={p2}>
         <rect x={P2.x} y={P2.y} width={P2.w} height={P2.h} rx={14} fill={theme.zone} stroke={theme.accent} strokeWidth={3} />
@@ -357,10 +358,7 @@ export function S2Pitfall() {
 
       {/* будущие недели Анны: решаете вы, ИИ предлагает варианты */}
       <g opacity={askSlot}>
-        <rect x={BOARD2 + 640 - 210} y={S2.question.y - 18} width={420} height={36} rx={18} fill="none" stroke={theme.grid} strokeWidth={2.5} strokeDasharray="8 6" />
-        <Label x={BOARD2 + 640} y={S2.question.y + 7} size={20} weight={600} color={theme.line}>
-          а будущие недели?
-        </Label>
+        <Slot x={BOARD2 + 640 - 210} y={S2.question.y - 18} w={420} h={36} r={18} text="а будущие недели?" />
       </g>
       <g opacity={ask}>
         <Pill x={BOARD2 + 640} y={S2.question.y} w={420} text="будущие недели Анны — как быть?" color={theme.alt} fill={theme.white} size={20} compact />

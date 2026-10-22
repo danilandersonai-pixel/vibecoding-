@@ -81,11 +81,11 @@ export const S1 = {
   // доска 2: модель данных — четыре таблицы
   tables: {
     exercises: { x: BOARD2 + 190, y: 120 },
-    templates: { x: BOARD2 + 540, y: 120 },
-    workouts: { x: BOARD2 + 540, y: 340 },
-    sets: { x: BOARD2 + 890, y: 340 },
+    templates: { x: BOARD2 + 520, y: 120 },
+    workouts: { x: BOARD2 + 520, y: 340 },
+    sets: { x: BOARD2 + 870, y: 340 },
   },
-  tableW: 290,
+  tableW: 300,
   // ИИ предлагает схему, решаете вы — слева от таблиц
   agent: { x: BOARD2 + 100, y: 210 },
   you: { x: BOARD2 + 100, y: 440 },
@@ -99,7 +99,7 @@ export const S1_CAL_H = S1.cal.head + 4 * (S1.cal.cellH + S1.cal.gap) + S1.cal.p
 // Библиотека, шаблон, цикл и календарь Анны — рамка горячей точки «Программа тренировок»
 export const PROGRAM_BOX: Rect = { x: 178, y: 86, w: 1010, h: 460 }
 // Четыре таблицы и связи между ними — рамка горячей точки «Модель данных»
-export const MODEL_BOX: Rect = { x: BOARD2 + 178, y: 108, w: 1014, h: 388 }
+export const MODEL_BOX: Rect = { x: BOARD2 + 178, y: 108, w: 1004, h: 388 }
 
 // ---- Сцена 2: правка шаблона переписывает историю (доска 1); копия и версии (доска 2) ----
 
