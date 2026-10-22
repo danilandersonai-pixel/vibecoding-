@@ -67,7 +67,7 @@ export function S6Accept() {
     [b(1) + 110, ['surprised', 'worried']],
     [b(2) + 10, ['think', 'neutral']],
     [b(2) + 30, ['think', 'worried']],
-    [b(2) + 96, ['stand', 'neutral']],
+    [b(2) + 150, ['stand', 'neutral']],
   ])
 
   return (

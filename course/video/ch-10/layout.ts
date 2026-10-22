@@ -47,8 +47,8 @@ export const S2 = {
   pr: { x: BOARD2 + 850, y: 330, w: 390, h: 130 },
   marina: { x: BOARD2 + 1045, y: 205 },
 }
-// Ступени агента рядом и в фоне со сценками и правилом под ними — рамка горячей точки
-export const STEPS_BOX: Rect = { x: 576, y: 64, w: 680, h: 492 }
+// Ступени агента рядом и в фоне со сценками и правилом под ними — рамка горячей точки (левее — карточка «Чат», её не задевает)
+export const STEPS_BOX: Rect = { x: 643, y: 64, w: 616, h: 492 }
 // Песочница с кругом и пул-реквест — рамка горячей точки
 export const LOOP_BOX: Rect = { x: BOARD2 + 22, y: 88, w: 1226, h: 440 }
 
@@ -81,7 +81,8 @@ export const S4 = {
 // Высота журнала: восемь строк действий
 export const JOURNAL_ROWS = 8
 export const JOURNAL_H = 40 + 16 * 2 + JOURNAL_ROWS * S4.row
-export const JOURNAL_BOX: Rect = { x: S4.journal.x - 8, y: S4.journal.y - 8, w: S4.journal.w + 16, h: JOURNAL_H + 16 }
+// журнал, бюджет и три плашки «что делать» под ним
+export const JOURNAL_BOX: Rect = { x: S4.journal.x - 8, y: S4.journal.y - 8, w: S4.journal.w + 16, h: S4.fixY + 18 + 8 - (S4.journal.y - 8) }
 export const TRAPS_BOX: Rect = { x: S4.cards.x - 8, y: S4.cards.y - 8, w: 3 * S4.cards.w + 2 * S4.cards.gap + 16, h: S4.cards.h + 16 }
 
 // Сцена 5: права агента (доска 1); записка из четырёх частей (доска 2); с чего начинать (доска 3).
@@ -104,13 +105,13 @@ export const NOTE_BOX: Rect = { x: S5.cards.x - 8, y: S5.cards.y - 8, w: 2 * S5.
 export const S6 = {
   pr: { x: 50, y: 90, w: 710, h: 440 },
   check: { x: 800, y: 90, w: 430, row: 54 },
-  marina: { x: 1015, y: 430 },
+  marina: { x: 1015, y: 445 },
   phone1: { x: BOARD2 + 170, y: 300 },
   phone2: { x: BOARD2 + 470, y: 300 },
   chat: { x: BOARD2 + 660, y: 96, w: 580 },
 }
 export const S6_CHECK_H = 70 + 4 * S6.check.row
-export const ACCEPT_BOX: Rect = { x: S6.pr.x - 8, y: S6.pr.y - 8, w: S6.check.x + S6.check.w - S6.pr.x + 16, h: S6.pr.h + 16 }
+export const ACCEPT_BOX: Rect = { x: S6.pr.x - 8, y: S6.pr.y - 8, w: S6.check.x + S6.check.w - S6.pr.x + 16, h: S6.pr.h + 26 }
 
 // Сцена 7: семь возможностей Claude Code (доска 1); итог — путь задачи от Марины к агенту и обратно (доска 2).
 export const S7 = {

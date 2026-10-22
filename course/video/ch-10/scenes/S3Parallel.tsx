@@ -8,7 +8,7 @@ import { Mono, Window } from '../../kit/screens/Window'
 import { theme } from '../../theme'
 import { S3 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { Folder, Laptop, Pulse } from './parts'
+import { Folder, Laptop } from './parts'
 
 const ID = 's3-parallel'
 const CD = S3.cards
@@ -43,8 +43,8 @@ export function S3Parallel() {
 
   // доска 1: агенты и выбор одного
   const nameAt = (r: number, i: number) => b(0) + 14 + (r * 4 + i) * 10
-  const dim = interpolate(frame, [b(0) + 96, b(0) + 110], [1, 0.35], CLAMP)
-  const pick = appear(frame, b(0) + 112)
+  const dim = interpolate(frame, [b(0) + 100, b(0) + 114], [1, 0.35], CLAMP)
+  const pick = appear(frame, b(0) + 150)
 
   // три карточки и Cloud
   const cardAt = PLACES.map((_, i) => b(1) + 24 + i * 26)
@@ -57,7 +57,9 @@ export function S3Parallel() {
   const app = b(3) - 24
   const itemAt = [app + 10, b(3) + 50]
   const panelAt = [b(3) + 24, b(4) + 14]
+  // Worktree: сначала в боковой панели, потом папки-копии в панелях
   const tree = appear(frame, b(4) + 84)
+  const folders = appear(frame, b(4) + 130)
   const okAt = [b(5) + 16, b(5) + 44]
   // первая сессия заканчивает работу перед проверкой, вторая уже готова
   const doneAt = [b(5) + 4, b(3) + 120]
@@ -222,7 +224,7 @@ export function S3Parallel() {
                   {i === 0 ? `${s.diff}  +${added} −2` : s.diff}
                 </Mono>
                 {/* своя копия проекта */}
-                <g opacity={tree}>
+                <g opacity={folders}>
                   <Folder x={px + 20} y={py + 206} color={theme.ok} />
                   <text x={px + 78} y={py + 232} fill={theme.ok} style={{ font: `600 20px ${theme.font}` }}>
                     своя копия проекта
@@ -248,9 +250,11 @@ export function S3Parallel() {
           return <Arrow key={i} x1={cx} y1={A.y + A.h + 6} x2={mergeX + (i === 0 ? -130 : 130)} y2={S3.mergeY - 16} color={theme.ok} />
         })}
         <Pill x={mergeX} y={S3.mergeY} w={340} text="объединить — после проверки" color={theme.ok} fill={theme.okTint} size={20} compact />
+      </g>
+      {/* галочка «можно объединять» — вне рамки точки, кадр не стоит */}
+      <g opacity={appear(frame, b(5) + 118)}>
         <Mark x={mergeX + 196} y={S3.mergeY} ok r={14} />
       </g>
-      <Pulse x={mergeX + 196} y={S3.mergeY} r={14} frame={frame} from={b(5) + 90} color={theme.ok} />
     </KitScene>
   )
 }

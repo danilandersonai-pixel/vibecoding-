@@ -10,7 +10,7 @@ import { stepAt, typed } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { PERMS_H, S5 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { Clock, DbIcon, Pulse } from './parts'
+import { Clock, DbIcon } from './parts'
 
 const ID = 's5-task'
 const P = S5.perms
@@ -54,7 +54,8 @@ export function S5Task() {
   const keep = [appear(frame, b(1) + 6), appear(frame, b(1) + 26)]
   const keepTag = appear(frame, b(1) + 40)
   const blocked = interpolate(frame, [b(1) + 44, b(1) + 56], [0, 1], CLAMP)
-  const deal = appear(frame, b(1) + 66)
+  // «тесты — договор» звучит в конце реплики; плашка под рамкой точки
+  const deal = appear(frame, b(1) + 110)
 
   // доска 2: части записки
   const partAt = [b(2) + 30, b(3) + 10, b(4) + 10, b(5) + 10]
@@ -231,7 +232,10 @@ export function S5Task() {
         )
       })}
 
-      <Pulse x={partBox(3).x + 38} y={partBox(3).y + 78} r={12} frame={frame} from={b(5) + 90} color={theme.risk} />
+      {/* под запиской (вне рамки точки): чем закончить запрос, как в книге */}
+      <g opacity={appear(frame, b(5) + 120)}>
+        <Pill x={C.x + C.w + C.gap / 2} y={C.y + C.h1 + C.gap + C.h2 + 32} w={548} text="в конце — отчёт: что сделано и как проверить руками" color={theme.accent} fill={theme.accentTint} size={18} compact />
+      </g>
 
       {/* доска 3: с чего начать */}
       <g opacity={low}>

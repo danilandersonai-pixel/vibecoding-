@@ -11,7 +11,7 @@ import { Mono } from '../../kit/screens/Window'
 import { theme } from '../../theme'
 import { JOURNAL_ROWS, S4 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { Journal, Pulse, type JournalRow } from './parts'
+import { Journal, type JournalRow } from './parts'
 
 const ID = 's4-stuck'
 const PR = S4.pr
@@ -232,13 +232,11 @@ export function S4Stuck() {
           </Label>
         </g>
         <g opacity={obey}>
-          <Agent x={CD.x + CD.w + CD.gap + 86} y={CD.y + 280} scale={0.5} label="" pose={frame >= b(6) + 90 ? 'done' : 'working'} />
+          <Agent x={CD.x + CD.w + CD.gap + 86} y={CD.y + 280} scale={0.5} label="" pose={frame >= b(6) + 156 ? 'done' : 'working'} />
           <Mark x={CD.x + CD.w + CD.gap + 150} y={CD.y + 270} ok={false} r={16} />
           <Pill x={CD.x + CD.w + CD.gap + 258} y={CD.y + 270} w={150} text="послушался" color={theme.risk} fill={theme.riskTint} size={18} compact />
         </g>
       </g>
-
-      <Pulse x={CD.x + CD.w + CD.gap + 150} y={CD.y + 270} r={16} frame={frame} from={b(6) + 80} color={theme.risk} />
 
       {/* гора пул-реквестов */}
       <g opacity={appear(frame, cardAt[2] + 6)}>

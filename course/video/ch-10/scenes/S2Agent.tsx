@@ -10,7 +10,6 @@ import { stepAt } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { S2 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { Pulse } from './parts'
 
 const ID = 's2-agent'
 const ST = S2.steps
@@ -51,7 +50,7 @@ export function S2Agent() {
   const focus3 = interpolate(frame, [b(2) + 6, b(2) + 20], [1, 0.45], CLAMP)
   const taskAt = TASKS.map((_, i) => b(2) + 40 + i * 22)
   // фоновый агент закрывает задачи одну за другой, пока зритель читает правило
-  const taskDone = TASKS.map((_, i) => frame >= b(3) + 90 + i * 32)
+  const taskDone = TASKS.map((_, i) => frame >= b(3) + 140 + i * 14)
   const rule1 = appear(frame, b(3) + 14)
   const rule2 = appear(frame, b(3) + 30)
 
@@ -98,12 +97,12 @@ export function S2Agent() {
   const soloAgent = stepAt<AgentPose>(frame, [
     [0, 'idle'],
     [b(2) + 30, 'working'],
-    [b(3) + 154, 'done'],
+    [b(3) + 172, 'done'],
   ])
   const marina = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
     [b(5) + 40, ['think', 'neutral']],
-    [b(5) + 90, ['stand', 'happy']],
+    [b(5) + 156, ['stand', 'happy']],
   ])
 
   // путь «да»: от проверок вниз, под наблюдением — к пул-реквесту за рамкой
@@ -166,10 +165,10 @@ export function S2Agent() {
 
       {/* правило: критерий и тест заранее — в фон; неясно — рядом */}
       <g opacity={rule1}>
-        <Pill x={1085} y={S2.ruleY} w={350} text="есть критерий и тест → в фон" color={theme.ok} fill={theme.okTint} size={20} compact />
+        <Pill x={1095} y={S2.ruleY} w={312} text="есть критерий и тест → в фон" color={theme.ok} fill={theme.okTint} size={18} compact />
       </g>
       <g opacity={rule2}>
-        <Pill x={738} y={S2.ruleY} w={300} text="неясно, что нужно → рядом" color={theme.alt} fill={theme.altTint} size={20} compact />
+        <Pill x={790} y={S2.ruleY} w={282} text="неясно, что нужно → рядом" color={theme.alt} fill={theme.altTint} size={18} compact />
       </g>
 
       {/* доска 2: песочница */}
@@ -257,10 +256,9 @@ export function S2Agent() {
         </Card>
         <Mark x={S2.pr.x + S2.pr.w - 34} y={S2.pr.y + 34} ok r={15} />
       </g>
-      <Pulse x={S2.pr.x + S2.pr.w - 34} y={S2.pr.y + 34} r={15} frame={frame} from={b(5) + 80} color={theme.ok} />
       {frame >= b(5) + 20 && <Coach x={S2.marina.x} y={S2.marina.y} scale={0.7} label="Марина" enterAt={b(5) + 20} pose={marina[0]} mood={marina[1]} />}
       <g opacity={appear(frame, b(5) + 46)}>
-        <Callout x={S2.marina.x - 10} y={114} tx={S2.marina.x + 2} ty={S2.marina.y - 54} text={frame >= b(5) + 130 ? 'проверю утром' : 'решаю я'} color={theme.accent} />
+        <Callout x={S2.marina.x - 10} y={114} tx={S2.marina.x + 2} ty={S2.marina.y - 54} text={frame >= b(5) + 156 ? 'проверю утром' : 'решаю я'} color={theme.accent} />
       </g>
     </KitScene>
   )

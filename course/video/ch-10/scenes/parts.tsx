@@ -93,13 +93,6 @@ export function Journal({ x, y, w, row, rows, at, frame, mark }: { x: number; y:
   )
 }
 
-/** Пульс: кольцо расходится от (x, y) каждые period кадров, начиная с from — кадр живёт, схема не меняется. */
-export function Pulse({ x, y, r, frame, from, color = theme.accent, period = 40 }: { x: number; y: number; r: number; frame: number; from: number; color?: string; period?: number }) {
-  if (frame < from) return null
-  const p = ((frame - from) % period) / period
-  return <circle cx={x} cy={y} r={r + p * 26} fill="none" stroke={color} strokeWidth={3} opacity={(1 - p) * 0.8} />
-}
-
 /** Ноутбук с крышкой: open 1 — открыт, 0 — закрыт. (x, y) — середина основания. */
 export function Laptop({ x, y, open }: { x: number; y: number; open: number }) {
   const lid = 54 * open
