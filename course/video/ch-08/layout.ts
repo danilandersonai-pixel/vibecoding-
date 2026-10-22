@@ -86,8 +86,9 @@ export const S3 = {
   hacker: { x: BOARD2 + 650, y: 430 },
   study: { x: BOARD2 + 680, y: 140, cols: 5, rows: 4, w: 100, h: 54, gap: 14 },
   card: { x: BOARD3 + 180, y: 90, w: 660, h: 460, row: 72 },
-  agent: { x: BOARD3 + 1060, y: 420 },
-  ask: { x: BOARD3 + 1060, y: 190 },
+  agent: { x: BOARD3 + 1060, y: 440 },
+  // ваш вопрос агенту — в чате над ним
+  ask: { x: BOARD3 + 870, y: 110, w: 380 },
 }
 // Рамка горячей точки «Проверка пакета»: страница пакета
 export const PACKAGE_SPOT: Rect = { x: S3.card.x - 10, y: S3.card.y - 10, w: S3.card.w + 20, h: S3.card.h + 20 }
@@ -170,7 +171,7 @@ export const REVIEW_SPOT: Rect = { x: S6.cols.x - 10, y: S6.cols.y - 10, w: 3 * 
 // реальные провалы и права агента (доска 3), итог — поверх.
 export const S7 = {
   // восемь ворот в ряд, под ними — рельс, по которому едет изменение
-  gates: { y: 170, w: 136, h: 70, gap: 12, rail: 290 },
+  gates: { x: 51, y: 170, w: 142, h: 70, gap: 6, rail: 290 },
   flag: { x: 300, y: 400, w: 560, h: 130 },
   coaches: { x: BOARD2 + 100, y: 160, dx: 62, dy: 116 },
   monitor: { x: BOARD2 + 740, y: 100, w: 500, h: 250 },

@@ -195,7 +195,7 @@ export function S4Audit() {
       })}
       <g opacity={more}>
         <Label x={Q.x} y={S4.more.y} anchor="start" size={20} weight={500} color={theme.soft}>
-          ещё: что попадёт в журналы · права процесса · что изменилось вне задачи
+          плюс: пароли в журналах? лишние права? правки сверх задачи?
         </Label>
       </g>
 

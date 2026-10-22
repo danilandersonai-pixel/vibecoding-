@@ -73,9 +73,10 @@ export function S6Ci() {
   const caught = appear(frame, b(4) + 56)
   const testsAt = REGRESS.map((_, i) => b(4) + 40 + i * 16)
   const never = appear(frame, b(4) + 110)
-  const colAt = COLUMNS.map((_, i) => b(5) + 20 + i * 26)
-  // человеку — самое важное: его колонка выделяется под конец реплики
-  const human = appear(frame, b(5) + 150)
+  // колонки и их строки готовы к b(5) + 96, когда открывается горячая точка
+  const colAt = COLUMNS.map((_, i) => b(5) + 14 + i * 18)
+  // человеку — самое важное: его колонка выделяется, когда все строки на месте
+  const human = appear(frame, b(5) + 80)
 
   const status = (i: number): 'wait' | 'ok' | 'fail' => {
     if (frame < doneAt[i]) return 'wait'
@@ -235,7 +236,7 @@ export function S6Ci() {
               {c.title}
             </Label>
             {c.lines.map((line, j) => (
-              <Label key={line} x={x + 24} y={CO.y + 96 + j * 40} anchor="start" size={21} weight={500} opacity={appear(frame, colAt[i] + 10 + j * 10, 8)}>
+              <Label key={line} x={x + 24} y={CO.y + 96 + j * 40} anchor="start" size={21} weight={500} opacity={appear(frame, colAt[i] + 6 + j * 7, 8)}>
                 {line}
               </Label>
             ))}

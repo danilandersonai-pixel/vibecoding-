@@ -31,7 +31,7 @@ const FAILS = [
   ['Lovable, Moltbook', 'в Supabase выключен RLS'],
   ['s1ngularity · 2025', 'заражённый Nx искал секреты'],
   ['Cline · 2026', 'команда в тексте заявки'],
-  ['PocketOS · 2026', 'токен стёр диск и копии'],
+  ['PocketOS · 2026', 'агент стёр диск и копии'],
 ]
 const RECAP = ['о защите просим прямо', 'проверки в CI: тесты, сканеры, ревью', 'выпуск по шагам: флаг и канарейка', 'откат за минуты, агенту — минимум прав']
 // мониторинг: 60 последних замеров, новый — каждые 4 кадра
@@ -46,7 +46,7 @@ export function S7Rollout() {
   const frame = useCurrentFrame()
 
   // доска 1: ворота и изменение с незаметной ошибкой
-  const gateX = (i: number) => 54 + i * (GT.w + GT.gap)
+  const gateX = (i: number) => GT.x + i * (GT.w + GT.gap)
   const gateAt = GATES.map((_, i) => b(0) + i * 5)
   const passAt = GATES.map((_, i) => b(0) + 50 + i * 15)
   const pos = trackAt(
@@ -59,6 +59,8 @@ export function S7Rollout() {
 
   // доска 1: фича-флаг
   const flagIn = appear(frame, b(1) + 6)
+  // до реплики о флаге его место отмечено пунктиром, чтобы под воротами не было пусто
+  const flagSpot = appear(frame, b(0) + 40) * (1 - flagIn)
   const flagOn = interpolate(frame, [b(1) + 60, b(1) + 68, b(1) + 116, b(1) + 124], [0, 1, 1, 0], CLAMP)
   const noRelease = appear(frame, b(1) + 80)
 
@@ -76,7 +78,8 @@ export function S7Rollout() {
   const monitor = appear(frame, b(2) + 90)
 
   // доска 3: провалы и права агента
-  const failAt = FAILS.map((_, i) => b(5) + 30 + i * 10)
+  // все шесть историй на доске раньше, чем откроется горячая точка (b(5) + 80)
+  const failAt = FAILS.map((_, i) => b(5) + 26 + i * 8)
   const sandbox = appear(frame, b(5) + 100)
   const blocked = appear(frame, b(5) + 124)
   const vault = appear(frame, b(5) + 146)
@@ -127,14 +130,14 @@ export function S7Rollout() {
         return (
           <g key={g} opacity={appear(frame, gateAt[i], 10)}>
             <rect x={x} y={GT.y} width={GT.w} height={GT.h} rx={10} fill={passed ? theme.okTint : theme.paper} stroke={passed ? theme.ok : theme.line} strokeWidth={3} />
-            <Label x={x + GT.w / 2} y={GT.y + GT.h / 2 + 7} size={18} weight={700} color={i >= 5 ? theme.accent : theme.ink}>
+            <Label x={x + GT.w / 2} y={GT.y + GT.h / 2 + 7} size={18} weight={600} color={i >= 5 ? theme.accent : theme.ink}>
               {g}
             </Label>
           </g>
         )
       })}
       <g opacity={appear(frame, b(0) + 30)}>
-        <line x1={54} y1={GT.rail} x2={gateX(7) + GT.w} y2={GT.rail} stroke={theme.grid} strokeWidth={4} strokeDasharray="10 8" />
+        <line x1={GT.x} y1={GT.rail} x2={gateX(7) + GT.w} y2={GT.rail} stroke={theme.grid} strokeWidth={4} strokeDasharray="10 8" />
       </g>
       <g opacity={moving}>
         <rect x={pos.x - 96} y={GT.rail - 22} width={192} height={44} rx={10} fill={theme.paper} stroke={theme.accent} strokeWidth={3} />
@@ -150,7 +153,11 @@ export function S7Rollout() {
         <Pill x={gateX(6) + GT.w} y={GT.rail + 64} text="пусть заденет немногих" color={theme.accent} fill={theme.accentTint} compact />
       </g>
 
-      {/* доска 1: фича-флаг */}
+      {/* доска 1: фича-флаг — сначала пунктирное место, потом сам флаг */}
+      <g opacity={flagSpot}>
+        <rect x={S7.flag.x} y={S7.flag.y} width={S7.flag.w} height={S7.flag.h} rx={12} fill="none" stroke={theme.line} strokeWidth={3} strokeDasharray="10 8" />
+        <rect x={S7.flag.x + 24} y={S7.flag.y + 58} width={96} height={48} rx={24} fill={theme.grid} opacity={0.6} />
+      </g>
       <g opacity={flagIn}>
         <Card x={S7.flag.x} y={S7.flag.y} w={S7.flag.w} h={S7.flag.h} stroke={theme.accent} />
         <Label x={S7.flag.x + 24} y={S7.flag.y + 40} anchor="start" size={22} weight={700}>

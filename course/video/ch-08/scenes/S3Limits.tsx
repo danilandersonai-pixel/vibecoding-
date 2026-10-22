@@ -5,7 +5,7 @@ import type { Mood, Pose } from '../../actors/Person'
 import { KitScene } from '../../kit/KitScene'
 import { appear, CLAMP } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
-import { Callout, Mark, Pill } from '../../kit/props'
+import { Mark, Pill } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { AgentChat } from '../../kit/screens/AgentChat'
 import { Terminal, type TermLine } from '../../kit/screens/Terminal'
@@ -86,11 +86,12 @@ export function S3Limits() {
   const taken = frame >= b(4) + 50
   const squat = appear(frame, b(4) + 60)
 
-  // доска 3: страница пакета
+  // доска 3: страница пакета — четыре вопроса и штамп готовы к b(5) + 90, когда открывается горячая точка
   const card = appear(frame, b(5) + 14)
-  const rowAt = QUESTIONS.map((_, i) => b(5) + 46 + i * 18)
-  const stamp = appear(frame, b(5) + 126)
-  const ask = appear(frame, b(5) + 150)
+  const rowAt = QUESTIONS.map((_, i) => b(5) + 24 + i * 12)
+  const stamp = appear(frame, b(5) + 72)
+  // вы спрашиваете агента, откуда пакет
+  const askAt = b(5) + 50
 
   const bot = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
@@ -105,7 +106,7 @@ export function S3Limits() {
   ])
   const agent = stepAt<AgentPose>(frame, [
     [0, 'idle'],
-    [b(5) + 160, 'working'],
+    [b(5) + 84, 'working'],
   ])
 
   return (
@@ -240,10 +241,8 @@ export function S3Limits() {
       <g opacity={stamp} transform={`rotate(-5 ${CD.x + CD.w / 2} ${CD.y + CD.h - 40})`}>
         <Pill x={CD.x + CD.w / 2} y={CD.y + CD.h - 40} text="не устанавливать" color={theme.risk} fill={theme.riskTint} size={24} />
       </g>
-      {frame >= b(5) + 40 && <Agent x={S3.agent.x} y={S3.agent.y} scale={0.75} enterAt={b(5) + 40} pose={agent} />}
-      <g opacity={ask}>
-        <Callout x={S3.ask.x} y={S3.ask.y} tx={S3.agent.x} ty={S3.agent.y - 70} text="Дай ссылку на страницу пакета" color={theme.accent} />
-      </g>
+      {frame >= askAt && <AgentChat x={S3.ask.x} y={S3.ask.y} w={S3.ask.w} at={askAt} messages={[{ from: 'me', text: 'Откуда ты взял этот пакет? Покажи ссылку на его страницу' }]} />}
+      {frame >= b(5) + 30 && <Agent x={S3.agent.x} y={S3.agent.y} scale={0.75} enterAt={b(5) + 30} pose={agent} />}
     </KitScene>
   )
 }
