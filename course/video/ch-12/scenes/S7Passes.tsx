@@ -1,7 +1,8 @@
 import { interpolate, useCurrentFrame } from 'remotion'
+import { Actor } from '../../actors/Actor'
 import { Agent } from '../../actors/Agent'
 import { Packet } from '../../actors/Packet'
-import type { Mood, Pose } from '../../actors/Person'
+import { Person, type Mood, type Pose } from '../../actors/Person'
 import { Phone } from '../../actors/Phone'
 import { KitScene } from '../../kit/KitScene'
 import { appear, CLAMP, trackAt } from '../../kit/motion'
@@ -13,7 +14,7 @@ import { Mono, Window } from '../../kit/screens/Window'
 import { theme } from '../../theme'
 import { BOARD2, PHONE_FONT, PHONE_SCALE, S7 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { MiniPhone, Plate, You } from './parts'
+import { MiniPhone, Plate } from './parts'
 
 const ID = 's7-passes'
 const X2 = BOARD2
@@ -73,13 +74,15 @@ export function S7Passes() {
   const ripple = frame >= tapAt && frame < tapAt + 18 ? (frame - tapAt) / 18 : 0
   const fileY = (i: number) => S7.files.ys[i] + S7.files.h / 2
   const fx = S7.files.x + S7.files.w / 2
+  // пакет ждёт справа от карточки файла, чтобы не закрывать её подпись
+  const px = S7.files.x + S7.files.w + 70
   const packet = trackAt(frame, [
     [tapAt + 6, S7.phone.x + 40, S7.phone.y + 30],
-    [tapAt + 28, fx, fileY(0)],
-    [tapAt + 46, fx, fileY(0)],
-    [tapAt + 64, fx, fileY(1)],
-    [tapAt + 82, fx, fileY(1)],
-    [tapAt + 100, fx, fileY(2)],
+    [tapAt + 28, px, fileY(0)],
+    [tapAt + 46, px, fileY(0)],
+    [tapAt + 64, px, fileY(1)],
+    [tapAt + 82, px, fileY(1)],
+    [tapAt + 100, px, fileY(2)],
   ])
   const packetOn = frame >= tapAt + 6 && frame < tapAt + 112
   const packetOut = interpolate(frame, [tapAt + 102, tapAt + 112], [1, 0], CLAMP)
@@ -138,7 +141,9 @@ export function S7Passes() {
       <g opacity={byAi}>
         <Pill x={S7.agent.x} y={S7.agent.y - 90} text="код писал ИИ" color={theme.accent} fill={theme.paper} size={18} compact />
       </g>
-      <You x={S7.you.x} y={S7.you.y} scale={0.7} label="Вы" enterAt={b(0) + 70} pose={you[0]} mood={you[1]} />
+      <Actor x={S7.you.x} y={S7.you.y} scale={0.7} label="Вы" enterAt={b(0) + 70}>
+        <Person color={theme.soft} pose={you[0]} mood={you[1]} />
+      </Actor>
       <g opacity={doubt}>
         <Label x={S7.you.x + 54} y={S7.you.y - 64} size={44} weight={700} color={theme.risk}>
           ?

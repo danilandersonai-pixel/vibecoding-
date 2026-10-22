@@ -3,7 +3,7 @@ import { Actor, type ActorProps } from '../../actors/Actor'
 import { Person, type Mood, type Pose } from '../../actors/Person'
 import { theme } from '../../theme'
 
-// Детали сцен ролика «Своё приложение по образцу»: повар, «вы», тарелка, кастрюля, стена,
+// Детали сцен ролика «Своё приложение по образцу»: повар, тарелка, кастрюля, стена,
 // маленький телефон, звёзды отзыва. Общие детали (плашка, галочка, облако, окно браузера) — в kit/props.tsx.
 
 /** Повар — это вы: фигура в поварском колпаке. */
@@ -14,15 +14,6 @@ export function Chef({ pose, mood, ...props }: ActorProps & { pose?: Pose; mood?
       {/* колпак */}
       <path d="M-22 -70 L-22 -86 Q-38 -92 -30 -106 Q-24 -118 -10 -112 Q-2 -126 12 -116 Q28 -120 30 -104 Q38 -92 22 -86 L22 -70 Z" fill={theme.paper} stroke={theme.line} strokeWidth={3} strokeLinejoin="round" />
       <line x1={-22} y1={-78} x2={22} y2={-78} stroke={theme.line} strokeWidth={2} />
-    </Actor>
-  )
-}
-
-/** «Вы» — фигура без аксессуаров. */
-export function You({ pose, mood, ...props }: ActorProps & { pose?: Pose; mood?: Mood }) {
-  return (
-    <Actor {...props}>
-      <Person color={theme.soft} pose={pose} mood={mood} />
     </Actor>
   )
 }

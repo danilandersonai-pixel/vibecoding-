@@ -1,6 +1,7 @@
 import { interpolate, useCurrentFrame } from 'remotion'
+import { Actor } from '../../actors/Actor'
 import { Agent, type AgentPose } from '../../actors/Agent'
-import type { Mood, Pose } from '../../actors/Person'
+import { Person, type Mood, type Pose } from '../../actors/Person'
 import { Phone } from '../../actors/Phone'
 import { KitScene } from '../../kit/KitScene'
 import { appear, CLAMP, trackAt } from '../../kit/motion'
@@ -12,7 +13,7 @@ import { Checklist } from '../../kit/screens/Checklist'
 import { theme } from '../../theme'
 import { BOARD2, PHONE_FONT, PHONE_SCALE, S3 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { Stars, Wall, You } from './parts'
+import { Stars, Wall } from './parts'
 
 const ID = 's3-collect'
 const F = PHONE_FONT
@@ -230,7 +231,9 @@ export function S3Collect() {
         </Label>
       </g>
       <g opacity={people}>
-        <You x={S3.you.x} y={S3.you.y} scale={0.6} label="Вы" pose={you[0]} mood={you[1]} />
+        <Actor x={S3.you.x} y={S3.you.y} scale={0.6} label="Вы">
+          <Person color={theme.soft} pose={you[0]} mood={you[1]} />
+        </Actor>
         <Agent x={S3.agent.x} y={S3.agent.y} scale={0.6} pose={agent} />
       </g>
       {frame >= b(1) + 4 && (

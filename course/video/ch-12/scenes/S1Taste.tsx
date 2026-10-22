@@ -124,7 +124,7 @@ export function S1Taste() {
     [c3, S1.fwdY],
   ].map(([x, y], k) => ({ x, y, on: appear(frame, b(6) + 95 + k * 12, 8) }))
 
-    const midF = S1.fwdY + S1.boxH / 2
+  const midF = S1.fwdY + S1.boxH / 2
   const midR = S1.revY + S1.boxH / 2
   const W = S1.boxW
 
@@ -266,8 +266,8 @@ export function S1Taste() {
       <Arrow x1={c1 + W / 2} y1={S1.revY - 6} x2={c1 + W / 2} y2={S1.fwdY + S1.boxH + 8} color={theme.accent} draw={join} />
       {lens > 0 && (
         <g opacity={lens}>
-          <circle cx={lensX} cy={S1.revY + S1.boxH + 4} r={20} fill={theme.accentTint} stroke={theme.ink} strokeWidth={4} />
-          <line x1={lensX + 14} y1={S1.revY + S1.boxH + 18} x2={lensX + 28} y2={S1.revY + S1.boxH + 32} stroke={theme.ink} strokeWidth={7} strokeLinecap="round" />
+          <circle cx={lensX} cy={S1.revY + S1.boxH + 24} r={20} fill={theme.accentTint} stroke={theme.ink} strokeWidth={4} />
+          <line x1={lensX + 14} y1={S1.revY + S1.boxH + 38} x2={lensX + 28} y2={S1.revY + S1.boxH + 52} stroke={theme.ink} strokeWidth={7} strokeLinecap="round" />
         </g>
       )}
       {/* код эталона не нужен */}

@@ -16,7 +16,7 @@ export const S1 = {
   rest: { x: 40, y: 80, w: 600, h: 450 },
   home: { x: 680, y: 80, w: 560, h: 450 },
   chef: { x: 250, y: 380 },
-  chefHome: { x: 790, y: 420 },
+  chefHome: { x: 790, y: 452 },
   table: { x: 300, y: 412, w: 300 },
   plate: { x: 470, y: 400 },
   door: { x: 500, y: 150, w: 110, h: 190 },
