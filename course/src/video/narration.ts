@@ -63,6 +63,8 @@ const SAY: [RegExp, string][] = [
   [/\bCodex\b/g, 'кодекс'],
   [/\bAntigravity CLI\b/g, 'антигравити си-эл-ай'],
   [/\bJupyter\b/g, 'юпитер'],
+  [/\bCtrl \+ ;/g, 'контрол плюс точка с запятой'],
+  [/\/btw\b/g, 'би-ти-дабл-ю'],
   [/ЦКОКФ/g, 'цэ-ка-о-ка-эф'],
   [/\bCRUD\b/g, 'крад'],
   [/\bStack Overflow\b/g, 'стэк оверфлоу'],

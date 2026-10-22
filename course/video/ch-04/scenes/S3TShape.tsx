@@ -6,12 +6,11 @@ import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { appear, CLAMP } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
-import { Mark, Pill } from '../../kit/props'
+import { Callout, Mark, Pill } from '../../kit/props'
 import { grow, stepAt, typed } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { packRow, S3 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { Callout } from './parts'
 
 const ID = 's3-t-shape'
 const T = S3.tasks

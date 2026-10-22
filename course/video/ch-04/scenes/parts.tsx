@@ -1,6 +1,5 @@
 import { Actor, type ActorProps } from '../../actors/Actor'
 import { Person, type Mood, type Pose } from '../../actors/Person'
-import { Pill } from '../../kit/props'
 import { theme } from '../../theme'
 
 // Детали сцен ролика «Что остаётся человеку»: шахматная доска и фигуры, шахматист лицом влево,
@@ -69,19 +68,6 @@ export function Player({ pose, mood, ...props }: ActorProps & { pose?: Pose; moo
         <Person color={theme.soft} pose={pose} mood={mood} />
       </g>
     </Actor>
-  )
-}
-
-/** Реплика героя: плашка с текстом по центру (x, y) и указка к говорящему (tx, ty). */
-export function Callout({ x, y, tx, ty, text, color = theme.ink, fill = theme.white, size = 20 }: { x: number; y: number; tx: number; ty: number; text: string; color?: string; fill?: string; size?: number }) {
-  const h = size + 20
-  const from = ty > y ? y + h / 2 : y - h / 2
-  return (
-    <g>
-      <line x1={x + (tx - x) * 0.25} y1={from} x2={tx} y2={ty} stroke={color} strokeWidth={2.5} strokeLinecap="round" />
-      <circle cx={tx} cy={ty} r={4} fill={color} />
-      <Pill x={x} y={y} text={text} color={color} fill={fill} size={size} weight={600} />
-    </g>
   )
 }
 
