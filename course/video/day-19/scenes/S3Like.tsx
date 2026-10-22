@@ -172,7 +172,7 @@ export function S3Like() {
           const on = appear(frame, noteAt[i], 8)
           return (
             <g key={n.at}>
-              <g opacity={1 - on}>
+              <g opacity={1 - appear(frame, noteAt[i] - 8, 8)}>
                 <Slot x={J.x + 16} y={y - 25} w={J.w - 32} h={32} r={8} text="пометка" />
               </g>
               <g opacity={on}>
