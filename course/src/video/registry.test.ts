@@ -23,12 +23,12 @@ describe('реестр роликов', () => {
     }
   })
 
-  it('загрузка отдаёт компонент по умолчанию', async () => {
-    for (const [id, entry] of Object.entries(videos)) {
-      const mod = await entry.load()
-      expect(typeof mod.default, id).toBe('function')
-    }
-  })
+  // По тесту на ролик: код сцен компилируется при первой загрузке, и вместе 27 роликов
+  // не укладывались в общие 5 секунд, когда машина занята.
+  it.each(Object.keys(videos))('загрузка %s отдаёт компонент по умолчанию', async (id) => {
+    const mod = await videos[id].load()
+    expect(typeof mod.default).toBe('function')
+  }, 20_000)
 
   it('у пилота есть адрес MP4 в хранилище страницы', () => {
     expect(videos['pilot-rls'].mp4Url).toBe('/_blob/08c8f08ad24664e9822024a19eda61ef')
