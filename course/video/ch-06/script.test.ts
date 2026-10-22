@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { scriptProblems, stagingProblems } from '../kit/checks'
 import { sceneStart } from '../lib/timeline'
+import { CLIENTS } from './layout'
 import { ch06Script, STAGING } from './script'
 
 // Текст всех реплик сцены — для проверки, что названы нужные факты книги.
@@ -50,6 +51,15 @@ describe('сценарий ролика «Прототип за вечер»', (
 
   it('реплики помещаются в две строки субтитров', () => {
     for (const c of ch06Script.cues) expect(c.text.length, c.text).toBeLessThanOrEqual(92)
+  })
+
+  it('Олег — подопечный Димы: в списке Марины пропал Костя, Олега в репликах, точках и списке нет', () => {
+    const texts = [...ch06Script.cues.map((c) => c.text), ...ch06Script.hotspots.flatMap((h) => [h.title, h.text])]
+    for (const t of texts) expect(t, t).not.toContain('Олег')
+    expect(sceneText('s5-loop')).toContain('Марина находит Костю за пару секунд')
+    const names = CLIENTS.map((c) => c.name)
+    expect(names).not.toContain('Олег')
+    expect(names).toContain('Костя')
   })
 
   it('переходы и камера на месте, окна горячих точек — на неподвижных кадрах, вне переходов, выше субтитров', () => {

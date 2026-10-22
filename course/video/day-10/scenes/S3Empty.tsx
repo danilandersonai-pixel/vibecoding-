@@ -12,7 +12,7 @@ import { stepAt } from '../../kit/reveal'
 import { Terminal, type TermLine } from '../../kit/screens/Terminal'
 import { Mono } from '../../kit/screens/Window'
 import { theme } from '../../theme'
-import { ANNA_WEEK, LOG_H, OLEG_LB, OLEG_RECORD, REPORT3_H, ru, RULES, S3, toKg, volumeOf } from '../layout'
+import { ANNA_WEEK, LOG_H, KOSTYA_LB, KOSTYA_RECORD, REPORT3_H, ru, RULES, S3, toKg, volumeOf } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 
 const ID = 's3-empty'
@@ -23,12 +23,12 @@ const P = S3.patch
 
 // числа сцены — из данных и расчётов layout.ts
 const DEMO_WEEK = ANNA_WEEK.reduce((sum, d) => sum + volumeOf(d.sets), 0)
-const OLEG_KG = ru(toKg(OLEG_LB, 'lb'))
+const KOSTYA_KG = ru(toKg(KOSTYA_LB, 'lb'))
 const rowTop = (i: number) => L.y + L.head + i * L.row
 const R1 = R.y + R.head
 const R2 = R1 + R.rows[0]
 // тесты по правилам: сначала красные, после правки кода агентом — зелёные (строки не длиннее 40 знаков)
-const NAMES = ['пустой вес не сохраняется', `${OLEG_LB} фунтов ≈ ${OLEG_KG} кг`, 'подтягивания без кг']
+const NAMES = ['пустой вес не сохраняется', `${KOSTYA_LB} фунтов ≈ ${KOSTYA_KG} кг`, 'подтягивания без кг']
 const RED: TermLine[] = [{ text: 'npm test', kind: 'cmd' }, ...NAMES.map((n): TermLine => ({ text: `FAIL ${n}`, kind: 'err' })), { text: '0 passed, 3 failed', kind: 'err' }]
 const GREEN: TermLine[] = [{ text: 'npm test', kind: 'cmd' }, ...NAMES.map((n): TermLine => ({ text: `PASS ${n}`, kind: 'ok' })), { text: '3 passed, 0 failed', kind: 'ok' }]
 
@@ -55,7 +55,7 @@ export function S3Empty() {
   const nanMath = useAppear(b(2) + 10)
   const toR1 = appear(frame, b(2) + 60, 16)
   const broken1 = appear(frame, b(2) + 88, 10)
-  // Олег: фунты → «135 кг» → ложный рекорд
+  // Костя: фунты → «135 кг» → ложный рекорд
   const lb = useAppear(b(3) + 44)
   const fake = useAppear(b(3) + 150)
   const toR2 = appear(frame, b(4) + 6, 16)
@@ -82,7 +82,7 @@ export function S3Empty() {
     [0, ['think', 'worried']],
     [b(2) + 60, ['stand', 'worried']],
   ])
-  const oleg = stepAt<[Pose, Mood]>(frame, [
+  const kostya = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
     [b(3) + 60, ['point', 'neutral']],
     [b(4) + 30, ['think', 'worried']],
@@ -147,13 +147,13 @@ export function S3Empty() {
         </Mono>
       </g>
 
-      {/* Олег: 135 в зале с фунтами */}
+      {/* Костя: 135 в зале с фунтами */}
       <g opacity={appear(frame, rowAt[1], 10)}>
         <Label x={L.x + 24} y={rowTop(1) + 30} anchor="start" size={20} color={theme.soft} weight={600}>
-          Олег · жим
+          Костя · жим
         </Label>
         <Label x={L.x + 24} y={rowTop(1) + 68} anchor="start" size={26} weight={700}>
-          {`5 × ${OLEG_LB}`}
+          {`5 × ${KOSTYA_LB}`}
         </Label>
       </g>
       <g opacity={lb}>
@@ -161,19 +161,19 @@ export function S3Empty() {
       </g>
       <g opacity={fake}>
         <Label x={L.x + L.w - 24} y={rowTop(1) + 38} anchor="end" size={26} color={theme.risk} weight={800}>
-          {`${OLEG_LB} кг?`}
+          {`${KOSTYA_LB} кг?`}
         </Label>
       </g>
       <g opacity={real}>
         <Label x={L.x + L.w - 24} y={rowTop(1) + 72} anchor="end" size={20} color={theme.ok} weight={700}>
-          {`${OLEG_LB} фунтов ≈ ${OLEG_KG} кг`}
+          {`${KOSTYA_LB} фунтов ≈ ${KOSTYA_KG} кг`}
         </Label>
       </g>
 
-      {/* Олег: подтягивания без веса */}
+      {/* Костя: подтягивания без веса */}
       <g opacity={appear(frame, rowAt[2], 10)}>
         <Label x={L.x + 24} y={rowTop(2) + 30} anchor="start" size={20} color={theme.soft} weight={600}>
-          Олег · подтягивания
+          Костя · подтягивания
         </Label>
         <Label x={L.x + 24} y={rowTop(2) + 68} anchor="start" size={26} weight={700}>
           8 ×
@@ -206,7 +206,7 @@ export function S3Empty() {
             Анна · объём недели
           </Label>
           <Label x={R.x + 24} y={R2 + 32} anchor="start" size={20} color={theme.soft} weight={600}>
-            Олег · рекорд в жиме
+            Костя · рекорд в жиме
           </Label>
         </Card>
       </g>
@@ -229,31 +229,31 @@ export function S3Empty() {
         </Label>
         <Mark x={R.x + R.w - 44} y={R1 + 56} ok={false} r={16} />
       </g>
-      {/* строка Олега: 62,5 кг ✓ → 135 кг ✗, на деле ≈ 61,2 кг */}
+      {/* строка Кости: 62,5 кг ✓ → 135 кг ✗, на деле ≈ 61,2 кг */}
       <g opacity={demo * (1 - broken2)}>
         <Label x={R.x + 24} y={R2 + 70} anchor="start" size={30} color={theme.ok} weight={800}>
-          {`${ru(OLEG_RECORD)} кг`}
+          {`${ru(KOSTYA_RECORD)} кг`}
         </Label>
         <Mark x={R.x + R.w - 44} y={R2 + 54} ok r={16} />
       </g>
       <g opacity={broken2}>
         <Label x={R.x + 24} y={R2 + 70} anchor="start" size={30} color={theme.risk} weight={800}>
-          {`${OLEG_LB} кг`}
+          {`${KOSTYA_LB} кг`}
         </Label>
         <Pill x={R.x + 250} y={R2 + 60} text="новый рекорд?" color={theme.risk} fill={theme.riskTint} size={18} compact />
         <Mark x={R.x + R.w - 44} y={R2 + 54} ok={false} r={16} />
       </g>
       <g opacity={truth}>
         <Label x={R.x + 24} y={R2 + 104} anchor="start" size={20} color={theme.ok} weight={700}>
-          {`на деле ≈ ${OLEG_KG} кг < ${ru(OLEG_RECORD)} — рекорда нет`}
+          {`на деле ≈ ${KOSTYA_KG} кг < ${ru(KOSTYA_RECORD)} — рекорда нет`}
         </Label>
       </g>
       <Arrow x1={L.x + L.w + 6} y1={rowTop(0) + 40} x2={R.x - 8} y2={R1 + 52} color={theme.risk} draw={toR1} />
       <Arrow x1={L.x + L.w + 6} y1={rowTop(1) + 40} x2={R.x - 8} y2={R2 + 52} color={theme.risk} draw={toR2} />
       <Coach x={S3.marina.x} y={S3.marina.y} scale={0.6} label="Марина" enterAt={b(0) + 30} pose={marina[0]} mood={marina[1]} />
-      {/* кто что вписал: Анна — на своей записи, Олег — на своих */}
+      {/* кто что вписал: Анна — на своей записи, Костя — на своих */}
       <Client x={S3.anna.x} y={S3.anna.y} scale={0.55} label="Анна" enterAt={b(1) + 10} pose={anna[0]} mood={anna[1]} />
-      <Client x={S3.oleg.x} y={S3.oleg.y} scale={0.55} label="Олег" enterAt={b(3) + 10} pose={oleg[0]} mood={oleg[1]} />
+      <Client x={S3.kostya.x} y={S3.kostya.y} scale={0.55} label="Костя" enterAt={b(3) + 10} pose={kostya[0]} mood={kostya[1]} />
 
       {/* доска 2: правила решаете вы */}
       <g opacity={1 - rules}>

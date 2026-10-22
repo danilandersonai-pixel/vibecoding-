@@ -27,14 +27,14 @@ const CODE = ['объём = 0', 'для тренировки из недели:'
 // строки основной сессии; кадры их появления — в сцене, по репликам
 const MAIN_ROWS = ['читаю файлы…', 'пишу тесты…', 'работаю…']
 
-// Сцена 5: режим наставника. У Олега объём — ноль; Марина просит не чинить, а учить. ИИ задаёт наводящие
+// Сцена 5: режим наставника. У Кости (подопечного Марины) объём — ноль; Марина просит не чинить, а учить. ИИ задаёт наводящие
 // вопросы, причину Марина находит сама. Застряли трижды — подсказка, но не код; через полгода — понимание.
 // Мелкий вопрос — в побочный чат: основная работа идёт, разговор не засоряется.
 export function S5Mentor() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
 
-  // доска 1: код, ноль у Олега, просьба учить
+  // доска 1: код, ноль у Кости, просьба учить
   const result = useAppear(b(0) + 64)
   const ask = appear(frame, b(0) + 118) * (1 - appear(frame, b(3) + 70, 10))
   const found = useAppear(b(3) + 84)
@@ -112,7 +112,7 @@ export function S5Mentor() {
   const hl = { x: E.x + 3, y: E.y + BAR + EDITOR_PAD + 2 * LH }
   return (
     <KitScene chip="5 / 6 · Режим наставника" duration={sceneDuration(ID)} {...STAGING[ID]}>
-      {/* код подсчёта и ноль у Олега */}
+      {/* код подсчёта и ноль у Кости */}
       <Editor x={E.x} y={E.y} w={E.w} at={b(0) + 6} file="подсчёт объёма" lines={CODE} />
       <g opacity={highlight}>
         <rect x={hl.x} y={hl.y} width={E.w - 6} height={LH} fill={theme.altTint} />
@@ -122,7 +122,7 @@ export function S5Mentor() {
         <Mark x={E.x + E.w - 26} y={hl.y + LH / 2} ok r={13} />
       </g>
       <g opacity={result}>
-        <Pill x={S5.result.x} y={S5.result.y} text="Олег за неделю: 0 кг" color={theme.risk} fill={theme.riskTint} size={20} compact />
+        <Pill x={S5.result.x} y={S5.result.y} text="Костя за неделю: 0 кг" color={theme.risk} fill={theme.riskTint} size={20} compact />
       </g>
       <g opacity={ask}>
         <Callout x={360} y={386} tx={S5.marina.x + 22} ty={S5.marina.y - 50} text="Не чини — научи" color={theme.accent} fill={theme.accentTint} />

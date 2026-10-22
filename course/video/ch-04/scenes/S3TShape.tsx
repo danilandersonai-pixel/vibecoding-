@@ -184,7 +184,7 @@ export function S3TShape() {
           <line x1={C.x + 20} y1={C.y + 60} x2={C.x + C.w - 20} y2={C.y + 60} stroke={theme.grid} strokeWidth={2} />
           <circle cx={C.x + 34} cy={C.y + 92} r={7} fill={theme.risk} />
           <Label x={C.x + 52} y={C.y + 99} anchor="start" size={20} weight={600}>
-            Олег — вторник, четверг
+            Костя — вторник, четверг
           </Label>
           <circle cx={C.x + 34} cy={C.y + 132} r={7} fill={theme.ok} />
           <Label x={C.x + 52} y={C.y + 139} anchor="start" size={20} weight={600}>

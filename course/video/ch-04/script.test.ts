@@ -67,6 +67,12 @@ describe('сценарий ролика «Что остаётся человек
     for (const c of ch04Script.cues) expect(c.text.length, c.text).toBeLessThanOrEqual(96)
   })
 
+  it('Олег — подопечный Димы: ноль объёма у подопечного Марины Кости, Олега в репликах и точках нет', () => {
+    const texts = [...ch04Script.cues.map((c) => c.text), ...ch04Script.hotspots.flatMap((h) => [h.title, h.text])]
+    for (const t of texts) expect(t, t).not.toContain('Олег')
+    expect(sceneText('s5-mentor')).toContain('у марины подсчёт объёма за неделю даёт косте ноль')
+  })
+
   it('переходы и камера на месте, окна горячих точек — на неподвижных кадрах, вне переходов, выше субтитров', () => {
     expect(stagingProblems(ch04Script, STAGING)).toEqual([])
   })
