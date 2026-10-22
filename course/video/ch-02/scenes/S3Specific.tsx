@@ -6,7 +6,7 @@ import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { appear, CLAMP } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
-import { Mark, Pill } from '../../kit/props'
+import { Mark, Pill, Slot } from '../../kit/props'
 import { grow, stepAt, typed } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { S3 } from '../layout'
@@ -52,9 +52,11 @@ export function S3Specific() {
     [b(0) + 160, 'done'],
   ])
 
-  // доска 2: правила по репликам — строка, затем точная формулировка
-  const rowAt = [b(1) + 30, b(2) + 8, b(3) + 8, b(4) + 6, b(4) + 60]
-  const exactAt = [b(1) + 70, b(2) + 50, b(3) + 46, b(4) + 30, b(4) + 82]
+  // доска 2: подписанные места всех пяти правил уже стоят, когда камера туда едет (кадр не пустует);
+  // правила по репликам — строка, затем точная формулировка; пятое готово до окна горячей точки
+  const slots = useAppear(b(1) - 40)
+  const rowAt = [b(1) + 30, b(2) + 8, b(3) + 8, b(4) + 4, b(4) + 48]
+  const exactAt = [b(1) + 70, b(2) + 50, b(3) + 46, b(4) + 24, b(4) + 62]
 
   // доска 3: коллега читает запрос, спрашивает — дописываем ответ
   const doc = useAppear(b(5) + 6)
@@ -121,6 +123,21 @@ export function S3Specific() {
       </g>
       <Arrow x1={barX(MID) - 6} y1={midTop - 26} x2={Q.x + Q.w + 8} y2={Q.y + 117} color={theme.alt} draw={toGap} />
 
+      {/* доска 2: места пяти правил — слева правило, справа точная формулировка */}
+      {RULES.map((r, i) => {
+        const y = R.y + i * R.row
+        return (
+          <g key={r.title} opacity={slots}>
+            <g opacity={1 - appear(frame, rowAt[i], 6)}>
+              <Slot x={R.x + 4} y={y + 10} w={440} h={R.row - 20} text={`правило ${i + 1}`} />
+            </g>
+            <g opacity={1 - appear(frame, exactAt[i] - 6, 6)}>
+              <Slot x={R.x + 536} y={y + 14} w={R.w - 536} h={R.row - 28} text="точная формулировка" />
+            </g>
+          </g>
+        )
+      })}
+
       {/* доска 2: пять правил конкретности */}
       {RULES.map((r, i) => {
         const y = R.y + i * R.row
@@ -148,7 +165,7 @@ export function S3Specific() {
               <path d={`M${R.x + 470} ${cy} H${R.x + 520} m-12 -8 l12 8 l-12 8`} fill="none" stroke={theme.ok} strokeWidth={3} />
               <rect x={R.x + 536} y={y + 14} width={R.w - 536} height={R.row - 28} rx={10} fill={theme.okTint} stroke={theme.ok} strokeWidth={2} />
               <text x={R.x + 554} y={cy + 7} fill={theme.ink} style={{ font: `${r.mono ? 500 : 600} 20px ${r.mono ? theme.mono : theme.font}` }}>
-                {shown ? typed(r.exact, frame, exactAt[i], 36) : ''}
+                {shown ? typed(r.exact, frame, exactAt[i], 48) : ''}
               </text>
             </g>
           </g>

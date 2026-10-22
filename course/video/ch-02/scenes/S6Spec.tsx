@@ -6,7 +6,7 @@ import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { appear, CLAMP, trackAt } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
-import { Mark, Pill } from '../../kit/props'
+import { Mark, Pill, Slot } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { S6 } from '../layout'
@@ -39,6 +39,8 @@ const SECRETS = [
 const RECAP = ['ЦКОКФ — пять вопросов', 'конкретность', 'круги уточнений', 'вопросы перед стартом', 'план до кода', 'спецификация']
 const TASK_H = 62
 const TASK_GAP = 10
+// переезд задачи в столбец «Исполнение», кадров
+const MOVE = 16
 
 // Сцена 6: разработка от спецификации — спецификация (её утверждает человек), план, задачи в один коммит,
 // исполнение по одной с проверкой; пароли, ключи и личные данные в запрос не попадают; итог главы.
@@ -48,14 +50,20 @@ export function S6Spec() {
   const colX = (i: number) => ST.x + i * (ST.w + ST.gap)
 
   const stepAtF = STEPS.map((_, i) => b(0) + 12 + i * 16)
+  // под каждым шагом — подписанное место того, что там появится (кадр не пустует с первой реплики)
+  const slotIn = stepAtF.map((at) => appear(frame, at + 8))
+  const taskY = (i: number) => DY + i * (TASK_H + TASK_GAP)
+  const specIn = appear(frame, b(1) + 8)
   const specAt = SPEC.map((_, i) => b(1) + 18 + i * 16)
   const approved = useAppear(b(1) + 120)
   const planIn = useAppear(b(2) + 30)
   const planAt = PLAN.map((_, i) => b(2) + 44 + i * 18)
-  const taskIn = TASKS.map((_, i) => appear(frame, b(3) + 30 + i * 18))
-  // исполнение: задачи по одной переезжают в четвёртый столбец и получают галочку
-  const moveAt = TASKS.map((_, i) => b(4) + 16 + i * 48)
-  const doneAt = moveAt.map((at) => at + 30)
+  const taskAt = TASKS.map((_, i) => b(3) + 30 + i * 18)
+  const taskIn = taskAt.map((at) => appear(frame, at))
+  // исполнение: задачи по одной переезжают в четвёртый столбец и получают галочку;
+  // всё готово до окна горячей точки, и дальше схема стоит
+  const moveAt = TASKS.map((_, i) => b(4) + 4 + i * 20)
+  const doneAt = moveAt.map((at) => at + MOVE + 2)
   const active = stepAt(frame, [[0, -1], ...moveAt.map((at, i) => [at, i] as [number, number])])
 
   // доска 2: секреты зачёркнуты; итог
@@ -108,8 +116,28 @@ export function S6Spec() {
         )
       })}
 
+      {/* места под шагами: спецификация, план, три задачи и три места после проверки */}
+      <g opacity={slotIn[0] * (1 - appear(frame, b(1) + 8, 6))}>
+        <Slot x={colX(0)} y={DY} w={ST.w} h={DH} text="что должна уметь" />
+      </g>
+      <g opacity={slotIn[1] * (1 - appear(frame, b(2) + 30, 6))}>
+        <Slot x={colX(1)} y={DY} w={ST.w} h={DH} text="части и порядок работ" />
+      </g>
+      {TASKS.map((t, i) => (
+        <g key={t}>
+          <g opacity={slotIn[2] * (1 - appear(frame, taskAt[i], 6))}>
+            <Slot x={colX(2)} y={taskY(i)} w={ST.w} h={TASK_H} text={`задача ${i + 1}`} />
+          </g>
+          {frame < moveAt[i] + MOVE && (
+            <g opacity={slotIn[3] * (1 - appear(frame, moveAt[i], 6))}>
+              <Slot x={colX(3)} y={taskY(i)} w={ST.w} h={TASK_H} text="после проверки" />
+            </g>
+          )}
+        </g>
+      ))}
+
       {/* 1: спецификация — пишете с ИИ, правите и утверждаете сами */}
-      <g opacity={appear(frame, b(1) + 8)}>
+      <g opacity={specIn}>
         <Doc x={colX(0)} y={DY} w={ST.w} h={DH} color={theme.accent}>
           {SPEC.map((t, i) => (
             <Label key={t} x={colX(0) + 18} y={DY + 38 + i * 34} anchor="start" size={20} weight={500}>
@@ -135,16 +163,16 @@ export function S6Spec() {
 
       {/* 3 → 4: задачи по одному коммиту, исполнение по одной с проверкой */}
       {TASKS.map((t, i) => {
-        const y = DY + i * (TASK_H + TASK_GAP)
+        const y = taskY(i)
         const p = trackAt(frame, [
           [moveAt[i], colX(2), y],
-          [moveAt[i] + 24, colX(3), y],
+          [moveAt[i] + MOVE, colX(3), y],
         ])
         const done = appear(frame, doneAt[i], 8)
         const working = active === i && frame < doneAt[i]
         return (
           <g key={t} opacity={taskIn[i]}>
-            {frame >= moveAt[i] && <rect x={colX(2)} y={y} width={ST.w} height={TASK_H} rx={12} fill="none" stroke={theme.grid} strokeWidth={2} strokeDasharray="8 6" />}
+            {frame >= moveAt[i] && <Slot x={colX(2)} y={y} w={ST.w} h={TASK_H} r={12} color={theme.grid} />}
             <rect x={p.x} y={y} width={ST.w} height={TASK_H} rx={12} fill={done > 0 ? theme.okTint : theme.paper} stroke={working ? theme.alt : done > 0 ? theme.ok : theme.accent} strokeWidth={3} />
             <Label x={p.x + 18} y={y + 27} anchor="start" size={20} weight={700}>
               {t}
