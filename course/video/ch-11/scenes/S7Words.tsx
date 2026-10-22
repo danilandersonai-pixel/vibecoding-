@@ -46,7 +46,8 @@ export function S7Words() {
   const ask = appear(frame, b(0) + 40) * (1 - appear(frame, b(2) + 6))
   const guessAt = GUESSES.map((_, i) => b(0) + 100 + i * 16)
   const guessesOut = 1 - appear(frame, b(2) + 6)
-  const place = appear(frame, b(1) + 30) * (1 - appear(frame, b(1) + 170))
+  // пунктир места гаснет до окна горячей точки «Точные средства»
+  const place = appear(frame, b(1) + 30) * (1 - appear(frame, b(1) + 160))
   const tools = appear(frame, b(1) + 40)
   const slabAt = [b(1) + 120, b(1) + 140, b(1) + 160]
   const precise = appear(frame, b(2) + 16)

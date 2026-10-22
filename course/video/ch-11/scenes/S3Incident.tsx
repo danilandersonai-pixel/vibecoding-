@@ -9,9 +9,9 @@ import { appear, CLAMP } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
 import { Mark, PhoneScreen, Pill } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
-import { PHONE_FONT } from '../../kit/screens/layout'
+import { PHONE_FONT, PHONE_SCALE } from '../../kit/screens/layout'
 import { theme } from '../../theme'
-import { PHONE_SCALE, S3 } from '../layout'
+import { S3 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 import { Moon } from './parts'
 
@@ -37,7 +37,7 @@ const CHOICES = [
   { text: 'поправить', color: theme.alt, fill: theme.altTint },
   { text: 'отклонить', color: theme.risk, fill: theme.riskTint },
 ]
-const HABITS = ['Тесты', 'Записи: что и почему сделано', 'Проверка результата']
+const HABITS = ['Тесты', 'Записи: что сделали и зачем', 'Проверка результата']
 
 // Сцена 3: ночной сбой. Подходы не сохраняются — инцидент; дежурный агент собирает журналы, показатели
 // и свежие правки, строит гипотезу и присылает исправление пул-реквестом; решает Дима, на сбой пишут тест.

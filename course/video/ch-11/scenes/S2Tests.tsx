@@ -33,8 +33,8 @@ const REQ1B = ['Подход без повторов', 'и без секунд �
 const REQ2 = ['Вес меньше нуля —', 'ошибка']
 
 // Сцена 2: сопровождение — самая долгая часть жизни программы, рутина — агенту. Тест из требования
-// пишется до кода и меняется вместе с требованием; сквозной тест переживает новую вёрстку,
-// но поднимает тревогу, когда кнопка перестала сохранять.
+// пишется до кода и меняется вместе с требованием. Самовосстанавливающийся сквозной тест (новый вид
+// тестов, а не любой сквозной) переживает новую вёрстку, но поднимает тревогу, когда кнопка не сохраняет.
 export function S2Tests() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
@@ -64,8 +64,9 @@ export function S2Tests() {
   const green = [frame >= b(2) + 160, frame >= b(2) + 172]
   const toTests = appear(frame, b(2) + 92, 10)
   const order = appear(frame, b(2) + 150)
-  const ask = appear(frame, b(3) + 4) * (1 - appear(frame, b(3) + 110))
-  const hl = appear(frame, b(3) + 26) * (1 - appear(frame, b(3) + 120))
+  // пузырь и подсветка гаснут до окна горячей точки: в окне схема неподвижна
+  const ask = appear(frame, b(3) + 4) * (1 - appear(frame, b(3) + 76))
+  const hl = appear(frame, b(3) + 26) * (1 - appear(frame, b(3) + 76))
   const t1 = frame >= b(3) + 60 ? typed('без повторов и секунд → отказ', frame, b(3) + 60, 50) : 'без повторов → отказ'
   const t3 = appear(frame, b(3) + 74)
   const loop = appear(frame, b(3) + 40, 16)
@@ -81,10 +82,10 @@ export function S2Tests() {
     [b(2) + 24, ['point', 'neutral']],
     [b(2) + 170, ['stand', 'happy']],
     [b(3), ['point', 'neutral']],
-    [b(3) + 90, ['stand', 'happy']],
+    [b(3) + 84, ['stand', 'happy']],
   ])
 
-  // доска 3: сквозной тест жмёт кнопку; вёрстка меняется — тест находит кнопку; кнопка ломается — тревога
+  // доска 3: самовосстанавливающийся тест жмёт кнопку; вёрстка меняется — тест находит кнопку; кнопка ломается — тревога
   const relayout = interpolate(frame, [b(4) + 70, b(4) + 86], [0, 1], CLAMP)
   const btn = { x: 40, y: 300 + 30 * relayout, w: 280 + 340 * relayout, h: 52 }
   const cur = trackAt(frame, [
@@ -243,7 +244,7 @@ export function S2Tests() {
         </Label>
       </g>
 
-      {/* доска 3: сквозной тест в браузере */}
+      {/* доска 3: самовосстанавливающийся сквозной тест в браузере */}
       <Browser x={W.x} y={W.y} w={W.w} h={W.h} at={b(4) - 10} url="trener.app/log">
         <Label x={40} y={BAR + 50} anchor="start" size={24} weight={700}>
           Журнал · Анна
@@ -274,7 +275,7 @@ export function S2Tests() {
         </g>
       </Browser>
       <g opacity={appear(frame, b(4) + 14)}>
-        <Pill x={W.x + W.w / 2} y={W.y + W.h + 30} w={250} text="сквозной тест" color={theme.accent} fill={theme.accentTint} size={20} compact />
+        <Pill x={W.x + W.w / 2} y={W.y + W.h + 30} w={360} text="самовосстанавливающийся тест" color={theme.accent} fill={theme.accentTint} size={20} compact />
       </g>
       {/* места итогов прогонов — пунктиром */}
       {[b(4) + 112, b(4) + 160].map((out, i) => (

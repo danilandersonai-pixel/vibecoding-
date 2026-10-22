@@ -5,9 +5,6 @@
 export const BOARD2 = 1280
 export const BOARD3 = 2560
 
-// Телефон крупнее натуральной величины: текст экрана 12 px × 1,5 = 18 px в кадре (размеры общие для набора).
-export { PHONE_FONT, PHONE_SCALE } from '../kit/screens/layout'
-
 type Rect = { x: number; y: number; w: number; h: number }
 
 // Лестница уровней (сцены 1 и 7): три ступени слева направо, низ у всех — на земле.
@@ -15,7 +12,7 @@ export const GROUND = 548
 export const STEPS = [
   { x: 60, w: 380, top: 470, label: 'Машинный код', sub: 'понятен процессору' },
   { x: 440, w: 380, top: 360, label: 'Языки программирования', sub: 'людям легче' },
-  { x: 820, w: 380, top: 250, label: 'Обычная речь', sub: 'что нужно, а не как' },
+  { x: 820, w: 380, top: 250, label: 'Обычная речь', sub: 'результат, а не шаги' },
 ]
 // Где стоит Марина на каждой ступени (масштаб 0,75: ступни на 52 ниже центра)
 export const ON_STEP = STEPS.map((s) => ({ x: s.x + 56, y: s.top - 52 }))
@@ -38,18 +35,18 @@ export const S2 = {
   chores: { x: 110, y: 296, w: 250, h: 150, gap: 40 },
   agent: { x: 1090, y: 384 },
   marina: { x: BOARD2 + 80, y: 440 },
-  req: { x: BOARD2 + 150, y: 100, w: 380, h: 250 },
-  bot: { x: BOARD2 + 640, y: 250 },
-  tests: { x: BOARD2 + 750, y: 100, w: 480, h: 250 },
-  code: { x: BOARD2 + 750, y: 384, w: 480, h: 96 },
-  ask: { x: BOARD2 + 330, y: 386 },
+  req: { x: BOARD2 + 150, y: 114, w: 380, h: 250 },
+  bot: { x: BOARD2 + 640, y: 264 },
+  tests: { x: BOARD2 + 750, y: 114, w: 480, h: 250 },
+  code: { x: BOARD2 + 750, y: 398, w: 480, h: 96 },
+  ask: { x: BOARD2 + 330, y: 400 },
   order: { x: BOARD2 + 390, y: 520 },
-  loop: { y: 78 },
+  loop: { y: 94 },
   browser: { x: BOARD3 + 70, y: 100, w: 700, h: 400 },
   results: { x: BOARD3 + 820, y: 130, w: 410, h: 150, gap: 30 },
 }
-// Рамка горячей точки «Тесты из требований»: требования, агент, тесты и код
-export const TESTS_SPOT: Rect = { x: S2.req.x - 14, y: 52, w: S2.tests.x + S2.tests.w - S2.req.x + 28, h: 494 }
+// Рамка горячей точки «Тесты из требований»: требования, агент, тесты, код и петля над ними (ниже плашки сцены)
+export const TESTS_SPOT: Rect = { x: S2.req.x - 14, y: 64, w: S2.tests.x + S2.tests.w - S2.req.x + 28, h: 482 }
 
 // Сцена 3: ночь, телефон Анны, сервер и дежурный агент с тремя источниками (доска 1);
 // гипотеза, пул-реквест, решение Димы, тест и риск (доска 2); привычки — поверх.
@@ -115,7 +112,7 @@ export const S5 = {
   manager: { x: BOARD2 + 1000, y: 494 },
 }
 // Рамка горячей точки «Проект с агентами»: весь путь от переписки до проверки
-export const PM_SPOT: Rect = { x: 20, y: 90, w: 1240, h: 434 }
+export const PM_SPOT: Rect = { x: 20, y: 90, w: 1240, h: 446 }
 
 // Сцена 6: лестница ролей и основа под ней (доска 1); горизонт задач и узкое место (доска 2).
 export const S6 = {
@@ -132,8 +129,10 @@ export const S6 = {
   sun: { morning: { x: 470, y: 200 }, day: { x: 560, y: 110 } },
   chart: { x: BOARD2 + 50, y: 90, w: 740, h: 420 },
   axis: { x0: BOARD2 + 100, x1: BOARD2 + 760, y: 430, top: 180 },
-  bars: { xs: [BOARD2 + 150, BOARD2 + 260, BOARD2 + 370, BOARD2 + 435, BOARD2 + 500], hs: [16, 32, 64, 128, 240], w: 34, next: BOARD2 + 565 },
+  bars: { xs: [BOARD2 + 150, BOARD2 + 260, BOARD2 + 370, BOARD2 + 435, BOARD2 + 500], hs: [16, 32, 64, 128, 256], w: 34, next: BOARD2 + 565 },
   funnel: { x: BOARD2 + 1035, top: 210, neck: 330, wTop: 360, wNeck: 90 },
+  // агент смотрит на график, пока не дошло до узкого места
+  watcher: { x: BOARD2 + 1035, y: 350 },
   learn: { x: BOARD2 + 1035, y: 516 },
 }
 // Рамки горячих точек «Горизонт задач» (график) и «Что, вероятно, нас ждёт» (узкое место)

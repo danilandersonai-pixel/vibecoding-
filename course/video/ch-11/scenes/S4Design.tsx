@@ -9,9 +9,9 @@ import { appear } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
 import { Mark, PhoneScreen, Pill } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
-import { PHONE_FONT } from '../../kit/screens/layout'
+import { PHONE_FONT, PHONE_SCALE } from '../../kit/screens/layout'
 import { theme } from '../../theme'
-import { PHONE_SCALE, S4 } from '../layout'
+import { S4 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 import { Keycap, MiniScreen, Sketch, type ScreenKind } from './parts'
 
@@ -72,8 +72,9 @@ export function S4Design() {
   const keys = appear(frame, b(2) + 120)
   const personaA = appear(frame, b(2) + 46)
   const personaM = appear(frame, b(2) + 90)
-  const which = appear(frame, b(3) + 20)
-  const risk = appear(frame, b(3) + 40)
+  // плашка рисков на месте до окна горячей точки
+  const which = appear(frame, b(3) + 16)
+  const risk = appear(frame, b(3) + 28)
 
   // доска 3: варианты, выбирает Марина
   const varAt = VARIANTS.map((_, i) => b(4) + 26 + i * 10)
@@ -237,7 +238,7 @@ export function S4Design() {
         <Pill x={S4.choose.x} y={S4.choose.y} w={240} text="выбираете вы" color={theme.ok} fill={theme.okTint} size={22} />
       </g>
       <g opacity={taste}>
-        <Pill x={S4.taste.x} y={S4.taste.y} w={520} text="вкус и чувство удобства — за человеком" color={theme.accent} size={20} compact />
+        <Pill x={S4.taste.x} y={S4.taste.y} w={500} text="вкус и чутьё на удобство — у человека" color={theme.accent} size={20} compact />
       </g>
     </KitScene>
   )

@@ -1,4 +1,5 @@
 import { interpolate, useCurrentFrame } from 'remotion'
+import { Agent } from '../../actors/Agent'
 import { Coach } from '../../actors/Coach'
 import type { Mood, Pose } from '../../actors/Person'
 import { KitScene } from '../../kit/KitScene'
@@ -21,6 +22,8 @@ const CH = S6.chart
 // где стоит Дима на каждой роли (масштаб 0,65: ступни на 45 ниже центра)
 const SPOT = R.map((r) => ({ x: r.x + 56, y: r.top - 45 }))
 const CODE = ['if (reps > 0)', '  save(set)']
+// продолжение линии выше последнего столбика: следующее удвоение не помещается в график
+const GUESS_H = S6.bars.hs[4] + 28
 
 // Сцена 6: роль разработчика меняется — автор, редактор, постановщик, оркестратор; в один день Дима
 // и автор, и оркестратор; основа неизменна. Горизонт задач METR растёт, продолжение линии — не гарантия;
@@ -60,13 +63,17 @@ export function S6Roles() {
   const base = appear(frame, b(2) + 10)
 
   // доска 2: горизонт задач — столбики удваиваются; продолжение линии — догадка
+  // первые три столбика встают сразу после переезда камеры, ещё до реплики про METR
   const axis = appear(frame, b(2) + 176)
-  const barAt = [b(3) - 4, b(3) + 8, b(3) + 20, b(3) + 104, b(3) + 118]
-  const early = appear(frame, b(3) + 44)
-  const late = appear(frame, b(3) + 140)
+  const barAt = [b(2) + 184, b(2) + 192, b(2) + 200, b(3) + 56, b(3) + 70]
+  const early = appear(frame, b(3) + 24)
+  const late = appear(frame, b(3) + 96)
   const guess = appear(frame, b(4) + 20)
   const guessUp = interpolate(frame, [b(4) + 20, b(4) + 50], [0, 1], CLAMP)
   const noPromise = appear(frame, b(4) + 70)
+  // справа агент, пока речь о горизонте; с реплики об узком месте его сменяет воронка
+  const watcher = appear(frame, b(2) + 176) * (1 - appear(frame, b(5) + 2))
+  const funnel = appear(frame, b(5) + 4)
 
   // узкое место: кода много, проверка узкая
   const pileAt = (i: number) => b(5) + 8 + i * 3
@@ -166,16 +173,17 @@ export function S6Roles() {
       </g>
       <g opacity={late}>
         <path d={`M${BR.xs[2]} ${AX.y + 12} v8 H${BR.xs[4]} v-8`} fill="none" stroke={theme.accent} strokeWidth={2.5} />
-        <Label x={(BR.xs[2] + BR.xs[4]) / 2 + 20} y={AX.y + 44} size={18} weight={700} color={theme.accent}>
-          ×2 примерно за 3–4
+        <Label x={(BR.xs[2] + BR.xs[4]) / 2 + 40} y={AX.y + 44} size={18} weight={700} color={theme.accent}>
+          ×2 примерно за 3–4 мес.
         </Label>
-        <Label x={(BR.xs[2] + BR.xs[4]) / 2 + 20} y={AX.y + 68} size={18} weight={600} color={theme.soft}>
+        <Label x={(BR.xs[2] + BR.xs[4]) / 2 + 40} y={AX.y + 68} size={18} weight={600} color={theme.soft}>
           оценки начала 2026
         </Label>
       </g>
       <g opacity={guess}>
-        <rect x={BR.next - BR.w / 2} y={AX.y - (AX.y - AX.top) * guessUp} width={BR.w} height={(AX.y - AX.top) * guessUp} rx={4} fill="none" stroke={theme.alt} strokeWidth={3} strokeDasharray="7 6" />
-        <path d={`M${BR.next} ${AX.top - 6} l-10 14 h20 Z`} fill={theme.alt} opacity={guessUp >= 1 ? 1 : 0} />
+        {/* продолжение линии: выше последнего столбика и со стрелкой — дальше графика */}
+        <rect x={BR.next - BR.w / 2} y={AX.y - GUESS_H * guessUp} width={BR.w} height={GUESS_H * guessUp} rx={4} fill="none" stroke={theme.alt} strokeWidth={3} strokeDasharray="7 6" />
+        <path d={`M${BR.next} ${AX.y - GUESS_H - 12} l-10 14 h20 Z`} fill={theme.alt} opacity={guessUp >= 1 ? 1 : 0} />
         <Label x={BR.next + 34} y={AX.top + 40} anchor="start" size={20} weight={700} color={theme.alt}>
           задачи
         </Label>
@@ -187,14 +195,17 @@ export function S6Roles() {
         <Pill x={BR.next + 96} y={AX.y - 60} w={170} text="не гарантия" color={theme.risk} fill={theme.riskTint} size={20} compact />
       </g>
 
+      <g opacity={watcher}>
+        <Agent x={S6.watcher.x} y={S6.watcher.y} scale={0.9} enterAt={b(2) + 176} pose={frame >= b(3) && frame < b(4) + 60 ? 'working' : 'idle'} />
+      </g>
+
       {/* узкое место — проверка */}
       <path
         d={`M${F.x - F.wTop / 2} ${F.top} L${F.x - F.wNeck / 2} ${F.neck} V${F.neck + 50} M${F.x + F.wTop / 2} ${F.top} L${F.x + F.wNeck / 2} ${F.neck} V${F.neck + 50}`}
         fill="none"
-        stroke={neck > 0 ? theme.ink : theme.grid}
+        stroke={theme.ink}
         strokeWidth={4}
-        strokeDasharray={neck > 0 ? undefined : '10 8'}
-        opacity={axis}
+        opacity={funnel}
       />
       <g opacity={appear(frame, pileAt(0))}>
         <Label x={F.x} y={F.top - 96} size={20} weight={600} color={theme.soft}>
