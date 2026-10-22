@@ -33,9 +33,23 @@ npm run lint       # линтер
 ```bash
 npm run studio                                      # Remotion Studio: смотреть и править сцены
 npm run render:video -- pilot-rls out/pilot-rls.mp4 # MP4 ролика по его id, проверка лимита 20 МБ
+npm run render:all                                  # MP4 всех роликов каталога в out/<id>.mp4
+npm run render:all -- day-08 day-09                 # или только перечисленных
 ```
 
 Все ролики перечислены в `video/catalog.ts` (название, вид, сценарий, ленивая загрузка сцен): по нему строятся композиции Remotion и реестр сайта `src/video/registry.ts`. Сценарий ролика — например `video/pilot-rls/script.ts`: тайминги считаются из длины реплик, анимации сцен привязаны к началу реплик.
+
+`render:all` пропускает ролики, у которых MP4 новее файлов ролика и общих деталей (`video/kit`, `video/actors`, `video/lib`, `video/theme.ts`), печатает таблицу «ролик — длительность — МБ» и завершается с ошибкой, если хоть один файл больше 20 МБ (лимит хранилища страницы).
+
+Для рендера нужны браузер Chromium (путь — в `scripts/render-video.mjs`, по умолчанию `/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell`) и `ffprobe` из пакета ffmpeg.
+
+### Как добавить ролик
+
+1. Папка `video/<id>/`: `script.ts` (сцены, реплики, горячие точки — `buildScript` из `video/kit`), `layout.ts`, `scenes/*.tsx`, `Video.tsx` и `script.test.ts` с `scriptProblems(script, 'chapter' | 'day')` и `stagingProblems`. Детали кадра — из набора `video/kit` (`Slot`, `Callout`, `Pill`, …); правила кадра и нормы длины — в `video/RULES.md`.
+2. Запись в `video/catalog.ts`: название, вид (`chapter` или `day`), сценарий и ленивая загрузка `Video.tsx`.
+3. Блок `{"type": "video", "videoId": "<id>", "title": "…"}` в `content/days/day-NN.json`.
+4. Латиница в репликах читается голосом по таблице `SAY` в `src/video/narration.ts` — тест не пропустит реплику без строки произношения.
+5. `npm run render:video -- <id> out/<id>.mp4`, загрузить MP4 в хранилище страницы и вписать адрес в словарь `MP4` в `src/video/registry.ts`.
 
 ## Публикация
 
