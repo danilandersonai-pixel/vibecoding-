@@ -8,7 +8,7 @@ import { Arrow, Card, Label } from '../../kit/parts'
 import { Mark, Pill, PhoneScreen } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
 import { AgentChat, type ChatMessage } from '../../kit/screens/AgentChat'
-import { chatLayout } from '../../kit/screens/layout'
+import { chatLayout, PHONE_FONT } from '../../kit/screens/layout'
 import { theme } from '../../theme'
 import { PHONE_SCALE, S5 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
@@ -108,10 +108,10 @@ export function S5Ask() {
         <PhoneScreen tapAt={-100} listAt={b(0) + 30} list={['пт · ноги', 'вс · спина']} label="Мои тренировки">
           <g opacity={notify} transform={`translate(0 ${(1 - notify) * -12})`}>
             <rect x={-52} y={10} width={104} height={58} rx={8} fill={theme.accent} />
-            <text x={0} y={34} textAnchor="middle" fill={theme.white} style={{ font: `700 12px ${theme.font}` }}>
+            <text x={0} y={34} textAnchor="middle" fill={theme.white} style={{ font: `700 ${PHONE_FONT}px ${theme.font}` }}>
               Тренировка
             </text>
-            <text x={0} y={54} textAnchor="middle" fill={theme.white} style={{ font: `500 12px ${theme.font}` }}>
+            <text x={0} y={54} textAnchor="middle" fill={theme.white} style={{ font: `500 ${PHONE_FONT}px ${theme.font}` }}>
               через 2 часа
             </text>
           </g>
