@@ -88,6 +88,8 @@ export function S7Tests() {
 
   // доска 2: пирамида тестов
   const tierAt = [b(3) + 30, b(4) + 10, b(4) + 56]
+  // пунктирные контуры всех ярусов — сразу, как камера подъехала; заливаются по репликам
+  const outline = appear(frame, b(3) + 14)
   const example = appear(frame, b(3) + 96)
 
   // доска 3: поломка нарочно и что скажут тесты; итог
@@ -150,7 +152,12 @@ export function S7Tests() {
         <Pill x={S7.diff.x + S7.diff.w / 2} y={S7.diff.y + 160} text="тест не менялся" color={theme.ok} fill={theme.okTint} size={22} />
       </g>
 
-      {/* доска 2: пирамида тестов */}
+      {/* доска 2: пирамида тестов — сначала пустые контуры трёх ярусов */}
+      <g opacity={outline}>
+        {S7.tiers.map((r, i) => (
+          <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} rx={14} fill="none" stroke={theme.line} strokeWidth={3} strokeDasharray="10 8" />
+        ))}
+      </g>
       {TIERS.map((t, i) => {
         const g = appear(frame, tierAt[i])
         const r = S7.tiers[i]
@@ -185,12 +192,20 @@ export function S7Tests() {
           w={S7.code.w}
           at={codeAt}
           file="volume.ts"
-          lines={['function totalVolume(sets) {', '  if (!sets.length) return 0', broken ? '  return reps + avg' : '  return reps * avg', '}']}
-          highlight={broken ? [3] : []}
+          lines={[
+            'function totalVolume(sets) {',
+            '  if (!sets.length) return 0',
+            "  const reps = sum(sets, 'reps')",
+            '  const kg = sets.reduce(addLoad, 0)',
+            '  const avg = kg / reps',
+            broken ? '  return reps + avg' : '  return reps * avg',
+            '}',
+          ]}
+          highlight={broken ? [6] : []}
         />
       )}
       <g opacity={appear(frame, b(5) + 76)}>
-        <Pill x={S7.code.x + S7.code.w / 2} y={S7.code.y + 236} text="* → +  поломка нарочно" color={theme.risk} fill={theme.riskTint} size={22} />
+        <Pill x={S7.code.x + S7.code.w / 2} y={S7.code.y + 324} text="* → +  поломка нарочно" color={theme.risk} fill={theme.riskTint} size={22} />
       </g>
       {[
         { title: 'Тесты покраснели', sub: 'заметили — им можно верить', ok: true },

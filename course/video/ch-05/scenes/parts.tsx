@@ -164,8 +164,8 @@ export function Commit({ x, y, r, n, state, dim = false }: { x: number; y: numbe
   )
 }
 
-/** Карточка-блок кода: заголовок моноширинным шрифтом и серые полоски строк; дети — поверх, в координатах холста. */
-export function CodeBlock({ x, y, w, h, title, rows, color = theme.line, children }: { x: number; y: number; w: number; h: number; title: string; rows: number; color?: string; children?: ReactNode }) {
+/** Карточка-блок кода: заголовок моноширинным шрифтом, серые полоски строк или пояснение note; дети — поверх, в координатах холста. */
+export function CodeBlock({ x, y, w, h, title, rows, note, color = theme.line, children }: { x: number; y: number; w: number; h: number; title: string; rows: number; note?: string; color?: string; children?: ReactNode }) {
   return (
     <g>
       <rect x={x} y={y} width={w} height={h} rx={12} fill={theme.paper} stroke={color} strokeWidth={3} />
@@ -175,6 +175,11 @@ export function CodeBlock({ x, y, w, h, title, rows, color = theme.line, childre
       {Array.from({ length: rows }, (_, i) => (
         <rect key={i} x={x + 18 + (i % 3 === 1 ? 24 : 0)} y={y + 52 + i * 22} width={w - 60 - (i % 4) * 26 - (i % 3 === 1 ? 24 : 0)} height={10} rx={5} fill={theme.grid} />
       ))}
+      {note && (
+        <text x={x + 18} y={y + 72} fill={theme.soft} style={{ font: `500 20px ${theme.font}` }}>
+          {note}
+        </text>
+      )}
       {children}
     </g>
   )

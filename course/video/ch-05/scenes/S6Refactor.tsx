@@ -3,7 +3,7 @@ import { Agent, type AgentPose } from '../../actors/Agent'
 import { Phone } from '../../actors/Phone'
 import { KitScene } from '../../kit/KitScene'
 import { appear, CLAMP, trackAt } from '../../kit/motion'
-import { Arrow, Label } from '../../kit/parts'
+import { Arrow, Card, Label } from '../../kit/parts'
 import { Mark, PhoneScreen, Pill } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { theme } from '../../theme'
@@ -24,7 +24,11 @@ const SMELLS = [
   { text: 'мёртвый код', mono: false },
 ]
 // после уборки: три маленькие функции с понятными именами
-const PARTS = ['sumReps()', 'averageWeight()', 'totalVolume()']
+const PARTS = [
+  { name: 'sumReps()', note: 'все повторы' },
+  { name: 'averageWeight()', note: 'вес с учётом повторов' },
+  { name: 'totalVolume()', note: 'повторы × средний вес' },
+]
 const MECH = ['переименовать', 'вынести функцию', 'заменить везде']
 // цикл безопасного рефакторинга (рис. 5.5)
 const NODES = [
@@ -37,7 +41,7 @@ const boxX = FL.ws.map((_, i) => FL.x + FL.ws.slice(0, i).reduce((sum, w) => sum
 // автоматические проверки до человека (рис. ch5_filter)
 const FILTER = [
   { title: 'Код от ИИ', sub: '', color: theme.line },
-  { title: 'Линтер', sub: 'дубли, мёртвый код', color: theme.accent },
+  { title: 'Линтер', sub: 'ошибки и неряшливость', color: theme.accent },
   { title: 'Форматтер', sub: 'единый вид', color: theme.accent },
   { title: 'Проверка типов', sub: 'число или текст', color: theme.accent },
   { title: 'Вы', sub: 'смысл', color: theme.ok },
@@ -98,6 +102,7 @@ export function S6Refactor() {
   const commits = commitAt.filter((at) => frame >= at).length
   // мусор едет из кода в линтер и пропадает
   const filterAt = FILTER.map((_, i) => b(5) + 10 + i * 12)
+  const ask = appear(frame, b(5) + 104)
   const junk = [0, 1, 2].map((i) => {
     const t0 = b(5) + 76 + i * 16
     const p = trackAt(frame, [
@@ -144,8 +149,8 @@ export function S6Refactor() {
       {PARTS.map((p, i) => {
         const g = appear(frame, partAt[i])
         return (
-          <g key={p} opacity={g} transform={`translate(0 ${(1 - g) * 14})`}>
-            <CodeBlock x={BG.x} y={BG.y + i * 128} w={BG.w} h={100} title={p} rows={2} color={theme.ok} />
+          <g key={p.name} opacity={g} transform={`translate(0 ${(1 - g) * 14})`}>
+            <CodeBlock x={BG.x} y={BG.y + i * 128} w={BG.w} h={100} title={p.name} rows={0} note={p.note} color={theme.ok} />
           </g>
         )
       })}
@@ -235,6 +240,17 @@ export function S6Refactor() {
           </g>
         )
       })}
+      {/* дубли, мёртвый код и заглушки — запросом к ИИ (совет книги) */}
+      <g opacity={ask} transform={`translate(0 ${(1 - ask) * 10})`}>
+        <Card x={S6.ask.x} y={S6.ask.y} w={S6.ask.w} h={S6.ask.h} stroke={theme.alt}>
+          <Label x={S6.ask.x + 20} y={S6.ask.y + 36} anchor="start" size={20} weight={700} color={theme.alt}>
+            Раз в несколько задач — ИИ:
+          </Label>
+          <Label x={S6.ask.x + 20} y={S6.ask.y + 74} anchor="start" size={18} weight={600}>
+            «найди дубли, мёртвый код, заглушки»
+          </Label>
+        </Card>
+      </g>
       {/* мусор едет над блоками из кода в линтер и там пропадает */}
       {junk.map((j, i) => j.on && <rect key={i} x={j.x - 9} y={j.y - 9} width={18} height={18} rx={4} fill={theme.risk} opacity={j.fade} transform={`rotate(${frame * 6} ${j.x} ${j.y})`} />)}
     </KitScene>

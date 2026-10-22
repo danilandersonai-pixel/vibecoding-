@@ -28,10 +28,11 @@ const FILES = [
 ]
 // интерфейс функции: три вопроса
 const IFACE = ['берёт: список подходов', 'отдаёт: объём в кг', 'побочных эффектов: нет']
-// код от агента: средний вес × все повторы — на пустой тренировке это 0 / 0
-const CODE = ['function totalVolume(sets) {', "  const reps = sum(sets, 'reps')", "  const kg = sum(sets, 'weight')", '  const avg = kg / sets.length', '  return reps * avg', '}']
+// код от агента: все повторы × средний вес с учётом повторов (kg — сумма «повторы × вес» по подходам);
+// считает верно, но на пустой тренировке средний вес — это 0 / 0
+const CODE = ['function totalVolume(sets) {', "  const reps = sum(sets, 'reps')", '  const kg = sets.reduce(addLoad, 0)', '  const avg = kg / reps', '  return reps * avg', '}']
 // значения по строкам 2–5: у Анны и у пустой тренировки
-const ANNA = ['30', '150', '50', '1500']
+const ANNA = ['30', '1500', '50', '1500']
 const EMPTY = ['0', '0', '0 / 0', 'NaN']
 const EDGES = ['пусто', '1000 кг', 'вес: ничего', 'нажал дважды']
 
