@@ -11,6 +11,7 @@ import { ch10Script } from './ch-10/script'
 import { ch11Script } from './ch-11/script'
 import { ch12Script } from './ch-12/script'
 import { chAbcScript } from './ch-abc/script'
+import { day08Script } from './day-08/script'
 import { pilotRlsScript } from './pilot-rls/script'
 import type { VideoScript } from './types'
 
@@ -101,5 +102,11 @@ export const catalog: Record<string, CatalogEntry> = {
     kind: 'chapter',
     script: ch11Script,
     load: () => import('./ch-11/Video'),
+  },
+  'day-08': {
+    title: 'Отзывы и фоновые агенты',
+    kind: 'day',
+    script: day08Script,
+    load: () => import('./day-08/Video'),
   },
 }
