@@ -7,12 +7,12 @@ import { useAppear, useTrack } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { appear } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
-import { Callout, Cloud, Pill } from '../../kit/props'
+import { Callout, Cloud, Pill, Slot } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { ACCEPT, ACCEPT_H, S4, TODAY } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { Sheet, Slot, TickRow } from './parts'
+import { Sheet, TickRow } from './parts'
 
 const ID = 's4-check'
 const L = S4.list
@@ -123,7 +123,7 @@ export function S4Check() {
 
       {/* приёмка пул-реквеста: место — заранее, пунктиром */}
       <g opacity={place}>
-        <Slot x={A.x} y={A.y} w={A.w} h={ACCEPT_H} />
+        <Slot x={A.x} y={A.y} w={A.w} h={ACCEPT_H} text="приёмка" />
       </g>
       {flyOn && (
         <g transform={`translate(${fly.x} ${fly.y})`}>

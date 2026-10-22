@@ -24,9 +24,11 @@ describe('сценарий ролика дня 8 «Отзывы и фоновы�
     expect(day08Script.scenes.map((s) => s.id)).toEqual(['s1-week', 's2-sort', 's3-vague', 's4-check'])
   })
 
-  it('вступление: первые тренеры, план дня и фоновый агент с пул-реквестом', () => {
+  it('вступление короткое: план дня и зачем фоновый агент — без отзывов, которые разбирает сцена 2', () => {
     const text = sceneText('s1-week')
-    for (const word of ['марина', 'дима', 'отзыв', 'фоновому агенту', 'пул-реквест']) expect(text, word).toContain(word)
+    for (const word of ['неделя', 'отзывы', 'фоновый агент', 'работает сам', 'задача', 'пул-реквест']) expect(text, word).toContain(word)
+    for (const word of ['марина', '52,5', 'тёмную тему']) expect(text, word).not.toContain(word)
+    expect(day08Script.cues.filter((c) => c.from < day08Script.scenes[0].durationInFrames).length).toBeLessThanOrEqual(3)
   })
 
   it('что строим: отзывы дословно, три стопки и что отдать агенту в фон', () => {

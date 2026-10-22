@@ -6,14 +6,14 @@ import { useAppear, usePop, useTrack } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { appear, CLAMP } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
-import { Mark, Pill } from '../../kit/props'
+import { Mark, Pill, Slot } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
 import { AgentChat, type ChatMessage } from '../../kit/screens/AgentChat'
 import { Mono } from '../../kit/screens/Window'
 import { theme } from '../../theme'
 import { S3, TICKET, TICKET_H, TICKET_ROW, ticketPartY } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { Sheet, Slot } from './parts'
+import { Sheet } from './parts'
 
 const ID = 's3-vague'
 const PR = S3.pr
@@ -193,7 +193,7 @@ export function S3Vague() {
       </g>
       {/* место будущего пул-реквеста — пунктиром, пока агент ждёт задачу */}
       <g opacity={appear(frame, b(4) + 60, 12) * (1 - appear(frame, b(7) + 50, 6))}>
-        <Slot x={P2.x} y={P2.y} w={P2.w} h={P2.h} />
+        <Slot x={P2.x} y={P2.y} w={P2.w} h={P2.h} text="пул-реквест" />
       </g>
       {frame >= b(7) + 50 && (
         <g transform={`translate(${P2.x + P2.w / 2} ${P2.y + P2.h / 2}) scale(${pr2In}) translate(${-(P2.x + P2.w / 2)} ${-(P2.y + P2.h / 2)})`}>

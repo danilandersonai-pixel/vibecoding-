@@ -4,12 +4,12 @@ import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { appear, trackAt } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
-import { Callout, Pill } from '../../kit/props'
+import { Callout, Pill, Slot } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { colX, S2 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { Note, Slot } from './parts'
+import { Note } from './parts'
 
 const ID = 's2-sort'
 const N = S2.notes
@@ -73,7 +73,7 @@ export function S2Sort() {
       </g>
       {N.y.map((y, i) => (
         <g key={y} opacity={appear(frame, b(0) + 24 + i * 10, 10) * notesOut}>
-          <Slot x={N.x} y={y} w={N.w} h={N.h} />
+          <Slot x={N.x} y={y} w={N.w} h={N.h} text={i > 0 && frame < noteAt[i] ? 'отзыв' : undefined} />
         </g>
       ))}
       <g opacity={hints}>

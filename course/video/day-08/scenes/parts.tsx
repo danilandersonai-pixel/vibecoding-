@@ -3,9 +3,8 @@ import { Label } from '../../kit/parts'
 import { grow } from '../../kit/reveal'
 import { theme } from '../../theme'
 
-// Детали сцен ролика дня 8 «Отзывы и фоновые агенты»: листок отзыва, пунктирное место,
-// лист задачи, строка с галочкой. Плашка, галочка, облако и реплика — Pill, Mark, Cloud
-// и Callout из kit/props.tsx.
+// Детали сцен ролика дня 8 «Отзывы и фоновые агенты»: листок отзыва, лист задачи, строка с галочкой.
+// Плашка, галочка, облако, реплика и пунктирное место — Pill, Mark, Cloud, Callout и Slot из kit/props.tsx.
 
 /** Листок отзыва: автор цветом и его слова дословно; (x, y) — левый верхний угол. */
 export function Note({ x, y, w, h, author, color, text }: { x: number; y: number; w: number; h: number; author: string; color: string; text: string }) {
@@ -22,11 +21,6 @@ export function Note({ x, y, w, h, author, color, text }: { x: number; y: number
       </Label>
     </g>
   )
-}
-
-/** Пунктирное место будущего элемента: (x, y) — левый верхний угол. */
-export function Slot({ x, y, w, h, color = theme.line }: { x: number; y: number; w: number; h: number; color?: string }) {
-  return <rect x={x} y={y} width={w} height={h} rx={10} fill="none" stroke={color} strokeWidth={2.5} strokeDasharray="9 7" />
 }
 
 /** Лист задачи с загнутым уголком и строками: (x, y) — центр, color — цвет рамки. */
