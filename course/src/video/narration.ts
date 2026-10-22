@@ -82,6 +82,7 @@ const SAY: [RegExp, string][] = [
   [/\bCloud\b/g, 'клауд'],
   [/\bSSH\b/g, 'эс-эс-эйч'],
   [/\bCSV\b/g, 'си-эс-ви'],
+  [/\bMETR\b/g, 'эм-и-ти-ар'],
   [/ЦКОКФ/g, 'цэ-ка-о-ка-эф'],
   [/\bCRUD\b/g, 'крад'],
   [/\bStack Overflow\b/g, 'стэк оверфлоу'],
