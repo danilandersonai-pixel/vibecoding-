@@ -39,12 +39,12 @@ const CHAIN = [
   { title: 'Смотреть дифф', sub: 'что изменилось', rule: 9 },
 ]
 const CORE = CHAIN.map((c) => c.rule - 1)
-// агент добавил проверку пустого подхода, а заодно удалил проверку владельца
+// агент добавил проверку пустого подхода, а заодно удалил проверку владельца (+1 −1)
 const DIFF: DiffLine[] = [
   { text: 'function saveSet(user, set) {', kind: 'same' },
   { text: '  if (!isOwner(user, set)) return', kind: 'del' },
   { text: '  if (!set.weight) return error()', kind: 'add' },
-  { text: '  await db.sets.insert(set)', kind: 'add' },
+  { text: '  await db.sets.insert(set)', kind: 'same' },
   { text: '}', kind: 'same' },
 ]
 const LEGEND = [
