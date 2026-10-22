@@ -5,7 +5,7 @@ import type { Pose } from '../../actors/Person'
 import { KitScene } from '../../kit/KitScene'
 import { appear } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
-import { Pill, Slot } from '../../kit/props'
+import { Mark, Pill, Slot } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { S1 } from '../layout'
@@ -32,8 +32,8 @@ function Field({ x, y, label, text }: { x: number; y: number; label: string; tex
   )
 }
 
-// Сцена 1 (что строим сегодня): сейчас Марина добавляет подопечных вручную; сегодня — ссылка,
-// по которой Анна сразу попадает в список; ссылка — новая дверь, после неё — проверка безопасности.
+// Сцена 1 (что строим сегодня): сейчас Марина добавляет подопечных вручную; сегодня — ссылка и зачем она
+// (тренеру без ручного ввода, подопечному меньше шагов); ссылка — новая дверь, после неё — проверка безопасности.
 export function S1Today() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
@@ -41,17 +41,18 @@ export function S1Today() {
   // вручную: карточка, имя и почта набираются, ожидание
   const manual = appear(frame, 4, 12)
   const wait = appear(frame, b(0) + 120, 12)
-  const manualDim = 1 - 0.5 * appear(frame, b(1) + 120, 12)
+  const manualDim = 1 - 0.5 * appear(frame, b(1) + 80, 12)
 
-  // по ссылке: кнопка, ссылка, стрелка к Анне, Анна в списке
+  // по ссылке — зачем: тренеру без ручного ввода, подопечному меньше шагов (сам путь — в сцене 2)
+  const slotB = appear(frame, b(1) - 4, 10) // место — уже на общем плане
   const linkHead = appear(frame, b(1) + 8, 10)
-  const press = appear(frame, b(1) + 24, 6)
-  const link = appear(frame, b(1) + 50, 10)
-  const arrow = appear(frame, b(1) + 70, 20)
-  const listed = appear(frame, b(1) + 112, 10)
+  const link = appear(frame, b(1) + 30, 10)
+  const forCoach = appear(frame, b(1) + 76, 10)
+  const forClient = appear(frame, b(1) + 132, 10)
+  const arrow = appear(frame, b(1) + 112, 18)
 
   // план дня: места пунктиром, затем две карточки
-  const planSlots = appear(frame, b(1) + 130, 12)
+  const planSlots = appear(frame, b(1) + 150, 12)
   const plan1 = appear(frame, b(2) + 8, 12)
   const plan2 = appear(frame, b(2) + 70, 12)
   const after = appear(frame, b(2) + 110, 14)
@@ -60,13 +61,14 @@ export function S1Today() {
     [0, 'stand'],
     [b(0) + 100, 'think'],
     [b(1), 'point'],
-    [b(1) + 130, 'stand'],
+    [b(1) + 76, 'cheer'],
+    [b(1) + 140, 'stand'],
     [b(2), 'point'],
     [b(2) + 140, 'stand'],
   ])
   const anna = stepAt<Pose>(frame, [
     [0, 'stand'],
-    [b(1) + 96, 'cheer'],
+    [b(1) + 134, 'cheer'],
     [b(2) + 20, 'stand'],
   ])
 
@@ -89,7 +91,7 @@ export function S1Today() {
       </g>
 
       {/* сегодня: по ссылке */}
-      <g opacity={appear(frame, b(1) - 10, 10) * (1 - linkHead)}>
+      <g opacity={slotB * (1 - linkHead)}>
         <Slot x={L.x} y={L.y} w={L.w} h={L.h} text="сегодня" />
       </g>
       <g opacity={linkHead}>
@@ -97,21 +99,25 @@ export function S1Today() {
           <Label x={L.x + 24} y={L.y + 40} anchor="start" size={22} weight={700} color={theme.accent}>
             Сегодня: по ссылке
           </Label>
-          <rect x={L.x + 24} y={L.y + 60} width={190} height={42} rx={10} fill={theme.accent} />
-          <rect x={L.x + 24} y={L.y + 60} width={190} height={42} rx={10} fill={theme.white} opacity={0.35 * press * (1 - appear(frame, b(1) + 32, 8))} />
-          <Label x={L.x + 119} y={L.y + 88} size={20} weight={700} color={theme.white}>
-            Пригласить
-          </Label>
           <g opacity={link}>
-            <Pill x={L.x + L.w / 2} y={L.y + 134} text="trener.app/join/…" color={theme.accent} fill={theme.accentTint} size={20} mono />
+            <Pill x={L.x + L.w / 2} y={L.y + 86} text="trener.app/join/…" color={theme.accent} fill={theme.accentTint} size={20} mono />
           </g>
-          <g opacity={listed}>
-            <Pill x={L.x + L.w / 2} y={L.y + 192} text="Анна в списке ✓" color={theme.ok} fill={theme.okTint} size={20} compact />
+          <g opacity={forCoach}>
+            <Mark x={L.x + 40} y={L.y + 144} ok r={12} />
+            <Label x={L.x + 62} y={L.y + 151} anchor="start" size={20} weight={600}>
+              Марине — без ручного ввода
+            </Label>
+          </g>
+          <g opacity={forClient}>
+            <Mark x={L.x + 40} y={L.y + 190} ok r={12} />
+            <Label x={L.x + 62} y={L.y + 197} anchor="start" size={20} weight={600}>
+              Анне — меньше шагов
+            </Label>
           </g>
         </Card>
       </g>
-      <Arrow x1={L.x + L.w + 6} y1={L.y + 134} x2={S1.anna.x - 66} y2={S1.anna.y - 28} color={theme.accent} draw={arrow} />
-      <Client x={S1.anna.x} y={S1.anna.y} scale={0.9} label="Анна" enterAt={b(1) + 56} pose={anna} mood="happy" />
+      <Arrow x1={L.x + L.w + 6} y1={L.y + 86} x2={S1.anna.x - 66} y2={S1.anna.y - 40} color={theme.accent} draw={arrow} />
+      <Client x={S1.anna.x} y={S1.anna.y} scale={0.9} label="Анна" enterAt={b(1) + 100} pose={anna} mood="happy" />
 
       {/* план дня: приглашение — новая дверь; после неё — проверка безопасности */}
       {P.x.map((x, i) => (

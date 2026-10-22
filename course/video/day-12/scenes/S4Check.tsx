@@ -6,10 +6,10 @@ import { Card, Label } from '../../kit/parts'
 import { Pill, Slot } from '../../kit/props'
 import { AgentChat } from '../../kit/screens/AgentChat'
 import { PHONE_SCALE, terminalHeight } from '../../kit/screens/layout'
-import { Terminal, type TermLine } from '../../kit/screens/Terminal'
+import { Terminal } from '../../kit/screens/Terminal'
 import { stepAt } from '../../kit/reveal'
 import { theme } from '../../theme'
-import { CHECKS, LIST_H, PHONE_CHECKS, QUESTIONS, QUESTIONS_H, S4, TERM_LINES } from '../layout'
+import { CHECKS, LIST_H, PHONE_CHECKS, QUESTIONS, S4, TERM_LINES, TESTS } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 import { PhoneList, PhoneMsg, Stranger, TickRow } from './parts'
 
@@ -26,13 +26,6 @@ const UNDER: { text: string; color: string }[] = [
   { text: 'тренировок Анны не видно', color: theme.ok },
 ]
 
-const TESTS: TermLine[] = [
-  { kind: 'cmd', text: 'npm test' },
-  { kind: 'ok', text: 'PASS ссылка второй раз — отказ' },
-  { kind: 'ok', text: 'PASS через 49 часов — отказ' },
-  { kind: 'ok', text: 'PASS чужие тренировки не видны' },
-  { kind: 'out', text: '3 passed' },
-]
 
 // Сцена 4 (проверьте у себя): тестовые аккаунты — принять, второй раз, отозванное, срок тестом,
 // только свои тренировки; затем повторный аудит агентом по шести вопросам главы 8 и тесты.
@@ -97,26 +90,28 @@ export function S4Check() {
 
       {/* доска 2: повторный аудит — шесть вопросов, чат с агентом, тесты */}
       <g opacity={a(b(5) - 4, 14)}>
-        <Card x={Q.x} y={Q.y} w={Q.w} h={QUESTIONS_H} stroke={theme.accent} fill={theme.paper}>
+        <Card x={Q.x} y={Q.y} w={Q.w} h={Q.h} stroke={theme.accent} fill={theme.paper}>
           <g opacity={qHead}>
-            <Label x={Q.x + 24} y={Q.y + 42} anchor="start" size={22} weight={700} color={theme.accent}>
+            <Label x={Q.x + 24} y={Q.y + 36} anchor="start" size={22} weight={700} color={theme.accent}>
               Шесть вопросов · глава 8
             </Label>
           </g>
+          {/* два столбца по три вопроса */}
           {QUESTIONS.map((q, i) => {
-            const y = Q.y + Q.head + i * Q.row
+            const x = Q.x + 20 + Math.floor(i / 3) * Q.col
+            const cy = Q.y + 70 + (i % 3) * Q.row
             const v = a(qAt[i])
             return (
               <g key={q}>
                 <g opacity={1 - v}>
-                  <Slot x={Q.x + 20} y={y} w={Q.w - 40} h={Q.row - 10} r={10} />
+                  <Slot x={x} y={cy - 14} w={Q.col - 40} h={28} r={8} />
                 </g>
                 <g opacity={v}>
-                  <circle cx={Q.x + 42} cy={y + (Q.row - 10) / 2} r={14} fill={theme.accent} />
-                  <Label x={Q.x + 42} y={y + (Q.row - 10) / 2 + 7} size={18} weight={700} color={theme.white}>
+                  <circle cx={x + 16} cy={cy} r={13} fill={theme.accent} />
+                  <Label x={x + 16} y={cy + 6.5} size={18} weight={700} color={theme.white}>
                     {String(i + 1)}
                   </Label>
-                  <Label x={Q.x + 70} y={y + (Q.row - 10) / 2 + 8} anchor="start" size={22} weight={600}>
+                  <Label x={x + 42} y={cy + 8} anchor="start" size={22} weight={600}>
                     {q}
                   </Label>
                 </g>

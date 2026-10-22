@@ -39,7 +39,7 @@ export function S2Invite() {
   const rowIn = appear(frame, b(3) + 10, 10)
 
   // мессенджер и телефон Анны
-  const later = appear(frame, b(1) - 30, 12) // места справа и внизу — к отъезду камеры
+  const later = appear(frame, b(1) - 4, 12) // места справа и внизу — когда камера уже отъехала
   const toChat = appear(frame, b(1) + 6, 18)
   const chat = appear(frame, b(1) + 14, 10)
   const toPhone = appear(frame, b(1) + 56, 14)
@@ -59,10 +59,10 @@ export function S2Invite() {
   const locked = appear(frame, b(4) + 56, 10)
 
   // в конце — только ссылка: остальное гаснет, камера подъезжает
-  const rest = 1 - appear(frame, b(5) - 2, 16)
-  const look = appear(frame, b(5) + 30, 10)
-  const slide = appear(frame, b(5) + 90, 30)
-  const mark = appear(frame, b(5) + 122, 10)
+  const rest = 1 - appear(frame, b(5) - 4, 14) // гаснет до наезда камеры (он с b(5) + 14)
+  const look = appear(frame, b(5) + 48, 10)
+  const slide = appear(frame, b(5) + 100, 30)
+  const mark = appear(frame, b(5) + 132, 10)
 
   const marina = stepAt<Pose>(frame, [
     [0, 'stand'],
@@ -70,7 +70,7 @@ export function S2Invite() {
     [b(1) + 20, 'stand'],
     [b(3) + 8, 'cheer'],
     [b(4), 'stand'],
-    [b(5) + 20, 'think'],
+    [b(5) + 40, 'think'],
   ])
   const anna = stepAt<Pose>(frame, [
     [0, 'stand'],
@@ -82,7 +82,7 @@ export function S2Invite() {
 
   return (
     <KitScene chip="2 / 4 · Как работает приглашение" duration={sceneDuration(ID)} {...STAGING[ID]}>
-      <Coach x={S2.marina.x} y={S2.marina.y} scale={0.72} label="Марина" pose={marina} mood={frame >= b(5) + 20 ? 'neutral' : 'happy'} />
+      <Coach x={S2.marina.x} y={S2.marina.y} scale={0.72} label="Марина" pose={marina} mood={frame >= b(5) + 40 ? 'neutral' : 'happy'} />
 
       {/* браузер Марины: кнопка, ссылка, список подопечных */}
       <Browser x={B.x} y={B.y} w={B.w} h={B.h} at={0} url="trener.app/clients">

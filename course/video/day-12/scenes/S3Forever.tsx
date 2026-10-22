@@ -34,7 +34,7 @@ export function S3Forever() {
   // доска 1: вечная ссылка и её свойства
   const tags = [a(b(0) + 50), a(b(0) + 80)]
   const who = a(b(0) + 120)
-  const wide = a(b(1) - 10, 14) // места остальных элементов — к отъезду камеры
+  const wide = a(4, 12) // камера на общем плане с начала: места остальных элементов подписаны и видны сразу
   const door = a(b(1) + 10, 12)
   const doorTag = a(b(1) + 50)
   const chat = a(b(2) + 6)
@@ -95,7 +95,7 @@ export function S3Forever() {
 
       {/* как код от двери зала в общем чате */}
       <g opacity={wide * (1 - door)}>
-        <Slot x={S3.door.x - 46} y={S3.door.y - 70} w={92} h={140} />
+        <Slot x={S3.door.x - 46} y={S3.door.y - 70} w={92} h={140} text="дверь" />
       </g>
       <g opacity={door}>
         <Door x={S3.door.x} y={S3.door.y} />
@@ -168,11 +168,11 @@ export function S3Forever() {
           </g>
         </Card>
       </g>
-      <Coach x={S3.marina.x} y={S3.marina.y} scale={0.55} label="Марина" enterAt={b(1) + 4} pose={marina} mood={frame >= b(3) + 60 ? 'worried' : 'neutral'} />
+      <Coach x={S3.marina.x} y={S3.marina.y} scale={0.55} label="Марина" enterAt={6} pose={marina} mood={frame >= b(3) + 60 ? 'worried' : 'neutral'} />
 
       {/* угаданный адрес: join/dima ведёт к Диме */}
       <g opacity={wide * (1 - guess)}>
-        <Slot x={S3.guess.x - 140} y={S3.guess.y - 20} w={280} h={40} r={20} />
+        <Slot x={S3.guess.x - 140} y={S3.guess.y - 20} w={280} h={40} r={20} text="другой адрес?" />
       </g>
       <Hacker x={S3.hacker.x} y={S3.hacker.y} scale={0.5} enterAt={b(4) + 6} />
       <g opacity={guess}>
@@ -183,7 +183,7 @@ export function S3Forever() {
       </g>
       <Arrow x1={S3.guess.x + 146} y1={S3.guess.y} x2={DI.x - 8} y2={S3.guess.y} color={theme.risk} draw={toDima} />
       <g opacity={wide * (1 - dima)}>
-        <Slot x={DI.x} y={DI.y} w={DI.w} h={DI.h} />
+        <Slot x={DI.x} y={DI.y} w={DI.w} h={DI.h} text="тренер Дима" />
       </g>
       <g opacity={dima}>
         <Card x={DI.x} y={DI.y} w={DI.w} h={DI.h} stroke={theme.alt} fill={theme.paper}>

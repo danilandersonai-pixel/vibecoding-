@@ -1,4 +1,4 @@
-import { terminalHeight } from '../kit/screens/layout'
+import { terminalHeight, type TermLine } from '../kit/screens/layout'
 
 // Общие координаты холста 1280×720 ролика дня 12 «Приглашение по ссылке»: по ним рисуют сцены,
 // ставится камера и считаются горячие точки. Вторая «доска» — справа от кадра (x 1280–2560):
@@ -70,7 +70,7 @@ export const S2 = {
   browser: { x: 170, y: 88, w: 400, h: 290 },
   chat: { x: 610, y: 100, w: 310, h: 172 },
   phone: { x: 1050, y: 250 },
-  anna: { x: 1205, y: 336 },
+  anna: { x: 1190, y: 336 },
   rls: { x: 90, y: 416, w: 370, h: 104 },
   db: { x: 500, y: 416, w: 330, h: 128 },
   server: { x: 960, y: 480 },
@@ -121,17 +121,26 @@ export const S4 = {
   tester: { x: 1100, y: 330 },
   note: { x: 1100, y: 160 },
   under: { x: 900, y: 452 },
-  questions: { x: BOARD2 + 60, y: 90, w: 560, head: 66, row: 52 },
-  chat: { x: BOARD2 + 660, y: 90, w: 560 },
-  term: { x: BOARD2 + 660, y: 322, w: 560 },
+  questions: { x: BOARD2 + 60, y: 84, w: 1160, h: 162, col: 576, row: 34 },
+  chat: { x: BOARD2 + 60, y: 262, w: 560 },
+  term: { x: BOARD2 + 660, y: 258, w: 560 },
 }
 export const LIST_H = S4.list.head + CHECKS.length * S4.list.row + 6
 // пять проверок — рамка горячей точки «Проверки приглашения»
 export const CHECKS_BOX: Rect = { x: S4.list.x - 10, y: S4.list.y - 10, w: S4.list.w + 20, h: LIST_H + 20 }
-export const QUESTIONS_H = S4.questions.head + QUESTIONS.length * S4.questions.row + 8
-// шесть вопросов, чат с агентом и тесты — рамка горячей точки «Повторный аудит»
-export const TERM_LINES = 5
-export const AUDIT_BOX: Rect = { x: S4.questions.x - 10, y: S4.questions.y - 10, w: S4.chat.x + S4.chat.w - S4.questions.x + 20, h: S4.term.y + terminalHeight(TERM_LINES) + 8 - (S4.questions.y - 10) }
+// тесты в терминале: на каждую проверку из списка и на «список тренера не изменился»
+export const TESTS: TermLine[] = [
+  { kind: 'cmd', text: 'npm test' },
+  { kind: 'ok', text: 'PASS приглашение принимается' },
+  { kind: 'ok', text: 'PASS второй раз — отказ' },
+  { kind: 'ok', text: 'PASS отозванное — отказ' },
+  { kind: 'ok', text: 'PASS через 49 часов — отказ' },
+  { kind: 'ok', text: 'PASS список тренера не изменился' },
+  { kind: 'ok', text: 'PASS чужие тренировки не видны' },
+]
+export const TERM_LINES = TESTS.length
+// шесть вопросов (вверху), чат с агентом и тесты (внизу) — рамка горячей точки «Повторный аудит»
+export const AUDIT_BOX: Rect = { x: S4.questions.x - 10, y: S4.questions.y - 10, w: S4.questions.w + 20, h: S4.term.y + terminalHeight(TERM_LINES) + 8 - (S4.questions.y - 10) }
 
 // Планы камеры: центр кадра на холсте и приближение. Под каждым планом содержимое
 // остаётся выше y ≈ 565 в кадре (там начинается плашка субтитров в две строки)
@@ -145,8 +154,6 @@ export const SHOT = {
   s2browser: { x: 330, y: 250, zoom: 1.25 },
   // сцена 2: сама ссылка крупно (остальное к этому времени гаснет)
   s2link: { x: 320, y: 250, zoom: 1.5 },
-  // сцена 3: вечная ссылка и её свойства крупнее
-  s3link: { x: 400, y: 190, zoom: 1.35 },
   // сцена 4: чуть крупнее весь первый план
   s4near: { x: 628, y: 320, zoom: 1.05 },
 } as const

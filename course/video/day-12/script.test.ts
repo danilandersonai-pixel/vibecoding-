@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { scriptProblems, stagingProblems } from '../kit/checks'
 import { sceneStart } from '../lib/timeline'
-import { CHAIN, INVITE, inviteCheck, PHONE_CHECKS, untilText } from './layout'
+import { CHAIN, CHECKS, INVITE, inviteCheck, PHONE_CHECKS, TERM_LINES, TESTS, untilText } from './layout'
 import { day12Script, STAGING } from './script'
 
 // Текст реплик сцены — для проверки, что нужные слова прозвучали.
@@ -25,9 +25,14 @@ describe('сценарий ролика дня 12 «Приглашение по 
     expect(day12Script.scenes.map((s) => s.id)).toEqual(['s1-today', 's2-invite', 's3-forever', 's4-check'])
   })
 
-  it('вступление: Марина, Анна, ссылка вместо ручного добавления и повторная проверка безопасности', () => {
+  it('вступление: Марина, Анна, зачем ссылка вместо ручного добавления и повторная проверка безопасности', () => {
     const text = sceneText('s1-today')
-    for (const word of ['марина', 'анна', 'вручную', 'ссылку', 'новая дверь', 'заново проверяем безопасность']) expect(text, word).toContain(word)
+    for (const word of ['у марины', 'анна', 'вручную', 'по ссылке', 'меньше ручной работы', 'меньше шагов', 'новая дверь', 'заново проверяем безопасность']) expect(text, word).toContain(word)
+  })
+
+  it('вступление не пересказывает путь приглашения из сцены 2', () => {
+    const text = sceneText('s1-today')
+    for (const word of ['отправляет ссылку', 'открывает', 'в списке']) expect(text, word).not.toContain(word)
   })
 
   it('что строим: кнопка, ссылка в мессенджере, вход, запись о тренере, прежние правила доступа', () => {
@@ -83,6 +88,14 @@ describe('приглашение из примера считается верн
 
   it('цепочка проверок на экране идёт в том же порядке, что и в расчёте', () => {
     expect(CHAIN.map((c) => c.fails)).toEqual(['notfound', 'accepted', 'expired', 'revoked'])
+  })
+
+  it('тестов в терминале не меньше, чем проверок в списке; строки не длиннее 40 знаков; рамка точки считает все строки', () => {
+    const passed = TESTS.filter((l) => l.text.startsWith('PASS'))
+    expect(passed.length).toBeGreaterThanOrEqual(CHECKS.length)
+    for (const want of ['отозванное', 'список тренера не изменился', '49 часов', 'второй раз', 'чужие тренировки']) expect(passed.some((l) => l.text.includes(want)), want).toBe(true)
+    for (const l of TESTS) expect(l.text.length, l.text).toBeLessThanOrEqual(40)
+    expect(TERM_LINES).toBe(TESTS.length)
   })
 
   it('экраны телефона в «проверьте у себя» совпадают с расчётом', () => {
