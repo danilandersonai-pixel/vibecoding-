@@ -8,20 +8,6 @@ import { BIG_FONT } from '../layout'
 // комментарий под тренировкой, строка уведомления на экране телефона, переключатель, луна и солнце, строка с галочкой.
 // Плашка, галочка, ключ и реплика — Pill, Mark, KeyGlyph и Callout из kit/props.tsx.
 
-/** Пунктирное место будущего элемента: (x, y) — левый верхний угол, text — бледная подпись (API как у Slot в наборе). */
-export function Slot({ x, y, w, h, r = 10, text, color = theme.line }: { x: number; y: number; w: number; h: number; r?: number; text?: string; color?: string }) {
-  return (
-    <g>
-      <rect x={x} y={y} width={w} height={h} rx={r} fill="none" stroke={color} strokeWidth={2.5} strokeDasharray="9 7" />
-      {text && (
-        <text x={x + w / 2} y={y + h / 2 + 7} textAnchor="middle" fill={theme.soft} style={{ font: `600 20px ${theme.font}` }}>
-          {text}
-        </text>
-      )}
-    </g>
-  )
-}
-
 /** Колокольчик уведомления: (x, y) — центр, s — масштаб. */
 export function Bell({ x, y, color, s = 1 }: { x: number; y: number; color: string; s?: number }) {
   return (
