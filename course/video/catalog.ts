@@ -18,6 +18,7 @@ import { day11Script } from './day-11/script'
 import { day12Script } from './day-12/script'
 import { day13Script } from './day-13/script'
 import { day14Script } from './day-14/script'
+import { day15Script } from './day-15/script'
 import { pilotRlsScript } from './pilot-rls/script'
 import type { VideoScript } from './types'
 
@@ -150,5 +151,11 @@ export const catalog: Record<string, CatalogEntry> = {
     kind: 'day',
     script: day14Script,
     load: () => import('./day-14/Video'),
+  },
+  'day-15': {
+    title: 'Первое знакомство и полировка',
+    kind: 'day',
+    script: day15Script,
+    load: () => import('./day-15/Video'),
   },
 }
