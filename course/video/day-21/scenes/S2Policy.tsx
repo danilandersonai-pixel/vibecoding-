@@ -8,7 +8,7 @@ import { Card, Label } from '../../kit/parts'
 import { Callout, Mark, Pill, Slot } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
 import { theme } from '../../theme'
-import { ANNA2, LAW_PILL, POL2, POL2_H, POL_ROW, POLICY, SEE, TILE_ITEMS, TILES, tileY, TPL, TPL_ROWS } from '../layout'
+import { ANNA2, LAW, POL2, POL2_H, POL_ROW, POLICY, SEE, TILE_ITEMS, TILES, tileY, TPL, TPL_ROWS } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 import { DataIcon, Padlock, Scales } from './parts'
 
@@ -30,9 +30,8 @@ export function S2Policy() {
   const tplAt = [b(1) + 30, b(1) + 62, b(1) + 112]
   const noWord = appear(frame, b(3) + 56, 8)
 
-  // что хранит приложение: места — сразу (видны и крупно), заголовок и плитки — по реплике
+  // что хранит приложение: заголовок и места — сразу (видны и крупно), плитки — по реплике
   const slots = appear(frame, b(0) + 20, 12)
-  const head = appear(frame, b(2) + 10, 12)
   const tileAt = [b(2) + 64, b(2) + 104, b(2) + 140]
   const tagAt = [b(3) + 10, b(3) + 20, b(3) + 30]
   const crossAt = [b(3) + 48, b(3) + 56, b(3) + 64]
@@ -45,6 +44,7 @@ export function S2Policy() {
   const only = appear(frame, b(5) + 50, 10)
   const closed = appear(frame, b(5) + 96, 10)
   const law = appear(frame, b(6) + 16, 12)
+  const lawyer = appear(frame, b(6) + 96, 12)
 
   const anna = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
@@ -57,10 +57,14 @@ export function S2Policy() {
     [b(5) + 40, ['point', 'happy']],
     [b(5) + 130, ['stand', 'happy']],
     [b(6), ['think', 'neutral']],
+    [b(6) + 140, ['stand', 'happy']],
   ])
+  // закон и юрист: Марина задумывается, потом обе спокойны
   const marina = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
     [b(5) + 50, ['stand', 'happy']],
+    [b(6) + 60, ['think', 'neutral']],
+    [b(6) + 160, ['stand', 'happy']],
   ])
   const dima = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
@@ -105,7 +109,7 @@ export function S2Policy() {
       </g>
 
       {/* что приложение хранит на деле: три плитки, затем пометка «здоровье» и крестики шаблону */}
-      <g opacity={head}>
+      <g opacity={slots}>
         <Label x={TILES.x} y={132} anchor="start" size={22} weight={800}>
           Что приложение хранит на деле
         </Label>
@@ -161,9 +165,20 @@ export function S2Policy() {
             </g>
             <g opacity={on}>
               <Pill x={POL2.x + 24 + POL_ROW.labelW / 2} y={top + POL_ROW.h / 2} w={POL_ROW.labelW} text={p.q} color={theme.ok} fill={theme.okTint} size={20} compact />
-              <Label x={POL2.x + POL_ROW.valueX} y={top + POL_ROW.h / 2 + 7} anchor="start" size={21}>
-                {typed(p.a, frame, qAt[i] + 6, 40)}
-              </Label>
+              {p.a2 ? (
+                <>
+                  <Label x={POL2.x + POL_ROW.valueX} y={top + 28} anchor="start" size={20}>
+                    {typed(p.a, frame, qAt[i] + 6, 40)}
+                  </Label>
+                  <Label x={POL2.x + POL_ROW.valueX} y={top + 54} anchor="start" size={20}>
+                    {typed(p.a2, frame, qAt[i] + 6 + Math.ceil((p.a.length * 30) / 40), 40)}
+                  </Label>
+                </>
+              ) : (
+                <Label x={POL2.x + POL_ROW.valueX} y={top + POL_ROW.h / 2 + 7} anchor="start" size={21}>
+                  {typed(p.a, frame, qAt[i] + 6, 40)}
+                </Label>
+              )}
             </g>
           </g>
         )
@@ -189,10 +204,13 @@ export function S2Policy() {
         </Label>
       </g>
 
-      {/* законы разные: закон своей страны или юрист */}
+      {/* законы разные: закон своей страны, потом — юрист */}
       <g opacity={law}>
-        <Scales x={LAW_PILL.x - 340} y={LAW_PILL.y} />
-        <Pill x={LAW_PILL.x} y={LAW_PILL.y} text="требования — по закону вашей страны · спросите юриста" color={theme.soft} fill={theme.white} size={20} compact />
+        <Scales x={LAW.x} y={LAW.y} />
+        <Pill x={LAW.pill1} y={LAW.y} text="требования — по закону вашей страны" color={theme.soft} fill={theme.white} size={20} compact />
+      </g>
+      <g opacity={lawyer}>
+        <Pill x={LAW.pill2} y={LAW.y} text="спросите юриста" color={theme.accent} fill={theme.accentTint} size={20} compact />
       </g>
     </KitScene>
   )

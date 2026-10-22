@@ -1,5 +1,6 @@
 import { useCurrentFrame } from 'remotion'
 import { Actor } from '../../actors/Actor'
+import { Coach } from '../../actors/Coach'
 import { Person, type Mood, type Pose } from '../../actors/Person'
 import { KitScene } from '../../kit/KitScene'
 import { appear, trackAt } from '../../kit/motion'
@@ -8,7 +9,7 @@ import { Browser, Callout, Mark, Pill, Slot } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
 import { Mono } from '../../kit/screens/Window'
 import { theme } from '../../theme'
-import { BETA, BETA_COL, BR1, BR2, CARD_Y, DNS, DNS_LANE, DNS_PILL, DOMAIN, OLD_URL, PAGE, PAGE_ROWS, pageRowY, POL1, REG, VER, WAIT_PILL, YOU1 } from '../layout'
+import { BETA, BETA_COL, BR1, BR2, CARD_Y, DNS, DNS_LANE, DNS_PILL, DOMAIN, OLD_URL, PAGE, PAGE_ROWS, pageRowY, POL1, REG, VER, VISITOR, WAIT_PILL, YOU1 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 import { Clock, Padlock, Tap } from './parts'
 
@@ -65,15 +66,25 @@ export function S1Build() {
   // доска 2: страница о продукте — строки по реплике, кнопка, политика
   const rowAt = [b(4) + 60, b(4) + 84, b(4) + 108]
   const tapAt = b(5) + 40
-  const board2 = appear(frame, b(4), 10)
   const next = appear(frame, b(5) + 70, 10)
   const nextOn = appear(frame, b(5) + 120, 10)
   const link = appear(frame, b(6) + 10, 10)
   const toPolicy = appear(frame, b(6) + 24, 16)
   const doc = appear(frame, b(6) + 40, 12)
+  // новый тренер читает страницу (место политики), с реплики про политику уходит
+  const visitorOut = 1 - appear(frame, b(6), 10)
+  const askWhat = appear(frame, b(4) + 84, 10) * (1 - appear(frame, b(5) + 40, 8))
+  const willStart = appear(frame, b(5) + 50, 10)
+  const polPlace = appear(frame, b(6) + 4, 10)
   const headAt = [b(6) + 60, b(6) + 86]
   const askAt = [b(6) + 100, b(6) + 116]
 
+  const visitor = stepAt<[Pose, Mood]>(frame, [
+    [0, ['stand', 'neutral']],
+    [b(4) + 80, ['think', 'neutral']],
+    [b(5) + 44, ['cheer', 'happy']],
+    [b(5) + 110, ['stand', 'happy']],
+  ])
   const you = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
     [b(2) + 44, ['think', 'neutral']],
@@ -287,7 +298,16 @@ export function S1Build() {
       <Arrow x1={BR2.x + 368} y1={BR2.y + PAGE.footer - 7} x2={POL1.x - 8} y2={BR2.y + PAGE.footer - 7} color={theme.accent} draw={toPolicy} />
 
       {/* политика конфиденциальности: место — сразу, вопросы — по реплике */}
-      <g opacity={board2 * (1 - doc)}>
+      <g opacity={visitorOut}>
+        {frame >= b(4) + 60 && <Coach x={VISITOR.x} y={VISITOR.y} scale={0.9} label="новый тренер" color={theme.ink} enterAt={b(4) + 60} pose={visitor[0]} mood={visitor[1]} />}
+        <g opacity={askWhat}>
+          <Callout x={VISITOR.x} y={VISITOR.y - 150} tx={VISITOR.x} ty={VISITOR.y - 88} text="Для кого это? Что умеет?" color={theme.soft} />
+        </g>
+        <g opacity={willStart}>
+          <Callout x={VISITOR.x} y={VISITOR.y - 150} tx={VISITOR.x} ty={VISITOR.y - 88} text="Понятно, начинаю!" color={theme.accent} />
+        </g>
+      </g>
+      <g opacity={polPlace * (1 - doc)}>
         <Slot x={POL1.x} y={POL1.y} w={POL1.w} h={POL1.h} r={12} text="политика конфиденциальности" />
       </g>
       <g opacity={doc}>

@@ -5,19 +5,26 @@ import { appear } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
 import { Mark, Pill, Slot } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
+import { AgentChat, type ChatMessage } from '../../kit/screens/AgentChat'
 import { Mono } from '../../kit/screens/Window'
 import { theme } from '../../theme'
-import { AGENT3, BY_HAND, CH7, CH7_H, CH8, CH8_H, DATA, DATA_H, DATA_ROWS, DEL, DOMAIN, FAILS, PHONE3, RELEASE_CHECK, TODO, TODO_H, TODO_ITEMS, UNDER_Y } from '../layout'
+import { AGENT3, AGENT8, BY_HAND, CH7, CH7_H, CH8, CH8_H, CHAT8, DATA, DATA_H, DATA_ROWS, DEL, DOMAIN, FAILS, PHONE3, RELEASE_CHECK, TODO, TODO_H, TODO_ITEMS, UNDER_Y } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 import { MiniPhone, NumberDot, Padlock, StatusPill } from './parts'
 
 const ID = 's3-check'
 const COMMENTS = DATA_ROWS.length - 1
+// чек-лист главы 7 — запросом агенту, как советует книга (s45)
+const CHAT: ChatMessage[] = [
+  { from: 'me', text: 'Пройди чек-лист главы 7 для моего проекта: по каждому пункту — «сделано», «не знаю» или «не сделано».' },
+  { from: 'agent', text: 'Сделано — 4, не знаю — 1, не сделано — 1.' },
+]
 
 // Сцена 3 (проверьте у себя): агент перечисляет таблицы и хранилища (как аудит дня 6) — каждый пункт ищем
-// в политике, забытые комментарии («ноет колено», день 11) дописываем; удаление тестового аккаунта стирает
-// строки и фото (как в день 17); новый адрес на телефоне (день 7). Чек-лист главы 7 с агентом: «сделано»,
-// «не знаю», «не сделано», пару «сделано» — руками, остальное — до запуска. Истории провалов главы 8 — тоже чек-лист.
+// в политике, забытые комментарии («ноет колено», день 11) дописываем; кнопки удаления аккаунта ещё нет —
+// её делает агент, потом удаление тестового аккаунта стирает строки и фото; новый адрес на телефоне (день 7).
+// Чек-лист главы 7 — запросом агенту: «сделано», «не знаю», «не сделано»; пару «сделано» — руками, остальное —
+// до запуска. Истории провалов главы 8 — тоже чек-лист.
 export function S3Check() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
@@ -25,35 +32,39 @@ export function S3Check() {
   // что сделать у себя: строки сразу (крупно), галочки — по репликам
   const todo = appear(frame, b(0) + 4, 12)
   const rowIn = TODO_ITEMS.map((_, i) => b(0) + 12 + i * 8)
-  const todoAt = [b(1) + 182, b(2) + 168, b(3) + 120]
+  const todoAt = [b(1) + 182, b(3) + 170, b(4) + 120]
 
   // список агента — когда камера отъехала (b(0) + 70)
   const data = appear(frame, b(0) + 74, 12)
-  const dataAt = DATA_ROWS.map((_, i) => b(0) + 96 + i * 16)
+  const dataAt = DATA_ROWS.map((_, i) => b(0) + 96 + i * 14)
   const places = appear(frame, b(0) + 84, 12)
-  const foundAt = [b(1) + 18, b(1) + 28, b(1) + 38, b(1) + 48]
+  const foundAt = [b(1) + 14, b(1) + 22, b(1) + 30, b(1) + 38, b(1) + 46]
   const missing = appear(frame, b(1) + 72, 8)
   const knee = appear(frame, b(1) + 116, 10)
   const fixed = appear(frame, b(1) + 178, 8)
 
-  // удаление тестового аккаунта и новый адрес на телефоне
+  // кнопки удаления ещё нет — агент её делает; потом удаление тестового аккаунта; новый адрес на телефоне
   const del = appear(frame, b(2) + 8, 12)
-  const goneAt = [b(2) + 100, b(2) + 136]
-  const phone = appear(frame, b(3) + 8, 12)
-  const addr = appear(frame, b(3) + 40, 10)
-  const path = appear(frame, b(3) + 104, 10)
+  const fresh = appear(frame, b(2) + 34, 10)
+  const whatAt = [b(2) + 120, b(2) + 150]
+  const goneAt = [b(3) + 90, b(3) + 130]
+  const phone = appear(frame, b(4) + 8, 12)
+  const addr = appear(frame, b(4) + 40, 10)
+  const path = appear(frame, b(4) + 104, 10)
 
-  // доска 2: чек-лист главы 7 и истории главы 8
-  const rowAt = RELEASE_CHECK.map((_, i) => b(4) + 30 + i * 10)
-  const statusAt = RELEASE_CHECK.map((_, i) => b(4) + 96 + i * 14)
-  const handAt = [b(5) + 20, b(5) + 44]
-  const closeAt = b(5) + 96
-  const legend = appear(frame, b(5) + 24, 10)
-  const closed = appear(frame, b(5) + 122, 10)
-  const ch8 = appear(frame, b(6) + 8, 12)
-  const failAt = FAILS.map((_, i) => b(6) + 20 + i * 8)
-  const safeAt = FAILS.map((_, i) => b(6) + 84 + i * 16)
-  const ask = appear(frame, b(6) + 60, 10)
+  // доска 2: чек-лист главы 7 (справа — запрос агенту), потом истории главы 8 на месте чата
+  const rowAt = RELEASE_CHECK.map((_, i) => b(5) + 30 + i * 10)
+  const statusAt = RELEASE_CHECK.map((_, i) => b(5) + 96 + i * 14)
+  const chatAt = b(5) + 36
+  const chatOut = 1 - appear(frame, b(7), 10)
+  const handAt = [b(6) + 20, b(6) + 44]
+  const closeAt = b(6) + 96
+  const legend = appear(frame, b(6) + 24, 10)
+  const closed = appear(frame, b(6) + 122, 10)
+  const ch8 = appear(frame, b(7) + 10, 12)
+  const failAt = FAILS.map((_, i) => b(7) + 20 + i * 8)
+  const safeAt = FAILS.map((_, i) => b(7) + 84 + i * 16)
+  const ask = appear(frame, b(7) + 60, 10)
 
   const agent = stepAt<AgentPose>(frame, [
     [0, 'idle'],
@@ -61,6 +72,13 @@ export function S3Check() {
     [b(0) + 176, 'done'],
     [b(1) + 140, 'working'],
     [b(1) + 182, 'done'],
+    [b(2) + 30, 'working'],
+    [b(2) + 150, 'done'],
+  ])
+  const agent8 = stepAt<AgentPose>(frame, [
+    [0, 'idle'],
+    [b(5) + 60, 'working'],
+    [b(5) + 166, 'done'],
   ])
 
   return (
@@ -139,22 +157,27 @@ export function S3Check() {
       })()}
       <Agent x={AGENT3.x} y={AGENT3.y} scale={0.55} enterAt={b(0) + 78} pose={agent} />
 
-      {/* удаление тестового аккаунта: строки и фото исчезают */}
+      {/* кнопки удаления ещё нет: агент её делает — уходят строки и фото; потом удаление тестового аккаунта */}
       <g opacity={places * (1 - del)}>
         <Slot x={DEL.x} y={DEL.y} w={DEL.w} h={DEL.h} r={12} text="удаление" />
       </g>
       <g opacity={del}>
-        <Card x={DEL.x} y={DEL.y} w={DEL.w} h={DEL.h} stroke={theme.risk} fill={theme.white}>
-          <Label x={DEL.x + 20} y={DEL.y + 36} anchor="start" size={20} weight={800}>
+        <Card x={DEL.x} y={DEL.y} w={DEL.w} h={DEL.h} stroke={theme.risk} fill={theme.white} />
+        <g opacity={1 - fresh}>
+          <Slot x={DEL.x + 16} y={DEL.y + 14} w={212} h={40} r={10} text="кнопки нет" />
+        </g>
+        <g opacity={fresh}>
+          <rect x={DEL.x + 16} y={DEL.y + 14} width={212} height={40} rx={10} fill={theme.risk} />
+          <Label x={DEL.x + 122} y={DEL.y + 41} size={20} weight={700} color={theme.white}>
             Удалить аккаунт
           </Label>
-          <line x1={DEL.x + 14} y1={DEL.y + 50} x2={DEL.x + DEL.w - 14} y2={DEL.y + 50} stroke={theme.grid} strokeWidth={2} />
-        </Card>
+        </g>
+        <line x1={DEL.x + 14} y1={DEL.y + 66} x2={DEL.x + DEL.w - 14} y2={DEL.y + 66} stroke={theme.grid} strokeWidth={2} />
         {['строки в базе', 'фото в хранилище'].map((t, i) => {
-          const cy = DEL.y + 80 + i * 38
+          const cy = DEL.y + 92 + i * 34
           const gone = appear(frame, goneAt[i], 10)
           return (
-            <g key={t}>
+            <g key={t} opacity={appear(frame, whatAt[i], 10)}>
               <Label x={DEL.x + 20} y={cy + 7} anchor="start" size={20} color={gone > 0 ? theme.soft : theme.ink}>
                 {t}
               </Label>
@@ -233,10 +256,13 @@ export function S3Check() {
         <Pill x={CH7.x + 460} y={UNDER_Y} text="закрыто — до запуска" color={theme.ok} fill={theme.okTint} size={18} compact />
       </g>
 
-      {/* истории провалов главы 8: про каждую — возможно ли у нас? */}
-      <g opacity={1 - ch8}>
-        <Slot x={CH8.x} y={CH8.y} w={CH8.w} h={CH8_H} r={12} text="истории провалов · глава 8" />
+      {/* чек-лист — запросом агенту; потом на этом месте — истории провалов главы 8 */}
+      <g opacity={chatOut}>
+        {frame >= chatAt && <AgentChat x={CHAT8.x} y={CHAT8.y} w={CHAT8.w} at={chatAt} messages={CHAT} />}
+        <Agent x={AGENT8.x} y={AGENT8.y} scale={0.55} enterAt={b(5) + 30} pose={agent8} />
       </g>
+
+      {/* истории провалов главы 8: про каждую — возможно ли у нас? */}
       <g opacity={ch8}>
         <Card x={CH8.x} y={CH8.y} w={CH8.w} h={CH8_H} stroke={theme.risk} fill={theme.white}>
           <Label x={CH8.x + 24} y={CH8.y + 42} anchor="start" size={22} weight={800}>
@@ -252,7 +278,7 @@ export function S3Check() {
             <Label x={CH8.x + 24} y={cy + 7} anchor="start" size={20} weight={800}>
               {f.name}
             </Label>
-            <Label x={CH8.x + CH8.lessonX} y={cy + 7} anchor="start" size={20} color={theme.soft}>
+            <Label x={CH8.x + CH8.lessonX} y={cy + 6} anchor="start" size={18} color={theme.soft}>
               {f.lesson}
             </Label>
             <g opacity={appear(frame, safeAt[i], 8)}>

@@ -50,7 +50,7 @@ export function S4Next() {
   const idea = appear(frame, b(0) + 14, 12)
   const site = appear(frame, reachAt(LAST) + 2, 12)
 
-  // место «что построено» — сразу (видно и крупно); тест, план и герои — когда камера отъехала (b(1) + 24)
+  // место «что построено» — сразу (видно и крупно); план и герои — когда камера отъехала (b(1) + 24), тест — с реплики 3
   const builtPlace = appear(frame, b(0) + 10, 12)
   const places = appear(frame, b(1) + 26, 12)
   const builtAt = [b(1) + 30, b(1) + 48, b(1) + 70, b(1) + 88, b(1) + 100, b(1) + 112, b(1) + 136]
@@ -137,8 +137,8 @@ export function S4Next() {
         </g>
       ))}
 
-      {/* итоговый тест курса: место — заранее */}
-      <g opacity={places * (1 - test)}>
+      {/* итоговый тест курса — с последней реплики: место коротко, затем карточка */}
+      <g opacity={appear(frame, b(3), 6) * (1 - test)}>
         <Slot x={T.x} y={T.y} w={T.w} h={T.h} r={14} text="итоговый тест курса" />
       </g>
       <g opacity={test}>

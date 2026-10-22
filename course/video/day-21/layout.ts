@@ -50,6 +50,8 @@ export const PAGE_ROWS = [
 export function pageRowY(i: number): number {
   return PAGE.rowTop + i * (PAGE.rowH + PAGE.rowGap)
 }
+// Новый тренер читает страницу — на месте будущей политики (до реплики про политику)
+export const VISITOR = { x: BOARD2 + 1020, y: 340 }
 // Политика конфиденциальности: пока только вопросы, ответы — в сцене 2
 export const POL1: Rect = { x: BOARD2 + 800, y: 100, w: 440, h: 420 }
 
@@ -74,8 +76,9 @@ export const ANNA2 = { x: 1110, y: 360 }
 // закон своей страны). Комментарии здесь забыты нарочно — их находит проверка в сцене 3.
 export const POL2 = { x: BOARD2 + 40, y: 100, w: 760 }
 export const POL_ROW = { head: 64, h: 66, labelW: 190, valueX: 236 }
-export const POLICY = [
-  { q: 'Что собираем', a: 'тренировки, вес и замеры, фото, питание' },
+// a2 — вторая строка ответа (у первого вопроса ответ длинный)
+export const POLICY: { q: string; a: string; a2?: string }[] = [
+  { q: 'Что собираем', a: 'имя и почта, тренировки,', a2: 'вес и замеры, фото, питание' },
   { q: 'Зачем', a: 'чтобы тренер вёл подопечного' },
   { q: 'Кто видит', a: 'сам подопечный и его тренер' },
   { q: 'Где хранится', a: 'база и хранилище файлов Supabase' },
@@ -86,16 +89,17 @@ export const POL2_H = POL_ROW.head + POLICY.length * POL_ROW.h + 12
 export const POLICY_BOX: Rect = around({ ...POL2, h: POL2_H })
 // Кто видит данные Анны: Анна и Марина; Диме закрыто
 export const SEE = { anna: { x: BOARD2 + 920, y: 236 }, marina: { x: BOARD2 + 1150, y: 236 }, dima: { x: BOARD2 + 1035, y: 436 }, lock: { x: BOARD2 + 1035, y: 196 } }
-export const LAW_PILL = { x: POL2.x + POL2.w / 2, y: 544 }
+// Законы разные: весы, «по закону вашей страны» и «спросите юриста» — под политикой
+export const LAW = { x: POL2.x + 20, y: 544, pill1: POL2.x + 270, pill2: POL2.x + 600 }
 
 // ---- Сцена 3 (проверьте у себя): доска 1 — данные против политики, удаление, телефон; доска 2 — чек-листы ----
 
 export const TODO = { x: 40, y: 100, w: 470, head: 58, row: 58 }
-export const TODO_ITEMS = ['все данные — в политике', 'удаление стирает всё', 'новый адрес — на телефоне', 'чек-лист главы 7', 'истории провалов · глава 8']
+export const TODO_ITEMS = ['все данные — в политике', 'удаление: строки и фото', 'новый адрес — на телефоне', 'чек-лист главы 7', 'истории провалов · глава 8']
 export const TODO_H = TODO.head + TODO_ITEMS.length * TODO.row + 10
 // Что хранит приложение (список агента) и есть ли это в политике
-export const DATA = { x: 540, y: 100, w: 700, head: 56, row: 44 }
-export const DATA_ROWS = ['тренировки и подходы · база', 'вес и замеры · база', 'фото тела · хранилище', 'дневник питания · база', 'комментарии · база']
+export const DATA = { x: 540, y: 100, w: 700, head: 56, row: 38 }
+export const DATA_ROWS = ['профили: имя, почта · база', 'тренировки и подходы · база', 'вес и замеры · база', 'фото тела · хранилище', 'дневник питания · база', 'комментарии · база']
 export const DATA_H = DATA.head + DATA_ROWS.length * DATA.row + 12
 export const AGENT3 = { x: 600, y: 470 }
 export const DEL: Rect = { x: 680, y: 410, w: 270, h: 146 }
@@ -110,7 +114,7 @@ export const RELEASE_CHECK: { text: string; first: Status }[] = [
   { text: 'секреты — вне кода', first: 'done' },
   { text: 'ошибка — человеку и в журнал', first: 'done' },
   { text: 'сквозные тесты главных путей', first: 'done' },
-  { text: 'копии и проверенный откат', first: 'todo' },
+  { text: 'копии и проверенный откат релиза', first: 'todo' },
 ]
 // Какие «сделано» проверяем руками (номера пунктов с 0)
 export const BY_HAND = [1, 4]
@@ -118,17 +122,20 @@ export const CH7_H = CH7.head + RELEASE_CHECK.length * CH7.row + 12
 // Чек-лист главы 7 целиком — рамка горячей точки «Чек-лист перед первым релизом»
 export const CHECK_BOX: Rect = around({ x: CH7.x, y: CH7.y, w: CH7.w, h: CH7_H })
 // Истории провалов главы 8 (s82) и урок каждой — своими словами
-export const CH8 = { x: BOARD2 + 700, y: 100, w: 540, head: 60, row: 52, lessonX: 180 }
+export const CH8 = { x: BOARD2 + 700, y: 100, w: 540, head: 60, row: 52, lessonX: 160 }
 export const FAILS = [
   { name: 'Replit', lesson: 'боевые данные — не агенту' },
   { name: 'Tea', lesson: 'хранилище закрыто' },
   { name: 'Lovable', lesson: 'RLS включён' },
-  { name: 's1ngularity', lesson: 'секреты не в файлах' },
+  { name: 's1ngularity', lesson: 'секреты — не в открытых файлах' },
   { name: 'Cline', lesson: 'ботам — минимум прав' },
   { name: 'PocketOS', lesson: 'копии — вне доступа агента' },
 ]
 export const CH8_H = CH8.head + FAILS.length * CH8.row + 12
 export const UNDER_Y = 528
+// Пока агент проходит чек-лист главы 7 — его чат и он сам справа (место историй главы 8)
+export const CHAT8 = { x: BOARD2 + 720, y: 110, w: 520 }
+export const AGENT8 = { x: BOARD2 + 980, y: 480 }
 
 // ---- Сцена 4 (итог курса): путь 21 дня, что построено, герои, план на месяц ----
 
