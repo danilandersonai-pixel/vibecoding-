@@ -65,7 +65,7 @@ export function S1Today() {
     i === 0 ? <Mark x={x} y={y} ok r={20} /> : i === 1 ? <Watch x={x} y={y} r={19} t={0.3} color={theme.accent} /> : i === 2 ? <Caution x={x} y={y} s={1.1} /> : <CopyDoc x={x} y={y} s={0.9} />
 
   return (
-    <KitScene chip="1 / 4 · Что строим сегодня" duration={sceneDuration(ID)} {...STAGING[ID]}>
+    <KitScene chip="1 / 4 · Зачем надёжность" duration={sceneDuration(ID)} {...STAGING[ID]}>
       {/* колонны надёжности: места пунктиром, потом колонны по словам */}
       {COLUMNS.map((name, i) => {
         const x = colX(i)

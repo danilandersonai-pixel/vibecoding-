@@ -41,7 +41,8 @@ function tierPath(i: number): string {
   return `M${P.cx - wt} ${top} H${P.cx + wt} L${P.cx + wb} ${bottom} H${P.cx - wb} Z`
 }
 
-// Сцена 2 (что строим сегодня): тесты главного сценария и пирамида; скорость — замер, N+1 и один
+// Сцена 2 (что строим сегодня): тесты главного сценария и пирамида (пока о них говорят — в центре кадра);
+// скорость — замер, N+1 и один
 // общий запрос; ошибка на телефоне Анны и отчёт с подробностями; копии каждую ночь вне досягаемости агента.
 export function S2Build() {
   const b = (i: number) => beat(ID, i)
@@ -65,9 +66,14 @@ export function S2Build() {
   const passed = appear(frame, b(1) + 96, 10)
   const tierAt = [b(1) + 112, b(2) + 24, b(2) + 100]
   const pyramidSlot = appear(frame, b(0) + 24, 12) * (1 - appear(frame, tierAt[0], 10))
+  // тесты в центре кадра, пока о них говорят; к реплике о пирамиде уезжают на своё место
+  const shift = trackAt(frame, [
+    [b(2) - 24, S2.shift, 0],
+    [b(2) + 6, 0, 0],
+  ]).x
 
   // ---- скорость: список грузится почти 4 секунды → замер → один общий запрос ----
-  const speedSlots = appear(frame, b(0) + 24, 12)
+  const speedSlots = appear(frame, b(2) + 2, 12)
   const loadFrom = b(3) + 14
   const loaded = frame >= loadFrom + Math.round(SPEED.before * 30)
   const fixedAt = b(5) + 120
@@ -141,66 +147,68 @@ export function S2Build() {
   return (
     <KitScene chip="2 / 4 · Что строим сегодня" duration={sceneDuration(ID)} {...STAGING[ID]}>
       {/* ===== доска 1: тесты ===== */}
-      <g opacity={runner}>
-        <Pill x={S2.runner.x} y={S2.runner.y} text="сквозной тест · Playwright" color={theme.accent} fill={theme.accentTint} size={20} compact />
-      </g>
-      <g opacity={passed}>
-        <Pill x={S2.runner.x + 236} y={S2.runner.y} text="✓ прошёл" color={theme.ok} fill={theme.okTint} size={20} compact />
-      </g>
-      <Phone x={S2.phone.x} y={S2.phone.y} enterAt={b(0) + 6}>
-        <SetForm who="Анна" title="Присед" value="5 × 60 кг" tapAt={frame >= runAt - 4 ? runAt : saveAt} busy={busy} />
-      </Phone>
-      <Arrow x1={S2.phone.x + 66} y1={S2.phone.y} x2={CH.x - 8} y2={S2.phone.y} color={theme.accent} draw={flow} />
-      <Browser x={CH.x} y={CH.y} w={CH.w} h={CH.h} at={b(0) + 16} url="/clients/17">
-        <Label x={CH.w - 16} y={27} anchor="end" size={18} weight={700} color={theme.accent}>
-          Марина
-        </Label>
-        <Label x={20} y={74} anchor="start" size={20} weight={800}>
-          Анна · присед
-        </Label>
-        <line x1={30} y1={204} x2={CH.w - 24} y2={204} stroke={theme.grid} strokeWidth={2} />
-      </Browser>
-      {frame >= b(0) + 26 && (
-        <g opacity={appear(frame, b(0) + 26, 10)}>
-          <path d={POINTS.slice(0, 3).map((w, i) => `${i === 0 ? 'M' : 'L'}${px(i)} ${py(w)}`).join(' ')} fill="none" stroke={theme.accent} strokeWidth={4} strokeLinejoin="round" />
-          {POINTS.slice(0, 3).map((w, i) => (
-            <circle key={w} cx={px(i)} cy={py(w)} r={6} fill={theme.paper} stroke={theme.accent} strokeWidth={3.5} />
-          ))}
+      <g transform={`translate(${shift} 0)`}>
+        <g opacity={runner}>
+          <Pill x={S2.runner.x} y={S2.runner.y} text="сквозной тест · Playwright" color={theme.accent} fill={theme.accentTint} size={20} compact />
         </g>
-      )}
-      <g opacity={pointIn}>
-        <line x1={px(2)} y1={py(57.5)} x2={px(3)} y2={py(60)} stroke={theme.ok} strokeWidth={4} />
-        {flash > 0 && <circle cx={px(3)} cy={py(60)} r={18} fill={theme.okTint} stroke={theme.ok} strokeWidth={2} />}
-        <circle cx={px(3)} cy={py(60)} r={8} fill={theme.okTint} stroke={theme.ok} strokeWidth={4} />
-        <Label x={px(3)} y={py(60) - 18} size={18} weight={800} color={theme.ok}>
-          60 кг
-        </Label>
-      </g>
-      {packetOn(saveAt) && <circle cx={packet(saveAt).x} cy={packet(saveAt).y} r={9} fill={theme.accent} />}
-      {packetOn(runAt) && (
-        <g transform={`translate(${packet(runAt).x} ${packet(runAt).y})`}>
-          <circle r={12} fill={theme.white} stroke={theme.accent} strokeWidth={3} />
-          <path d="M-4 -6 L6 0 L-4 6 Z" fill={theme.accent} />
+        <g opacity={passed}>
+          <Pill x={S2.runner.x + 236} y={S2.runner.y} text="✓ прошёл" color={theme.ok} fill={theme.okTint} size={20} compact />
         </g>
-      )}
-
-      {/* пирамида тестов: место пунктиром, ярусы по реплике */}
-      <g opacity={pyramidSlot}>
-        <Slot x={P.cx - P.base / 2} y={P.top} w={P.base} h={PYRAMID_BOTTOM - P.top} text="уровни тестов" />
-      </g>
-      {PYRAMID.map((tier, i) => {
-        const on = appear(frame, tierAt[i], 12)
-        const top = tierTop(i)
-        return (
-          <g key={tier.name} opacity={on} transform={`translate(0 ${(1 - on) * 12})`}>
-            <path d={tierPath(i)} fill={theme.white} stroke={TIER[i].color} strokeWidth={3} strokeLinejoin="round" />
-            <path d={tierPath(i)} fill={TIER[i].fill} />
-            <Label x={P.cx} y={top + P.tier / 2 + 7} size={18} weight={700} color={TIER[i].color}>
-              {tier.text}
-            </Label>
+        <Phone x={S2.phone.x} y={S2.phone.y} enterAt={b(0) + 6}>
+          <SetForm who="Анна" title="Присед" value="5 × 60 кг" tapAt={frame >= runAt - 4 ? runAt : saveAt} busy={busy} />
+        </Phone>
+        <Arrow x1={S2.phone.x + 66} y1={S2.phone.y} x2={CH.x - 8} y2={S2.phone.y} color={theme.accent} draw={flow} />
+        <Browser x={CH.x} y={CH.y} w={CH.w} h={CH.h} at={b(0) + 16} url="/clients/17">
+          <Label x={CH.w - 16} y={27} anchor="end" size={18} weight={700} color={theme.accent}>
+            Марина
+          </Label>
+          <Label x={20} y={74} anchor="start" size={20} weight={800}>
+            Анна · присед
+          </Label>
+          <line x1={30} y1={204} x2={CH.w - 24} y2={204} stroke={theme.grid} strokeWidth={2} />
+        </Browser>
+        {frame >= b(0) + 26 && (
+          <g opacity={appear(frame, b(0) + 26, 10)}>
+            <path d={POINTS.slice(0, 3).map((w, i) => `${i === 0 ? 'M' : 'L'}${px(i)} ${py(w)}`).join(' ')} fill="none" stroke={theme.accent} strokeWidth={4} strokeLinejoin="round" />
+            {POINTS.slice(0, 3).map((w, i) => (
+              <circle key={w} cx={px(i)} cy={py(w)} r={6} fill={theme.paper} stroke={theme.accent} strokeWidth={3.5} />
+            ))}
           </g>
-        )
-      })}
+        )}
+        <g opacity={pointIn}>
+          <line x1={px(2)} y1={py(57.5)} x2={px(3)} y2={py(60)} stroke={theme.ok} strokeWidth={4} />
+          {flash > 0 && <circle cx={px(3)} cy={py(60)} r={18} fill={theme.okTint} stroke={theme.ok} strokeWidth={2} />}
+          <circle cx={px(3)} cy={py(60)} r={8} fill={theme.okTint} stroke={theme.ok} strokeWidth={4} />
+          <Label x={px(3)} y={py(60) - 18} size={18} weight={800} color={theme.ok}>
+            60 кг
+          </Label>
+        </g>
+        {packetOn(saveAt) && <circle cx={packet(saveAt).x} cy={packet(saveAt).y} r={9} fill={theme.accent} />}
+        {packetOn(runAt) && (
+          <g transform={`translate(${packet(runAt).x} ${packet(runAt).y})`}>
+            <circle r={12} fill={theme.white} stroke={theme.accent} strokeWidth={3} />
+            <path d="M-4 -6 L6 0 L-4 6 Z" fill={theme.accent} />
+          </g>
+        )}
+
+        {/* пирамида тестов: место пунктиром, ярусы по реплике */}
+        <g opacity={pyramidSlot}>
+          <Slot x={P.cx - P.base / 2} y={P.top} w={P.base} h={PYRAMID_BOTTOM - P.top} text="уровни тестов" />
+        </g>
+        {PYRAMID.map((tier, i) => {
+          const on = appear(frame, tierAt[i], 12)
+          const top = tierTop(i)
+          return (
+            <g key={tier.name} opacity={on} transform={`translate(0 ${(1 - on) * 12})`}>
+              <path d={tierPath(i)} fill={theme.white} stroke={TIER[i].color} strokeWidth={3} strokeLinejoin="round" />
+              <path d={tierPath(i)} fill={TIER[i].fill} />
+              <Label x={P.cx} y={top + P.tier / 2 + 7} size={18} weight={700} color={TIER[i].color}>
+                {tier.text}
+              </Label>
+            </g>
+          )
+        })}
+      </g>
 
       {/* ===== доска 1: скорость ===== */}
       <g opacity={speedSlots * (1 - appear(frame, b(3) + 4, 8))}>
