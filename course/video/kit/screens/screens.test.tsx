@@ -12,6 +12,7 @@ import { Diff } from './Diff'
 import { Editor } from './Editor'
 import { chatLayout, niceMax, terminalStarts, wrapText, type TermLine } from './layout'
 import { Spotlight } from './Spotlight'
+import { Mono } from './Window'
 import { Terminal } from './Terminal'
 
 const LINES: TermLine[] = [
@@ -145,5 +146,12 @@ describe('Spotlight', () => {
     expect(html).toContain('fill-rule="evenodd"')
     expect(html).toContain('cx="100"')
     expect(html).toContain('r="50"')
+  })
+})
+
+describe('Mono', () => {
+  it('код без лигатур: => и <= не склеиваются в стрелку и знак', () => {
+    const m = renderToStaticMarkup(<svg><Mono x={0} y={0} fill="#000">{'() => x <= 100'}</Mono></svg>)
+    expect(m).toContain('font-variant-ligatures:none')
   })
 })

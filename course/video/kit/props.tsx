@@ -40,7 +40,7 @@ export function Pill({ x, y, w, text, color = theme.accent, fill = theme.paper, 
   return (
     <g>
       <rect x={x - width / 2} y={y - h / 2} width={width} height={h} rx={h / 2} fill={fill} stroke={color} strokeWidth={compact ? 2.5 : 3} />
-      <text x={x} y={y + size * 0.36} textAnchor="middle" fill={color} style={{ font: `${weight} ${size}px ${mono ? theme.mono : theme.font}` }}>
+      <text x={x} y={y + size * 0.36} textAnchor="middle" fill={color} style={{ font: `${weight} ${size}px ${mono ? theme.mono : theme.font}`, fontVariantLigatures: mono ? 'none' : undefined }}>
         {text}
       </text>
     </g>
@@ -121,6 +121,20 @@ export function Callout({ x, y, tx, ty, text, color = theme.ink, fill = theme.wh
       <line x1={x + (tx - x) * 0.25} y1={from} x2={tx} y2={ty} stroke={color} strokeWidth={2.5} strokeLinecap="round" />
       <circle cx={tx} cy={ty} r={4} fill={color} />
       <Pill x={x} y={y} text={text} color={color} fill={fill} size={size} weight={600} />
+    </g>
+  )
+}
+
+/** Пунктирное место будущего элемента: (x, y) — левый верхний угол; text — бледная подпись по центру. */
+export function Slot({ x, y, w, h, r = 10, text, color = theme.line }: { x: number; y: number; w: number; h: number; r?: number; text?: string; color?: string }) {
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} rx={r} fill="none" stroke={color} strokeWidth={2.5} strokeDasharray="9 7" />
+      {text && (
+        <text x={x + w / 2} y={y + h / 2 + 7} textAnchor="middle" fill={theme.soft} style={{ font: `600 20px ${theme.font}` }}>
+          {text}
+        </text>
+      )}
     </g>
   )
 }

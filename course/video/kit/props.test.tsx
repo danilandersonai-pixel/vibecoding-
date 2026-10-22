@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('remotion', async (importOriginal) => ({ ...(await importOriginal<typeof import('remotion')>()), useCurrentFrame: () => 100 }))
 
 import { theme } from '../theme'
-import { Browser, Callout, Cloud, KeyGlyph, Mark, PhoneScreen, Pill } from './props'
+import { Browser, Callout, Cloud, KeyGlyph, Mark, PhoneScreen, Pill, Slot } from './props'
 import { PHONE_FONT, PHONE_SCALE } from './screens/layout'
 
 const svg = (node: React.ReactNode) => renderToStaticMarkup(<svg>{node}</svg>)
@@ -170,5 +170,27 @@ describe('Callout', () => {
   })
   it('шрифт по умолчанию не мельче 18 px', () => {
     for (const size of sizesOf(svg(<Callout x={400} y={200} tx={300} ty={320} text="да" />))) expect(size).toBeGreaterThanOrEqual(18)
+  })
+})
+
+describe('Pill mono', () => {
+  it('моноширинная плашка без лигатур', () => {
+    expect(svg(<Pill x={100} y={100} text="a => b" mono />)).toContain('font-variant-ligatures:none')
+  })
+})
+
+describe('Slot', () => {
+  it('пунктирная рамка с левым верхним углом в (x, y) и заданным размером', () => {
+    const m = svg(<Slot x={40} y={60} w={200} h={90} />)
+    expect(m).toContain('<rect x="40" y="60" width="200" height="90"')
+    expect(m).toContain('stroke-dasharray')
+    expect(m).not.toContain('<text')
+  })
+  it('подпись — бледная, по центру места, не мельче 18 px', () => {
+    const m = svg(<Slot x={40} y={60} w={200} h={90} text="пул-реквест" />)
+    expect(m).toContain('пул-реквест')
+    expect(m).toContain(`fill="${theme.soft}"`)
+    expect(m).toMatch(/<text x="140"/)
+    for (const size of sizesOf(m)) expect(size).toBeGreaterThanOrEqual(18)
   })
 })

@@ -43,7 +43,7 @@ export function Window({ x, y, w, h, at, bar, barFill = theme.codeBg, bodyFill =
 /** Строка моноширинного текста; пробелы в начале сохраняются. */
 export function Mono({ x, y, size = 20, fill, children }: { x: number; y: number; size?: number; fill: string; children: ReactNode }) {
   return (
-    <text x={x} y={y} fill={fill} style={{ font: `500 ${size}px ${theme.mono}`, whiteSpace: 'pre' }}>
+    <text x={x} y={y} fill={fill} style={{ font: `500 ${size}px ${theme.mono}`, whiteSpace: 'pre', fontVariantLigatures: 'none' }}>
       {children}
     </text>
   )
