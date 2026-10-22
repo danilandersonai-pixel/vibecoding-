@@ -5,25 +5,23 @@ import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { appear, CLAMP } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
-import { Callout, Pill } from '../../kit/props'
+import { Callout, Pill, Slot } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { JOURNAL, S1 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { Cup, Slot } from './parts'
+import { Cup } from './parts'
 
 const ID = 's1-monday'
 const J = S1.journal
 const C = S1.cards
 
-// три вещи дня: что это и значок
+// три вещи дня: зачем они Марине и значок (определения — в сцене 2)
 const CARDS = [
-  { title: 'Рекорды', sub: 'самый большой вес', icon: 'cup' },
-  { title: 'Объём', sub: 'повторы × вес', icon: 'bars' },
-  { title: 'Отчёт', sub: 'неделя для тренера', icon: 'sheet' },
+  { title: 'Рекорды', sub: 'кто вырос', icon: 'cup' },
+  { title: 'Объём', sub: 'сколько сделано', icon: 'bars' },
+  { title: 'Отчёт', sub: 'неделя за минуту', icon: 'sheet' },
 ] as const
-// живые данные, на которых расчёт ломается
-const LIVE = ['пустой вес?', 'фунты?', '52,5 с запятой?']
 // видимая часть журнала (ровно J.shown строк) и сколько его прокрутить, чтобы встать на границу строки
 const ROWS_TOP = J.y + J.head + 4
 const ROWS_H = J.h - J.head - 8
@@ -54,30 +52,27 @@ function Icon({ kind, x, y }: { kind: (typeof CARDS)[number]['icon']; x: number;
 }
 
 // Сцена 1 (вступление): понедельник, Марина листает журнал подходов Анны и Олега — долго.
-// Ей нужны три вещи: рекорды, объём и отчёт. Под журналом — живые данные, на которых расчёт ломается.
+// Ей нужны три вещи: рекорды, объём и отчёт — только «зачем», без определений и подводного камня.
 export function S1Monday() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
 
   // журнал: появляется и листается всю первую половину сцены
   const journal = useAppear(b(0) + 8)
-  const scroll = interpolate(frame, [b(0) + 40, b(2) - 20], [0, SCROLL], CLAMP)
+  const scroll = interpolate(frame, [b(0) + 40, b(2) - 40], [0, SCROLL], CLAMP)
   const ask = useAppear(b(1) + 96)
 
-  // три вещи дня: места пунктиром с начала, карточки — по реплике
-  const slots = useAppear(b(0) + 20)
-  const cardAt = [b(2) + 40, b(2) + 80, b(2) + 120]
+  // три вещи дня: места пунктиром — после отъезда камеры, карточки — когда их называют
+  const slots = useAppear(b(2) + 2)
+  const cardAt = [b(2) + 80, b(2) + 122, b(2) + 160]
   const flow = appear(frame, b(2) + 20, 20)
-  const liveAt = [b(3) + 24, b(3) + 50, b(3) + 76]
-  const doubt = useAppear(b(3) + 104)
 
   const marina = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
     [b(0) + 50, ['point', 'neutral']],
     [b(1) + 20, ['think', 'worried']],
-    [b(2) + 40, ['point', 'happy']],
-    [b(3) + 24, ['surprised', 'worried']],
-    [b(3) + 90, ['think', 'worried']],
+    [b(2) + 60, ['point', 'happy']],
+    [b(2) + 176, ['cheer', 'happy']],
   ])
 
   return (
@@ -143,16 +138,6 @@ export function S1Monday() {
           </g>
         )
       })}
-      <g opacity={doubt}>
-        <Pill x={C.x + C.w - 50} y={C.y[1] + 22} text="NaN?" color={theme.risk} fill={theme.riskTint} size={18} compact />
-      </g>
-
-      {/* живые данные: на них расчёт и ломается */}
-      {LIVE.map((t, i) => (
-        <g key={t} opacity={appear(frame, liveAt[i], 10)}>
-          <Pill x={S1.live.x[i]} y={S1.live.y} text={t} color={theme.risk} fill={theme.riskTint} size={20} compact />
-        </g>
-      ))}
     </KitScene>
   )
 }

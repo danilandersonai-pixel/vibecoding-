@@ -1,19 +1,19 @@
 import { useCurrentFrame } from 'remotion'
 import { Agent, type AgentPose } from '../../actors/Agent'
+import { Client } from '../../actors/Client'
 import { Coach } from '../../actors/Coach'
 import { type Mood, type Pose } from '../../actors/Person'
 import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { appear } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
-import { Mark, Pill } from '../../kit/props'
+import { Mark, Pill, Slot } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { Terminal, type TermLine } from '../../kit/screens/Terminal'
 import { Mono } from '../../kit/screens/Window'
 import { theme } from '../../theme'
 import { ANNA_WEEK, LOG_H, OLEG_LB, OLEG_RECORD, REPORT3_H, ru, RULES, S3, toKg, volumeOf } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { Slot } from './parts'
 
 const ID = 's3-empty'
 const L = S3.log
@@ -78,6 +78,16 @@ export function S3Empty() {
   const stamp = useAppear(b(8) + 70)
   const hidden = useAppear(b(8) + 100)
 
+  const anna = stepAt<[Pose, Mood]>(frame, [
+    [0, ['think', 'worried']],
+    [b(2) + 60, ['stand', 'worried']],
+  ])
+  const oleg = stepAt<[Pose, Mood]>(frame, [
+    [0, ['stand', 'neutral']],
+    [b(3) + 60, ['point', 'neutral']],
+    [b(4) + 30, ['think', 'worried']],
+    [b(5) + 20, ['cheer', 'happy']],
+  ])
   const marina = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
     [b(0) + 60, ['stand', 'happy']],
@@ -240,7 +250,10 @@ export function S3Empty() {
       </g>
       <Arrow x1={L.x + L.w + 6} y1={rowTop(0) + 40} x2={R.x - 8} y2={R1 + 52} color={theme.risk} draw={toR1} />
       <Arrow x1={L.x + L.w + 6} y1={rowTop(1) + 40} x2={R.x - 8} y2={R2 + 52} color={theme.risk} draw={toR2} />
-      <Coach x={S3.marina.x} y={S3.marina.y} scale={0.6} label="Марина" enterAt={b(2) + 22} pose={marina[0]} mood={marina[1]} />
+      <Coach x={S3.marina.x} y={S3.marina.y} scale={0.6} label="Марина" enterAt={b(0) + 30} pose={marina[0]} mood={marina[1]} />
+      {/* кто что вписал: Анна — на своей записи, Олег — на своих */}
+      <Client x={S3.anna.x} y={S3.anna.y} scale={0.55} label="Анна" enterAt={b(1) + 10} pose={anna[0]} mood={anna[1]} />
+      <Client x={S3.oleg.x} y={S3.oleg.y} scale={0.55} label="Олег" enterAt={b(3) + 10} pose={oleg[0]} mood={oleg[1]} />
 
       {/* доска 2: правила решаете вы */}
       <g opacity={1 - rules}>

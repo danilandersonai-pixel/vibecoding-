@@ -1,18 +1,13 @@
 import { useCurrentFrame } from 'remotion'
 import { Label } from '../../kit/parts'
-import { Mark } from '../../kit/props'
+import { Mark, Slot } from '../../kit/props'
 import { grow } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { ru } from '../layout'
 
-// Детали сцен ролика дня 10 «Рекорды и отчёты»: пунктирное место, кубок рекорда, столбики
-// объёма по дням, строка теста с отметкой. Плашка, галочка и реплика — Pill, Mark и Callout
-// из kit/props.tsx.
-
-/** Пунктирное место будущего элемента: (x, y) — левый верхний угол. */
-export function Slot({ x, y, w, h, color = theme.line, rx = 10 }: { x: number; y: number; w: number; h: number; color?: string; rx?: number }) {
-  return <rect x={x} y={y} width={w} height={h} rx={rx} fill="none" stroke={color} strokeWidth={2.5} strokeDasharray="9 7" />
-}
+// Детали сцен ролика дня 10 «Рекорды и отчёты»: кубок рекорда, столбики объёма по дням,
+// строка теста с отметкой. Плашка, галочка, реплика и пунктирное место — Pill, Mark, Callout
+// и Slot из kit/props.tsx.
 
 /** Кубок рекорда: (x, y) — центр чаши, scale — масштаб. */
 export function Cup({ x, y, scale = 1, color = theme.alt }: { x: number; y: number; scale?: number; color?: string }) {
@@ -47,7 +42,7 @@ export function DayBars({ x, y, w, h, days, at, top, color = theme.accent }: { x
         if (d.value === null) {
           return (
             <g key={d.day} opacity={g}>
-              <Slot x={cx - bw / 2} y={base - 40} w={bw} h={40} color={theme.risk} rx={6} />
+              <Slot x={cx - bw / 2} y={base - 40} w={bw} h={40} color={theme.risk} r={6} />
               <Label x={cx} y={base - 52} size={18} color={theme.risk} weight={700}>
                 пропуск
               </Label>

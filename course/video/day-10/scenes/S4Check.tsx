@@ -6,12 +6,12 @@ import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { appear } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
-import { Callout, Mark, Pill } from '../../kit/props'
+import { Callout, Mark, Pill, Slot } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { MISSED_WEEK, ru, S4, TESTS, TESTS_H, volumeOf } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { DayBars, Slot, TestRow, type TestState } from './parts'
+import { DayBars, TestRow, type TestState } from './parts'
 
 const ID = 's4-check'
 const T = S4.tests
@@ -46,15 +46,14 @@ export function S4Check() {
   const ask = appear(frame, b(0) + 40, 10) * (1 - appear(frame, b(4) - 30, 10))
   const agentOut = 1 - appear(frame, b(4) - 20, 12)
 
-  // отчёт за неделю с пропуском: место пунктиром, карточка — по реплике
-  const slot = appear(frame, b(4) - 10, 12) * (1 - appear(frame, b(4) + 20, 8))
-  const report = useAppear(b(4) + 20)
-  const dayAt = [b(4) + 34, b(4) + 46, b(4) + 58]
-  const barsAt = b(4) + 76
+  // отчёт за неделю с пропуском — после отъезда камеры (b(4) + 22): на крупном плане его край ушёл бы за кадр
+  const report = useAppear(b(4) + 24)
+  const dayAt = [b(4) + 38, b(4) + 50, b(4) + 62]
+  const barsAt = b(4) + 78
   const count = useAppear(b(5) + 20)
   const volume = useAppear(b(5) + 60)
   const noNan = useAppear(b(5) + 100)
-  const emptySlot = appear(frame, b(4) + 20, 12) * (1 - appear(frame, b(6) + 70, 8))
+  const emptySlot = appear(frame, b(4) + 24, 12) * (1 - appear(frame, b(6) + 70, 8))
   const empty = useAppear(b(6) + 70)
 
   const agent = stepAt<AgentPose>(frame, [
@@ -103,9 +102,6 @@ export function S4Check() {
       </g>
 
       {/* отчёт за неделю с пропуском */}
-      <g opacity={slot}>
-        <Slot x={R.x} y={R.y} w={R.w} h={R.h} />
-      </g>
       <g opacity={report}>
         <Card x={R.x} y={R.y} w={R.w} h={R.h} stroke={theme.accent} fill={theme.white}>
           <Label x={R.x + 24} y={R.y + 40} anchor="start" size={22} weight={800}>

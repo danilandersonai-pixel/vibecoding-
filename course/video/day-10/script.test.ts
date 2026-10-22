@@ -25,9 +25,11 @@ describe('сценарий ролика дня 10 «Рекорды и отчёт
     expect(day10Script.scenes.map((s) => s.id)).toEqual(['s1-monday', 's2-build', 's3-empty', 's4-check'])
   })
 
-  it('вступление: Марина, неделя подопечных, рекорды, объём и отчёт', () => {
+  it('вступление: Марина, неделя подопечных, рекорды, объём и отчёт — только «зачем», без определений и подводного камня', () => {
     const text = sceneText('s1-monday')
-    for (const word of ['марина', 'анны и олега', 'личные рекорды', 'объём нагрузки', 'отчёт для тренера', 'живых данных']) expect(text, word).toContain(word)
+    for (const word of ['марина', 'анны и олега', 'личные рекорды', 'объём нагрузки', 'отчёт для тренера']) expect(text, word).toContain(word)
+    for (const word of ['самый большой вес', 'повторы × вес', 'nan', 'фунт', 'пуст']) expect(text, word).not.toContain(word)
+    expect(day10Script.cues.filter((c) => c.to <= day10Script.scenes[0].durationInFrames).length).toBeLessThanOrEqual(3)
   })
 
   it('что строим: рекорд и объём определены словами, расчёт пятницы Анны, отчёт за неделю', () => {

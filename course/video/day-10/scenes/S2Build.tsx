@@ -7,12 +7,12 @@ import { useAppear, usePop } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { appear, trackAt } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
-import { Callout, Mark, Pill } from '../../kit/props'
+import { Callout, Mark, Pill, Slot } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { ANNA_FRIDAY, ANNA_WEEK, recordOf, ru, S2, TABLE_H, volumeOf } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { Cup, DayBars, Slot } from './parts'
+import { Cup, DayBars } from './parts'
 
 const ID = 's2-build'
 const D = S2.defs
@@ -33,6 +33,9 @@ const OPT_X = 820
 const rowY = (i: number) => T.y + T.head + i * T.row
 const TOTAL_Y = rowY(ANNA_FRIDAY.length)
 const VAL_X = T.x + T.w - 28
+// вес подхода — отдельной подписью: вокруг «55 кг» рисуется кольцо рекорда
+const WEIGHT_X = T.x + 206
+const RING = { x: WEIGHT_X - 10, w: 82 }
 // числа сцены — из данных и расчётов layout.ts
 const FRIDAY = volumeOf(ANNA_FRIDAY)
 const BEFORE = recordOf([...ANNA_WEEK[0].sets, ...ANNA_WEEK[1].sets])
@@ -162,7 +165,10 @@ export function S2Build() {
               {`подход ${i + 1}`}
             </Label>
             <Label x={T.x + 150} y={y + 33} anchor="start" size={24} weight={700}>
-              {`${s.reps} × ${ru(s.kg)} кг`}
+              {`${s.reps} ×`}
+            </Label>
+            <Label x={WEIGHT_X} y={y + 33} anchor="start" size={24} weight={700}>
+              {`${ru(s.kg)} кг`}
             </Label>
             <Label x={T.x + 360} y={y + 33} size={24} color={theme.soft} weight={700}>
               =
@@ -174,7 +180,7 @@ export function S2Build() {
         )
       })}
       <g opacity={ring}>
-        <rect x={T.x + 196} y={rowY(2) + 6} width={92} height={38} rx={19} fill="none" stroke={theme.alt} strokeWidth={3} />
+        <rect x={RING.x} y={rowY(2) + 6} width={RING.w} height={38} rx={19} fill="none" stroke={theme.alt} strokeWidth={3} />
       </g>
       <g opacity={total}>
         <line x1={T.x + 16} y1={TOTAL_Y + 4} x2={T.x + T.w - 16} y2={TOTAL_Y + 4} stroke={theme.ink} strokeWidth={2.5} />
@@ -187,8 +193,8 @@ export function S2Build() {
       </g>
 
       {/* новый рекорд: 55 больше прежних 52,5 */}
-      <Client x={S2.anna.x} y={S2.anna.y} scale={0.8} label="Анна" enterAt={b(3) + 6} pose={anna[0]} mood={anna[1]} />
-      <g opacity={appear(frame, b(3) + 10, 12) * (1 - appear(frame, b(4) + 20, 6))}>
+      <Client x={S2.anna.x} y={S2.anna.y} scale={0.8} label="Анна" enterAt={b(3) + 24} pose={anna[0]} mood={anna[1]} />
+      <g opacity={appear(frame, b(3) + 24, 12) * (1 - appear(frame, b(4) + 20, 6))}>
         <circle cx={S2.cup.x} cy={S2.cup.y} r={58} fill="none" stroke={theme.line} strokeWidth={2.5} strokeDasharray="9 7" />
       </g>
       <Arrow x1={T.x + T.w + 20} y1={rowY(2) + 25} x2={S2.cup.x - 70} y2={S2.cup.y + 16} color={theme.alt} draw={toCup} />
