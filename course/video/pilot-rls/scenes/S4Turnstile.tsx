@@ -6,6 +6,7 @@ import type { Mood, Pose } from '../../actors/Person'
 import { Turnstile } from '../../actors/Turnstile'
 import { useAppear, useTrack } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { CLAMP } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
 import { stepAt } from '../../kit/reveal'
 import { Editor } from '../../kit/screens/Editor'
@@ -21,7 +22,6 @@ const ROWS = [
 ]
 // Политика в Supabase: RLS включается для таблицы, правило пускает только владельца строки.
 const POLICY = ['alter table workouts', '  enable row level security;', 'create policy "свои тренировки"', '  on workouts for select', '  using (auth.uid() = user_id);']
-const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const
 
 // Сцена 4: RLS — турникет перед каждой строкой базы сверяет пропуск с владельцем; в конце — как это пишут на SQL.
 export function S4Turnstile() {
@@ -34,7 +34,7 @@ export function S4Turnstile() {
     [b(5) + 45, L.s4gateX - 70, L.s4rowsY[0]],
     [b(5) + 75, L.s4db.x - 160, L.s4rowsY[0]],
   ])
-  const annaOpen = interpolate(frame, [b(5) + 40, b(5) + 55, b(6) - 10, b(6)], [0, 1, 1, 0], clamp)
+  const annaOpen = interpolate(frame, [b(5) + 40, b(5) + 55, b(6) - 10, b(6)], [0, 1, 1, 0], CLAMP)
   const attack = useTrack([
     [b(6), 330, L.s4rowsY[1]],
     [b(6) + 45, L.s4gateX - 75, L.s4rowsY[1]],
@@ -42,12 +42,12 @@ export function S4Turnstile() {
   const shake = frame > b(6) + 45 && frame < b(6) + 75 ? Math.sin((frame - b(6)) * 1.6) * 6 : 0
   const empty = useAppear(b(7))
   const layers = useAppear(b(8))
-  const bypass = interpolate(frame, [b(8) + 30, b(8) + 70], [0, 1], clamp)
+  const bypass = interpolate(frame, [b(8) + 30, b(8) + 70], [0, 1], CLAMP)
   const finale = useAppear(b(9))
   const inBase = useAppear(b(9) + 50)
   // к коду политики левая часть уходит, остаются база и турникеты
-  const people = interpolate(frame, [b(10) - 6, b(10) + 6], [1, 0], clamp)
-  const link = interpolate(frame, [b(10) + 70, b(10) + 95], [0, 1], clamp)
+  const people = interpolate(frame, [b(10) - 6, b(10) + 6], [1, 0], CLAMP)
+  const link = interpolate(frame, [b(10) + 70, b(10) + 95], [0, 1], CLAMP)
   const gatesLit = frame >= b(2) && frame < b(3)
 
   // Анна радуется открытому турникету; «кто-то» удивлён закрытому
@@ -71,7 +71,7 @@ export function S4Turnstile() {
         </Label>
         {ROWS.map((r, i) => {
           const lit = (i === 0 && frame >= b(5) + 75 && frame < b(6)) || finale > 0.5
-          const rowIn = interpolate(frame, [b(0) + 15 + i * 12, b(0) + 27 + i * 12], [0, 1], clamp)
+          const rowIn = interpolate(frame, [b(0) + 15 + i * 12, b(0) + 27 + i * 12], [0, 1], CLAMP)
           return (
             <g key={r.text} opacity={rowIn}>
               <rect x={L.s4db.x - 130} y={L.s4rowsY[i] - 26} width={260} height={52} rx={8} fill={lit ? theme.okTint : theme.paper} stroke={r.color} strokeWidth={3} />

@@ -33,8 +33,8 @@ export function Browser({ x, y, w, h, at, url, focus = 0, children }: { x: numbe
   )
 }
 
-/** Плашка с текстом по центру (x, y); w — ширина, без неё ширина считается от текста; compact — плотнее: тоньше рамка, ниже плашка. */
-export function Pill({ x, y, w, text, color = theme.accent, fill = theme.paper, size = 22, weight = 700, mono = false, compact = false }: { x: number; y: number; w?: number; text: string; color?: string; fill?: string; size?: number; weight?: number; mono?: boolean; compact?: boolean }) {
+/** Плашка с текстом по центру (x, y). w — ширина, без неё считается от текста. compact — плотнее: рамка 2,5, высота size + 16, размер по умолчанию 18 (без compact: рамка 3, высота size + 20, размер 22). */
+export function Pill({ x, y, w, text, color = theme.accent, fill = theme.paper, compact = false, size = compact ? 18 : 22, weight = 700, mono = false }: { x: number; y: number; w?: number; text: string; color?: string; fill?: string; size?: number; weight?: number; mono?: boolean; compact?: boolean }) {
   const width = w ?? Math.round(text.length * size * (mono ? 0.62 : 0.56) + 28)
   const h = size + (compact ? 16 : 20)
   return (
@@ -75,17 +75,17 @@ export function Cloud({ x, y, w, h, children, stroke = theme.line, fill = theme.
 
 const F = PHONE_FONT
 
-// Экран телефона (координаты экрана от -54,-92 до 54,92): кнопка «Мои тренировки», затем список.
+// Экран телефона (координаты экрана от -54,-92 до 54,92): кнопка с подписью label, затем список.
 // Телефон рисуется в масштабе PHONE_SCALE, поэтому текст F px на экране кадра не мельче 18 px.
-export function PhoneScreen({ tapAt, listAt, list, listColor = theme.ok, children }: { tapAt: number; listAt: number; list: string[]; listColor?: string; children?: ReactNode }) {
+export function PhoneScreen({ tapAt, listAt, list, label = 'Мои тренировки', listColor = theme.ok, children }: { tapAt: number; listAt: number; list: string[]; label?: string; listColor?: string; children?: ReactNode }) {
   const frame = useCurrentFrame()
   const ripple = frame >= tapAt && frame < tapAt + 18 ? (frame - tapAt) / 18 : 0
   const shown = frame >= listAt
   return (
     <g>
       <rect x={-50} y={-84} width={100} height={26} rx={7} fill={theme.accent} />
-      <text y={-66.5} textAnchor="middle" fill="#fff" style={{ font: `600 ${F}px ${theme.font}` }}>
-        Мои тренировки
+      <text y={-66.5} textAnchor="middle" fill={theme.white} style={{ font: `600 ${F}px ${theme.font}` }}>
+        {label}
       </text>
       {ripple > 0 && <circle cx={0} cy={-71} r={10 + ripple * 30} fill="none" stroke={theme.accent} strokeWidth={3} opacity={1 - ripple} />}
       {shown &&
@@ -102,7 +102,7 @@ export function PhoneScreen({ tapAt, listAt, list, listColor = theme.ok, childre
   )
 }
 
-// Ключ: кольцо и бородка; центр кольца — (x, y). Метафора «у каждого свой ключ» и секретного ключа.
+// Ключ: кольцо и бородка; центр кольца — (x, y), color — цвет линии, scale — масштаб.
 export function KeyGlyph({ x, y, color, scale = 1 }: { x: number; y: number; color: string; scale?: number }) {
   return (
     <g transform={`translate(${x} ${y}) scale(${scale})`}>

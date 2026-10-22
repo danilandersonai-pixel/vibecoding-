@@ -7,6 +7,7 @@ import { Phone } from '../../actors/Phone'
 import { Server } from '../../actors/Server'
 import { useAppear, useTrack } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { CLAMP } from '../../kit/motion'
 import { Arrow, Label } from '../../kit/parts'
 import { PhoneScreen } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
@@ -15,7 +16,6 @@ import { DB_ROWS, L, PHONE_SCALE } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 
 const ID = 's2-request'
-const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const
 
 // Сцена 2: обычный запрос от кнопки до базы и обратно; что такое запрос и ответ.
 export function S2Request() {
@@ -35,9 +35,9 @@ export function S2Request() {
   // строка Анны: «17 — это она», затем «база её нашла»
   const annaRow = (frame >= b(2) && frame < b(3)) || (frame >= b(4) && frame < b(6))
   // запрос и ответ: стрелки рисуются по очереди и уходят перед наездом на телефон
-  const arrowsOut = interpolate(frame, [b(6) - 8, b(6)], [1, 0], clamp)
-  const request = interpolate(frame, [b(5), b(5) + 24], [0, 1], clamp)
-  const answer = interpolate(frame, [b(5) + 60, b(5) + 84], [0, 1], clamp)
+  const arrowsOut = interpolate(frame, [b(6) - 8, b(6)], [1, 0], CLAMP)
+  const request = interpolate(frame, [b(5), b(5) + 24], [0, 1], CLAMP)
+  const answer = interpolate(frame, [b(5) + 60, b(5) + 84], [0, 1], CLAMP)
   const callout = useAppear(b(7))
   const warn = useAppear(b(8))
 

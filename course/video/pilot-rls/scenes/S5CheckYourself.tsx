@@ -70,7 +70,7 @@ export function S5CheckYourself() {
         return (
           <g key={s} opacity={on ? 1 : 0.15}>
             <circle cx={112} cy={190 + i * 66} r={22} fill={on ? (i === 3 ? theme.ok : theme.accent) : theme.grid} />
-            <Label x={112} y={198 + i * 66} size={22} color="#fff" weight={700}>
+            <Label x={112} y={198 + i * 66} size={22} color={theme.white} weight={700}>
               {i === 3 && result > 0.5 ? '✓' : String(i + 1)}
             </Label>
             <Label x={150} y={198 + i * 66} anchor="start" size={26} weight={500}>

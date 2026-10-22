@@ -1,6 +1,7 @@
 // Цвета светлой темы книги — ролики выглядят как ожившие схемы.
 export const theme = {
   paper: '#FBFAF6',
+  white: '#fff',
   desk: '#D9DCD7',
   ink: '#1C1E22',
   soft: '#5B606A',

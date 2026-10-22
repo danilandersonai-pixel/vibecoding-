@@ -5,6 +5,7 @@ import { Database } from '../../actors/Database'
 import type { Mood, Pose } from '../../actors/Person'
 import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { CLAMP } from '../../kit/motion'
 import { Arrow, Label } from '../../kit/parts'
 import { KeyGlyph } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
@@ -15,7 +16,6 @@ const ID = 's1-coaches'
 const MARINA = ['Анна', 'Света', 'Катя']
 const DIMA = ['Олег', 'Игорь', 'Макс']
 const CLIENT_Y = 440
-const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const
 
 // Сцена 1: два тренера, шесть подопечных, одна общая база — «общая раздевалка».
 export function S1Coaches() {
@@ -56,7 +56,7 @@ export function S1Coaches() {
       </g>
       {/* у каждого подопечного свой ключ — появляются по одному */}
       {people.map((p, i) => {
-        const k = interpolate(frame, [b(3) + 30 + i * 6, b(3) + 40 + i * 6], [0, 1], clamp)
+        const k = interpolate(frame, [b(3) + 30 + i * 6, b(3) + 40 + i * 6], [0, 1], CLAMP)
         const dim = focus > 0.5 && p.n !== 'Анна'
         return (
           <g key={p.n} opacity={k * (dim ? 0.3 : 1)}>

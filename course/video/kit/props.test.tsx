@@ -4,17 +4,21 @@ import { describe, expect, it, vi } from 'vitest'
 // Кадр, который «видят» окна и телефон, задаёт тест: к кадру 100 всё уже появилось.
 vi.mock('remotion', async (importOriginal) => ({ ...(await importOriginal<typeof import('remotion')>()), useCurrentFrame: () => 100 }))
 
+import { theme } from '../theme'
 import { Browser, Cloud, KeyGlyph, Mark, PhoneScreen, Pill } from './props'
 import { PHONE_FONT, PHONE_SCALE } from './screens/layout'
 
 const svg = (node: React.ReactNode) => renderToStaticMarkup(<svg>{node}</svg>)
 
-// Ширина и высота первой рамки (rect) в разметке.
+// Ширина, высота и толщина линии первой рамки (rect) в разметке.
 function frameOf(markup: string) {
-  const m = markup.match(/<rect[^>]*?\swidth="([\d.]+)"[^>]*?\sheight="([\d.]+)"/)
+  const m = markup.match(/<rect[^>]*?\swidth="([\d.]+)"[^>]*?\sheight="([\d.]+)"[^>]*?\sstroke-width="([\d.]+)"/)
   if (!m) throw new Error('в разметке нет рамки')
-  return { w: Number(m[1]), h: Number(m[2]) }
+  return { w: Number(m[1]), h: Number(m[2]), stroke: Number(m[3]) }
 }
+
+// Все цвета линий (stroke) в разметке без повторов.
+const strokesOf = (markup: string) => [...new Set([...markup.matchAll(/\sstroke="([^"]+)"/g)].map((m) => m[1]))]
 
 const sizesOf = (markup: string) => [...markup.matchAll(/font:\s*\d+\s+([\d.]+)px/g)].map((m) => Number(m[1]))
 
@@ -43,15 +47,40 @@ describe('Pill', () => {
     expect(sizes[0]).toBeGreaterThanOrEqual(18)
   })
 
-  it('высота растёт с размером шрифта; compact — плотнее обычной плашки', () => {
-    expect(frameOf(svg(<Pill x={0} y={0} text="да" size={30} />)).h).toBeGreaterThan(frameOf(svg(<Pill x={0} y={0} text="да" size={20} />)).h)
-    expect(frameOf(svg(<Pill x={0} y={0} text="да" size={20} compact />)).h).toBeLessThan(frameOf(svg(<Pill x={0} y={0} text="да" size={20} />)).h)
+  it('обычная плашка: высота size + 20, рамка 3', () => {
+    const f = frameOf(svg(<Pill x={0} y={0} text="да" size={20} />))
+    expect(f.h).toBe(40)
+    expect(f.stroke).toBe(3)
+    expect(frameOf(svg(<Pill x={0} y={0} text="да" size={30} />)).h).toBe(50)
+  })
+
+  it('compact: высота size + 16, рамка 2,5', () => {
+    const f = frameOf(svg(<Pill x={0} y={0} text="да" size={20} compact />))
+    expect(f.h).toBe(36)
+    expect(f.stroke).toBe(2.5)
+    expect(frameOf(svg(<Pill x={0} y={0} text="да" size={30} compact />)).h).toBe(46)
+  })
+
+  it('размер по умолчанию: 22 у обычной плашки, 18 у compact; свой size важнее', () => {
+    expect(sizesOf(svg(<Pill x={0} y={0} text="да" />))).toEqual([22])
+    expect(sizesOf(svg(<Pill x={0} y={0} text="да" compact />))).toEqual([18])
+    expect(sizesOf(svg(<Pill x={0} y={0} text="да" compact size={24} />))).toEqual([24])
+    expect(frameOf(svg(<Pill x={0} y={0} text="да" compact />)).h).toBe(34)
+  })
+
+  it('compact без w: ширина от текста по размеру 18', () => {
+    const wide = frameOf(svg(<Pill x={0} y={0} text="разница в пару пунктов — шум" compact />))
+    expect(wide.w).toBe(Math.round('разница в пару пунктов — шум'.length * 18 * 0.56 + 28))
   })
 })
 
 describe('Mark, Cloud, KeyGlyph', () => {
-  it('Mark рисует галочку зелёным и крестик красным', () => {
-    expect(svg(<Mark x={10} y={10} ok />)).toContain('stroke="#')
+  it('Mark рисует галочку цветом ok, а крестик цветом risk', () => {
+    expect(strokesOf(svg(<Mark x={10} y={10} ok />))).toEqual([theme.ok])
+    expect(strokesOf(svg(<Mark x={10} y={10} ok={false} />))).toEqual([theme.risk])
+  })
+
+  it('Mark: галочка и крестик — разные линии', () => {
     expect(svg(<Mark x={10} y={10} ok />)).not.toBe(svg(<Mark x={10} y={10} ok={false} />))
   })
 
@@ -95,8 +124,27 @@ describe('PhoneScreen', () => {
 
   it('рисует кнопку и список после listAt', () => {
     const markup = svg(<PhoneScreen tapAt={10} listAt={50} list={['Жим', 'Присед']} />)
-    expect(markup).toContain('Мои тренировки')
     expect(markup).toContain('Жим')
     expect(markup).toContain('Присед')
+  })
+
+  it('весь текст экрана — размера PHONE_FONT, а в кадре при PHONE_SCALE не мельче 18', () => {
+    const sizes = sizesOf(svg(<PhoneScreen tapAt={10} listAt={50} list={['Жим', 'Присед']} />))
+    expect(sizes.length).toBeGreaterThan(1)
+    for (const size of sizes) {
+      expect(size).toBe(PHONE_FONT)
+      expect(size * PHONE_SCALE).toBeGreaterThanOrEqual(18)
+    }
+  })
+
+  it('подпись кнопки по умолчанию «Мои тренировки», свою подпись выводит', () => {
+    expect(svg(<PhoneScreen tapAt={10} listAt={50} list={[]} />)).toContain('Мои тренировки')
+    const custom = svg(<PhoneScreen tapAt={10} listAt={50} list={[]} label="Мои замеры" />)
+    expect(custom).toContain('Мои замеры')
+    expect(custom).not.toContain('Мои тренировки')
+  })
+
+  it('подпись кнопки белая из темы', () => {
+    expect(svg(<PhoneScreen tapAt={10} listAt={50} list={[]} />)).toContain(`fill="${theme.white}"`)
   })
 })

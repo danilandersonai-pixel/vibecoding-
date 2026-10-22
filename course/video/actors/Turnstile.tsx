@@ -1,10 +1,11 @@
 import { interpolate } from 'remotion'
+import { CLAMP } from '../kit/motion'
 import { theme } from '../theme'
 import { Actor, type ActorProps } from './Actor'
 
 // Турникет в зале — метафора RLS. open от 0 (закрыт) до 1 (планка поднята).
 export function Turnstile({ open = 0, ...props }: ActorProps & { open?: number }) {
-  const angle = interpolate(open, [0, 1], [0, -80], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+  const angle = interpolate(open, [0, 1], [0, -80], CLAMP)
   const color = open > 0.5 ? theme.ok : theme.risk
   return (
     <Actor label="RLS" {...props} width={160} height={170}>

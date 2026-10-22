@@ -7,6 +7,7 @@ import { Phone } from '../../actors/Phone'
 import { Server } from '../../actors/Server'
 import { useAppear, useTrack } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { CLAMP } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
 import { PhoneScreen } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
@@ -15,7 +16,6 @@ import { DB_ROWS, L, PHONE_FONT, PHONE_SCALE } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 
 const ID = 's3-attack'
-const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const
 
 // Сцена 3: тот же запрос с подменённым номером — база отдаёт чужое (IDOR).
 export function S3Attack() {
@@ -36,11 +36,11 @@ export function S3Attack() {
     [b(8) + 70, L.phone.x, L.outY],
     [b(8) + 110, L.server.x, L.outY],
   ])
-  const flash = interpolate(frame, [b(6), b(6) + 8, b(6) + 30], [0, 0.35, 0], clamp)
-  const account = useAppear(b(1)) * interpolate(frame, [b(4), b(4) + 10], [1, 0], clamp)
+  const flash = interpolate(frame, [b(6), b(6) + 8, b(6) + 30], [0, 0.35, 0], CLAMP)
+  const account = useAppear(b(1)) * interpolate(frame, [b(4), b(4) + 10], [1, 0], CLAMP)
   const leak = useAppear(b(6))
   // IDOR уходит до наезда на телефон, чтобы надпись не резалась краем кадра
-  const idor = useAppear(b(7)) * interpolate(frame, [b(8) - 10, b(8)], [1, 0], clamp)
+  const idor = useAppear(b(7)) * interpolate(frame, [b(8) - 10, b(8)], [1, 0], CLAMP)
   const idorWords = useAppear(b(7) + 60)
   const noButton = useAppear(b(8) + 10)
   const olegRow = frame >= b(4) + 80 && frame < b(7)

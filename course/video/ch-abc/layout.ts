@@ -7,9 +7,8 @@ import { theme } from '../theme'
 export const BOARD2 = 1280
 export const BELOW = 560
 
-// Телефон крупнее натуральной величины: текст экрана 12 px × 1,5 = 18 px в кадре.
-export const PHONE_SCALE = 1.5
-export const PHONE_FONT = 12
+// Телефон крупнее натуральной величины: текст экрана 12 px × 1,5 = 18 px в кадре (размеры общие для набора).
+export { PHONE_FONT, PHONE_SCALE } from '../kit/screens/layout'
 
 // Сцена 1: ресторан из четырёх частей слева направо.
 export const ZONE_TOP = 76
