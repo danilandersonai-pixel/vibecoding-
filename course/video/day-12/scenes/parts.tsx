@@ -13,20 +13,6 @@ import { theme } from '../../theme'
 
 const F = PHONE_FONT
 
-/** Пунктирное место будущего элемента: (x, y) — левый верхний угол, text — бледная подпись по центру. */
-export function Slot({ x, y, w, h, r = 10, text, color = theme.line }: { x: number; y: number; w: number; h: number; r?: number; text?: string; color?: string }) {
-  return (
-    <g>
-      <rect x={x} y={y} width={w} height={h} rx={r} fill="none" stroke={color} strokeWidth={2.5} strokeDasharray="9 7" />
-      {text && (
-        <text x={x + w / 2} y={y + h / 2 + 7} textAnchor="middle" fill={theme.soft} style={{ font: `600 20px ${theme.font}` }}>
-          {text}
-        </text>
-      )}
-    </g>
-  )
-}
-
 /** Дверь зала с кодовой панелью: (x, y) — центр двери. */
 export function Door({ x, y, scale = 1, color = theme.ink }: { x: number; y: number; scale?: number; color?: string }) {
   return (
