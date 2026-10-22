@@ -5,6 +5,7 @@ import { ch03Script } from './ch-03/script'
 import { ch04Script } from './ch-04/script'
 import { ch05Script } from './ch-05/script'
 import { ch06Script } from './ch-06/script'
+import { ch08Script } from './ch-08/script'
 import { ch12Script } from './ch-12/script'
 import { chAbcScript } from './ch-abc/script'
 import { pilotRlsScript } from './pilot-rls/script'
@@ -73,5 +74,11 @@ export const catalog: Record<string, CatalogEntry> = {
     kind: 'chapter',
     script: ch04Script,
     load: () => import('./ch-04/Video'),
+  },
+  'ch-08': {
+    title: 'Безопасность и надёжность',
+    kind: 'chapter',
+    script: ch08Script,
+    load: () => import('./ch-08/Video'),
   },
 }
