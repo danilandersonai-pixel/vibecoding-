@@ -230,7 +230,7 @@ export function S7Traps() {
       <g opacity={env}>
         <Card x={EV.x} y={EV.y} w={EV.w} h={EV.h} stroke={theme.ok}>
           <Label x={EV.x + 20} y={EV.y + 34} anchor="start" size={20} weight={700}>
-            .env — только на сервере
+            .env — вне кода и репозитория
           </Label>
           <text x={EV.x + 20} y={EV.y + 72} fill={theme.alt} style={{ font: `600 20px ${theme.mono}` }}>
             {typed(`API_KEY=${KEY}`, frame, b(2) + 90, 40)}
@@ -250,11 +250,12 @@ export function S7Traps() {
         <Database x={S7.db.x} y={S7.db.y} scale={0.9} rows={REAL.map((r) => ({ text: r.fake, color: theme.ok }))} />
         <Lock x={S7.db.x + 150} y={S7.db.y - 96} open={open} />
       </g>
+      {/* строки утекают из открытой базы вправо, в пустую часть доски, и гаснут */}
       {flyAt.map((at, i) => {
         const p = interpolate(frame, [at, at + 30], [0, 1], CLAMP)
         if (p <= 0 || p >= 1) return null
         return (
-          <g key={at} opacity={1 - p * 0.8} transform={`translate(${S7.db.x - 150 - 50 * p} ${S7.db.y - 40 + i * 44 + 30 * p})`}>
+          <g key={at} opacity={1 - p} transform={`translate(${S7.db.x + 160 + 110 * p} ${S7.db.y - 30 + i * 56 + 16 * p})`}>
             <rect x={-40} y={-16} width={80} height={32} rx={6} fill={theme.paper} stroke={theme.risk} strokeWidth={3} />
             <text y={7} textAnchor="middle" fill={theme.risk} style={{ font: `600 18px ${theme.font}` }}>
               {REAL[i].fake}
