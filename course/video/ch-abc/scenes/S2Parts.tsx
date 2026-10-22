@@ -4,7 +4,7 @@ import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { CLAMP } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
-import { Cloud, KeyGlyph, Mark } from '../../kit/props'
+import { Cloud, KeyGlyph, Mark, Slot } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { Editor } from '../../kit/screens/Editor'
 import { BAR, EDITOR_PAD, LH } from '../../kit/screens/layout'
@@ -56,6 +56,7 @@ function Parcel({ x, y, w, h, text, ghost }: { x: number; y: number; w: number; 
 }
 
 // Сцена 2: код — рецепт для компьютера; языки; файлы и проект; библиотеки и зависимости; ключи в .env.
+// Места языков, библиотек и .env подписаны заранее: кадр не пустует, пока о них не дошла речь.
 export function S2Parts() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
@@ -70,7 +71,8 @@ export function S2Parts() {
   const example = useAppear(b(1) + 10)
   const link = interpolate(frame, [b(1) + 25, b(1) + 45], [0, 1], CLAMP)
   const langAt = [b(2) + 15, b(2) + 70, b(2) + 100, b(2) + 120]
-  const project = useAppear(b(3) + 105)
+  // плашка «проект» уходит до наезда на .env: при наезде её низ проходил бы под субтитрами
+  const project = useAppear(b(3) + 105) * interpolate(frame, [b(6) - 18, b(6) - 6], [1, 0], CLAMP)
   const libsHead = useAppear(b(4) + 5)
   const deps = interpolate(frame, [b(5) + 10, b(5) + 40], [0, 1], CLAMP)
   const depsWord = useAppear(b(5) + 15)
@@ -79,6 +81,10 @@ export function S2Parts() {
   const env = useAppear(b(6) + 15)
   const noChat = useAppear(b(6) + 80)
   const noHub = useAppear(b(6) + 105)
+  // подписанные места: языки — под редактором, библиотеки и .env — на доске 2 (до переезда камеры)
+  const langSlot = useAppear(b(0) + 90) * interpolate(frame, [langAt[0], langAt[0] + 12], [1, 0], CLAMP)
+  const libSlot = useAppear(b(3) - 20) * interpolate(frame, [b(4) + 10, b(4) + 22], [1, 0], CLAMP)
+  const envSlot = useAppear(b(3) - 20) * interpolate(frame, [b(6) + 10, b(6) + 19], [1, 0], CLAMP)
 
   // агент пишет код по рецепту → готово → ждёт
   const agent = stepAt<AgentPose>(frame, [
@@ -121,6 +127,9 @@ export function S2Parts() {
       <Arrow x1={R.x + R.w - 20} y1={R.y + 150} x2={E.x + 20} y2={codeTop + LH} color={theme.alt} draw={link} />
 
       {/* языки */}
+      <g opacity={langSlot}>
+        <Slot x={S2.langs.x} y={S2.langs.y} w={LANGS.length * S2.langs.w + (LANGS.length - 1) * S2.langs.gap} h={S2.langs.h} text="языки программирования" />
+      </g>
       {LANGS.map((l, i) => {
         const x = S2.langs.x + i * (S2.langs.w + S2.langs.gap)
         const on = interpolate(frame, [langAt[i], langAt[i] + 12], [0, 1], CLAMP)
@@ -181,6 +190,9 @@ export function S2Parts() {
       </g>
 
       {/* библиотеки — готовые чужие детали; каждая — зависимость */}
+      <g opacity={libSlot}>
+        <Slot x={Lb.x} y={Lb.y} w={Lb.w} h={(LIBS.length - 1) * Lb.step + Lb.h} text="библиотеки" />
+      </g>
       <g opacity={libsHead}>
         <Label x={Lb.x} y={Lb.y - 18} anchor="start" size={22} color={theme.soft} weight={600}>
           библиотеки
@@ -210,6 +222,9 @@ export function S2Parts() {
       </g>
 
       {/* ключи API — в .env, не в чат и не на GitHub */}
+      <g opacity={envSlot}>
+        <Slot x={V.x} y={V.y} w={V.w} h={V.h} text="ключи API" />
+      </g>
       <g opacity={env}>
         <Card x={V.x} y={V.y} w={V.w} h={V.h} stroke={theme.risk}>
           <KeyGlyph x={V.x + 34} y={V.y + 40} color={theme.risk} scale={1.2} />

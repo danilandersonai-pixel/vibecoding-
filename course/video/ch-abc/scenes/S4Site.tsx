@@ -9,7 +9,7 @@ import { useAppear, useTrack } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { CLAMP } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
-import { Browser, Cloud, Pill } from '../../kit/props'
+import { Browser, Cloud, Pill, Slot } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { Terminal } from '../../kit/screens/Terminal'
 import { theme } from '../../theme'
@@ -18,9 +18,9 @@ import { beat, sceneDuration, STAGING } from '../script'
 
 const ID = 's4-site'
 const ENVS = [
-  { title: 'Разработка', sub: 'ваш компьютер', note: 'ломайте смело', color: theme.ok },
-  { title: 'Тестовое (staging)', sub: 'копия боевой версии', note: 'всё проверяют', color: theme.alt },
-  { title: 'Продакшен', sub: 'настоящее приложение', note: 'ошибка — дорого', color: theme.risk },
+  { title: 'Разработка', sub: 'ваш компьютер', note: 'ломайте смело', color: theme.ok, slot: 'разработка' },
+  { title: 'Тестовое (staging)', sub: 'копия боевой версии', note: 'всё проверяют', color: theme.alt, slot: 'тестовое' },
+  { title: 'Продакшен', sub: 'настоящее приложение', note: 'ошибка — дорого', color: theme.risk, slot: 'продакшен' },
 ]
 
 // Ноутбук: экран с кодом; (x, y) — левый верхний угол экрана.
@@ -85,6 +85,8 @@ function SitePhone({ updated }: { updated: number }) {
 }
 
 // Сцена 4: от компьютера к сайту — запуск на localhost, три окружения и цена ошибки, деплой на хостинг.
+// Места всех трёх окружений подписаны сразу, как прозвучало «окружений три»; перед переездом к деплою
+// окружения гаснут — по дороге камеры они прошли бы под субтитрами.
 export function S4Site() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
@@ -104,6 +106,7 @@ export function S4Site() {
   const released = interpolate(frame, [b(4) + 30, b(4) + 50], [0, 1], CLAMP)
   const cost = interpolate(frame, [b(5) + 10, b(5) + 70], [0, 1], CLAMP)
   const early = useAppear(b(5) + 90)
+  const envOut = interpolate(frame, [b(6) - 8, b(6) + 2], [1, 0], CLAMP)
 
   const title = useAppear(b(6) + 20)
   const cloud = useAppear(b(6) + 20)
@@ -175,80 +178,88 @@ export function S4Site() {
       <Arrow x1={S4.term.x + S4.term.w + 6} y1={186} x2={B.x + 60} y2={B.y + 34} color={theme.accent} draw={toBrowser} />
 
       {/* под кадром: три окружения и цена ошибки */}
-      <g opacity={envOn[0]}>
-        <Label x={640} y={S4.envY - 40} size={28} weight={700}>
-          Окружения
-        </Label>
-      </g>
-      {ENVS.map((e, i) => {
-        const x = S4.envX[i]
-        const y = S4.envY
-        const w = S4.envW
-        return (
-          <g key={e.title} opacity={envOn[i]} transform={`translate(0 ${(1 - envOn[i]) * 16})`}>
-            <Card x={x} y={y} w={w} h={S4.envH} stroke={e.color}>
-              <Label x={x + w / 2} y={y + 42} size={26} weight={700}>
-                {e.title}
-              </Label>
-              <Label x={x + w / 2} y={y + 74} size={20} color={theme.soft} weight={500}>
-                {e.sub}
-              </Label>
-              <g opacity={noteOn[i]}>
-                <Label x={x + w / 2} y={y + 238} size={22} color={e.color} weight={700}>
-                  {e.note}
-                </Label>
-              </g>
-            </Card>
+      <g opacity={envOut}>
+        {/* места тестового и продакшена — сразу с первой карточкой */}
+        {[1, 2].map((i) => (
+          <g key={i} opacity={envOn[0] * (1 - envOn[i])}>
+            <Slot x={S4.envX[i]} y={S4.envY} w={S4.envW} h={S4.envH} r={12} text={ENVS[i].slot} />
           </g>
-        )
-      })}
-      <g opacity={devLaptop}>
-        <Laptop x={S4.envX[0] + 100} y={S4.envY + 100} w={120} h={74} />
-      </g>
-      <g opacity={envOn[1]}>
-        <Server x={S4.envX[1] + S4.envW / 2} y={S4.envY + 150} scale={0.5} label="" />
-        <Label x={S4.envX[1] + S4.envW / 2 + 70} y={S4.envY + 130} anchor="start" size={20} color={theme.alt} weight={700}>
-          копия
-        </Label>
-      </g>
-      {frame >= b(4) && (
-        <g>
-          <Coach x={S4.envX[2] + 105} y={S4.envY + 136} scale={0.55} color={theme.accent} label="Марина" enterAt={b(4) + 30} pose={people[0]} mood={people[1]} />
-          <Client x={S4.envX[2] + 215} y={S4.envY + 136} scale={0.55} color={theme.accent} label="Анна" enterAt={b(4) + 40} pose={people[0]} mood={people[1]} />
-        </g>
-      )}
-      <Arrow x1={S4.envX[0] + S4.envW + 10} y1={S4.envY + 130} x2={S4.envX[1] - 10} y2={S4.envY + 130} color={theme.alt} draw={checked} />
-      <Arrow x1={S4.envX[1] + S4.envW + 10} y1={S4.envY + 130} x2={S4.envX[2] - 10} y2={S4.envY + 130} color={theme.risk} draw={released} />
-      <g opacity={checked}>
-        <Label x={(S4.envX[0] + S4.envW + S4.envX[1]) / 2} y={S4.envY + 110} size={18} color={theme.soft} weight={600}>
-          проверили
-        </Label>
-      </g>
-      <g opacity={released}>
-        <Label x={(S4.envX[1] + S4.envW + S4.envX[2]) / 2} y={S4.envY + 110} size={18} color={theme.soft} weight={600}>
-          выпустили
-        </Label>
-      </g>
-      <g opacity={cost > 0 ? 1 : 0}>
-        <Label x={50} y={S4.costY - 14} anchor="start" size={20} color={theme.soft} weight={600}>
-          цена ошибки
-        </Label>
-        {[theme.ok, theme.alt, theme.risk].map((c, i) => {
-          const w = 1180 / 3
-          const part = Math.min(1, Math.max(0, cost * 3 - i))
-          return <rect key={c} x={50 + i * w} y={S4.costY} width={w * part} height={22} fill={c} rx={i === 0 || i === 2 ? 11 : 0} />
-        })}
-        <Label x={50} y={S4.costY + 52} anchor="start" size={20} color={theme.ok} weight={700}>
-          низкая
-        </Label>
-        <g opacity={cost >= 1 ? 1 : 0}>
-          <Label x={1230} y={S4.costY + 52} anchor="end" size={20} color={theme.risk} weight={700}>
-            высокая
+        ))}
+        <g opacity={envOn[0]}>
+          <Label x={640} y={S4.envY - 40} size={28} weight={700}>
+            Окружения
           </Label>
         </g>
-      </g>
-      <g opacity={early}>
-        <Pill x={480} y={S4.costY + 44} w={320} text="← проверяйте раньше" color={theme.accent} fill={theme.accentTint} />
+        {ENVS.map((e, i) => {
+          const x = S4.envX[i]
+          const y = S4.envY
+          const w = S4.envW
+          return (
+            <g key={e.title} opacity={envOn[i]} transform={`translate(0 ${(1 - envOn[i]) * 16})`}>
+              <Card x={x} y={y} w={w} h={S4.envH} stroke={e.color}>
+                <Label x={x + w / 2} y={y + 42} size={26} weight={700}>
+                  {e.title}
+                </Label>
+                <Label x={x + w / 2} y={y + 74} size={20} color={theme.soft} weight={500}>
+                  {e.sub}
+                </Label>
+                <g opacity={noteOn[i]}>
+                  <Label x={x + w / 2} y={y + 238} size={22} color={e.color} weight={700}>
+                    {e.note}
+                  </Label>
+                </g>
+              </Card>
+            </g>
+          )
+        })}
+        <g opacity={devLaptop}>
+          <Laptop x={S4.envX[0] + 100} y={S4.envY + 100} w={120} h={74} />
+        </g>
+        <g opacity={envOn[1]}>
+          <Server x={S4.envX[1] + S4.envW / 2} y={S4.envY + 150} scale={0.5} label="" />
+          <Label x={S4.envX[1] + S4.envW / 2 + 70} y={S4.envY + 130} anchor="start" size={20} color={theme.alt} weight={700}>
+            копия
+          </Label>
+        </g>
+        {frame >= b(4) && (
+          <g>
+            <Coach x={S4.envX[2] + 105} y={S4.envY + 136} scale={0.55} color={theme.accent} label="Марина" enterAt={b(4) + 30} pose={people[0]} mood={people[1]} />
+            <Client x={S4.envX[2] + 215} y={S4.envY + 136} scale={0.55} color={theme.accent} label="Анна" enterAt={b(4) + 40} pose={people[0]} mood={people[1]} />
+          </g>
+        )}
+        <Arrow x1={S4.envX[0] + S4.envW + 10} y1={S4.envY + 130} x2={S4.envX[1] - 10} y2={S4.envY + 130} color={theme.alt} draw={checked} />
+        <Arrow x1={S4.envX[1] + S4.envW + 10} y1={S4.envY + 130} x2={S4.envX[2] - 10} y2={S4.envY + 130} color={theme.risk} draw={released} />
+        <g opacity={checked}>
+          <Label x={(S4.envX[0] + S4.envW + S4.envX[1]) / 2} y={S4.envY + 110} size={18} color={theme.soft} weight={600}>
+            проверили
+          </Label>
+        </g>
+        <g opacity={released}>
+          <Label x={(S4.envX[1] + S4.envW + S4.envX[2]) / 2} y={S4.envY + 110} size={18} color={theme.soft} weight={600}>
+            выпустили
+          </Label>
+        </g>
+        <g opacity={cost > 0 ? 1 : 0}>
+          <Label x={50} y={S4.costY - 14} anchor="start" size={20} color={theme.soft} weight={600}>
+            цена ошибки
+          </Label>
+          {[theme.ok, theme.alt, theme.risk].map((c, i) => {
+            const w = 1180 / 3
+            const part = Math.min(1, Math.max(0, cost * 3 - i))
+            return <rect key={c} x={50 + i * w} y={S4.costY} width={w * part} height={22} fill={c} rx={i === 0 || i === 2 ? 11 : 0} />
+          })}
+          <Label x={50} y={S4.costY + 52} anchor="start" size={20} color={theme.ok} weight={700}>
+            низкая
+          </Label>
+          <g opacity={cost >= 1 ? 1 : 0}>
+            <Label x={1230} y={S4.costY + 52} anchor="end" size={20} color={theme.risk} weight={700}>
+              высокая
+            </Label>
+          </g>
+        </g>
+        <g opacity={early}>
+          <Pill x={480} y={S4.costY + 44} w={320} text="← проверяйте раньше" color={theme.accent} fill={theme.accentTint} />
+        </g>
       </g>
 
       {/* справа: деплой */}
