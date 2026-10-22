@@ -8,8 +8,10 @@ import { appear } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
 import { Callout, Mark, Pill, Slot } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
+import { Editor } from '../../kit/screens/Editor'
+import { editorHeight } from '../../kit/screens/layout'
 import { theme } from '../../theme'
-import { EMPTY_WEEK, S3, TESTS, TESTS_H, weekAverage } from '../layout'
+import { CODE, EMPTY_WEEK, S3, TESTS, TESTS_H, weekAverage } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 import { CheckRow, Padlock, WeekBars } from './parts'
 
@@ -17,6 +19,7 @@ const ID = 's3-check'
 const T = S3.tests
 const W = S3.week
 const K = S3.lock
+const E = S3.code
 
 // места тестов до их реплики: что за случай
 const KINDS = ['обычный случай', 'странный ввод: запятая', 'странный ввод: кДж', 'итоги совпадают', 'пустой ввод', 'чужой тренер']
@@ -27,8 +30,8 @@ const AVG_ZERO = Math.round(EMPTY_WEEK.reduce((s, d) => s + (d.kcal ?? 0), 0) / 
 const rowY = (i: number) => T.y + T.head + i * T.row + T.row / 2
 
 // Сцена 3 (проверьте у себя): агент пишет тесты на расчёт по правилам, до кода — обычный случай,
-// странный ввод («52,5» и кДж), совпадение итогов, пустой день, чужой тренер; справа — неделя
-// с пустым четвергом (среднее по шести дням) и доступ Димы.
+// странный ввод («52,5» и кДж), совпадение итогов, пустой день, чужой тренер. Справа сначала код
+// текущего теста и агент, потом неделя с пустым четвергом (среднее по шести дням) и вход как Дима (день 4).
 export function S3Check() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
@@ -36,22 +39,23 @@ export function S3Check() {
   const card = appear(frame, b(0) + 10, 12)
   const rules = useAppear(b(0) + 130)
   const testAt = [b(1) + 10, b(2) + 10, b(3) + 10, b(4) + 10, b(5) + 40, b(6) + 30]
-  const passAt = [b(1) + 60, b(2) + 80, b(3) + 80, b(4) + 80, b(5) + 150, b(6) + 120]
+  const passAt = [b(1) + 60, b(2) + 80, b(3) + 80, b(4) + 80, b(5) + 150, b(6) + 140]
   const allGreen = useAppear(b(7) + 4)
 
-  // агент пишет тесты, пока камера близко; уходит до отъезда
-  const agentOut = 1 - appear(frame, b(5) - 30, 12)
+  // справа на репликах 1–5: код текущего теста и агент; уходят перед неделей
+  const rightOut = 1 - appear(frame, b(5) - 24, 12)
   const say = appear(frame, b(0) + 50, 10)
+  const codeSlot = appear(frame, b(0) + 30, 10) * (1 - appear(frame, testAt[0], 8))
 
-  // справа: неделя с пустым днём и доступ Димы
-  const weekSlot = appear(frame, b(5) - 20, 10)
-  const week = appear(frame, b(5) + 30, 12)
-  const barsAt = b(5) + 50
+  // справа потом: неделя с пустым днём и вход как Дима
+  const weekSlot = appear(frame, b(5) - 10, 10)
+  const week = appear(frame, b(5) + 20, 12)
+  const barsAt = b(5) + 40
   const avg = useAppear(b(5) + 140)
   const zero = useAppear(b(5) + 165)
   const lock = appear(frame, b(6) + 20, 12)
-  const oleg = useAppear(b(6) + 60)
-  const anna = useAppear(b(6) + 110)
+  const oleg = useAppear(b(6) + 80)
+  const anna = useAppear(b(6) + 130)
 
   const agent = stepAt<AgentPose>(frame, [
     [0, 'idle'],
@@ -101,11 +105,23 @@ export function S3Check() {
         )
       })}
 
-      {/* агент пишет тесты по правилам */}
-      <g opacity={agentOut}>
+      {/* агент пишет тесты по правилам: справа — код текущего теста */}
+      <g opacity={codeSlot}>
+        <Slot x={E.x} y={E.y} w={E.w} h={editorHeight(3)} text="код теста" />
+      </g>
+      <g opacity={rightOut}>
+        {CODE.map((lines, i) => {
+          const gone = i < CODE.length - 1 ? appear(frame, testAt[i + 1], 8) : 0
+          if (frame < testAt[i] || gone >= 1) return null
+          return (
+            <g key={i} opacity={1 - gone}>
+              <Editor x={E.x} y={E.y} w={E.w} at={testAt[i]} file="nutrition.test.ts" lines={lines} highlight={[2]} />
+            </g>
+          )
+        })}
         <Agent x={S3.agent.x} y={S3.agent.y} scale={0.65} enterAt={b(0) + 20} pose={agent} />
         <g opacity={say}>
-          <Callout x={S3.agent.x} y={168} tx={S3.agent.x} ty={S3.agent.y - 58} text="пишу тесты по правилам" color={theme.accent} />
+          <Callout x={S3.say.x} y={S3.say.y} tx={S3.agent.x + 40} ty={S3.agent.y - 36} text="пишу тесты по правилам" color={theme.accent} />
         </g>
       </g>
 

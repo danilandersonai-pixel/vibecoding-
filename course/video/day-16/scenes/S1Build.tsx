@@ -42,7 +42,7 @@ const MID = A.y + A.h / 2
 
 // Сцена 1 (что строим сегодня): Марина ставит цели КБЖУ, Анна пишет дневник — порцию по этикетке
 // считает код, строки складываются в итог; на доске 2 — сводка за неделю для Марины,
-// а дневник как данные о здоровье видят только Анна и её тренер.
+// а дневник — данные о здоровье (день 6) — по правилу RLS (день 4) видят только Анна и её тренер.
 export function S1Build() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
@@ -83,7 +83,8 @@ export function S1Build() {
   const prot = useAppear(b(5) + 140)
   const access = appear(frame, b(6) + 8, 12)
   const health = useAppear(b(6) + 36)
-  const who = [appear(frame, b(6) + 90, 10), appear(frame, b(6) + 120, 10), appear(frame, b(6) + 158, 10)]
+  const rls = useAppear(b(7) + 10)
+  const who = [appear(frame, b(7) + 80, 10), appear(frame, b(7) + 110, 10), appear(frame, b(7) + 160, 10)]
 
   const marina = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
@@ -101,7 +102,7 @@ export function S1Build() {
   const marina2 = stepAt<[Pose, Mood]>(frame, [
     [0, ['think', 'neutral']],
     [b(5) + 150, ['stand', 'happy']],
-    [b(6) + 100, ['point', 'happy']],
+    [b(7) + 100, ['point', 'happy']],
   ])
 
   return (
@@ -278,17 +279,29 @@ export function S1Build() {
         { name: 'Марина', x: A.x + 450, ok: true },
         { name: 'Дима', x: A.x + 600, ok: false },
       ].map((p, i) => (
-        <g key={p.name} opacity={who[i]}>
-          <Mark x={p.x} y={MID} ok={p.ok} r={13} />
-          <Label x={p.x + 22} y={MID + 7} anchor="start" size={20} color={p.ok ? theme.ink : theme.risk} weight={700}>
-            {p.name}
-          </Label>
+        <g key={p.name}>
+          {/* пока правило не названо — имя бледное, отметка пунктиром */}
+          <g opacity={health * (1 - who[i])}>
+            <circle cx={p.x} cy={MID} r={13} fill="none" stroke={theme.line} strokeWidth={2.5} strokeDasharray="5 4" />
+            <Label x={p.x + 22} y={MID + 7} anchor="start" size={20} color={theme.soft} weight={600}>
+              {p.name}
+            </Label>
+          </g>
+          <g opacity={who[i]}>
+            <Mark x={p.x} y={MID} ok={p.ok} r={13} />
+            <Label x={p.x + 22} y={MID + 7} anchor="start" size={20} color={p.ok ? theme.ink : theme.risk} weight={700}>
+              {p.name}
+            </Label>
+          </g>
         </g>
       ))}
-      <g opacity={who[2]}>
-        <Padlock x={A.x + 720} y={MID} />
+      <g opacity={rls}>
+        <Pill x={A.x + A.w - 52} y={MID} w={64} text="RLS" color={theme.accent} fill={theme.accentTint} compact />
       </g>
-      <Coach x={S1.dima.x} y={S1.dima.y} scale={0.8} label="Дима" color={theme.alt} enterAt={b(6) + 130} pose="stand" mood="neutral" />
+      <g opacity={who[2]}>
+        <Padlock x={A.x + 704} y={MID} />
+      </g>
+      <Coach x={S1.dima.x} y={S1.dima.y} scale={0.8} label="Дима" color={theme.alt} enterAt={b(7) + 130} pose="stand" mood="neutral" />
     </KitScene>
   )
 }

@@ -178,13 +178,22 @@ export const RULES = [`единица у числа: на 100 г, ккал ил�
 
 export const S3 = {
   tests: { x: 60, y: 96, w: 610, head: 62, row: 52 },
-  agent: { x: 880, y: 300 },
+  code: { x: 700, y: 96, w: 540 },
+  agent: { x: 860, y: 400 },
+  say: { x: 1060, y: 330 },
   week: { x: 710, y: 96, w: 520, h: 320 },
   bars: { x: 730, y: 150, w: 480, h: 174, top: 1800 },
   lock: { x: 710, y: 436, w: 380, h: 90 },
   dima: { x: 1170, y: 478 },
 }
 export const TESTS_H = S3.tests.head + TESTS.length * S3.tests.row + 12
+// Код первых четырёх тестов: агент пишет их по правилам до кода (строки не длиннее 40 знаков)
+export const CODE: string[][] = [
+  [`it('${OATS_G} г овсянки', () => {`, `  expect(portion(${OATS.kcal}, ${OATS_G})).toBe(${portion(OATS.kcal, OATS_G)})`, '})'],
+  ["it('«52,5» с запятой', () => {", `  expect(grams('52,5')).toBe(${parseGrams('52,5')})`, '})'],
+  [`it('${OATS_KJ} — похоже на кДж', () => {`, `  expect(looksLikeKj(${OATS_KJ})).toBe(${looksLikeKj(OATS_KJ)})`, '})'],
+  ["it('итоги совпадают', () => {", '  expect(anna(day)).toBe(marina(day))', '})'],
+]
 // Список тестов — рамка горячей точки «Тесты на расчёт»
 export const TESTS_BOX = { x: S3.tests.x - 10, y: S3.tests.y - 10, w: S3.tests.w + 20, h: TESTS_H + 20 }
 
@@ -196,6 +205,6 @@ export const SHOT = {
   board2: { x: BOARD2 + 640, y: 360, zoom: 1 },
   // сцена 1: места целей, дневника и расчёта чуть крупнее, пока героев нет
   s1near: { x: 640, y: 340, zoom: 1.04 },
-  // сцена 3: список тестов и агент крупнее, пока недели справа нет
-  s3tests: { x: 580, y: 310, zoom: 1.12 },
+  // сцена 3: места тестов, кода и агент чуть крупнее, пока тестов нет
+  s3near: { x: 640, y: 340, zoom: 1.04 },
 } as const
