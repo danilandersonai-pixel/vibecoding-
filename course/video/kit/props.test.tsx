@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('remotion', async (importOriginal) => ({ ...(await importOriginal<typeof import('remotion')>()), useCurrentFrame: () => 100 }))
 
 import { theme } from '../theme'
-import { Browser, Cloud, KeyGlyph, Mark, PhoneScreen, Pill } from './props'
+import { Browser, Callout, Cloud, KeyGlyph, Mark, PhoneScreen, Pill } from './props'
 import { PHONE_FONT, PHONE_SCALE } from './screens/layout'
 
 const svg = (node: React.ReactNode) => renderToStaticMarkup(<svg>{node}</svg>)
@@ -146,5 +146,29 @@ describe('PhoneScreen', () => {
 
   it('подпись кнопки белая из темы', () => {
     expect(svg(<PhoneScreen tapAt={10} listAt={50} list={[]} />)).toContain(`fill="${theme.white}"`)
+  })
+})
+
+describe('Callout', () => {
+  const line = (markup: string) => {
+    const m = markup.match(/<line x1="([\d.-]+)" y1="([\d.-]+)" x2="([\d.-]+)" y2="([\d.-]+)"/)
+    if (!m) throw new Error('в разметке нет указки')
+    return m.slice(1).map(Number)
+  }
+  it('указка кончается точкой у говорящего (tx, ty)', () => {
+    const m = svg(<Callout x={400} y={200} tx={300} ty={320} text="Вроде работает!" />)
+    const [, , x2, y2] = line(m)
+    expect([x2, y2]).toEqual([300, 320])
+    expect(m).toContain('<circle cx="300" cy="320"')
+    expect(m).toContain('Вроде работает!')
+  })
+  it('говорящий ниже — указка от нижнего края плашки, выше — от верхнего', () => {
+    const [, below] = line(svg(<Callout x={400} y={200} tx={300} ty={320} text="да" />))
+    const [, above] = line(svg(<Callout x={400} y={200} tx={300} ty={80} text="да" />))
+    expect(below).toBeGreaterThan(200)
+    expect(above).toBeLessThan(200)
+  })
+  it('шрифт по умолчанию не мельче 18 px', () => {
+    for (const size of sizesOf(svg(<Callout x={400} y={200} tx={300} ty={320} text="да" />))) expect(size).toBeGreaterThanOrEqual(18)
   })
 })

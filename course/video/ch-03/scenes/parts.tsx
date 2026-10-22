@@ -2,7 +2,6 @@ import { useCurrentFrame } from 'remotion'
 import { Actor, type ActorProps } from '../../actors/Actor'
 import { Person, type Mood, type Pose } from '../../actors/Person'
 import { appear } from '../../kit/motion'
-import { Pill } from '../../kit/props'
 import { theme } from '../../theme'
 import { PHONE_FONT } from '../layout'
 
@@ -74,19 +73,6 @@ export function LogScreen({ input = '', taps = [], rows, offline = 0 }: { input?
           </g>
         )
       })}
-    </g>
-  )
-}
-
-/** Реплика героя: плашка с текстом по центру (x, y) и указка к говорящему (tx, ty). */
-export function Callout({ x, y, tx, ty, text, color = theme.ink, fill = theme.white, size = 20 }: { x: number; y: number; tx: number; ty: number; text: string; color?: string; fill?: string; size?: number }) {
-  const h = size + 20
-  const from = ty > y ? y + h / 2 : y - h / 2
-  return (
-    <g>
-      <line x1={x + (tx - x) * 0.25} y1={from} x2={tx} y2={ty} stroke={color} strokeWidth={2.5} strokeLinecap="round" />
-      <circle cx={tx} cy={ty} r={4} fill={color} />
-      <Pill x={x} y={y} text={text} color={color} fill={fill} size={size} weight={600} />
     </g>
   )
 }
