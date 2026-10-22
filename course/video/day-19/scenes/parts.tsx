@@ -231,14 +231,14 @@ export function ListFrame({ cols, title = 'Замечания', stroke = theme.i
   )
 }
 
-/** Пустая строка списка: пунктирное место. */
-export function EmptyRow({ i, text }: { i: number; text?: string }) {
+/** Пустая строка списка: пунктирное место с бледной подписью. */
+export function EmptyRow({ i, text = 'замечание' }: { i: number; text?: string }) {
   return <Slot x={LIST.x + 10} y={rowY(i) + 5} w={LIST.w - 20} h={LIST.row - 10} r={8} text={text} />
 }
 
-/** Строка замечания: четыре ячейки; stroke — цвет рамки строки. */
-export function RemarkRow({ i, r, stroke = theme.line }: { i: number; r: Remark; stroke?: string }) {
-  const cells = [r.who, r.task, r.stuck, r.expect]
+/** Строка замечания: четыре ячейки (видны первые shown); stroke — цвет рамки строки. */
+export function RemarkRow({ i, r, stroke = theme.line, shown = 4 }: { i: number; r: Remark; stroke?: string; shown?: number }) {
+  const cells = [r.who, r.task, r.stuck, r.expect].slice(0, shown)
   const y = rowY(i)
   return (
     <g>

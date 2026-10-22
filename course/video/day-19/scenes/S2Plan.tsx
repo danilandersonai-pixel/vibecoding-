@@ -4,11 +4,11 @@ import { Coach } from '../../actors/Coach'
 import { Person, type Mood, type Pose } from '../../actors/Person'
 import { KitScene } from '../../kit/KitScene'
 import { appear, trackAt } from '../../kit/motion'
-import { Card, Label } from '../../kit/parts'
+import { Arrow, Card, Label } from '../../kit/parts'
 import { Pill, Slot } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
 import { theme } from '../../theme'
-import { BETA, LIST, PEOPLE_X, PLAN, PLAN_H, PLAN_VALUE_X, PLAN_Y, rowY, S2, SCATTER, TASKS, WATCH_SLOT, WEEK, WEEK_CELL } from '../layout'
+import { BETA, LIST, LIST_H, PEOPLE_X, PLAN, PLAN_H, PLAN_VALUE_X, PLAN_Y, rowY, S2, SCATTER, TASKS, WATCH_SLOT } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 import { Bubble, EmptyRow, Eye, ListFrame } from './parts'
 
@@ -17,9 +17,11 @@ const P = PLAN
 const Y = PLAN_Y
 const VX = P.x + PLAN_VALUE_X
 
-// Сцена 2 (что строим сегодня): короткий план бета-теста — кто (3–5 тренеров со стороны: Полина, Кирилл,
-// Тимур, Ксения), срок (неделя), задачи (настоящие дела); замечания — в один общий список, как отзывы
-// в день 8, с колонками «кто, задача, где застрял, что ожидал»; хотя бы одна сессия — вживую и молча.
+// Сцена 2 (что строим сегодня): короткий план бета-теста — кто (3–5 тренеров, приложение не видели; у нас —
+// из других залов: Полина, Кирилл, Тимур, Ксения), срок (неделя; когда пройдёт — день 20, разбор), задачи
+// (настоящие дела); замечания — в один общий список, как отзывы в день 8, с колонками «кто, задача,
+// где застрял, что ожидал»; хотя бы одна сессия — вживую и молча. Рядом с планом с самого начала —
+// подписанные места списка и наблюдения.
 export function S2Plan() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
@@ -27,20 +29,22 @@ export function S2Plan() {
   // план: карточка, заголовок, строки «кто / срок / задачи» с местами под значения
   const card = appear(frame, b(0) + 6, 12)
   const rowAt = [b(0) + 118, b(0) + 150, b(0) + 176]
-  const whoText = typed('3–5 тренеров со стороны', frame, b(1) + 16, 30)
+  const whoText = typed('3–5 тренеров', frame, b(1) + 16, 30)
   const unseen = appear(frame, b(1) + 90, 10)
-  const notFriends = appear(frame, b(1) + 170, 10)
+  const halls = appear(frame, b(1) + 170, 10)
   const peopleAt = BETA.map((_, i) => b(2) + 6 + i * 16)
-  const term = appear(frame, b(2) + 96, 10)
-  const dayAt = WEEK.map((_, i) => b(2) + 110 + i * 8)
+  const term = appear(frame, b(2) + 80, 10)
+  const toDay20 = appear(frame, b(2) + 110, 12)
+  const day20 = appear(frame, b(2) + 120, 10)
   const taskAt = [b(3) + 60, b(3) + 112, b(3) + 162]
-  const placeOut = (at: number) => 1 - appear(frame, at, 8)
+  // место гаснет до того, как появится значение: подпись и текст не накладываются
+  const placeOut = (at: number) => 1 - appear(frame, at - 8, 8)
   const places = appear(frame, b(0) + 30, 12)
 
-  // список замечаний: появляется, когда камера отъехала; сообщения из разных мест уходят в него
-  const list = appear(frame, b(4) + 28, 12)
-  const day8 = appear(frame, b(4) + 64, 10)
-  const bubbleAt = SCATTER.map((_, i) => b(4) + 40 + i * 8)
+  // список замечаний: сначала подписанное место; сообщения из разных мест появляются поверх и уходят в список
+  const list = appear(frame, b(4) + 96, 12)
+  const day8 = appear(frame, b(4) + 120, 10)
+  const bubbleAt = SCATTER.map((_, i) => b(4) + 30 + i * 8)
   const flyAt = SCATTER.map((_, i) => b(4) + 110 + i * 6)
   const colAt = [b(5) + 40, b(5) + 62, b(5) + 96, b(5) + 128]
 
@@ -77,50 +81,44 @@ export function S2Plan() {
       ))}
       {/* места значений: пунктиром, пока реплика до них не дошла */}
       <g opacity={places * placeOut(b(1) + 16)}>
-        <Slot x={VX - 6} y={P.y + Y.who - 26} w={P.w - PLAN_VALUE_X - 18} h={36} r={8} />
+        <Slot x={VX - 6} y={P.y + Y.who - 26} w={P.w - PLAN_VALUE_X - 18} h={36} r={8} text="сколько и какие тренеры" />
       </g>
       <g opacity={places * placeOut(peopleAt[0])}>
         <Slot x={VX - 6} y={P.y + Y.people - 44} w={P.w - PLAN_VALUE_X - 18} h={112} r={8} text="кто именно" />
       </g>
-      <g opacity={places * placeOut(b(2) + 96)}>
-        <Slot x={VX - 6} y={P.y + Y.term - 24} w={P.w - PLAN_VALUE_X - 18} h={34} r={8} />
+      <g opacity={places * placeOut(b(2) + 80)}>
+        <Slot x={VX - 6} y={P.y + Y.term - 24} w={P.w - PLAN_VALUE_X - 18} h={34} r={8} text="на какой срок" />
       </g>
       {TASKS.map((t, i) => (
         <g key={t} opacity={places * placeOut(taskAt[i])}>
-          <Slot x={VX - 6} y={P.y + Y.tasks - 23 + i * Y.step} w={P.w - PLAN_VALUE_X - 18} h={29} r={8} />
+          <Slot x={VX - 6} y={P.y + Y.tasks - 23 + i * Y.step} w={P.w - PLAN_VALUE_X - 18} h={29} r={8} text={`задача ${i + 1}`} />
         </g>
       ))}
 
-      {/* кто: тренеры со стороны */}
+      {/* кто: приложение ещё не видели; у нас — из других залов */}
       <Label x={VX} y={P.y + Y.who} anchor="start" size={22} weight={800}>
         {whoText}
       </Label>
       <g opacity={unseen}>
         <Pill x={VX + 115} y={P.y + Y.pills} text="не видели приложение" color={theme.ink} fill={theme.white} size={18} compact />
       </g>
-      <g opacity={notFriends}>
-        <Pill x={VX + 305} y={P.y + Y.pills} text="не друзья" color={theme.alt} fill={theme.altTint} size={18} compact />
+      <g opacity={halls}>
+        <Pill x={VX + 262} y={P.y + Y.who - 7} text="из других залов" color={theme.alt} fill={theme.altTint} size={18} compact />
       </g>
       {BETA.map((name, i) => (
         <Coach key={name} x={P.x + PEOPLE_X[i]} y={P.y + Y.people} scale={0.42} label={name} color={theme.ink} enterAt={peopleAt[i]} />
       ))}
 
-      {/* срок: неделя */}
+      {/* срок: неделя, а когда пройдёт — день 20, разбор замечаний */}
       <g opacity={term}>
         <Label x={VX} y={P.y + Y.term} anchor="start" size={22} weight={800}>
           неделя
         </Label>
       </g>
-      {WEEK.map((d, i) => {
-        const x = P.x + WEEK_CELL.x + i * (WEEK_CELL.size + WEEK_CELL.gap)
-        const on = appear(frame, dayAt[i], 6)
-        return (
-          <g key={d} opacity={term}>
-            <rect x={x} y={P.y + Y.term - 22} width={WEEK_CELL.size} height={WEEK_CELL.size} rx={6} fill={on > 0 ? theme.okTint : theme.white} stroke={on > 0 ? theme.ok : theme.grid} strokeWidth={2} />
-            <rect x={x + 7} y={P.y + Y.term - 15} width={WEEK_CELL.size - 14} height={WEEK_CELL.size - 14} rx={3} fill={theme.ok} opacity={on * 0.7} />
-          </g>
-        )
-      })}
+      <Arrow x1={VX + 92} y1={P.y + Y.term - 7} x2={VX + 140} y2={P.y + Y.term - 7} color={theme.ok} draw={toDay20} />
+      <g opacity={day20}>
+        <Pill x={VX + 244} y={P.y + Y.term - 7} text="день 20 — разбор" color={theme.ok} fill={theme.okTint} size={18} compact />
+      </g>
 
       {/* задачи: настоящие дела тренера */}
       {TASKS.map((t, i) => {
@@ -138,7 +136,10 @@ export function S2Plan() {
         )
       })}
 
-      {/* замечания — в одно место: общий список с колонками */}
+      {/* замечания — в одно место: подписанное место с самого начала, потом общий список с колонками */}
+      <g opacity={places * (1 - list)}>
+        <Slot x={LIST.x} y={LIST.y} w={LIST.w} h={LIST_H} r={12} text="список замечаний" />
+      </g>
       <g opacity={list}>
         <ListFrame cols={colAt.map((at) => appear(frame, at, 10))} />
         {[0, 1, 2, 3].map((i) => (
@@ -164,8 +165,8 @@ export function S2Plan() {
         )
       })}
 
-      {/* место под наблюдение вживую: пунктиром, пока сообщения ушли в список, а реплика до него не дошла */}
-      <g opacity={appear(frame, b(4) + 160, 12) * (1 - appear(frame, b(6) + 12, 10))}>
+      {/* место под наблюдение вживую: пунктиром, пока реплика до него не дошла */}
+      <g opacity={places * (1 - appear(frame, b(6) + 12, 10))}>
         <Slot x={WATCH_SLOT.x} y={WATCH_SLOT.y} w={WATCH_SLOT.w} h={WATCH_SLOT.h} r={12} text="наблюдение вживую" />
       </g>
 
@@ -173,11 +174,12 @@ export function S2Plan() {
       <Actor x={S2.you.x} y={S2.you.y} scale={0.6} label="Вы" enterAt={b(6) + 16}>
         <Person color={theme.soft} pose={you[0]} mood={you[1]} />
       </Actor>
-      <Actor x={S2.polina.x} y={S2.polina.y} scale={0.6} label="Полина" enterAt={b(6) + 30}>
-        <Person color={theme.ink} pose={polina[0]} mood={polina[1]} />
-        <rect x={84} y={-62} width={34} height={56} rx={6} fill={theme.ink} />
-        <rect x={89} y={-55} width={24} height={40} rx={3} fill={theme.white} />
-      </Actor>
+      <Coach x={S2.polina.x} y={S2.polina.y} scale={0.6} label="Полина" color={theme.ink} enterAt={b(6) + 30} pose={polina[0]} mood={polina[1]} />
+      {/* телефон в поднятой руке Полины */}
+      <g opacity={appear(frame, b(6) + 34, 8)}>
+        <rect x={S2.polina.x + 84 * 0.6} y={S2.polina.y - 62 * 0.6} width={34 * 0.6} height={56 * 0.6} rx={4} fill={theme.ink} />
+        <rect x={S2.polina.x + 89 * 0.6} y={S2.polina.y - 55 * 0.6} width={24 * 0.6} height={40 * 0.6} rx={2} fill={theme.white} />
+      </g>
       <line x1={S2.you.x + 40} y1={S2.you.y - 26} x2={S2.you.x + 40 + (S2.polina.x - 100 - S2.you.x) * sight} y2={S2.you.y - 26} stroke={theme.line} strokeWidth={3} strokeDasharray="8 8" opacity={sight > 0 ? 1 : 0} />
       <g opacity={watch}>
         <Eye x={S2.watch.x} y={S2.watch.y - 50} />

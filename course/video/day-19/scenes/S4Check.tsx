@@ -14,7 +14,11 @@ const E = ERRORS
 
 // Сцена 4 (проверьте у себя): 3–5 тренеров и план, настоящая задача каждому, одна сессия молча с пометками,
 // вопрос «что вы ожидали увидеть?», сбои — из отслеживания ошибок (день 14); всё — в один список,
-// по нему в день 20 начнутся исправления.
+// через неделю, в день 20, по нему начнутся разбор и исправления. Список рядом с делами с самого начала
+// и заполняется по репликам.
+
+// подписи мест пунктиром у шагов, пока реплика до них не дошла
+const STEP_HINTS = ['шаг 1 · план', 'шаг 2 · задача', 'шаг 3 · наблюдение', 'шаг 4 · вопрос', 'шаг 5 · сбои', 'шаг 6 · один список']
 export function S4Check() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
@@ -24,9 +28,11 @@ export function S4Check() {
   const textAt = [b(0) + 40, b(1) + 10, b(2) + 10, b(3) + 10, b(4) + 30, b(5) + 10]
   const doneAt = [b(0) + 150, b(1) + 110, b(2) + 125, b(3) + 120, b(4) + 150, b(5) + 60]
 
-  // список и отслеживание ошибок: когда камера отъехала (b(4) + 24)
-  const list = appear(frame, b(4) + 28, 12)
-  const rowAt = [b(4) + 34, b(4) + 42, b(4) + 50]
+  // список рядом с самого начала: строка Полины — к реплике о пометках (её ожидание — к вопросу),
+  // Кирилл и Тимур — следом; сбой из отслеживания ошибок — к своей реплике
+  const list = appear(frame, b(0) + 30, 12)
+  const rowAt = [b(2) + 100, b(3) + 130, b(3) + 146]
+  const expectAt = b(3) + 90
   const errors = appear(frame, b(4) + 56, 12)
   const flyAt = b(4) + 96
   const ksenia = appear(frame, b(4) + 122, 10)
@@ -55,8 +61,8 @@ export function S4Check() {
         const done = appear(frame, doneAt[i], 8)
         return (
           <g key={t}>
-            <g opacity={card * (1 - on)}>
-              <Slot x={C.x + 16} y={cy - 21} w={C.w - 32} h={42} r={8} />
+            <g opacity={card * (1 - appear(frame, textAt[i] - 8, 8))}>
+              <Slot x={C.x + 16} y={cy - 21} w={C.w - 32} h={42} r={8} text={STEP_HINTS[i]} />
             </g>
             <g opacity={on}>
               <circle cx={C.x + 36} cy={cy} r={15} fill={done > 0 ? theme.ok : theme.accent} />
@@ -77,13 +83,23 @@ export function S4Check() {
       {/* один список замечаний: три строки за неделю и сбой из отслеживания ошибок */}
       <g opacity={list}>
         <ListFrame cols={[1, 1, 1, 1]} />
-        {frame < b(4) + 122 && <EmptyRow i={3} />}
+        {rowAt.map((at, i) => (
+          <g key={i} opacity={1 - appear(frame, at - 8, 8)}>
+            <EmptyRow i={i} />
+          </g>
+        ))}
+        <g opacity={1 - appear(frame, flyAt + 12, 8)}>
+          <EmptyRow i={3} />
+        </g>
       </g>
       {REMARKS.slice(0, 3).map((r, i) => (
         <g key={r.who} opacity={appear(frame, rowAt[i], 10)}>
-          <RemarkRow i={i} r={r} />
+          <RemarkRow i={i} r={r} shown={i === 0 && frame < expectAt ? 3 : 4} />
         </g>
       ))}
+      <g opacity={list * (1 - errors)}>
+        <Slot x={E.x} y={E.y} w={E.w} h={E.h} r={12} text="сбои — отслеживание ошибок" />
+      </g>
       <g opacity={ksenia}>
         <RemarkRow i={3} r={REMARKS[3]} stroke={theme.risk} />
       </g>
@@ -112,10 +128,10 @@ export function S4Check() {
         </g>
       )}
 
-      {/* по списку — исправления в день 20 */}
+      {/* через неделю, в день 20, — разбор списка и исправления */}
       <Arrow x1={DAY20.x} y1={402} x2={DAY20.x} y2={DAY20.y - 22} color={theme.ok} draw={toDay20} />
       <g opacity={day20}>
-        <Pill x={DAY20.x} y={DAY20.y} text="день 20 · исправления" color={theme.ok} fill={theme.okTint} size={18} compact />
+        <Pill x={DAY20.x} y={DAY20.y} text="через неделю: день 20" color={theme.ok} fill={theme.okTint} size={18} compact />
       </g>
     </KitScene>
   )

@@ -109,11 +109,9 @@ export function S3Like() {
       {[1, 2, 3].map((i) => (
         <EmptyRow key={i} i={i} />
       ))}
-      {frame < realAt && (
-        <g opacity={1 - quote}>
-          <EmptyRow i={0} />
-        </g>
-      )}
+      <g opacity={1 - appear(frame, b(1) + 110, 8)}>
+        <EmptyRow i={0} />
+      </g>
       <g opacity={quote * quoteOut}>
         <QuoteRow i={0} who="Полина" text="«Да, удобно!»" />
       </g>
@@ -175,7 +173,7 @@ export function S3Like() {
           return (
             <g key={n.at}>
               <g opacity={1 - on}>
-                <Slot x={J.x + 16} y={y - 26} w={J.w - 32} h={36} r={8} />
+                <Slot x={J.x + 16} y={y - 25} w={J.w - 32} h={32} r={8} text="пометка" />
               </g>
               <g opacity={on}>
                 <text x={J.x + 24} y={y} fill={theme.alt} style={{ font: `700 20px ${theme.mono}`, fontVariantLigatures: 'none' }}>
@@ -196,7 +194,7 @@ export function S3Like() {
           return (
             <g key={r.tag}>
               <g opacity={1 - on}>
-                <Slot x={J.x + 16} y={J.y + r.y - 26} w={J.w - 32} h={36} r={8} />
+                <Slot x={J.x + 16} y={J.y + r.y - 25} w={J.w - 32} h={32} r={8} text={r.tag} />
               </g>
               <g opacity={on}>
                 <Label x={J.x + 24} y={J.y + r.y} anchor="start" size={18} weight={700} color={theme.soft}>
