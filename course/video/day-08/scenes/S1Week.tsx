@@ -39,7 +39,7 @@ export function S1Week() {
   const focus = appear(frame, b(0) + 130, 14)
 
   // путь задачи: места внизу появляются, когда камера отъезжает
-  const places = appear(frame, b(1) - 6, 12)
+  const places = appear(frame, b(1) + 24, 12)
   const flyOn = frame >= b(1) + 30 && frame < b(1) + 66
   const fly = useTrack([
     [b(1) + 30, S1.you.x + 50, S1.you.y - 20],
