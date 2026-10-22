@@ -11,7 +11,7 @@ import { Callout, Mark, Pill, Slot } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { PHONE_SCALE } from '../../kit/screens/layout'
 import { theme } from '../../theme'
-import { COACH_FEED, FEED_HEAD, FEED_ROW, miniTop, PILES, pileSlot, REVIEWS, reviewTop, S2 } from '../layout'
+import { COACH_FEED, FEED_HEAD, FEED_ROW, miniTop, nextPile, PILES, pileSlot, REVIEWS, reviewTop, S2, SLICE } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 import { MiniCard, ReviewRow, SetScreen } from './parts'
 
@@ -20,8 +20,8 @@ const P = S2.panel
 const FD = S2.feed
 
 // Сцена 2 (что строим сегодня): отзывы на эталоны с низкой оценкой — слово в слово; похожие жалобы —
-// в одну стопку; самая высокая — «тренер не видит»; Марина и Дима подтверждают боль; маленький срез:
-// Анна сохранила подход — Марина сразу видит его у себя.
+// в одну стопку; самая высокая — «тренер не видит» — у вас уже закрыта, следующая — «поправка поздно»;
+// Марина и Дима подтверждают боль; срез: Марина на тренировке меняет вес следующего подхода — Анна сразу видит.
 export function S2Pain() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
@@ -31,49 +31,57 @@ export function S2Pain() {
   const rowAt = REVIEWS.map((_, i) => b(0) + 24 + i * 10)
   const low = useAppear(b(0) + 96)
   const need = appear(frame, b(1) + 10, 10)
-  const textAt = REVIEWS.map((_, i) => b(1) + 16 + i * 22)
+  const textAt = REVIEWS.map((_, i) => b(1) + 14 + i * 18)
   // место стопок — пунктиром, пока жалобы не разложены
   const pilesSlot = appear(frame, b(0) + 30, 12) * (1 - appear(frame, b(2), 10))
 
-  // стопки: заголовки, перелёт карточек, счёт, самая высокая
+  // стопки: заголовки, перелёт карточек, счёт; самая высокая — уже есть, следующая — наша
   const headAt = PILES.map((_, i) => b(2) + 6 + i * 8)
-  const flyAt = REVIEWS.map((_, i) => b(2) + 30 + i * 18)
-  const countAt = [b(3) + 20, b(3) + 120, b(3) + 130]
-  const top = appear(frame, b(3) + 40, 12)
-  const rest = 1 - 0.45 * appear(frame, b(3) + 140, 12)
-  const panelOut = 1 - appear(frame, b(4), 12)
+  const flyAt = REVIEWS.map((_, i) => b(2) + 28 + i * 16)
+  const countAt = [b(3) + 20, b(4) + 64, b(4) + 72]
+  const done = appear(frame, b(3) + 110, 12)
+  const NEXT = nextPile()
+  const hot = appear(frame, b(4) + 70, 12)
+  const rest = 1 - 0.45 * appear(frame, b(4) + 82, 12)
+  const panelOut = 1 - appear(frame, b(5), 12)
 
   // ваши тренеры подтверждают боль
-  const yours = useAppear(b(4) + 8)
-  const sayM = useAppear(b(4) + 54)
-  const sayD = useAppear(b(5) + 44)
-  const shared = useAppear(b(5) + 120)
+  const yours = useAppear(b(5) + 8)
+  const sayM = useAppear(b(5) + 50)
+  const sayD = useAppear(b(6) + 36)
+  const shared = useAppear(b(6) + 96)
 
-  // доска 2: срез — Анна сохранила подход, он сразу на экране Марины
-  const tapAt = b(6) + 40
-  const flyOn = frame >= tapAt + 12 && frame < tapAt + 44
+  // доска 2: срез — Марина меняет вес следующего подхода, Анна сразу видит его на телефоне
+  const boardIn = b(7) - 16
+  const say2 = useAppear(b(7) + 30)
+  const focus = appear(frame, b(7) + 48, 8)
+  const editAt = b(7) + 60
+  const sendAt = b(7) + 72
+  const ripple = frame >= sendAt && frame < sendAt + 18 ? (frame - sendAt) / 18 : 0
+  const flyOn = frame >= sendAt + 6 && frame < sendAt + 36
+  const nextY = FD.y + FEED_HEAD + COACH_FEED.length * FEED_ROW
   const fly = useTrack([
-    [tapAt + 12, S2.phone.x + 96, S2.phone.y - 40],
-    [tapAt + 42, FD.x - 50, FD.y + FEED_HEAD + 2 * FEED_ROW + 22],
+    [sendAt + 6, FD.x - 50, nextY + 20],
+    [sendAt + 34, S2.phone.x + 96, S2.phone.y - 30],
   ])
-  const flow = appear(frame, tapAt + 8, 20)
-  const fresh = appear(frame, tapAt + 44, 10)
-  const now = useAppear(tapAt + 60)
+  const flow = appear(frame, sendAt + 4, 20)
+  const changeAt = sendAt + 34
+  const now = useAppear(changeAt + 14)
 
   const marina = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'worried']],
-    [b(4) + 40, ['think', 'worried']],
-    [b(5) + 110, ['point', 'neutral']],
+    [b(5) + 40, ['think', 'worried']],
+    [b(6) + 90, ['point', 'neutral']],
   ])
   const dima = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
-    [b(5) + 30, ['think', 'worried']],
-    [b(5) + 110, ['point', 'neutral']],
+    [b(6) + 26, ['think', 'worried']],
+    [b(6) + 90, ['point', 'neutral']],
   ])
   const marina2 = stepAt<[Pose, Mood]>(frame, [
-    [0, ['stand', 'neutral']],
-    [tapAt + 46, ['surprised', 'happy']],
-    [tapAt + 80, ['cheer', 'happy']],
+    [0, ['think', 'neutral']],
+    [b(7) + 30, ['point', 'happy']],
+    [changeAt + 6, ['cheer', 'happy']],
   ])
 
   return (
@@ -93,12 +101,12 @@ export function S2Pain() {
           <Pill x={P.x + P.w - 110} y={P.y + 34} text="чего не хватает?" color={theme.alt} fill={theme.altTint} compact />
         </g>
         {REVIEWS.map((r, i) => {
-          const done = 1 - 0.55 * appear(frame, flyAt[i] + 4, 10)
+          const gone = 1 - 0.55 * appear(frame, flyAt[i] + 4, 10)
           return (
-            <g key={r.text} opacity={done}>
+            <g key={r.text} opacity={gone}>
               {frame < textAt[i] + 4 && (
                 <g opacity={appear(frame, b(0) + 14 + i * 8, 10)}>
-                  <Slot x={P.x + 98} y={reviewTop(i) + 6} w={P.w - 122} h={S2.rowH - 12} color={theme.grid} />
+                  <Slot x={P.x + 98} y={reviewTop(i) + 5} w={P.w - 122} h={S2.rowH - 10} color={theme.grid} />
                 </g>
               )}
               <ReviewRow x={P.x + 16} y={reviewTop(i)} h={S2.rowH} rating={r.rating} text={r.text} at={rowAt[i]} textAt={textAt[i]} />
@@ -112,18 +120,19 @@ export function S2Pain() {
         <Slot x={PILES[0].x - 10} y={P.y + 8} w={PILES[2].x + PILES[2].w - PILES[0].x + 20} h={P.h - 16} text="стопки похожих жалоб" />
       </g>
 
-      {/* стопки: заголовок, место, счёт */}
+      {/* стопки: заголовок, место, счёт; первая — «у вас уже есть», следующая — красным */}
       {PILES.map((p, i) => {
-        const hot = i === 0 ? top : 0
-        const dim = i === 0 ? 1 : rest
+        const color = i === 0 && done > 0 ? theme.ok : i === NEXT && hot > 0 ? theme.risk : theme.soft
+        const fill = i === 0 && done > 0 ? theme.okTint : i === NEXT && hot > 0 ? theme.riskTint : theme.paper
+        const dim = i === 0 || i === NEXT ? 1 : rest
         return (
           <g key={p.head} opacity={dim}>
             <g opacity={appear(frame, headAt[i], 10)}>
-              <Slot x={p.x} y={S2.pileTop} w={p.w} h={S2.pileH} color={hot > 0 ? theme.risk : theme.grid} />
-              <Pill x={p.x + p.w / 2} y={S2.headY} w={p.w} text={p.head} color={hot > 0 ? theme.risk : theme.soft} fill={hot > 0 ? theme.riskTint : theme.paper} compact />
+              <Slot x={p.x} y={S2.pileTop} w={p.w} h={S2.pileH} color={color === theme.soft ? theme.grid : color} />
+              <Pill x={p.x + p.w / 2} y={S2.headY} w={p.w} text={p.head} color={color} fill={fill} compact />
             </g>
             <g opacity={appear(frame, countAt[i], 10)}>
-              <Pill x={p.x + p.w / 2} y={S2.countY} w={48} text={p.count} color={hot > 0 ? theme.risk : theme.soft} fill={hot > 0 ? theme.riskTint : theme.paper} size={20} compact />
+              <Pill x={p.x + p.w / 2} y={S2.countY} w={48} text={p.count} color={color} fill={fill} size={20} compact />
             </g>
           </g>
         )
@@ -137,15 +146,19 @@ export function S2Pain() {
           [flyAt[i], P.x + 110, reviewTop(i)],
           [flyAt[i] + 26, to.x, to.y],
         ])
-        const dim = r.pile === 0 ? 1 : rest
+        const dim = r.pile === 0 || r.pile === NEXT ? 1 : rest
+        const color = r.pile === 0 && done > 0 ? theme.ok : r.pile === NEXT && hot > 0 ? theme.risk : theme.line
         return (
           <g key={r.short} opacity={dim}>
-            <MiniCard x={pos.x} y={pos.y} w={w} h={S2.mini} text={r.short} color={r.pile === 0 && top > 0 ? theme.risk : theme.line} />
+            <MiniCard x={pos.x} y={pos.y} w={w} h={S2.mini} text={r.short} color={color} />
           </g>
         )
       })}
+      <g opacity={done}>
+        <Pill x={PILES[0].x + PILES[0].w / 2} y={S2.pileTop + 44} text="у вас уже есть ✓" color={theme.ok} fill={theme.white} size={20} compact />
+      </g>
       <g opacity={shared}>
-        <Pill x={PILES[0].x + PILES[0].w / 2} y={S2.pileTop + 44} text="общая боль" color={theme.risk} fill={theme.white} size={20} compact />
+        <Pill x={PILES[NEXT].x + PILES[NEXT].w / 2} y={S2.pileTop + 44} text="общая боль" color={theme.risk} fill={theme.white} size={20} compact />
       </g>
 
       {/* ваши тренеры: та же боль? */}
@@ -154,37 +167,35 @@ export function S2Pain() {
           А у ваших тренеров?
         </Label>
       </g>
-      {frame >= b(4) + 14 && <Coach x={S2.marina.x} y={S2.marina.y} scale={0.65} label="Марина" color={theme.accent} enterAt={b(4) + 14} pose={marina[0]} mood={marina[1]} />}
+      {frame >= b(5) + 14 && <Coach x={S2.marina.x} y={S2.marina.y} scale={0.65} label="Марина" color={theme.accent} enterAt={b(5) + 14} pose={marina[0]} mood={marina[1]} />}
       <g opacity={sayM}>
-        <Callout x={230} y={300} tx={S2.marina.x + 4} ty={S2.marina.y - 60} text="пишу Анне: как прошло?" color={theme.accent} />
+        <Callout x={250} y={300} tx={S2.marina.x + 4} ty={S2.marina.y - 60} text="вижу, когда тренировка кончилась" color={theme.accent} />
       </g>
-      {frame >= b(5) + 4 && <Coach x={S2.dima.x} y={S2.dima.y} scale={0.65} label="Дима" color={theme.alt} enterAt={b(5) + 4} pose={dima[0]} mood={dima[1]} />}
+      {frame >= b(6) + 4 && <Coach x={S2.dima.x} y={S2.dima.y} scale={0.65} label="Дима" color={theme.alt} enterAt={b(6) + 4} pose={dima[0]} mood={dima[1]} />}
       <g opacity={sayD}>
-        <Callout x={470} y={220} tx={S2.dima.x + 4} ty={S2.dima.y - 60} text="узнаю только при встрече" color={theme.alt} />
+        <Callout x={460} y={210} tx={S2.dima.x + 4} ty={S2.dima.y - 60} text="поправить вес не успеваю" color={theme.alt} />
       </g>
 
-      {/* доска 2: срез — подход Анны сразу виден Марине */}
-      <Phone x={S2.phone.x} y={S2.phone.y} scale={PHONE_SCALE} label="Анна" enterAt={b(6) - 16}>
-        <SetScreen tapAt={tapAt} />
+      {/* доска 2: срез — правка веса на тренировке */}
+      <Phone x={S2.phone.x} y={S2.phone.y} scale={PHONE_SCALE} label="Анна" enterAt={boardIn}>
+        <SetScreen changeAt={changeAt} reps={SLICE.reps} from={SLICE.from} to={SLICE.to} />
       </Phone>
-      <Arrow x1={S2.phone.x + 104} y1={S2.phone.y} x2={FD.x - 14} y2={S2.phone.y} color={theme.accent} dashed draw={flow} />
-      {flyOn && <Packet x={fly.x} y={fly.y} text="подход 3" />}
-      <g opacity={appear(frame, b(6) - 16, 12)}>
+      <Arrow x1={FD.x - 14} y1={S2.phone.y} x2={S2.phone.x + 104} y2={S2.phone.y} color={theme.accent} dashed draw={flow} />
+      {flyOn && <Packet x={fly.x} y={fly.y} text={`${SLICE.to} кг`} />}
+      <g opacity={appear(frame, boardIn, 12)}>
         <Card x={FD.x} y={FD.y} w={FD.w} h={FD.h} stroke={theme.accent} fill={theme.white}>
           <Label x={FD.x + 24} y={FD.y + 40} anchor="start" size={22} weight={800}>
-            Экран Марины · сегодня
+            Экран Марины · сейчас
           </Label>
           <line x1={FD.x + 20} y1={FD.y + 56} x2={FD.x + FD.w - 20} y2={FD.y + 56} stroke={theme.grid} strokeWidth={2} />
           <Label x={FD.x + 24} y={FD.y + 88} anchor="start" size={20} weight={700} color={theme.ok}>
-            Анна · присед
+            Анна тренируется · присед
           </Label>
         </Card>
         {COACH_FEED.map((row, i) => {
           const y = FD.y + FEED_HEAD + i * FEED_ROW
-          const last = i === COACH_FEED.length - 1
           return (
-            <g key={row.text} opacity={last ? fresh : 1}>
-              {last && <rect x={FD.x + 12} y={y} width={FD.w - 24} height={FEED_ROW - 8} rx={8} fill={theme.accentTint} />}
+            <g key={row.text}>
               <Mark x={FD.x + 38} y={y + 22} ok r={12} />
               <Label x={FD.x + 62} y={y + 29} anchor="start" size={20} weight={600}>
                 {row.text}
@@ -192,12 +203,32 @@ export function S2Pain() {
             </g>
           )
         })}
-        {frame < tapAt + 48 && <Slot x={FD.x + 12} y={FD.y + FEED_HEAD + 2 * FEED_ROW} w={FD.w - 24} h={FEED_ROW - 8} text="новый подход" />}
+        {/* следующий подход: Марина меняет вес и отправляет */}
+        <rect x={FD.x + 12} y={nextY} width={FD.w - 24} height={FEED_ROW - 8} rx={8} fill={theme.accentTint} opacity={focus} />
+        <circle cx={FD.x + 38} cy={nextY + 22} r={11} fill="none" stroke={theme.accent} strokeWidth={2.5} />
+        <Label x={FD.x + 62} y={nextY + 29} anchor="start" size={20} weight={600}>
+          {`подход 3 · ${SLICE.reps} ×`}
+        </Label>
+        <rect x={FD.x + 238} y={nextY + 4} width={60} height={36} rx={8} fill={theme.white} stroke={focus > 0 ? theme.accent : theme.grid} strokeWidth={2.5} />
+        <Label x={FD.x + 268} y={nextY + 29} size={20} weight={800} color={frame >= editAt ? theme.accent : theme.ink}>
+          {String(frame >= editAt ? SLICE.to : SLICE.from)}
+        </Label>
+        <Label x={FD.x + 306} y={nextY + 29} anchor="start" size={20} weight={600}>
+          кг
+        </Label>
+        <rect x={FD.x + 340} y={nextY + 4} width={108} height={36} rx={10} fill={theme.accent} />
+        <Label x={FD.x + 394} y={nextY + 29} size={18} weight={700} color={theme.white}>
+          отправить
+        </Label>
+        {ripple > 0 && <circle cx={FD.x + 394} cy={nextY + 22} r={10 + ripple * 30} fill="none" stroke={theme.accent} strokeWidth={3} opacity={1 - ripple} />}
+      </g>
+      <g opacity={say2}>
+        <Callout x={S2.marina2.x + 30} y={176} tx={S2.marina2.x + 4} ty={S2.marina2.y - 74} text={`легко идёт — ставлю ${SLICE.to}`} color={theme.accent} />
       </g>
       <g opacity={now}>
-        <Pill x={FD.x + FD.w - 80} y={FD.y + FD.h + 28} text="сразу после записи" color={theme.accent} fill={theme.accentTint} size={20} compact />
+        <Pill x={FD.x + FD.w - 110} y={FD.y + FD.h + 28} text="у Анны — сразу" color={theme.accent} fill={theme.accentTint} size={20} compact />
       </g>
-      {frame >= b(6) - 16 && <Coach x={S2.marina2.x} y={S2.marina2.y} scale={0.7} label="Марина" color={theme.accent} enterAt={b(6) - 16} pose={marina2[0]} mood={marina2[1]} />}
+      {frame >= boardIn && <Coach x={S2.marina2.x} y={S2.marina2.y} scale={0.7} label="Марина" color={theme.accent} enterAt={boardIn} pose={marina2[0]} mood={marina2[1]} />}
     </KitScene>
   )
 }

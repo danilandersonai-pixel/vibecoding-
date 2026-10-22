@@ -11,7 +11,7 @@ import { stepAt } from '../../kit/reveal'
 import { Editor } from '../../kit/screens/Editor'
 import { editorHeight } from '../../kit/screens/layout'
 import { theme } from '../../theme'
-import { PARITY, S4, SPEC, TABLE_H, tableRowY, TODAY } from '../layout'
+import { PARITY, S4, SLICE, SPEC, TABLE_H, tableRowY, TODAY, TODAY_ROW } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 import { MiniPhone, StepRow } from './parts'
 
@@ -20,7 +20,8 @@ const L = S4.list
 const SC = S4.screen
 const T = S4.table
 
-// Сцена 4 (проверьте у себя): жалобы дословно, стопки, та же боль у своих тренеров, один сценарий целиком,
+// Сцена 4 (проверьте у себя): жалобы дословно, стопки, та же боль у своих тренеров, один сценарий целиком
+// (подход Анны → правка Марины → новый вес у Анны),
 // отличие — в спецификацию и таблицу паритета («наше отличие»), показ тренерам без подсказок.
 export function S4Check() {
   const b = (i: number) => beat(ID, i)
@@ -39,13 +40,16 @@ export function S4Check() {
   // срез: от записи подхода до экрана тренера
   const sliceSlot = appear(frame, b(0) + 24, 12) * (1 - appear(frame, b(3) + 6, 8))
   const slice = useAppear(b(3) + 6)
-  const tapAt = b(3) + 40
-  const flyOn = frame >= tapAt + 8 && frame < tapAt + 36
+  // Марина меняет вес следующего подхода → правка летит на телефон Анны
+  const editAt = b(3) + 40
+  const edit = appear(frame, editAt, 8)
+  const flyOn = frame >= editAt + 8 && frame < editAt + 36
   const fly = useTrack([
-    [tapAt + 8, S4.phone.x + 60, S4.phone.y],
-    [tapAt + 34, SC.x - 20, S4.phone.y],
+    [editAt + 8, SC.x - 20, S4.phone.y],
+    [editAt + 34, S4.phone.x + 60, S4.phone.y],
   ])
-  const fresh = appear(frame, tapAt + 36, 10)
+  const pingAt = editAt + 36
+  const got = appear(frame, pingAt + 4, 10)
 
   // доска 2: спецификация и таблица паритета
   const places = appear(frame, b(4) - 20, 10)
@@ -91,7 +95,7 @@ export function S4Check() {
 
       {/* срез: место — пунктиром, потом один сценарий целиком */}
       <g opacity={sliceSlot}>
-        <Slot x={S4.slice.x} y={S4.slice.y} w={S4.slice.w} h={S4.slice.h} text="срез: от подхода до экрана тренера" />
+        <Slot x={S4.slice.x} y={S4.slice.y} w={S4.slice.w} h={S4.slice.h} text="срез: правка веса на тренировке" />
       </g>
       <g opacity={slice}>
         <Card x={S4.slice.x} y={S4.slice.y} w={S4.slice.w} h={S4.slice.h} stroke={theme.line} fill={theme.white}>
@@ -99,11 +103,14 @@ export function S4Check() {
             Срез: один сценарий целиком
           </Label>
         </Card>
-        <MiniPhone x={S4.phone.x} y={S4.phone.y} tapAt={tapAt} />
+        <MiniPhone x={S4.phone.x} y={S4.phone.y} tapAt={pingAt} />
         <Label x={S4.phone.x} y={S4.phone.y + 92} size={18} weight={700} color={theme.ok}>
           Анна
         </Label>
-        <Arrow x1={S4.phone.x + 46} y1={S4.phone.y} x2={SC.x - 10} y2={S4.phone.y} color={theme.accent} dashed draw={appear(frame, tapAt + 4, 16)} />
+        <g opacity={got}>
+          <Pill x={S4.phone.x + 92} y={S4.phone.y - 36} text={`${SLICE.to} кг`} color={theme.accent} fill={theme.accentTint} compact />
+        </g>
+        <Arrow x1={SC.x - 10} y1={S4.phone.y} x2={S4.phone.x + 46} y2={S4.phone.y} color={theme.accent} dashed draw={appear(frame, editAt + 4, 16)} />
         <Card x={SC.x} y={SC.y} w={SC.w} h={SC.h} stroke={theme.accent} fill={theme.white}>
           <Label x={SC.x + 20} y={SC.y + 34} anchor="start" size={20} weight={800}>
             Экран Марины
@@ -114,19 +121,24 @@ export function S4Check() {
           </Label>
           <Mark x={SC.x + 34} y={SC.y + 105} ok r={11} />
           <Label x={SC.x + 54} y={SC.y + 112} anchor="start" size={20} weight={600}>
-            подход 2 · 10 × 40 кг
+            {`подход 2 · ${SLICE.reps} × ${SLICE.from} кг`}
           </Label>
         </Card>
-        {frame < tapAt + 40 && <Slot x={SC.x + 10} y={SC.y + 128} w={SC.w - 20} h={36} r={8} color={theme.grid} />}
-        <g opacity={fresh}>
-          <rect x={SC.x + 10} y={SC.y + 128} width={SC.w - 20} height={36} rx={8} fill={theme.accentTint} />
-          <Mark x={SC.x + 34} y={SC.y + 146} ok r={11} />
-          <Label x={SC.x + 54} y={SC.y + 153} anchor="start" size={20} weight={600}>
-            подход 3 · 10 × 40 кг
-          </Label>
-        </g>
+        {/* следующий подход: вес меняется с from на to */}
+        <rect x={SC.x + 10} y={SC.y + 128} width={SC.w - 20} height={36} rx={8} fill={theme.accentTint} opacity={edit} />
+        <circle cx={SC.x + 34} cy={SC.y + 146} r={10} fill="none" stroke={theme.accent} strokeWidth={2.5} />
+        <Label x={SC.x + 54} y={SC.y + 153} anchor="start" size={20} weight={600}>
+          {`подход 3 · ${SLICE.reps} ×`}
+        </Label>
+        <rect x={SC.x + 226} y={SC.y + 131} width={56} height={30} rx={7} fill={theme.white} stroke={edit > 0 ? theme.accent : theme.grid} strokeWidth={2.5} />
+        <Label x={SC.x + 254} y={SC.y + 153} size={20} weight={800} color={frame >= editAt ? theme.accent : theme.ink}>
+          {String(frame >= editAt ? SLICE.to : SLICE.from)}
+        </Label>
+        <Label x={SC.x + 290} y={SC.y + 153} anchor="start" size={20} weight={600}>
+          кг
+        </Label>
       </g>
-      {flyOn && <Packet x={fly.x} y={fly.y} text="подход 3" scale={0.9} />}
+      {flyOn && <Packet x={fly.x} y={fly.y} text={`${SLICE.to} кг`} scale={0.9} />}
 
       {/* ваши тренеры: место — пунктиром, потом Марина и Дима */}
       <g opacity={coachesSlot}>
@@ -144,7 +156,7 @@ export function S4Check() {
         <Pill x={1060} y={410} text="смотрим молча" color={theme.soft} size={20} compact />
       </g>
       <g opacity={found}>
-        <Pill x={1060} y={410} text="нашли сами — понятно" color={theme.ok} fill={theme.okTint} size={20} compact />
+        <Pill x={1060} y={410} text="справились сами — понятно" color={theme.ok} fill={theme.okTint} size={20} compact />
       </g>
       <g opacity={again}>
         <Pill x={1060} y={470} text="запнулись → правка и показ" color={theme.alt} fill={theme.altTint} size={20} compact />
@@ -157,7 +169,7 @@ export function S4Check() {
       <g opacity={places * (1 - appear(frame, b(4) + 60, 8))}>
         <Slot x={T.x} y={T.y} w={T.w} h={TABLE_H} text="таблица паритета" />
       </g>
-      {frame >= b(4) + 20 && <Editor x={S4.spec.x} y={S4.spec.y} w={S4.spec.w} at={b(4) + 20} file="спецификация.md" lines={SPEC} highlight={[4, 5]} />}
+      {frame >= b(4) + 20 && <Editor x={S4.spec.x} y={S4.spec.y} w={S4.spec.w} at={b(4) + 20} file="спецификация.md" lines={SPEC} highlight={[5]} />}
       <g opacity={table}>
         <Card x={T.x} y={T.y} w={T.w} h={TABLE_H} stroke={theme.line} fill={theme.white}>
           <Label x={T.x + 24} y={T.y + 40} anchor="start" size={24} weight={800}>
@@ -179,16 +191,20 @@ export function S4Check() {
       </g>
       {PARITY.map((p, i) => {
         const y = tableRowY(i)
-        const mine = i === 1
+        // сегодняшнее отличие — синим, отличие, которое уже есть, — зелёным
+        const mine = i === TODAY_ROW
+        const had = p.decision === 'наше отличие (уже)'
+        const tint = mine ? theme.accentTint : had ? theme.okTint : undefined
+        const ink = mine ? theme.accent : had ? theme.ok : theme.ink
         return (
           <g key={p.what}>
-            {mine && (
+            {tint && (
               <g opacity={ours}>
-                <rect x={T.x + 10} y={y - 30} width={T.w - 20} height={T.row - 4} rx={8} fill={theme.accentTint} />
+                <rect x={T.x + 10} y={y - 30} width={T.w - 20} height={T.row - 4} rx={8} fill={tint} />
               </g>
             )}
             <g opacity={appear(frame, rowAt[i], 10)}>
-              <Label x={T.x + 24} y={y} anchor="start" size={20} weight={mine ? 800 : 600} color={mine ? theme.accent : theme.ink}>
+              <Label x={T.x + 24} y={y} anchor="start" size={20} weight={mine || had ? 800 : 600} color={ink}>
                 {p.what}
               </Label>
               <Label x={T.x + 300} y={y} anchor="start" size={20} weight={600}>
@@ -196,7 +212,7 @@ export function S4Check() {
               </Label>
             </g>
             <g opacity={appear(frame, decideAt[i], 10)}>
-              <Pill x={T.x + 600} y={y - 7} w={170} text={p.decision} color={mine ? theme.accent : p.decision === 'готово' ? theme.ok : p.decision === 'позже' ? theme.alt : theme.soft} fill={mine ? theme.white : theme.paper} compact />
+              <Pill x={T.x + 600} y={y - 7} w={210} text={p.decision} color={mine ? theme.accent : had || p.decision === 'готово' ? theme.ok : p.decision === 'позже' ? theme.alt : theme.soft} fill={tint ? theme.white : theme.paper} compact />
             </g>
           </g>
         )

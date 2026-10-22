@@ -20,7 +20,7 @@ const PN = S3.pain
 
 // Сцена 3 (подводный камень): копировать функции конкурентов — список «как у них» растёт, а зрелый эталон
 // годами копил сотни функций: гонка без финиша; вместе с функциями переезжают неудачные решения.
-// Марине нужен не ещё один чат, а видеть подходы сразу; остальное — в таблицу паритета: позже или не делаем.
+// Марине нужен не ещё один чат, а поправить вес, пока Анна тренируется; остальное — в таблицу паритета: позже или не делаем.
 export function S3Copy() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
@@ -46,10 +46,12 @@ export function S3Copy() {
   const youW = interpolate(frame, [b(2) + 60, b(2) + 96], [0, S3.youW], CLAMP)
   const endless = useAppear(b(2) + 120)
 
-  // доска 2: Марине не нужен ещё один чат — нужно видеть подходы сразу
+  // доска 2: Марине не нужен ещё один чат — нужно поправить вес, пока Анна тренируется
   const where = useAppear(b(5) + 40)
-  const chat = useAppear(b(5) + 50)
-  const noChat = useAppear(b(5) + 70)
+  // карточка чата и место для того, что снимет боль, — до переезда камеры
+  const chat = useAppear(b(5) - 10)
+  const painSlot = appear(frame, b(5) - 10, 12) * (1 - appear(frame, b(5) + 100, 6))
+  const noChat = useAppear(b(5) + 60)
   const pain = usePop(b(5) + 100)
 
   const you = stepAt<[Pose, Mood]>(frame, [
@@ -173,7 +175,7 @@ export function S3Copy() {
       {/* доска 2: боль Марины */}
       {frame >= b(5) - 16 && <Coach x={S3.marina.x} y={S3.marina.y} scale={0.8} label="Марина" color={theme.accent} enterAt={b(5) - 16} pose={marina[0]} mood={marina[1]} />}
       <g opacity={where}>
-        <Callout x={S3.marina.x} y={226} tx={S3.marina.x + 4} ty={S3.marina.y - 70} text="где подходы Анны?" color={theme.accent} />
+        <Callout x={S3.marina.x} y={226} tx={S3.marina.x + 4} ty={S3.marina.y - 70} text="поправить бы вес сейчас" color={theme.accent} />
       </g>
       <g opacity={chat}>
         <Card x={CH.x} y={CH.y} w={CH.w} h={CH.h} stroke={theme.line} fill={theme.white}>
@@ -186,13 +188,16 @@ export function S3Copy() {
       <g opacity={noChat}>
         <Mark x={CH.x + CH.w - 36} y={CH.y + CH.h / 2} ok={false} r={16} />
       </g>
+      <g opacity={painSlot}>
+        <Slot x={PN.x} y={PN.y} w={PN.w} h={PN.h} text="что снимет её боль" />
+      </g>
       {frame >= b(5) + 100 && (
         <g transform={`translate(${PN.x + PN.w / 2} ${PN.y + PN.h / 2}) scale(${pain}) translate(${-(PN.x + PN.w / 2)} ${-(PN.y + PN.h / 2)})`}>
           <Card x={PN.x} y={PN.y} w={PN.w} h={PN.h} stroke={theme.accent} fill={theme.white}>
             <rect x={PN.x + 3} y={PN.y + 3} width={PN.w - 6} height={PN.h - 6} rx={10} fill={theme.accentTint} />
             <Mark x={PN.x + 42} y={PN.y + PN.h / 2} ok r={18} />
             <Label x={PN.x + 78} y={PN.y + 44} anchor="start" size={26} weight={800} color={theme.accent}>
-              тренер видит подходы сразу
+              правка веса на тренировке
             </Label>
             <Label x={PN.x + 78} y={PN.y + 78} anchor="start" size={20} weight={600} color={theme.soft}>
               снимает общую боль Марины и Димы

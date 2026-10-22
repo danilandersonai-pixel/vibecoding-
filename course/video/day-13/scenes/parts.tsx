@@ -66,28 +66,37 @@ export function MiniCard({ x, y, w, h, text, color }: { x: number; y: number; w:
 
 const F = PHONE_FONT
 
-/** Экран телефона Анны (координаты экрана от -54,-92 до 54,92): упражнение, подход и кнопка «Сохранить»; на кадре tapAt — нажатие. */
-export function SetScreen({ tapAt }: { tapAt: number }) {
+/** Экран телефона Анны (координаты экрана от -54,-92 до 54,92): упражнение и следующий подход; на кадре changeAt
+ *  приходит правка тренера — вес from меняется на to, внизу плашка «Марина: to кг». */
+export function SetScreen({ changeAt, reps, from, to }: { changeAt: number; reps: number; from: number; to: number }) {
   const frame = useCurrentFrame()
-  const ripple = frame >= tapAt && frame < tapAt + 18 ? (frame - tapAt) / 18 : 0
-  const saved = appear(frame, tapAt + 10, 8)
+  const changed = frame >= changeAt
+  const note = appear(frame, changeAt, 8)
   return (
     <g>
       <text x={-44} y={-64} fill={theme.ink} style={{ font: `800 ${F + 2}px ${theme.font}` }}>
         Присед
       </text>
-      <rect x={-48} y={-50} width={96} height={56} rx={8} fill={theme.white} stroke={theme.grid} strokeWidth={2} />
-      <text x={-40} y={-30} fill={theme.soft} style={{ font: `600 ${F}px ${theme.font}` }}>
+      <rect x={-48} y={-52} width={96} height={68} rx={8} fill={changed ? theme.accentTint : theme.white} stroke={changed ? theme.accent : theme.grid} strokeWidth={2} />
+      <text x={-40} y={-34} fill={theme.soft} style={{ font: `600 ${F}px ${theme.font}` }}>
         подход 3
       </text>
-      <text x={-40} y={-10} fill={theme.ink} style={{ font: `700 ${F}px ${theme.font}` }}>
-        10 × 40 кг
+      <text x={-40} y={-14} fill={changed ? theme.accent : theme.ink} style={{ font: `800 ${F}px ${theme.font}` }}>
+        {`${reps} × ${changed ? to : from} кг`}
       </text>
-      <rect x={-48} y={40} width={96} height={30} rx={8} fill={saved > 0 ? theme.ok : theme.accent} />
-      <text y={60} textAnchor="middle" fill={theme.white} style={{ font: `700 ${F}px ${theme.font}` }}>
-        {saved > 0 ? '✓ сохранено' : 'Сохранить'}
+      <text x={-40} y={6} fill={theme.soft} opacity={note} style={{ font: `600 ${F}px ${theme.font}` }}>
+        {`вместо ${from} кг`}
       </text>
-      {ripple > 0 && <circle cx={0} cy={55} r={10 + ripple * 30} fill="none" stroke={theme.accent} strokeWidth={3} opacity={1 - ripple} />}
+      <g opacity={note}>
+        <rect x={-48} y={22} width={96} height={22} rx={6} fill={theme.white} stroke={theme.accent} strokeWidth={2} />
+        <text y={37} textAnchor="middle" fill={theme.accent} style={{ font: `700 ${F}px ${theme.font}` }}>
+          {`Марина: ${to} кг`}
+        </text>
+      </g>
+      <rect x={-48} y={52} width={96} height={28} rx={8} fill={theme.accent} />
+      <text y={71} textAnchor="middle" fill={theme.white} style={{ font: `700 ${F}px ${theme.font}` }}>
+        Сохранить
+      </text>
     </g>
   )
 }
