@@ -11,7 +11,7 @@ import { stepAt, typed } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { BOARD2, S2 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { Badge, CodeRows, Cursor } from './parts'
+import { Badge, CodeRows, Cursor, Slot } from './parts'
 
 const ID = 's2-owner'
 const Q = S2.questions
@@ -62,12 +62,13 @@ export function S2Owner() {
   const toFirst = interpolate(frame, [b(5) + 112, b(5) + 124], [0, 1], CLAMP)
   const first = usePop(b(5) + 124)
   const zero = useAppear(b(5) + 150)
+  const slots = useAppear(b(4) + 24)
 
   const you = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
     [b(1) + 60, ['cheer', 'happy']],
     [b(2) + 10, ['think', 'neutral']],
-    [b(3) + 100, ['point', 'happy']],
+    [b(3) + 40, ['point', 'happy']],
   ])
   const agent = stepAt<AgentPose>(frame, [
     [0, 'idle'],
@@ -154,6 +155,17 @@ export function S2Owner() {
       <g opacity={firm}>
         <Mark x={BOARD2 + 1110} y={250} ok r={16} />
         <Pill x={BOARD2 + 1110} y={M.y} text="позиция твёрже" color={theme.ok} fill={theme.okTint} size={20} compact />
+      </g>
+
+      {/* места будущей кнопки, ответа и малой шкалы */}
+      <g opacity={slots * (1 - gen)}>
+        <Slot x={S2.gen.x} y={S2.gen.y} w={200} h={50} />
+      </g>
+      <g opacity={frame < b(5) + 124 ? slots : 0}>
+        <Slot x={S2.first.x} y={S2.first.y} w={150} h={36} r={18} />
+      </g>
+      <g opacity={slots * (1 - zero)}>
+        <Slot x={S2.small.x + S2.small.w / 2} y={S2.small.y + S2.small.h / 2} w={S2.small.w} h={S2.small.h} r={S2.small.h / 2} />
       </g>
 
       {/* «сгенерировать» и взять первое */}

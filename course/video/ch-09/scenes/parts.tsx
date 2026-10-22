@@ -2,7 +2,8 @@ import type { ReactNode } from 'react'
 import { theme } from '../../theme'
 
 // Детали сцен ролика «Этика вайб-кодинга»: лист эссе, открытая книга, строки «кода» полосками,
-// номер в кружке, замок, переключатель, клавиша, курсор, лупа, знак «осторожно», значки тем.
+// номер в кружке, замок, переключатель, клавиша, курсор, лупа, знак «осторожно», значки тем,
+// пунктирное место будущего элемента.
 // Плашка, галочка, облако и реплика — Pill, Mark, Cloud и Callout из kit/props.tsx.
 
 /** Лист эссе в линейку с полем слева: (x, y) — левый верхний угол; дети — в координатах холста. */
@@ -178,6 +179,20 @@ export function PeopleIcon({ x, y }: { x: number; y: number }) {
         </g>
       ))}
       <line x1={x + 24} y1={y - 36} x2={x + 24} y2={y + 36} stroke={theme.ink} strokeWidth={3} strokeDasharray="6 5" />
+    </g>
+  )
+}
+
+/** Пунктирное место будущего элемента: (x, y) — середина, r — скругление, text — бледная подсказка внутри. */
+export function Slot({ x, y, w, h, r = 12, text }: { x: number; y: number; w: number; h: number; r?: number; text?: string }) {
+  return (
+    <g>
+      <rect x={x - w / 2} y={y - h / 2} width={w} height={h} rx={r} fill="none" stroke={theme.line} strokeWidth={2.5} strokeDasharray="8 7" />
+      {text && (
+        <text x={x} y={y + 7} textAnchor="middle" fill={theme.soft} style={{ font: `600 20px ${theme.font}` }}>
+          {text}
+        </text>
+      )}
     </g>
   )
 }

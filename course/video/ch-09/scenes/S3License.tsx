@@ -1,15 +1,17 @@
 import { interpolate, useCurrentFrame } from 'remotion'
+import { Agent, type AgentPose } from '../../actors/Agent'
 import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { appear, CLAMP, trackAt } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
 import { Cloud, Mark, Pill } from '../../kit/props'
+import { stepAt } from '../../kit/reveal'
 import { BAR } from '../../kit/screens/layout'
 import { Window } from '../../kit/screens/Window'
 import { theme } from '../../theme'
 import { BOARD2, BOARD3, S3 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { CodeRows, Lens, Lock, Toggle, Warn } from './parts'
+import { CodeRows, Lens, Lock, Slot, Toggle, Warn } from './parts'
 
 const ID = 's3-license'
 const P = S3.pipe
@@ -43,14 +45,20 @@ export function S3License() {
   const gpl = frame >= b(1) + 70
   const soft = useAppear(b(1) + 20)
   const copyleft = useAppear(b(1) + 80)
-  const closed = useAppear(b(2) + 10)
-  const tag = trackAt(frame, [
-    [b(2) + 30, S3.theirs.x + S3.theirs.w - 56, S3.theirs.y + BAR / 2],
-    [b(2) + 72, S3.ours.x + 250, rowY(3) + 14],
+  const lanesSlot = useAppear(b(0) + 40)
+  const agent = stepAt<AgentPose>(frame, [
+    [0, 'working'],
+    [b(0) + 70, 'done'],
+    [b(1), 'idle'],
   ])
-  const tagOn = frame >= b(2) + 30 && frame < b(2) + 74
-  const risky = appear(frame, b(2) + 74, 10)
-  const stamp = useAppear(b(2) + 90)
+  const closed = useAppear(b(2) + 6)
+  const tag = trackAt(frame, [
+    [b(2) + 14, S3.theirs.x + S3.theirs.w - 56, S3.theirs.y + BAR / 2],
+    [b(2) + 42, S3.ours.x + 250, rowY(3) + 14],
+  ])
+  const tagOn = frame >= b(2) + 14 && frame < b(2) + 44
+  const risky = appear(frame, b(2) + 42, 10)
+  const stamp = useAppear(b(2) + 50)
 
   // доска 2: сканер лицензий в CI и фильтр в инструменте
   const pipeAt = [b(3) + 30, b(3) + 50, b(3) + 106]
@@ -67,10 +75,10 @@ export function S3License() {
   const terms = useAppear(b(4) + 120)
   const lens = useAppear(b(4) + 146)
   const plan = useAppear(b(4) + 168)
-  const secretAt = [b(5) + 10, b(5) + 26]
-  const slide = interpolate(frame, [b(5) + 44, b(5) + 76], [0, 110], CLAMP)
-  const barrier = useAppear(b(5) + 70)
-  const refuse = useAppear(b(5) + 96)
+  const secretAt = [b(5) + 6, b(5) + 16]
+  const slide = interpolate(frame, [b(5) + 24, b(5) + 50], [0, 110], CLAMP)
+  const barrier = useAppear(b(5) + 44)
+  const refuse = useAppear(b(5) + 58)
 
   return (
     <KitScene chip="3 / 6 · Лицензии и ваши данные" duration={sceneDuration(ID)} {...STAGING[ID]}>
@@ -131,6 +139,16 @@ export function S3License() {
           дословно
         </Label>
       </g>
+
+      {/* места будущих полос лицензий */}
+      {[soft, copyleft].map((a, i) => (
+        <g key={i} opacity={lanesSlot * (1 - a)}>
+          <Slot x={LN.x} y={LN.y[i]} w={290} h={42} r={21} />
+          <line x1={LN.x + 165} y1={LN.y[i]} x2={LN.x + 560} y2={LN.y[i]} stroke={theme.line} strokeWidth={2.5} strokeDasharray="8 7" />
+        </g>
+      ))}
+      {/* агент, который выдал код */}
+      <Agent x={S3.agent.x} y={S3.agent.y} scale={0.7} enterAt={6} pose={agent} />
 
       {/* мягкие лицензии и копилефт */}
       <g opacity={soft}>

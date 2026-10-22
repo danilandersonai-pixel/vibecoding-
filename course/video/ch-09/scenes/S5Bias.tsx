@@ -16,7 +16,7 @@ import { Editor } from '../../kit/screens/Editor'
 import { theme } from '../../theme'
 import { DIFF_LINES, FAIR_CHAT, RISK_ITEMS, RULE_LINES, S5 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { Badge, Key } from './parts'
+import { Badge, Key, Slot } from './parts'
 
 const ID = 's5-bias'
 const F = S5.form
@@ -59,8 +59,10 @@ export function S5Bias() {
     return { ...q, t0, pos: trackAt(frame, keys), done: frame >= t0 + (q.pass ? 56 : 46) }
   })
   const open = walkers.some((w) => w.pass && frame >= w.t0 + 20 && w.pos.x < 600) ? 1 : 0
-  const verdict = useAppear(b(0) + 160)
+  const verdict = useAppear(b(0) + 110)
   const data = useAppear(b(1) + 10)
+  const dataSlot = useAppear(b(0) + 30) * (1 - data)
+  const normSlot = useAppear(b(0) + 30)
   const toAgent = appear(frame, b(1) + 40, 14)
   const norm = useAppear(b(1) + 96)
   const toGate = appear(frame, b(1) + 140, 16)
@@ -124,6 +126,16 @@ export function S5Bias() {
       )}
       <g opacity={verdict}>
         <Pill x={S5.gate.x} y={196} text="одних пускает, других — нет" color={theme.risk} fill={theme.white} size={20} compact />
+      </g>
+
+      {/* места будущего блока данных и плашки «по умолчанию» */}
+      <g opacity={dataSlot}>
+        {[0, 1, 2].map((i) => (
+          <Slot key={i} x={S5.data.x + S5.data.w / 2} y={S5.data.y + 16 + i * 38} w={S5.data.w} h={32} r={8} />
+        ))}
+      </g>
+      <g opacity={normSlot * (1 - appear(frame, b(1) + 96))}>
+        <Slot x={S5.agent.x} y={272} w={286} h={34} r={17} text="?" />
       </g>
 
       {/* допущения из данных обучения → «разумное» по умолчанию */}

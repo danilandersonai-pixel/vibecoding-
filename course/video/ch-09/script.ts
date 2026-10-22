@@ -189,7 +189,7 @@ function hotspots(t: Timing): VideoHotspot[] {
   return [
     spot(
       's2-owner',
-      t.beat('s2-owner', 3) + 60, // оба документа на месте
+      t.beat('s2-owner', 3) + 76, // оба документа допечатаны, позы вас и агента больше не меняются
       t.beat('s2-owner', 4) - 10,
       OWNER_BOX,
       'Кому принадлежит код',
@@ -197,7 +197,7 @@ function hotspots(t: Timing): VideoHotspot[] {
     ),
     spot(
       's3-license',
-      t.beat('s3-license', 2) + 60, // кусок под GPL уже в нашем приложении
+      t.beat('s3-license', 2) + 66, // метка GPL долетела, строки красные, штамп «юридический риск» на месте
       t.beat('s3-license', 3) - 10,
       LICENSE_BOX,
       'Лицензии и копилефт',
@@ -205,7 +205,7 @@ function hotspots(t: Timing): VideoHotspot[] {
     ),
     spot(
       's3-license',
-      t.beat('s3-license', 5) + 40, // секреты уже остановлены
+      t.beat('s3-license', 5) + 80, // секреты остановлены у черты, «без корпоративного договора — нет» на месте
       end('s3-license') - 14,
       DATA_BOX,
       'Ваши данные в инструменте',
@@ -213,7 +213,7 @@ function hotspots(t: Timing): VideoHotspot[] {
     ),
     spot(
       's4-honest',
-      t.beat('s4-honest', 2) + 50, // пул-реквест заполнен
+      t.beat('s4-honest', 2) + 70, // все три строки пул-реквеста, лупа и коллега на месте
       t.beat('s4-honest', 3) - 10,
       LABEL_BOX,
       'Метка об участии ИИ',
@@ -221,7 +221,7 @@ function hotspots(t: Timing): VideoHotspot[] {
     ),
     spot(
       's4-honest',
-      t.beat('s4-honest', 5) + 30, // все четыре ситуации на месте
+      t.beat('s4-honest', 5) + 124, // все четыре рамки заполнены, подсветка «Перед заказчиком» до конца сцены
       end('s4-honest') - 14,
       PLACES_BOX,
       'Где важна прозрачность',
@@ -229,7 +229,7 @@ function hotspots(t: Timing): VideoHotspot[] {
     ),
     spot(
       's5-bias',
-      t.beat('s5-bias', 4) + 40, // исправление и запрос словами на месте
+      t.beat('s5-bias', 4) + 66, // исправление, имена с ✓ и оба сообщения чата допечатаны
       t.beat('s5-bias', 5) - 10,
       FAIR_BOX,
       'Справедливая проверка имени',
@@ -237,7 +237,7 @@ function hotspots(t: Timing): VideoHotspot[] {
     ),
     spot(
       's6-rules',
-      t.beat('s6-rules', 6) + 40, // все восемь правил на месте
+      t.beat('s6-rules', 6) + 56, // все восемь правил с примерами на месте
       t.beat('s6-rules', 7) - 10,
       RULES_BOX,
       'Восемь правил',

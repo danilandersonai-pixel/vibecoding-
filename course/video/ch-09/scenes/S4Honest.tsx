@@ -48,15 +48,16 @@ export function S4Honest() {
   const youPart = grow(frame, b(0) + 66, 24)
   const editorAt = b(1) + 8
   const mark = useAppear(b(1) + 74)
-  const pr = useAppear(b(2) + 16)
-  const rowAt = [b(2) + 30, b(2) + 60, b(2) + 90]
-  const lens = useAppear(b(2) + 116)
+  const pr = useAppear(b(2) + 10)
+  const rowAt = [b(2) + 20, b(2) + 34, b(2) + 48]
+  const lens = useAppear(b(2) + 56)
 
   // доска 2: четыре ситуации и вывод
   const hub = useAppear(b(3) + 10)
   // все четыре рамки с заголовками появляются сразу, а о какой ситуации речь — та подсвечена
   const placeAt = [b(3) + 16, b(3) + 28, b(3) + 40, b(3) + 52]
-  const focusAt = [b(3) + 16, b(3) + 16, b(4) + 10, b(5) + 10, b(6)]
+  // последняя («Перед заказчиком») подсвечена до конца сцены: в окне горячей точки рамки не меняются
+  const focusAt = [b(3) + 16, b(3) + 16, b(4) + 10, b(5) + 10, sceneDuration(ID) + 100]
   const lineAt = [
     [b(3) + 24, b(3) + 30],
     [b(3) + 70, b(3) + 120],
@@ -81,7 +82,7 @@ export function S4Honest() {
   ])
   const colleague = stepAt<[Pose, Mood]>(frame, [
     [0, ['think', 'neutral']],
-    [b(2) + 116, ['point', 'happy']],
+    [b(2) + 56, ['point', 'happy']],
   ])
   const you2 = stepAt<[Pose, Mood]>(frame, [
     [0, ['point', 'neutral']],
@@ -145,7 +146,7 @@ export function S4Honest() {
               {r.label}
             </Label>
             <Label x={PR.x + 230} y={y} anchor="start" size={22} color={r.color} weight={700}>
-              {typed(r.value, frame, rowAt[i], 40)}
+              {typed(r.value, frame, rowAt[i], 60)}
             </Label>
           </g>
         )
@@ -153,7 +154,7 @@ export function S4Honest() {
       <g opacity={lens}>
         <Lens x={PR.x + PR.w - 60} y={PR.y + 232} r={20} />
       </g>
-      <Actor x={S4.colleague.x} y={S4.colleague.y} scale={0.7} label="Коллега" enterAt={b(2) + 40}>
+      <Actor x={S4.colleague.x} y={S4.colleague.y} scale={0.7} label="Коллега" enterAt={b(2) + 20}>
         <Person color={theme.ink} pose={colleague[0]} mood={colleague[1]} />
       </Actor>
 

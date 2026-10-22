@@ -13,7 +13,7 @@ import { Window } from '../../kit/screens/Window'
 import { theme } from '../../theme'
 import { BOARD2, S1 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { CodeRows, CodeTagIcon, OpenBook, PeopleIcon, SayIcon, Sheet } from './parts'
+import { CodeRows, CodeTagIcon, OpenBook, PeopleIcon, SayIcon, Sheet, Slot } from './parts'
 
 const ID = 's1-essay'
 const E = S1.essay
@@ -70,6 +70,7 @@ export function S1Essay() {
   ])
   const pieceOn = frame >= b(3) + 6 && frame < b(3) + 82
   const inserted = appear(frame, b(3) + 80, 10)
+  const slot = useAppear(b(2) + 24) * (1 - appear(frame, b(3) + 100, 10))
   const silent = useAppear(b(3) + 104)
   const boardOut = interpolate(frame, [b(4), b(4) + 14], [1, 0], CLAMP)
 
@@ -167,6 +168,10 @@ export function S1Essay() {
             <CodeRows x={-44} y={-12} widths={[88, 70, 80]} step={14} color={theme.alt} />
           </g>
         )}
+        {/* место для ссылки на источник: при вставке куска оно так и остаётся пустым */}
+        <g opacity={slot}>
+          <Slot x={A.x + A.w / 2} y={470} w={340} h={44} r={22} text="ссылка на источник?" />
+        </g>
         <g opacity={silent}>
           <Pill x={A.x + A.w / 2} y={470} text="без кавычек и без ссылки" color={theme.risk} fill={theme.riskTint} size={22} />
         </g>
