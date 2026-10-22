@@ -2,7 +2,9 @@ import { interpolate, useCurrentFrame } from 'remotion'
 import { Agent, type AgentPose } from '../../actors/Agent'
 import { useAppear, useTrack } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { CLAMP } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
+import { Cloud, Mark } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { AgentChat } from '../../kit/screens/AgentChat'
 import { Diff } from '../../kit/screens/Diff'
@@ -10,8 +12,7 @@ import { Terminal, type TermLine } from '../../kit/screens/Terminal'
 import { theme } from '../../theme'
 import { S3 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { clamp } from './clamp'
-import { Cloud, Flag, Mark } from './parts'
+import { Flag } from './parts'
 
 const ID = 's3-git'
 const C = S3.commits
@@ -31,7 +32,7 @@ const TERM: { line: TermLine; at: number }[] = [
 // Точка-сохранение (коммит): кружок на линии, флажок и подпись.
 function Commit({ x, y, at, up, text, color = theme.accent, below = true }: { x: number; y: number; at: number; up: number; text: string; color?: string; below?: boolean }) {
   const frame = useCurrentFrame()
-  const on = interpolate(frame, [at, at + 10], [0, 1], clamp)
+  const on = interpolate(frame, [at, at + 10], [0, 1], CLAMP)
   return (
     <g opacity={on}>
       <Flag cx={x} cy={y} up={up} color={color} />
@@ -48,7 +49,7 @@ function Commit({ x, y, at, up, text, color = theme.accent, below = true }: { x:
 export function S3Git() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
-  const flag = (at: number) => interpolate(frame, [at, at + 12], [0, 1], clamp)
+  const flag = (at: number) => interpolate(frame, [at, at + 12], [0, 1], CLAMP)
 
   // агент: у терминала → на уровень → по сохранениям → в яму → снова у «графика веса» → по ветке → влили
   const walk = useTrack([
@@ -72,9 +73,9 @@ export function S3Git() {
     [b(7) + 120, S3.branchDown, ON_BRANCH],
     [b(7) + 135, C.merged, ON_MAIN],
   ])
-  const agentScale = interpolate(frame, [b(1) + 20, b(1) + 50], [0.9, 0.55], clamp)
+  const agentScale = interpolate(frame, [b(1) + 20, b(1) + 50], [0.9, 0.55], CLAMP)
   const fallen = frame >= b(4) + 65 && frame < b(4) + 104
-  const fall = interpolate(frame, [b(4) + 50, b(4) + 65], [1, 0], clamp)
+  const fall = interpolate(frame, [b(4) + 50, b(4) + 65], [1, 0], CLAMP)
   const moving = [
     [b(1) + 20, b(1) + 50],
     [b(2) + 10, b(2) + 40],
@@ -93,33 +94,33 @@ export function S3Git() {
 
   // терминал: строки появляются по одной
   const term = TERM.filter((t) => frame >= b(0) + t.at).map((t) => t.line)
-  const termOut = interpolate(frame, [b(1) + 10, b(1) + 30], [1, 0], clamp)
+  const termOut = interpolate(frame, [b(1) + 10, b(1) + 30], [1, 0], CLAMP)
 
   // уровень, сохранения, облако
-  const ground = interpolate(frame, [b(1) + 10, b(1) + 60], [0, 1], clamp)
-  const toast = (at: number) => interpolate(frame, [at, at + 8, at + 60, at + 70], [0, 1, 1, 0], clamp)
+  const ground = interpolate(frame, [b(1) + 10, b(1) + 60], [0, 1], CLAMP)
+  const toast = (at: number) => interpolate(frame, [at, at + 8, at + 60, at + 70], [0, 1, 1, 0], CLAMP)
   // облако уходит до наезда на яму, чтобы его не резал край кадра
-  const cloud = useAppear(b(3) + 5) * interpolate(frame, [b(4) - 10, b(4)], [1, 0], clamp)
-  const upload = interpolate(frame, [b(3) + 40, b(3) + 70], [0, 1], clamp)
+  const cloud = useAppear(b(3) + 5) * interpolate(frame, [b(4) - 10, b(4)], [1, 0], CLAMP)
+  const upload = interpolate(frame, [b(3) + 40, b(3) + 70], [0, 1], CLAMP)
   const repoWord = useAppear(b(3) + 60)
 
   // поломка и откат
-  const pit = useAppear(b(4) + 10) * interpolate(frame, [b(5), b(5) + 20], [1, 0], clamp)
+  const pit = useAppear(b(4) + 10) * interpolate(frame, [b(5), b(5) + 20], [1, 0], CLAMP)
   const broken = useAppear(b(4) + 50)
-  const back = interpolate(frame, [b(4) + 75, b(4) + 105], [0, 1], clamp)
-  const backWord = useAppear(b(4) + 90) * interpolate(frame, [b(5) + 10, b(5) + 24], [1, 0], clamp)
+  const back = interpolate(frame, [b(4) + 75, b(4) + 105], [0, 1], CLAMP)
+  const backWord = useAppear(b(4) + 90) * interpolate(frame, [b(5) + 10, b(5) + 24], [1, 0], CLAMP)
 
   // ветка, дифф, пул-реквест
-  const branch = interpolate(frame, [b(5) + 20, b(5) + 60, b(6) + 20, b(6) + 60], [0, 0.42, 0.42, 1], clamp)
+  const branch = interpolate(frame, [b(5) + 20, b(5) + 60, b(6) + 20, b(6) + 60], [0, 0.42, 0.42, 1], CLAMP)
   const branchWord = useAppear(b(5) + 40)
   const mainSafe = useAppear(b(5) + 120)
   const pr = useAppear(b(7) + 5)
   const checks = useAppear(b(7) + 50)
   const approved = useAppear(b(7) + 70)
   const pressed = frame >= b(7) + 90 && frame < b(7) + 100
-  const merge = interpolate(frame, [b(7) + 95, b(7) + 120], [0, 1], clamp)
+  const merge = interpolate(frame, [b(7) + 95, b(7) + 120], [0, 1], CLAMP)
   const mergedWord = useAppear(b(7) + 110)
-  const diffOut = interpolate(frame, [b(8), b(8) + 10], [1, 0], clamp)
+  const diffOut = interpolate(frame, [b(8), b(8) + 10], [1, 0], CLAMP)
 
   const branchPath = `M${C.chart} ${MAIN} H${S3.branchUp} C ${S3.branchUp + 50} ${MAIN}, ${S3.branchUp + 50} ${BRANCH}, ${S3.branchUp + 100} ${BRANCH} H${S3.branchDown}`
   const mergePath = `M${S3.branchDown} ${BRANCH} C ${S3.branchDown + 50} ${BRANCH}, ${C.merged - 50} ${MAIN}, ${C.merged} ${MAIN}`
@@ -212,7 +213,7 @@ export function S3Git() {
           <line x1={S3.cloud.x + S3.cloud.w / 2 - 40} y1={S3.cloud.y + 166} x2={S3.cloud.x + S3.cloud.w / 2 + 40} y2={S3.cloud.y + 166} stroke={theme.accent} strokeWidth={3} />
         </g>
       </g>
-      <path d={`M${C.chart + 40} ${MAIN - 90} C ${C.chart + 120} ${MAIN - 160}, ${S3.cloud.x - 40} ${S3.cloud.y + S3.cloud.h}, ${S3.cloud.x + 40} ${S3.cloud.y + S3.cloud.h - 6}`} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - upload} fill="none" stroke={theme.accent} strokeWidth={3} opacity={upload > 0 ? 0.8 * interpolate(frame, [b(4) - 10, b(4)], [1, 0], clamp) : 0} />
+      <path d={`M${C.chart + 40} ${MAIN - 90} C ${C.chart + 120} ${MAIN - 160}, ${S3.cloud.x - 40} ${S3.cloud.y + S3.cloud.h}, ${S3.cloud.x + 40} ${S3.cloud.y + S3.cloud.h - 6}`} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - upload} fill="none" stroke={theme.accent} strokeWidth={3} opacity={upload > 0 ? 0.8 * interpolate(frame, [b(4) - 10, b(4)], [1, 0], CLAMP) : 0} />
 
       {/* доска 2: дифф и пул-реквест; в конце — чат «сделай коммит» */}
       {frame >= b(6) && frame < b(8) + 10 && (

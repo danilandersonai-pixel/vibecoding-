@@ -1,9 +1,11 @@
-import { Easing, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion'
+import { spring, useCurrentFrame, useVideoConfig } from 'remotion'
+import { appear, trackAt } from './motion'
+
+// Хуки — тонкие обёртки: кадр берут у Remotion, расчёт — в motion.ts.
 
 /** Плавное появление с кадра at: 0 → 1. */
 export function useAppear(at: number, length = 12): number {
-  const frame = useCurrentFrame()
-  return interpolate(frame, [at, at + length], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+  return appear(useCurrentFrame(), at, length)
 }
 
 /** Пружинка с кадра at. */
@@ -15,8 +17,5 @@ export function usePop(at: number): number {
 
 /** Позиция по ключевым кадрам [кадр, x, y]; до первого и после последнего — стоит. */
 export function useTrack(keys: [number, number, number][]): { x: number; y: number } {
-  const frame = useCurrentFrame()
-  const frames = keys.map((k) => k[0])
-  const opts = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.inOut(Easing.cubic) } as const
-  return { x: interpolate(frame, frames, keys.map((k) => k[1]), opts), y: interpolate(frame, frames, keys.map((k) => k[2]), opts) }
+  return trackAt(useCurrentFrame(), keys)
 }

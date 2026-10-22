@@ -7,13 +7,14 @@ import { Phone } from '../../actors/Phone'
 import { Server } from '../../actors/Server'
 import { useAppear, useTrack } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { CLAMP } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
+import { Mark } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { DB_ROWS, PHONE_FONT, PHONE_SCALE, S1, ZONE_BOTTOM, ZONE_TOP, ZONES } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { clamp } from './clamp'
-import { Mark, Waiter } from './parts'
+import { Waiter } from './parts'
 
 const ID = 's1-restaurant'
 const F = PHONE_FONT
@@ -97,7 +98,7 @@ export function S1Restaurant() {
     [b(4) + 30, S1.server.x, S1.server.y - 20],
   ])
   const orderOn = frame >= orderAt && frame < b(4) + 30
-  const orderFade = interpolate(frame, [b(4) + 22, b(4) + 30], [1, 0], clamp)
+  const orderFade = interpolate(frame, [b(4) + 22, b(4) + 30], [1, 0], CLAMP)
   // с кухни на склад
   const toDb = useTrack([
     [b(6) + 10, S1.server.x, S1.lane],
@@ -114,7 +115,7 @@ export function S1Restaurant() {
     [b(7) + 105, S1.phone.x, S1.phone.y + 100],
   ])
   const replyOn = frame >= b(7) + 5 && frame < b(7) + 105
-  const replyFade = interpolate(frame, [b(7) + 97, b(7) + 105], [1, 0], clamp)
+  const replyFade = interpolate(frame, [b(7) + 97, b(7) + 105], [1, 0], CLAMP)
   const saved = useAppear(b(7) + 105)
 
   // части ресторана появляются по одной; подсвечена та, о которой реплика
@@ -124,11 +125,11 @@ export function S1Restaurant() {
   const onlyHall = frame >= b(9) && frame < b(9) + 80
   const allTicked = frame >= b(9) + 80
   // меню, проверки и подпись склада уходят до наезда на телефон: внизу кадра там субтитры
-  const details = interpolate(frame, [b(7) + 30, b(7) + 42], [1, 0], clamp)
+  const details = interpolate(frame, [b(7) + 30, b(7) + 42], [1, 0], CLAMP)
   const prompt = useAppear(b(8) + 10)
   const boxes = useAppear(b(8) + 70)
 
-  const question = useAppear(b(1)) * interpolate(frame, [b(3), b(3) + 10], [1, 0], clamp)
+  const question = useAppear(b(1)) * interpolate(frame, [b(3), b(3) + 10], [1, 0], CLAMP)
   const menu = useAppear(b(3) + 75)
   const always = useAppear(b(4) + 90)
   const checks = [b(5) + 20, b(5) + 60, b(5) + 105]
@@ -152,7 +153,7 @@ export function S1Restaurant() {
   return (
     <KitScene chip="1 / 6 · Приложение — это ресторан" duration={sceneDuration(ID)} {...STAGING[ID]}>
       {ZONES.map((z, i) => {
-        const shown = interpolate(frame, [b(1) + 30 + i * 8, b(1) + 42 + i * 8], [0, 1], clamp)
+        const shown = interpolate(frame, [b(1) + 30 + i * 8, b(1) + 42 + i * 8], [0, 1], CLAMP)
         const on = lit[i] || (onlyHall && i === 0) || allTicked
         const dim = onlyHall && i > 0 ? 0.35 : 1
         const ticked = (onlyHall && i === 0) || allTicked
@@ -162,7 +163,7 @@ export function S1Restaurant() {
             <Label x={z.x + z.w / 2} y={116} size={28} weight={700}>
               {z.word}
             </Label>
-            <g opacity={interpolate(frame, [techAt[i], techAt[i] + 12], [0, 1], clamp)}>
+            <g opacity={interpolate(frame, [techAt[i], techAt[i] + 12], [0, 1], CLAMP)}>
               <Label x={z.x + z.w / 2} y={150} size={24} color={theme.accent} weight={700}>
                 {z.tech}
               </Label>
@@ -210,7 +211,7 @@ export function S1Restaurant() {
       <g opacity={useAppear(b(5)) * details}>
         <Card x={ZONES[2].x + 16} y={442} w={ZONES[2].w - 32} h={92}>
           {['✓ это Анна', '✓ вес — число', '= объём 480 кг'].map((t, i) => (
-            <g key={t} opacity={interpolate(frame, [checks[i], checks[i] + 10], [0, 1], clamp)}>
+            <g key={t} opacity={interpolate(frame, [checks[i], checks[i] + 10], [0, 1], CLAMP)}>
               <Label x={ZONES[2].x + 34} y={468 + i * 25} anchor="start" size={20} color={i < 2 ? theme.ok : theme.ink} weight={600}>
                 {t}
               </Label>
@@ -239,7 +240,7 @@ export function S1Restaurant() {
         </g>
       )}
       {toDbOn && (
-        <g opacity={interpolate(frame, [b(6) + 34, b(6) + 42], [1, 0], clamp)}>
+        <g opacity={interpolate(frame, [b(6) + 34, b(6) + 42], [1, 0], CLAMP)}>
           <Packet x={toDb.x} y={toDb.y} text="60 кг × 8" />
         </g>
       )}

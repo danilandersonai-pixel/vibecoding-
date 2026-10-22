@@ -7,14 +7,14 @@ import { Phone } from '../../actors/Phone'
 import { Server } from '../../actors/Server'
 import { useAppear, useTrack } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { CLAMP } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
+import { Browser, Cloud, Pill } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { Terminal } from '../../kit/screens/Terminal'
 import { theme } from '../../theme'
 import { S4 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { clamp } from './clamp'
-import { Browser, Cloud, Pill } from './parts'
 
 const ID = 's4-site'
 const ENVS = [
@@ -93,16 +93,16 @@ export function S4Site() {
   const laptop = useAppear(b(0) + 5)
   const ready = b(0) + 96
   const page = useAppear(ready + 4)
-  const toBrowser = interpolate(frame, [b(1) + 10, b(1) + 30], [0, 1], clamp)
+  const toBrowser = interpolate(frame, [b(1) + 10, b(1) + 30], [0, 1], CLAMP)
   const local = useAppear(b(1) + 20)
   const onlyYou = useAppear(b(1) + 80)
 
   const envOn = [useAppear(b(2) + 20), useAppear(b(3)), useAppear(b(4))]
   const noteOn = [useAppear(b(2) + 95), useAppear(b(3) + 90), useAppear(b(5) + 10)]
   const devLaptop = useAppear(b(2) + 50)
-  const checked = interpolate(frame, [b(3) + 40, b(3) + 60], [0, 1], clamp)
-  const released = interpolate(frame, [b(4) + 30, b(4) + 50], [0, 1], clamp)
-  const cost = interpolate(frame, [b(5) + 10, b(5) + 70], [0, 1], clamp)
+  const checked = interpolate(frame, [b(3) + 40, b(3) + 60], [0, 1], CLAMP)
+  const released = interpolate(frame, [b(4) + 30, b(4) + 50], [0, 1], CLAMP)
+  const cost = interpolate(frame, [b(5) + 10, b(5) + 70], [0, 1], CLAMP)
   const early = useAppear(b(5) + 90)
 
   const title = useAppear(b(6) + 20)

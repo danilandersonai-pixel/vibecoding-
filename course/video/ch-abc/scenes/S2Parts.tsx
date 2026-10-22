@@ -2,17 +2,16 @@ import { interpolate, useCurrentFrame } from 'remotion'
 import { Agent, type AgentPose } from '../../actors/Agent'
 import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { CLAMP } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
+import { Cloud, KeyGlyph, Mark } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { Editor } from '../../kit/screens/Editor'
 import { BAR, EDITOR_PAD, LH } from '../../kit/screens/layout'
 import { Mono, Window } from '../../kit/screens/Window'
-import { KeyGlyph } from '../../pilot-rls/scenes/KeyGlyph'
 import { theme } from '../../theme'
 import { S2 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { clamp } from './clamp'
-import { Cloud, Mark } from './parts'
 
 const ID = 's2-parts'
 
@@ -67,13 +66,13 @@ export function S2Parts() {
   const V = S2.env
 
   const recipe = useAppear(b(0))
-  const toCode = interpolate(frame, [b(0) + 70, b(0) + 90], [0, 1], clamp)
+  const toCode = interpolate(frame, [b(0) + 70, b(0) + 90], [0, 1], CLAMP)
   const example = useAppear(b(1) + 10)
-  const link = interpolate(frame, [b(1) + 25, b(1) + 45], [0, 1], clamp)
+  const link = interpolate(frame, [b(1) + 25, b(1) + 45], [0, 1], CLAMP)
   const langAt = [b(2) + 15, b(2) + 70, b(2) + 100, b(2) + 120]
   const project = useAppear(b(3) + 105)
   const libsHead = useAppear(b(4) + 5)
-  const deps = interpolate(frame, [b(5) + 10, b(5) + 40], [0, 1], clamp)
+  const deps = interpolate(frame, [b(5) + 10, b(5) + 40], [0, 1], CLAMP)
   const depsWord = useAppear(b(5) + 15)
   const ghost = useAppear(b(5) + 85)
   const ghostNo = useAppear(b(5) + 105)
@@ -104,7 +103,7 @@ export function S2Parts() {
             <rect x={R.x + 10} y={R.y + 98} width={R.w - 20} height={70} rx={8} fill={theme.altTint} />
           </g>
           {RECIPE.map((t, i) => (
-            <g key={t} opacity={interpolate(frame, [b(0) + 15 + i * 12, b(0) + 25 + i * 12], [0, 1], clamp)}>
+            <g key={t} opacity={interpolate(frame, [b(0) + 15 + i * 12, b(0) + 25 + i * 12], [0, 1], CLAMP)}>
               <Label x={R.x + 24 + (i === 2 ? 26 : 0)} y={R.y + 84 + i * 36 + (i >= 1 ? 4 : 0) + (i >= 3 ? 8 : 0)} anchor="start" size={22} weight={500}>
                 {t}
               </Label>
@@ -124,7 +123,7 @@ export function S2Parts() {
       {/* языки */}
       {LANGS.map((l, i) => {
         const x = S2.langs.x + i * (S2.langs.w + S2.langs.gap)
-        const on = interpolate(frame, [langAt[i], langAt[i] + 12], [0, 1], clamp)
+        const on = interpolate(frame, [langAt[i], langAt[i] + 12], [0, 1], CLAMP)
         return (
           <g key={l.name} opacity={on} transform={`translate(0 ${(1 - on) * 14})`}>
             <Card x={x} y={S2.langs.y} w={S2.langs.w} h={S2.langs.h} stroke={i < 2 ? theme.accent : theme.line}>
@@ -157,7 +156,7 @@ export function S2Parts() {
           }
         >
           {FILES.map((f, i) => {
-            const on = interpolate(frame, [b(3) + 35 + i * 14, b(3) + 45 + i * 14], [0, 1], clamp)
+            const on = interpolate(frame, [b(3) + 35 + i * 14, b(3) + 45 + i * 14], [0, 1], CLAMP)
             const x = 24 + f.depth * 32
             const isPkg = f.name === 'package.json'
             const isEnv = f.name === '.env'
@@ -191,7 +190,7 @@ export function S2Parts() {
         </Label>
       </g>
       {LIBS.map((t, i) => {
-        const on = interpolate(frame, [b(4) + 20 + i * 15, b(4) + 45 + i * 15], [0, 1], clamp)
+        const on = interpolate(frame, [b(4) + 20 + i * 15, b(4) + 45 + i * 15], [0, 1], CLAMP)
         const y = Lb.y + i * Lb.step
         const py = T.y + FILE_Y[3] - 8
         return (

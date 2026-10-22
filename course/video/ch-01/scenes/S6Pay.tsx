@@ -2,7 +2,9 @@ import { interpolate, useCurrentFrame } from 'remotion'
 import type { Mood, Pose } from '../../actors/Person'
 import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { CLAMP } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
+import { Pill } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
 import { Checklist } from '../../kit/screens/Checklist'
 import { BAR } from '../../kit/screens/layout'
@@ -10,8 +12,7 @@ import { Mono, Window } from '../../kit/screens/Window'
 import { theme } from '../../theme'
 import { S6 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { clamp } from './motion'
-import { Plane, Ring, Tag, You } from './parts'
+import { Plane, Ring, You } from './parts'
 
 const ID = 's6-pay'
 const SUB = S6.sub
@@ -48,9 +49,9 @@ export function S6Pay() {
   const monthly = useAppear(b(1) + 20)
   const pro = useAppear(b(1) + 50)
   const max = useAppear(b(1) + 75)
-  const limitFill = interpolate(frame, [b(1) + 100, b(1) + 140], [0, 0.7], clamp)
+  const limitFill = interpolate(frame, [b(1) + 100, b(1) + 140], [0, 0.7], CLAMP)
   const taxi = useAppear(b(2) + 10)
-  const meter = interpolate(frame, [b(2) + 30, b(2) + 150], [0, 3.6], clamp)
+  const meter = interpolate(frame, [b(2) + 30, b(2) + 150], [0, 3.6], CLAMP)
   const noCap = useAppear(b(2) + 110)
   const you = stepAt<[Pose, Mood]>(frame, [
     [0, ['think', 'neutral']],
@@ -61,23 +62,23 @@ export function S6Pay() {
 
   // доска 2: окно в пять часов тратится и обновляется; неделя копится поверх
   const frameIn = useAppear(b(3) + 6)
-  const used = interpolate(frame, [b(3) + 20, b(3) + 75, b(3) + 95, b(3) + 125], [0, 0.75, 0.75, 0], clamp)
-  const refresh = interpolate(frame, [b(3) + 90, b(3) + 98, b(3) + 135, b(3) + 145], [0, 1, 1, 0], clamp)
+  const used = interpolate(frame, [b(3) + 20, b(3) + 75, b(3) + 95, b(3) + 125], [0, 0.75, 0.75, 0], CLAMP)
+  const refresh = interpolate(frame, [b(3) + 90, b(3) + 98, b(3) + 135, b(3) + 145], [0, 1, 1, 0], CLAMP)
   const weekIn = useAppear(b(3) + 60)
   const days = Math.max(0, Math.min(7, (frame - b(3) - 70) / 9))
-  const weekUsed = interpolate(days, [0, 1, 2, 3, 4, 5, 6, 7], [0, ...WEEK], clamp)
+  const weekUsed = interpolate(days, [0, 1, 2, 3, 4, 5, 6, 7], [0, ...WEEK], CLAMP)
   // общий лимит: чат и Claude Code тратят одно и то же
-  const share = useAppear(b(4) + 8) * interpolate(frame, [b(5) - 6, b(5) + 4], [1, 0], clamp)
-  const pipes = interpolate(frame, [b(4) + 25, b(4) + 55], [0, 1], clamp)
+  const share = useAppear(b(4) + 8) * interpolate(frame, [b(5) - 6, b(5) + 4], [1, 0], CLAMP)
+  const pipes = interpolate(frame, [b(4) + 25, b(4) + 55], [0, 1], CLAMP)
   const term = b(4) + 75
   const cmd = typed('/usage', frame, term + 16, 14)
   const rows = useAppear(term + 40)
   // совет: две недели наблюдаем
   const tip = useAppear(b(5) + 6)
-  const ticks = Math.floor(interpolate(frame, [b(5) + 40, b(5) + 140], [0, 14], clamp))
+  const ticks = Math.floor(interpolate(frame, [b(5) + 40, b(5) + 140], [0, 14], CLAMP))
 
   // итог: остальное приглушается, поверх — чек-лист и самолёт на полосе
-  const rest = interpolate(frame, [b(6), b(6) + 15], [1, 0.1], clamp)
+  const rest = interpolate(frame, [b(6), b(6) + 15], [1, 0.1], CLAMP)
   const plane = useAppear(b(6) + 100)
 
   const weekX = (i: number) => W.x + (W.w * (i + 1)) / 7
@@ -98,7 +99,7 @@ export function S6Pay() {
           <Dumbbell x={SUB.x + SUB.w - 38} y={SUB.y + 34} color={theme.paper} />
         </g>
         <g opacity={monthly}>
-          <Tag x={SUB.x + 110} y={SUB.y + 104} text="раз в месяц" color={theme.accent} fill={theme.accentTint} size={20} />
+          <Pill x={SUB.x + 110} y={SUB.y + 104} text="раз в месяц" color={theme.accent} fill={theme.accentTint} size={20} compact />
         </g>
         <g opacity={pro}>
           <Label x={SUB.x + 24} y={SUB.y + 162} anchor="start" size={24} weight={700}>
@@ -205,7 +206,7 @@ export function S6Pay() {
           ].map((c) => (
             <g key={c.text}>
               <Arrow x1={c.x} y1={TP.y + 40} x2={c.x + (TP.x + 250 - c.x) * 0.4} y2={S6.limits.y + S6.limits.h + 6} color={theme.accent} draw={pipes} />
-              <Tag x={c.x} y={TP.y + 64} text={c.text} color={theme.accent} fill={theme.accentTint} size={22} />
+              <Pill x={c.x} y={TP.y + 64} text={c.text} color={theme.accent} fill={theme.accentTint} size={22} compact />
             </g>
           ))}
           <Label x={TP.x + 250} y={TP.y + 134} size={22} color={theme.accent} weight={700}>
@@ -289,7 +290,7 @@ export function S6Pay() {
       <g opacity={plane}>
         <Plane x={S6.plane.x} y={S6.plane.y} />
         <rect x={S6.plane.x - 100} y={S6.plane.y + 38} width={200} height={10} rx={3} fill={theme.ink} />
-        <Tag x={S6.plane.x} y={S6.plane.y + 90} text="посадка — за вами" color={theme.accent} fill={theme.accentTint} size={20} />
+        <Pill x={S6.plane.x} y={S6.plane.y + 90} text="посадка — за вами" color={theme.accent} fill={theme.accentTint} size={20} compact />
       </g>
     </KitScene>
   )

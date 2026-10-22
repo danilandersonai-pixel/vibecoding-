@@ -1,17 +1,16 @@
 import { interpolate, useCurrentFrame } from 'remotion'
 import { Client } from '../../actors/Client'
 import type { Mood, Pose } from '../../actors/Person'
-import { Mark } from '../../ch-abc/scenes/parts'
 import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { appear, CLAMP } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
+import { Mark, Pill } from '../../kit/props'
 import { stepAt, typed } from '../../kit/reveal'
 import { AgentChat, type ChatMessage } from '../../kit/screens/AgentChat'
 import { theme } from '../../theme'
 import { S3 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { appear, clamp } from './motion'
-import { Tag } from './parts'
 
 const ID = 's3-intent'
 const G = S3.gaps
@@ -43,7 +42,7 @@ export function S3Intent() {
   const head = useAppear(b(0) + 4)
   const gapIn = GAPS.map((_, i) => appear(frame, b(0) + 18 + i * 12))
   const filled = GAPS.map((_, i) => frame >= b(0) + 80 + i * 15)
-  const left = interpolate(frame, [b(2) - 10, b(2)], [1, 0], clamp)
+  const left = interpolate(frame, [b(2) - 10, b(2)], [1, 0], CLAMP)
   const unsafe = useAppear(b(1) + 105)
 
   // запрос с намерением
@@ -61,9 +60,9 @@ export function S3Intent() {
 
   // доска 2: четыре навыка по очереди и круг «проект растёт»
   const skillIn = [35, 70, 100, 130].map((d) => appear(frame, b(5) + d))
-  const loop = interpolate(frame, [b(5) + 145, b(5) + 175], [0, 1], clamp)
+  const loop = interpolate(frame, [b(5) + 145, b(5) + 175], [0, 1], CLAMP)
   const typing = useAppear(b(6) + 15)
-  const strike = interpolate(frame, [b(6) + 35, b(6) + 50], [0, 1], clamp)
+  const strike = interpolate(frame, [b(6) + 35, b(6) + 50], [0, 1], CLAMP)
   const think = useAppear(b(6) + 62)
   const train = useAppear(b(6) + 112)
   const you = stepAt<[Pose, Mood]>(frame, [
@@ -104,7 +103,7 @@ export function S3Intent() {
           )
         })}
         <g opacity={unsafe}>
-          <Tag x={G.x + 650} y={G.y + 48} text="а это безопасно?" color={theme.risk} fill={theme.riskTint} />
+          <Pill x={G.x + 650} y={G.y + 48} text="а это безопасно?" color={theme.risk} fill={theme.riskTint} size={18} compact />
         </g>
         {frame >= b(1) && <AgentChat x={S3.chat.x} y={S3.chat.y} w={S3.chat.w} at={b(1) + 4} messages={CHAT} />}
       </g>
@@ -134,10 +133,10 @@ export function S3Intent() {
           )
         })}
         <g opacity={minute}>
-          <Tag x={P.x + 150} y={P.y + P.h - 34} text="+1 минута на запрос" color={theme.accent} />
+          <Pill x={P.x + 150} y={P.y + P.h - 34} text="+1 минута на запрос" color={theme.accent} size={18} compact />
         </g>
         <g opacity={hour}>
-          <Tag x={P.x + 420} y={P.y + P.h - 34} text="−1 час переделок" color={theme.ok} fill={theme.okTint} />
+          <Pill x={P.x + 420} y={P.y + P.h - 34} text="−1 час переделок" color={theme.ok} fill={theme.okTint} size={18} compact />
         </g>
       </g>
 
@@ -173,15 +172,15 @@ export function S3Intent() {
       {/* печатать код не обязательно — нужно ясно думать */}
       {frame >= b(6) && <Client x={S3.you.x} y={S3.you.y} scale={0.7} color={theme.soft} label="Вы" enterAt={b(6)} pose={you[0]} mood={you[1]} />}
       <g opacity={typing}>
-        <Tag x={S3.you.x - 250} y={S3.you.y - 10} text="печатать код" color={theme.soft} size={20} />
+        <Pill x={S3.you.x - 250} y={S3.you.y - 10} text="печатать код" color={theme.soft} size={20} compact />
         <line x1={S3.you.x - 330} y1={S3.you.y - 10} x2={S3.you.x - 330 + 160 * strike} y2={S3.you.y - 10} stroke={theme.risk} strokeWidth={4} strokeLinecap="round" opacity={strike > 0 ? 1 : 0} />
       </g>
       <g opacity={think}>
-        <Tag x={S3.you.x + 240} y={S3.you.y - 10} text="ясно думать" color={theme.ok} fill={theme.okTint} size={20} />
+        <Pill x={S3.you.x + 240} y={S3.you.y - 10} text="ясно думать" color={theme.ok} fill={theme.okTint} size={20} compact />
         <Mark x={S3.you.x + 350} y={S3.you.y - 10} ok />
       </g>
       <g opacity={train}>
-        <Tag x={S3.you.x + 240} y={S3.you.y + 42} text="это тренируется" color={theme.accent} size={20} />
+        <Pill x={S3.you.x + 240} y={S3.you.y + 42} text="это тренируется" color={theme.accent} size={20} compact />
       </g>
     </KitScene>
   )

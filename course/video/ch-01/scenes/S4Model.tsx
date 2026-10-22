@@ -1,16 +1,16 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { Mood, Pose } from '../../actors/Person'
-import { Pill } from '../../ch-abc/scenes/parts'
 import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { appear, CLAMP } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
+import { Pill } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { BAR } from '../../kit/screens/layout'
 import { Window } from '../../kit/screens/Window'
 import { theme } from '../../theme'
 import { CARD_H, CARD_ROW, CARD_TOP, S4 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { appear, clamp } from './motion'
 import { You } from './parts'
 
 const ID = 's4-model'
@@ -79,7 +79,7 @@ export function S4Model() {
 
   // доска 1: инструменты → модель → бренды
   const toolIn = TOOLS.map((_, i) => appear(frame, b(0) + 5 + i * 10))
-  const wires = interpolate(frame, [b(0) + 60, b(0) + 90], [0, 1], clamp)
+  const wires = interpolate(frame, [b(0) + 60, b(0) + 90], [0, 1], CLAMP)
   const model = spring({ frame: frame - b(0) - 88, fps, config: { damping: 12 } })
   const inside = useAppear(b(0) + 120)
   const brandIn = BRANDS.map((_, i) => appear(frame, b(1) + 8 + i * 14))
@@ -144,7 +144,7 @@ export function S4Model() {
           модель
         </Label>
       </g>
-      <g opacity={inside * interpolate(frame, [b(1), b(1) + 10], [1, 0], clamp)}>
+      <g opacity={inside * interpolate(frame, [b(1), b(1) + 10], [1, 0], CLAMP)}>
         <Label x={M.x} y={M.y + 92} size={20} color={theme.soft} weight={600}>
           внутри у каждого
         </Label>
@@ -198,7 +198,7 @@ export function S4Model() {
             d={`M${L.x + L.w + 4} ${L.y + 108 + i * 82} C ${L.x + L.w + 30} ${L.y + 108 + i * 82}, ${K.x - 30} ${cardRowY(r.row) + CARD_ROW / 2}, ${K.x + 4} ${cardRowY(r.row) + CARD_ROW / 2}`}
             pathLength={1}
             strokeDasharray="1 1"
-            strokeDashoffset={1 - interpolate(frame, [links[r.row], links[r.row] + 15], [0, 1], clamp)}
+            strokeDashoffset={1 - interpolate(frame, [links[r.row], links[r.row] + 15], [0, 1], CLAMP)}
             fill="none"
             stroke={theme.accent}
             strokeWidth={3}

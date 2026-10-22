@@ -4,7 +4,7 @@ import { Person, type Mood, type Pose } from '../../actors/Person'
 import { theme } from '../../theme'
 
 // Детали сцен ролика «Вайб-кодинг: шкала, а не выключатель»: самолёт, штурвал, пилот,
-// «вы», облачко реплики, тег, кольцо лимита.
+// «вы», облачко реплики, кольцо лимита. Плашка-тег — Pill из kit/props.tsx.
 
 /** Самолёт сбоку, нос вправо; центр — середина фюзеляжа, angle — наклон носа в градусах. */
 export function Plane({ x, y, angle = 0, scale = 1 }: { x: number; y: number; angle?: number; scale?: number }) {
@@ -76,20 +76,6 @@ export function Bubble({ x, y, w, text, tx, color = theme.ink, fill = theme.pape
       <rect x={x} y={y} width={w} height={h} rx={h / 2} fill={fill} stroke={color} strokeWidth={2.5} />
       <rect x={tx - 8} y={y + h - 5} width={16} height={5} fill={fill} />
       <text x={x + w / 2} y={y + h / 2 + size * 0.36} textAnchor="middle" fill={theme.ink} style={{ font: `600 ${size}px ${theme.font}` }}>
-        {text}
-      </text>
-    </g>
-  )
-}
-
-/** Тег: плашка с текстом по центру (x, y); ширина — по тексту. */
-export function Tag({ x, y, text, color = theme.accent, fill = theme.paper, size = 18, mono = false }: { x: number; y: number; text: string; color?: string; fill?: string; size?: number; mono?: boolean }) {
-  const w = Math.round(text.length * size * (mono ? 0.62 : 0.56) + 28)
-  const h = size + 16
-  return (
-    <g>
-      <rect x={x - w / 2} y={y - h / 2} width={w} height={h} rx={h / 2} fill={fill} stroke={color} strokeWidth={2.5} />
-      <text x={x} y={y + size * 0.36} textAnchor="middle" fill={color} style={{ font: `700 ${size}px ${mono ? theme.mono : theme.font}` }}>
         {text}
       </text>
     </g>

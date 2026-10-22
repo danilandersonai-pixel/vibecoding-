@@ -2,13 +2,13 @@ import type { ReactNode } from 'react'
 import { Easing, interpolate, useCurrentFrame } from 'remotion'
 import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { appear, CLAMP } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
+import { Pill } from '../../kit/props'
 import { Checklist } from '../../kit/screens/Checklist'
 import { theme } from '../../theme'
 import { S5 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { appear, clamp } from './motion'
-import { Tag } from './parts'
 
 const ID = 's5-bench'
 const B = S5.board
@@ -57,16 +57,16 @@ export function S5Bench() {
 
   // таблица лидеров
   const board = useAppear(b(0) + 4)
-  const bars = LEADERS.map((_, i) => interpolate(frame, [b(0) + 26 + i * 10, b(0) + 56 + i * 10], [0, 1], clamp))
+  const bars = LEADERS.map((_, i) => interpolate(frame, [b(0) + 26 + i * 10, b(0) + 56 + i * 10], [0, 1], CLAMP))
   const doubt = useAppear(b(0) + 105)
-  const sat = interpolate(frame, [b(2) + 20, b(2) + 60], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) })
+  const sat = interpolate(frame, [b(2) + 20, b(2) + 60], [0, 1], { ...CLAMP, easing: Easing.inOut(Easing.cubic) })
   const noise = useAppear(b(2) + 70)
 
   // ловушки — по одной на реплику
   const trapIn = [1, 2, 3, 4, 5, 6].map((i) => appear(frame, b(i) + 4))
   const line2 = [1, 2, 3, 4, 5, 6].map((i) => appear(frame, b(i) + 40))
-  const knob = interpolate(frame, [b(4) + 50, b(4) + 95], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) })
-  const cost = [interpolate(frame, [b(6) + 30, b(6) + 70], [0, 1], clamp), interpolate(frame, [b(6) + 60, b(6) + 80], [0, 1], clamp)]
+  const knob = interpolate(frame, [b(4) + 50, b(4) + 95], [0, 1], { ...CLAMP, easing: Easing.inOut(Easing.cubic) })
+  const cost = [interpolate(frame, [b(6) + 30, b(6) + 70], [0, 1], CLAMP), interpolate(frame, [b(6) + 60, b(6) + 80], [0, 1], CLAMP)]
 
   // доска 2: пирамида доверия снизу вверх и мини-набор
   const levelIn = [appear(frame, b(7) + 95), appear(frame, b(7) + 52), appear(frame, b(7) + 12)]
@@ -107,11 +107,11 @@ export function S5Bench() {
             </g>
           )
         })}
-        <g opacity={doubt * interpolate(frame, [b(2) + 10, b(2) + 20], [1, 0], clamp)}>
-          <Tag x={B.x + B.w / 2} y={B.y + B.h - 34} text="как это читать?" color={theme.risk} fill={theme.riskTint} size={20} />
+        <g opacity={doubt * interpolate(frame, [b(2) + 10, b(2) + 20], [1, 0], CLAMP)}>
+          <Pill x={B.x + B.w / 2} y={B.y + B.h - 34} text="как это читать?" color={theme.risk} fill={theme.riskTint} size={20} compact />
         </g>
         <g opacity={noise}>
-          <Tag x={B.x + B.w / 2} y={B.y + B.h - 34} text="разница в пару пунктов — шум" color={theme.alt} fill={theme.altTint} size={18} />
+          <Pill x={B.x + B.w / 2} y={B.y + B.h - 34} text="разница в пару пунктов — шум" color={theme.alt} fill={theme.altTint} size={18} compact />
         </g>
       </g>
 
@@ -223,10 +223,10 @@ export function S5Bench() {
       </g>
       {frame >= b(8) && <Checklist x={MI.x} y={MI.y} w={MI.w} at={b(8) + 2} items={MINI} done={4} />}
       <g opacity={first}>
-        <Tag x={MI.x + 150} y={MI.y + 312} text="4 из 5 — с первой попытки" color={theme.ok} fill={theme.okTint} size={20} />
+        <Pill x={MI.x + 150} y={MI.y + 312} text="4 из 5 — с первой попытки" color={theme.ok} fill={theme.okTint} size={20} compact />
       </g>
       <g opacity={flagship}>
-        <Tag x={MI.x + 150} y={MI.y + 362} text="пятую — отдать флагману" color={theme.accent} fill={theme.accentTint} size={20} />
+        <Pill x={MI.x + 150} y={MI.y + 362} text="пятую — отдать флагману" color={theme.accent} fill={theme.accentTint} size={20} compact />
       </g>
     </KitScene>
   )

@@ -6,10 +6,10 @@ import type { Mood, Pose } from '../../actors/Person'
 import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { Arrow, Label } from '../../kit/parts'
+import { KeyGlyph } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { beat, sceneDuration, STAGING } from '../script'
-import { KeyGlyph } from './KeyGlyph'
 
 const ID = 's1-coaches'
 const MARINA = ['Анна', 'Света', 'Катя']

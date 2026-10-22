@@ -2,7 +2,9 @@ import { interpolate, useCurrentFrame } from 'remotion'
 import { Agent, type AgentPose } from '../../actors/Agent'
 import { useAppear, useTrack } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { CLAMP } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
+import { Pill } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { AgentChat, type ChatMessage } from '../../kit/screens/AgentChat'
 import { Checklist } from '../../kit/screens/Checklist'
@@ -10,8 +12,6 @@ import { Terminal, type TermLine } from '../../kit/screens/Terminal'
 import { theme } from '../../theme'
 import { S6 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { clamp } from './clamp'
-import { Pill } from './parts'
 
 const ID = 's6-ai'
 const PROMPT = 'Добавь Анне график жима'
@@ -56,26 +56,26 @@ export function S6Ai() {
   const X = S6.context
 
   const models = [b(0) + 50, b(0) + 62, b(0) + 74]
-  const modelCard = useAppear(b(0)) * interpolate(frame, [b(4) - 10, b(4)], [1, 0], clamp)
+  const modelCard = useAppear(b(0)) * interpolate(frame, [b(4) - 10, b(4)], [1, 0], CLAMP)
   const promptTag = useAppear(b(0) + 140)
   const context = useAppear(b(1))
   const chips = [b(1) + 20, b(1) + 30, b(1) + 40]
-  const notSeen = useAppear(b(1) + 80) * interpolate(frame, [b(3) + 30, b(3) + 40], [1, 0], clamp)
+  const notSeen = useAppear(b(1) + 80) * interpolate(frame, [b(3) + 30, b(3) + 40], [1, 0], CLAMP)
   // агент прочитал chart.ts — файл переезжает в контекст
   const chart = useTrack([
     [b(3) + 40, S6.outside.x, S6.outside.y],
     [b(3) + 65, X.x + 20, S6.chipsY[1]],
   ])
-  const tokens = useAppear(b(2)) * interpolate(frame, [b(4) - 10, b(4)], [1, 0], clamp)
-  const split = interpolate(frame, [b(2) + 35, b(2) + 55], [0, 1], clamp)
+  const tokens = useAppear(b(2)) * interpolate(frame, [b(4) - 10, b(4)], [1, 0], CLAMP)
+  const split = interpolate(frame, [b(2) + 35, b(2) + 55], [0, 1], CLAMP)
   const price = useAppear(b(2) + 70)
   const acts = ACTS.filter((a) => frame >= b(3) + a.at).map((a) => a.line)
   const fake = useAppear(b(4) + 10)
   const stamp = useAppear(b(4) + 75)
   const mcp = useAppear(b(5) + 5)
-  const cables = [b(5) + 20, b(5) + 35, b(5) + 50].map((at) => interpolate(frame, [at, at + 20], [0, 1], clamp))
+  const cables = [b(5) + 20, b(5) + 35, b(5) + 50].map((at) => interpolate(frame, [at, at + 20], [0, 1], CLAMP))
   // итог: остальное приглушается, поверх — чек-лист Азбуки
-  const rest = interpolate(frame, [b(6), b(6) + 15], [1, 0.1], clamp)
+  const rest = interpolate(frame, [b(6), b(6) + 15], [1, 0.1], CLAMP)
   const next = useAppear(b(6) + 90)
 
   // ждёт → отвечает → работает → уверенно «выдумывает» → подключён к инструментам → готово
@@ -102,7 +102,7 @@ export function S6Ai() {
               модель
             </Label>
             {['Claude', 'GPT', 'Gemini'].map((m, i) => (
-              <g key={m} opacity={interpolate(frame, [models[i], models[i] + 10], [0, 1], clamp)}>
+              <g key={m} opacity={interpolate(frame, [models[i], models[i] + 10], [0, 1], CLAMP)}>
                 <Pill x={S6.model.x + S6.model.w / 2} y={S6.model.y + 74 + i * 46} w={180} text={m} />
               </g>
             ))}
@@ -138,7 +138,7 @@ export function S6Ai() {
         {FILES.map((f, i) => {
           const x = X.x + 20 + FILES.slice(0, i).reduce((s, p) => s + p.w + 14, 0)
           return (
-            <g key={f.name} opacity={interpolate(frame, [chips[i], chips[i] + 10], [0, 1], clamp)}>
+            <g key={f.name} opacity={interpolate(frame, [chips[i], chips[i] + 10], [0, 1], CLAMP)}>
               <FileChip x={x} y={S6.chipsY[0]} w={f.w} name={f.name} mono={f.mono} />
             </g>
           )

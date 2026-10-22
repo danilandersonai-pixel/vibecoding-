@@ -3,7 +3,9 @@ import { Client } from '../../actors/Client'
 import type { Mood, Pose } from '../../actors/Person'
 import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { CLAMP } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
+import { Browser, Mark, Pill } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { AgentChat, type ChatMessage } from '../../kit/screens/AgentChat'
 import { Checklist } from '../../kit/screens/Checklist'
@@ -13,8 +15,7 @@ import { Terminal, type TermLine } from '../../kit/screens/Terminal'
 import { theme } from '../../theme'
 import { S5 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { clamp } from './clamp'
-import { Browser, Bug, KeyCap, Mark, Pill } from './parts'
+import { Bug, KeyCap } from './parts'
 
 const ID = 's5-works'
 
@@ -43,11 +44,11 @@ export function S5Works() {
   const C = S5.chat
 
   // «сеть»: три ловушки для ошибок
-  const net = useAppear(b(0)) * interpolate(frame, [b(2) - 10, b(2)], [1, 0], clamp)
+  const net = useAppear(b(0)) * interpolate(frame, [b(2) - 10, b(2)], [1, 0], CLAMP)
   const tests = TESTS.filter((t) => frame >= b(1) + t.at).map((t) => t.line)
   const caught = useAppear(b(1) + 90)
   // тесты уходят до наезда на браузер: край кадра резал бы терминал
-  const testsOut = interpolate(frame, [b(3) - 10, b(3) + 2], [1, 0], clamp)
+  const testsOut = interpolate(frame, [b(3) - 10, b(3) + 2], [1, 0], CLAMP)
 
   // сайт: нажатие — и ничего
   const tapAt = b(2) + 45
@@ -55,7 +56,7 @@ export function S5Works() {
   const nothing = useAppear(b(2) + 75)
   // панель разработчика
   const key = useAppear(b(3) + 5)
-  const panel = interpolate(frame, [b(3) + 10, b(3) + 30], [0, 1], clamp)
+  const panel = interpolate(frame, [b(3) + 10, b(3) + 30], [0, 1], CLAMP)
   const consoleTab = frame >= b(3) + 60
   const errors = [b(4) + 5, b(4) + 15]
   const copy = useAppear(b(4) + 70)
@@ -90,11 +91,11 @@ export function S5Works() {
           {NETS.map((n, i) => {
             const cx = S5.net.x + 90 + i * 170
             const at = b(0) + 40 + i * 20
-            const y = interpolate(frame, [at, at + 20], [S5.net.y + 70, S5.net.y + 140], clamp)
+            const y = interpolate(frame, [at, at + 20], [S5.net.y + 70, S5.net.y + 140], CLAMP)
             const landed = frame >= at + 20
             return (
               <g key={n}>
-                <g opacity={interpolate(frame, [at - 6, at], [0, 1], clamp)}>
+                <g opacity={interpolate(frame, [at - 6, at], [0, 1], CLAMP)}>
                   <Bug x={cx} y={y} scale={0.9} />
                 </g>
                 <path d={`M${cx - 50} ${S5.net.y + 120} Q ${cx} ${S5.net.y + 200}, ${cx + 50} ${S5.net.y + 120}`} fill="none" stroke={theme.ink} strokeWidth={4} strokeLinecap="round" />
@@ -154,7 +155,7 @@ export function S5Works() {
             )
           })}
           {ERROR.map((t, i) => (
-            <g key={t} opacity={interpolate(frame, [errors[i], errors[i] + 8], [0, 1], clamp)}>
+            <g key={t} opacity={interpolate(frame, [errors[i], errors[i] + 8], [0, 1], CLAMP)}>
               <rect x={10} y={S5.devTop + 56 + i * 36} width={Bw.w - 20} height={32} fill={theme.riskTint} />
               <Mono x={20} y={S5.devTop + 79 + i * 36} fill={theme.risk}>
                 {t}

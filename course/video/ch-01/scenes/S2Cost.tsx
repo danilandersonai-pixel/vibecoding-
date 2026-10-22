@@ -1,15 +1,14 @@
 import { Easing, interpolate, useCurrentFrame } from 'remotion'
 import { Agent, type AgentPose } from '../../actors/Agent'
-import { Browser, Mark } from '../../ch-abc/scenes/parts'
 import { useAppear } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { appear, CLAMP, trackAt } from '../../kit/motion'
 import { Arrow, Card, Label } from '../../kit/parts'
+import { Browser, Mark, Pill } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { MODE_POINTS, plotAt, RISK, S2 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { appear, clamp, trackAt } from './motion'
-import { Tag } from './parts'
 
 const ID = 's2-cost'
 const P = S2.plot
@@ -53,9 +52,9 @@ export function S2Cost() {
 
   // схема: оси рисуются, точки режимов появляются по одной
   const card = useAppear(b(0))
-  const axes = interpolate(frame, [b(0) + 10, b(0) + 40], [0, 1], clamp)
+  const axes = interpolate(frame, [b(0) + 10, b(0) + 40], [0, 1], CLAMP)
   const axisWords = useAppear(b(0) + 30)
-  const dots = MODE_POINTS.map((_, i) => interpolate(frame, [b(0) + 48 + i * 14, b(0) + 60 + i * 14], [0, 1], clamp))
+  const dots = MODE_POINTS.map((_, i) => interpolate(frame, [b(0) + 48 + i * 14, b(0) + 60 + i * 14], [0, 1], CLAMP))
   const r0 = plotAt(RISK.fx0, RISK.fy0)
   const r1 = plotAt(RISK.fx1, RISK.fy1)
   const zone = useAppear(b(1) + 8)
@@ -71,7 +70,7 @@ export function S2Cost() {
   const illusion = useAppear(b(2) + 125)
 
   // доска 2: шкала цены ошибки и корзины
-  const bar = interpolate(frame, [b(3) + 30, b(3) + 80], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) })
+  const bar = interpolate(frame, [b(3) + 30, b(3) + 80], [0, 1], { ...CLAMP, easing: Easing.inOut(Easing.cubic) })
   const barWords = useAppear(b(3) + 60)
   const control = useAppear(b(3) + 100)
   const bucketIn = [0, 1, 2].map((i) => appear(frame, b(3) + 84 + i * 10))
@@ -84,7 +83,7 @@ export function S2Cost() {
       ...t,
       at,
       landAt: at + 105,
-      shown: interpolate(frame, [at + 12, at + 24], [0, 1], clamp),
+      shown: interpolate(frame, [at + 12, at + 24], [0, 1], CLAMP),
       pos: trackAt(frame, [
         [at + 75, S2.inbox.x, S2.inbox.y],
         [at + 105, slot.x, slot.y],
@@ -171,13 +170,13 @@ export function S2Cost() {
             </Label>
           </g>
           <g opacity={works}>
-            <Tag x={400} y={152} text="✓ работает" color={theme.ok} fill={theme.okTint} size={22} />
+            <Pill x={400} y={152} text="✓ работает" color={theme.ok} fill={theme.okTint} size={22} compact />
           </g>
         </Browser>
       )}
       {ISSUES.map((t, i) => (
         <g key={t} opacity={issues[i]} transform={`translate(${(1 - issues[i]) * 20} 0)`}>
-          <Tag x={S2.demo.x + S2.demo.w / 2} y={S2.tagsY + i * 44} text={t} color={theme.risk} fill={theme.riskTint} />
+          <Pill x={S2.demo.x + S2.demo.w / 2} y={S2.tagsY + i * 44} text={t} color={theme.risk} fill={theme.riskTint} size={18} compact />
         </g>
       ))}
       <g opacity={illusion}>
@@ -225,7 +224,7 @@ export function S2Cost() {
               {k.who}
             </Label>
             <rect x={x + 20} y={S2.bucketY + 84} width={S2.bucketW - 40} height={CH} rx={12} fill="none" stroke={theme.grid} strokeWidth={2} strokeDasharray="8 6" />
-            <Tag x={x + S2.bucketW / 2} y={S2.bucketY + S2.bucketH - 30} text={k.cost} color={k.color} />
+            <Pill x={x + S2.bucketW / 2} y={S2.bucketY + S2.bucketH - 30} text={k.cost} color={k.color} size={18} compact />
             {on && <Mark x={x + S2.bucketW - 28} y={S2.bucketY + 30} ok />}
           </g>
         )

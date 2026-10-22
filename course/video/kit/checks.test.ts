@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { VideoScript } from '../types'
 import { buildScript } from './script'
-import { scriptProblems } from './checks'
+import { TRANSITION_FRAMES, type CameraKey } from './camera'
+import { scriptProblems, stagingProblems } from './checks'
 
 // Сценарий вручную: sceneCount сцен по sceneFrames кадров, в каждой одна спокойная реплика.
 function make(sceneCount: number, sceneFrames: number, hotspotCount: number): VideoScript {
@@ -123,5 +124,140 @@ describe('scriptProblems', () => {
     const s = make(3, 800, 1)
     s.hotspots[0] = { ...s.hotspots[0], x: 1180, y: 640, w: 100, h: 80 }
     expect(scriptProblems(s, 'day')).toEqual([])
+  })
+})
+
+// ---- stagingProblems ----
+
+const WHOLE = { x: 640, y: 360, zoom: 1 }
+const CLOSE = { x: 400, y: 300, zoom: 1.4 }
+const key = (at: number, shot: { x: number; y: number; zoom: number }): CameraKey => ({ at, ...shot })
+
+// Камера едет с кадра 20 по 50 и дальше стоит.
+const MOVES_EARLY: CameraKey[] = [key(0, WHOLE), key(20, WHOLE), key(50, CLOSE)]
+// Камера стоит до кадра 250 и в конце сцены едет.
+const MOVES_LATE: CameraKey[] = [key(0, WHOLE), key(250, WHOLE), key(280, CLOSE)]
+// Камера стоит почти всю сцену и трогается только в последние кадры.
+const MOVES_AT_END: CameraKey[] = [key(0, WHOLE), key(290, WHOLE), key(299, CLOSE)]
+
+type Staging = Record<string, { transition: 'fade' | 'slide' | 'zoom'; camera: CameraKey[] }>
+
+// Две сцены по 300 кадров, одна точка в сцене s1: окно в кадрах сцены, рамка в кадре.
+function staged(opts: { window?: [number, number]; rect?: { x: number; y: number; w: number; h: number }; camera?: CameraKey[]; hotspots?: boolean } = {}) {
+  const [from, to] = opts.window ?? [100, 220]
+  const script = make(2, 300, 0)
+  if (opts.hotspots !== false) script.hotspots = [{ from, to, ...(opts.rect ?? { x: 100, y: 100, w: 200, h: 80 }), title: 'Точка', text: 'Пояснение' }]
+  const staging: Staging = {
+    s1: { transition: 'fade', camera: opts.camera ?? MOVES_EARLY },
+    s2: { transition: 'slide', camera: MOVES_EARLY },
+  }
+  return { script, staging }
+}
+
+describe('stagingProblems', () => {
+  it('правильный пример — без замечаний', () => {
+    const { script, staging } = staged()
+    expect(stagingProblems(script, staging)).toEqual([])
+  })
+
+  it('окно точки на движении камеры — одна строка про камеру', () => {
+    const { script, staging } = staged({ window: [30, 150] })
+    const problems = stagingProblems(script, staging)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('Точка')
+    expect(problems[0]).toContain('Камера')
+  })
+
+  it('окно точки в появлении сцены — одна строка про переход', () => {
+    const { script, staging } = staged({ window: [5, 125], camera: MOVES_LATE })
+    const problems = stagingProblems(script, staging)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('Точка')
+    expect(problems[0]).toContain('переход')
+  })
+
+  it('окно точки в уходе сцены — одна строка про переход', () => {
+    const { script, staging } = staged({ window: [170, 295] })
+    const problems = stagingProblems(script, staging)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('переход')
+  })
+
+  it('окно ровно до границы перехода допустимо', () => {
+    const { script, staging } = staged({ window: [TRANSITION_FRAMES, 300 - TRANSITION_FRAMES], camera: MOVES_AT_END })
+    expect(stagingProblems(script, staging)).toEqual([])
+  })
+
+  it('окно точки через границу двух сцен — одна строка', () => {
+    const { script, staging } = staged({ window: [240, 360], camera: MOVES_EARLY })
+    const problems = stagingProblems(script, staging)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('одной сцены')
+  })
+
+  it('окно короче 90 кадров — строка; ровно 90 допустимо', () => {
+    const short = staged({ window: [100, 189] })
+    const problems = stagingProblems(short.script, short.staging)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('90')
+    const exact = staged({ window: [100, 190] })
+    expect(stagingProblems(exact.script, exact.staging)).toEqual([])
+  })
+
+  it('сцена без записи staging — строка с её именем', () => {
+    const { script, staging } = staged()
+    delete staging.s2
+    const problems = stagingProblems(script, staging)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('«s2»')
+  })
+
+  it('точка в сцене без записи staging не роняет проверку', () => {
+    const { script, staging } = staged()
+    delete staging.s1
+    const problems = stagingProblems(script, staging)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('«s1»')
+  })
+
+  it('камера, которая не двигается, — строка', () => {
+    const { script, staging } = staged()
+    staging.s2 = { transition: 'fade', camera: [key(0, WHOLE), key(100, WHOLE)] }
+    const problems = stagingProblems(script, staging)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('«s2»')
+    expect(problems[0]).toContain('не двигается')
+  })
+
+  it('ключи камеры не по порядку или за пределами сцены — строка', () => {
+    const unordered = staged()
+    unordered.staging.s2 = { transition: 'fade', camera: [key(0, WHOLE), key(80, CLOSE), key(40, WHOLE)] }
+    expect(stagingProblems(unordered.script, unordered.staging)).toHaveLength(1)
+    const outside = staged()
+    outside.staging.s2 = { transition: 'fade', camera: [key(0, WHOLE), key(400, CLOSE)] }
+    expect(stagingProblems(outside.script, outside.staging)).toHaveLength(1)
+  })
+
+  it('рамка точки ниже y = 565 — строка; ровно по 565 допустимо', () => {
+    const low = staged({ rect: { x: 100, y: 500, w: 200, h: 80 } })
+    const problems = stagingProblems(low.script, low.staging)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('565')
+    const edge = staged({ rect: { x: 100, y: 485, w: 200, h: 80 } })
+    expect(stagingProblems(edge.script, edge.staging)).toEqual([])
+  })
+
+  it('рамка точки за краем кадра — строка', () => {
+    for (const rect of [{ x: -5, y: 100, w: 200, h: 80 }, { x: 1200, y: 100, w: 200, h: 80 }, { x: 100, y: -1, w: 200, h: 80 }]) {
+      const { script, staging } = staged({ rect })
+      const problems = stagingProblems(script, staging)
+      expect(problems, JSON.stringify(rect)).toHaveLength(1)
+      expect(problems[0]).toContain('кадр')
+    }
+  })
+
+  it('без горячих точек проверяются только сцены и камера', () => {
+    const { script, staging } = staged({ hotspots: false })
+    expect(stagingProblems(script, staging)).toEqual([])
   })
 })

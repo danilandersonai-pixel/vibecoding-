@@ -8,11 +8,11 @@ import { Server } from '../../actors/Server'
 import { useAppear, useTrack } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
 import { Arrow, Card, Label } from '../../kit/parts'
+import { PhoneScreen } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { DB_ROWS, L, PHONE_FONT, PHONE_SCALE } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { PhoneScreen } from './PhoneScreen'
 
 const ID = 's3-attack'
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const

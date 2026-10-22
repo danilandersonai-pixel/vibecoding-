@@ -6,6 +6,10 @@ export const BAR = 40
 /** Высота строки кода в терминале, редакторе и изменениях. */
 export const LH = 32
 
+// Телефон крупнее натуральной величины: текст на экране 12 px × 1,5 = 18 px в кадре.
+export const PHONE_SCALE = 1.5
+export const PHONE_FONT = 12
+
 // ---- Терминал ----
 
 export type TermLine = { text: string; kind: 'cmd' | 'out' | 'ok' | 'err' }

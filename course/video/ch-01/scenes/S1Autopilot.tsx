@@ -1,16 +1,16 @@
 import { Easing, interpolate, useCurrentFrame } from 'remotion'
 import { Agent, type AgentPose } from '../../actors/Agent'
 import type { Mood, Pose } from '../../actors/Person'
-import { Cloud, Mark } from '../../ch-abc/scenes/parts'
 import { useAppear, useTrack } from '../../kit/hooks'
 import { KitScene } from '../../kit/KitScene'
+import { appear, CLAMP, trackAt } from '../../kit/motion'
 import { Card, Label } from '../../kit/parts'
+import { Cloud, Mark, Pill } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { theme } from '../../theme'
 import { S1 } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
-import { appear, clamp, trackAt } from './motion'
-import { Bubble, Pilot, Plane, Tag, Yoke } from './parts'
+import { Bubble, Pilot, Plane, Yoke } from './parts'
 
 const ID = 's1-autopilot'
 const N = S1.track.notches
@@ -70,16 +70,16 @@ export function S1Autopilot() {
   // без присмотра самолёт покачивается
   const drifting = frame >= b(3) + 70 && frame < b(4) + 20
   const wobble = drifting ? Math.sin(frame / 5) * 4 : 0
-  const planeIn = interpolate(frame, [0, 12], [0, 1], clamp)
+  const planeIn = interpolate(frame, [0, 12], [0, 1], CLAMP)
 
   // выключатель «вкл/выкл» зачёркнут — вместо него шкала
-  const toggle = useAppear(b(0) + 40) * interpolate(frame, [b(1) - 10, b(1) + 6], [1, 0], clamp)
-  const cross = interpolate(frame, [b(0) + 80, b(0) + 96], [0, 1], clamp)
+  const toggle = useAppear(b(0) + 40) * interpolate(frame, [b(1) - 10, b(1) + 6], [1, 0], CLAMP)
+  const cross = interpolate(frame, [b(0) + 80, b(0) + 96], [0, 1], CLAMP)
   const miniScale = useAppear(b(0) + 105)
-  const miniKnob = interpolate(frame, [b(0) + 115, b(0) + 150], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) })
+  const miniKnob = interpolate(frame, [b(0) + 115, b(0) + 150], [0, 1], { ...CLAMP, easing: Easing.inOut(Easing.cubic) })
 
   // шкала, пилот, автопилот — после отъезда камеры
-  const track = interpolate(frame, [b(1) + 6, b(1) + 36], [0, 1], clamp)
+  const track = interpolate(frame, [b(1) + 6, b(1) + 36], [0, 1], CLAMP)
   const notchAt = [b(1) + 40, b(2), b(3), b(5)]
   const knob = useTrack([
     [b(1) + 40, N[0], S1.track.y],
@@ -108,16 +108,16 @@ export function S1Autopilot() {
   const yokeAtAgent = frame >= b(3) + 52 && frame < b(6) + 10
 
   // подсказка: пунктир впереди → принят — сплошной
-  const hint = useAppear(b(1) + 50) * interpolate(frame, [b(2) - 5, b(2) + 5], [1, 0], clamp)
-  const accepted = interpolate(frame, [b(1) + 100, b(1) + 112], [0, 1], clamp)
+  const hint = useAppear(b(1) + 50) * interpolate(frame, [b(2) - 5, b(2) + 5], [1, 0], CLAMP)
+  const accepted = interpolate(frame, [b(1) + 100, b(1) + 112], [0, 1], CLAMP)
   // второй пилот: вопрос → ответ; туча
-  const storm = useAppear(b(2) + 5) * interpolate(frame, [b(3) + 20, b(3) + 40], [1, 0], clamp)
-  const ask = useAppear(b(2) + 25) * interpolate(frame, [b(3) - 6, b(3) + 4], [1, 0], clamp)
-  const answer = useAppear(b(2) + 70) * interpolate(frame, [b(3) - 6, b(3) + 4], [1, 0], clamp)
+  const storm = useAppear(b(2) + 5) * interpolate(frame, [b(3) + 20, b(3) + 40], [1, 0], CLAMP)
+  const ask = useAppear(b(2) + 25) * interpolate(frame, [b(3) - 6, b(3) + 4], [1, 0], CLAMP)
+  const answer = useAppear(b(2) + 70) * interpolate(frame, [b(3) - 6, b(3) + 4], [1, 0], CLAMP)
   // вайб-кодинг: пилот дремлет, самолёт уходит с курса
   const asleep = frame >= b(3) + 55 && frame < b(4) + 8
-  const offCourse = useAppear(b(3) + 120) * interpolate(frame, [b(4) + 20, b(4) + 30], [1, 0], clamp)
-  const trail = interpolate(frame, [b(4) + 50, b(4) + 70], [1, 0], clamp)
+  const offCourse = useAppear(b(3) + 120) * interpolate(frame, [b(4) + 20, b(4) + 30], [1, 0], CLAMP)
+  const trail = interpolate(frame, [b(4) + 50, b(4) + 70], [1, 0], CLAMP)
   const trailPts: string[] = []
   for (let f = b(3) + 70; f <= Math.min(frame, b(4) + 20); f += 4) {
     const q = trackAt(f, planeKeys)
@@ -126,8 +126,8 @@ export function S1Autopilot() {
   // разработка с ИИ: каждый манёвр проверен
   const checks = [b(4) + 78, b(4) + 142]
   // делегирование: пилот занят другим, потом проверяет итог
-  const pilotDim = interpolate(frame, [b(5) + 10, b(5) + 25, b(5) + 105, b(5) + 118], [1, 0.35, 0.35, 1], clamp)
-  const result = useAppear(b(5) + 108) * interpolate(frame, [b(6), b(6) + 10], [1, 0], clamp)
+  const pilotDim = interpolate(frame, [b(5) + 10, b(5) + 25, b(5) + 105, b(5) + 118], [1, 0.35, 0.35, 1], CLAMP)
+  const result = useAppear(b(5) + 108) * interpolate(frame, [b(6), b(6) + 10], [1, 0], CLAMP)
   // посадка
   const banner = useAppear(b(6) + 62)
 
@@ -214,7 +214,7 @@ export function S1Autopilot() {
         <line x1={215} y1={Y} x2={318} y2={Y} stroke={theme.accent} strokeWidth={5} strokeDasharray={accepted >= 1 ? undefined : '8 7'} strokeLinecap="round" />
         <path d={`M330 ${Y} l-16 -9 v18 Z`} fill={theme.accent} />
       </g>
-      <g opacity={interpolate(frame, [b(1) + 140, b(1) + 150], [0, 1], clamp) * hint}>
+      <g opacity={interpolate(frame, [b(1) + 140, b(1) + 150], [0, 1], CLAMP) * hint}>
         <Mark x={330} y={Y - 44} ok />
       </g>
 
@@ -227,15 +227,15 @@ export function S1Autopilot() {
       {/* след без присмотра и «курс?» */}
       {trailPts.length > 1 && <polyline points={trailPts.join(' ')} fill="none" stroke={theme.risk} strokeWidth={3} strokeDasharray="6 6" opacity={trail} />}
       <g opacity={offCourse}>
-        <Tag x={p.x} y={p.y - 52} text="курс?" color={theme.risk} size={20} />
+        <Pill x={p.x} y={p.y - 52} text="курс?" color={theme.risk} size={20} compact />
       </g>
       {checks.map((at, i) => (
-        <g key={at} opacity={appear(frame, at) * interpolate(frame, [b(5) + 10, b(5) + 20], [1, 0], clamp)}>
+        <g key={at} opacity={appear(frame, at) * interpolate(frame, [b(5) + 10, b(5) + 20], [1, 0], CLAMP)}>
           <Mark x={i === 0 ? 790 : 870} y={Y - 46} ok />
         </g>
       ))}
       <g opacity={result}>
-        <Tag x={1030} y={Y - 56} text="итог ✓" color={theme.ok} size={20} />
+        <Pill x={1030} y={Y - 56} text="итог ✓" color={theme.ok} size={20} compact />
       </g>
 
       <g opacity={planeIn}>
@@ -246,7 +246,7 @@ export function S1Autopilot() {
       <g opacity={track > 0 ? 1 : 0}>
         <line x1={N[0] - 40} y1={S1.track.y} x2={N[0] - 40 + (N[3] - N[0] + 80) * track} y2={S1.track.y} stroke={theme.line} strokeWidth={6} strokeLinecap="round" />
         {N.map((nx, i) => {
-          const on = interpolate(frame, [notchAt[i], notchAt[i] + 10], [0, 1], clamp)
+          const on = interpolate(frame, [notchAt[i], notchAt[i] + 10], [0, 1], CLAMP)
           const current = i === 0 ? frame < b(2) : i === 1 ? frame >= b(2) && frame < b(3) : i === 2 ? frame >= b(3) && frame < b(5) : frame >= b(5)
           const tone = (c: string) => (current ? c : theme.soft)
           return (
@@ -296,7 +296,7 @@ export function S1Autopilot() {
         })}
       {tag && (
         <g opacity={tagIn}>
-          <Tag x={S1.pilot.x + 10} y={322} text={tag.text} color={tag.color} />
+          <Pill x={S1.pilot.x + 10} y={322} text={tag.text} color={tag.color} size={18} compact />
         </g>
       )}
       <Agent x={S1.agent.x} y={S1.agent.y} scale={0.8} label="ИИ — автопилот" enterAt={b(1) + 16} pose={agent} />
