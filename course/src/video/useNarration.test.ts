@@ -12,7 +12,10 @@ it('голос читает реплику по таблице произнош�
   vi.stubGlobal(
     'SpeechSynthesisUtterance',
     class {
-      constructor(public text: string) {}
+      text: string
+      constructor(text: string) {
+        this.text = text
+      }
     },
   )
   const listeners: Record<string, (e: { detail: { frame: number } }) => void> = {}
