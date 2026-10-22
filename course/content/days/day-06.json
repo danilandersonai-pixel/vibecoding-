@@ -10,6 +10,11 @@
       "type": "video",
       "videoId": "ch-08",
       "title": "Безопасность и надёжность"
+    },
+    {
+      "type": "video",
+      "videoId": "ch-09",
+      "title": "Этика вайб-кодинга"
     }
   ]
 }
