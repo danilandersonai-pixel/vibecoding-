@@ -33,3 +33,19 @@ test('день 4 с роликом на телефоне (390 px) — без г�
   const fits = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
   expect(fits).toBe(true)
 })
+
+test('на дне 1 два ролика: запуск второго ставит первый на паузу', async ({ page }) => {
+  await page.goto('/#/day/1')
+  const play = page.getByRole('button', { name: 'Смотреть' })
+  await expect(play).toHaveCount(2)
+  const times = page.getByTestId('video-time')
+  await play.first().click()
+  await expect(times.first()).not.toHaveText(/^0:00/, { timeout: 5000 })
+  await page.getByRole('button', { name: 'Смотреть' }).click()
+  // первый плеер снова предлагает «Смотреть», второй — «Пауза»
+  await expect(page.getByRole('button', { name: 'Смотреть' })).toHaveCount(1)
+  await expect(page.getByRole('button', { name: 'Пауза' })).toHaveCount(1)
+  const firstAt = await times.first().textContent()
+  await page.waitForTimeout(1200)
+  await expect(times.first()).toHaveText(firstAt ?? '')
+})
