@@ -30,7 +30,7 @@ describe('реестр роликов', () => {
     expect(typeof mod.default).toBe('function')
   }, 20_000)
 
-  it('у пилота есть адрес MP4 в хранилище страницы', () => {
-    expect(videos['pilot-rls'].mp4Url).toBe('/_blob/08c8f08ad24664e9822024a19eda61ef')
+  it.each(Object.keys(catalog))('у %s есть адрес MP4 в хранилище страницы', (id) => {
+    expect(videos[id].mp4Url).toMatch(/^\/_blob\/[0-9a-f]{32}$/)
   })
 })
