@@ -41,7 +41,7 @@ export function S1Today() {
 
   // доска 2: последние 30% и план дня (места — после переезда камеры)
   const cardIn = appear(frame, b(1) + 22, 12)
-  const rowAt = LAST30.map((_, i) => b(1) + 34 + i * 10)
+  const rowAt = LAST30.map((_, i) => b(1) + 30 + i * 8)
   const hot = appear(frame, b(1) + 90, 12)
   const slots = appear(frame, b(1) + 30, 12)
   const stepAt2 = [b(2) + 10, b(2) + 58]
@@ -115,14 +115,14 @@ export function S1Today() {
             return (
               <g key={name} opacity={appear(frame, rowAt[i], 10)}>
                 <rect x={L.x + 16} y={y} width={L.w - 32} height={L.rowH} rx={10} fill={on > 0 ? theme.riskTint : theme.paper} stroke={on > 0 ? theme.risk : theme.grid} strokeWidth={on > 0 ? 3 : 2} />
-                <Label x={L.x + 36} y={y + 35} anchor="start" size={22} weight={700} color={on > 0 ? theme.ink : theme.soft}>
+                <Label x={L.x + 36} y={y + 29} anchor="start" size={22} weight={700} color={on > 0 ? theme.ink : theme.soft}>
                   {name}
                 </Label>
               </g>
             )
           })}
           <g opacity={hot}>
-            <Pill x={L.x + L.w - 118} y={L.y + L.head + L.rowH / 2} w={186} text="пропал интернет" color={theme.risk} fill={theme.white} size={20} compact />
+            <Pill x={L.x + L.w - 112} y={L.y + L.head + L.rowH / 2} w={176} text="пропал интернет" color={theme.risk} fill={theme.white} size={18} compact />
           </g>
         </Panel>
       </g>

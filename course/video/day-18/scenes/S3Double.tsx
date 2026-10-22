@@ -79,15 +79,15 @@ export function S3Double() {
   const editSent = appear(frame, b(10) + 50, 8)
   const planEdit = appear(frame, b(9) + 20, 12)
   const planSend = b(9) + 60
-  const oneIn = appear(frame, planSend + FLY, 10) * (1 - appear(frame, b(11) + 4, 10))
+  const oneIn = appear(frame, planSend + FLY, 10) * (1 - appear(frame, b(11) + 20, 10))
   const copy = b(10) + 24
   const overwrite = appear(frame, copy + 26, 12)
-  const lostEdit = appear(frame, b(10) + 100, 10) * (1 - appear(frame, b(11) + 4, 10))
+  const lostEdit = appear(frame, b(10) + 100, 10) * (1 - appear(frame, b(11) + 20, 10))
   const editWait = appear(frame, b(8) + 104, 8) * (1 - appear(frame, b(8) + 170, 10))
-  const splitPlan = appear(frame, b(11) + 14, 12)
-  const splitSets = appear(frame, b(11) + 40, 12)
-  const flag = appear(frame, b(11) + 80, 12)
-  const flagPhone = appear(frame, b(11) + 92, 12)
+  const splitPlan = appear(frame, b(11) + 30, 12)
+  const splitSets = appear(frame, b(11) + 54, 12)
+  const flag = appear(frame, b(11) + 92, 12)
+  const flagPhone = appear(frame, b(11) + 104, 12)
 
   const marina = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],

@@ -82,6 +82,7 @@ export function S2Build() {
   const marina = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
     [b(5) + 60, ['cheer', 'happy']],
+    [b(5) + 110, ['stand', 'happy']],
   ])
 
   const rowX = s.x + s.w - 70

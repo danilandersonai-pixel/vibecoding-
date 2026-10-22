@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { scriptProblems, stagingProblems } from '../kit/checks'
 import { sceneStart } from '../lib/timeline'
-import { differs, editSet, EDITED, fitsNote, fitsRow, kgText, NOTES, PLAN, PLAN_NEW, setText, SETS, storeBlind, storeOnce, TODAY, VOLUME, VOLUME_DOUBLE, VOLUME_EDITED, volumeOf } from './layout'
+import { differs, editSet, EDITED, fitsNote, fitsRow, kgText, LAST30, NOTES, PLAN, PLAN_NEW, setText, SETS, storeBlind, storeOnce, TODAY, VOLUME, VOLUME_DOUBLE, VOLUME_EDITED, volumeOf } from './layout'
 import { day18Script, STAGING } from './script'
 
 // Текст реплик сцены — для проверки, что нужные слова прозвучали.
@@ -113,6 +113,11 @@ describe('пример: подходы Анны, повтор и конфлик�
 
   it('числа на экране — из расчёта: 775, 1050 и 720 кг', () => {
     expect([VOLUME, VOLUME_DOUBLE, VOLUME_EDITED].map(kgText)).toEqual(['775 кг', '1050 кг', '720 кг'])
+  })
+
+  it('в карточке «Последние 30%» все семь областей из таблицы главы 3', () => {
+    expect(LAST30).toHaveLength(7)
+    expect(LAST30[0]).toBe('Обработка ошибок')
   })
 
   it('в «проверьте у себя» шесть дел — по порядку реплик', () => {
