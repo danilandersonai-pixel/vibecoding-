@@ -24,12 +24,14 @@ const AMP = S1.amp
 const sq = (c: number, r: number) => ({ x: B.x + c * B.cell + B.cell / 2, y: B.y + r * B.cell + B.cell / 2 })
 
 type P = { kind: PieceKind; dark: boolean; c: number; r: number }
+// позиция: ход белых. Пешка g6 не бьёт h6, поэтому ферзь встанет туда безопасно; пешка a6 — беззащитная
 const PIECES: P[] = [
   { kind: 'king', dark: true, c: 6, r: 0 },
   { kind: 'rook', dark: true, c: 5, r: 0 },
   { kind: 'queen', dark: true, c: 3, r: 0 },
   { kind: 'pawn', dark: true, c: 5, r: 1 },
-  { kind: 'pawn', dark: true, c: 6, r: 1 },
+  { kind: 'pawn', dark: true, c: 6, r: 2 },
+  { kind: 'pawn', dark: true, c: 0, r: 2 },
   { kind: 'pawn', dark: true, c: 7, r: 1 },
   { kind: 'bishop', dark: true, c: 2, r: 3 },
   { kind: 'pawn', dark: true, c: 4, r: 3 },
@@ -42,14 +44,16 @@ const PIECES: P[] = [
   { kind: 'rook', dark: false, c: 5, r: 7 },
   { kind: 'king', dark: false, c: 6, r: 7 },
 ]
-// белый ферзь — он пойдёт по плану
+// белый ферзь — он пойдёт по плану: Фd2–h6, путь e3–f4–g5 свободен, на h6 его ничто не бьёт
 const QUEEN = { from: sq(3, 6), to: sq(7, 2) }
 
-// подсказки компьютера: откуда, куда, оценка (длина полосы 0…1) и что это за ход
+// подсказки компьютера: откуда, куда, оценка (длина полосы 0…1) и что это за ход.
+// Ход 1 — Сc4:a6: пешка без защиты, но слон уходит с диагонали на короля — план ломается.
+// Ход 3 — h2–h3: тихий ход, ничего не отдаёт.
 const MOVES = [
-  { from: sq(2, 4), to: sq(5, 1), score: 0.95, text: 'выигрыш пешки' },
+  { from: sq(2, 4), to: sq(0, 2), score: 0.95, text: 'выигрыш пешки' },
   { from: QUEEN.from, to: QUEEN.to, score: 0.85, text: 'атака на короля' },
-  { from: sq(3, 5), to: sq(3, 4), score: 0.45, text: 'спокойный ход' },
+  { from: sq(7, 6), to: sq(7, 5), score: 0.45, text: 'спокойный ход' },
 ]
 const PLANS = ['план: атака на короля', 'план: беречь фигуры']
 // что остаётся за человеком

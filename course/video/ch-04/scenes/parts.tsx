@@ -3,7 +3,7 @@ import { Person, type Mood, type Pose } from '../../actors/Person'
 import { theme } from '../../theme'
 
 // Детали сцен ролика «Что остаётся человеку»: шахматная доска и фигуры, шахматист лицом влево,
-// плашка-реплика с указкой, таймер. Плашка и галочка — Pill и Mark из kit/props.tsx.
+// таймер. Плашка, галочка и реплика с указкой — Pill, Mark и Callout из kit/props.tsx.
 
 export type PieceKind = 'pawn' | 'rook' | 'bishop' | 'queen' | 'king'
 
