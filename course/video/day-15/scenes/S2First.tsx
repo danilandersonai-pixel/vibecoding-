@@ -26,7 +26,7 @@ const CHAT_H = chatHeight(CHAT, C.w)
 
 type Screen = 'register' | 'wait' | 'welcome' | 'invite'
 
-// Сцена 2 (что строим сегодня): Ира регистрируется; первый экран — приветствие и один шаг, а не все
+// Сцена 2 (что строим сегодня): Наташа регистрируется; первый экран — приветствие и один шаг, а не все
 // разделы разом (без подопечных они пусты); шаг ведёт в приглашение по ссылке. Полировка: скриншот
 // с пометками «кнопка бледная», «текст мелкий» → запрос «исправь отмеченное, остальное не трогай».
 export function S2First() {
@@ -74,7 +74,7 @@ export function S2First() {
   const after = appear(frame, b(6) + 96, 10)
   const checked = appear(frame, b(6) + 130, 12)
 
-  const ira = stepAt<[Pose, Mood]>(frame, [
+  const nat = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
     [signUp - 10, ['point', 'neutral']],
     [signUp + 22, ['think', 'neutral']],
@@ -91,8 +91,8 @@ export function S2First() {
 
   return (
     <KitScene chip="2 / 4 · Первое знакомство" duration={sceneDuration(ID)} {...STAGING[ID]}>
-      {/* Ира и её телефон */}
-      <Coach x={S2.ira.x} y={S2.ira.y} scale={0.8} label="Ира" color={theme.ink} enterAt={2} pose={ira[0]} mood={ira[1]} />
+      {/* Наташа и её телефон */}
+      <Coach x={S2.nat.x} y={S2.nat.y} scale={0.8} label="Наташа" color={theme.ink} enterAt={2} pose={nat[0]} mood={nat[1]} />
       <g opacity={appear(frame, 4, 12)}>
         <Handset x={S2.phone.x} y={S2.phone.y}>
           {screen === 'register' && <RegisterBody s={s} filled={filled} tapAt={signUp} />}

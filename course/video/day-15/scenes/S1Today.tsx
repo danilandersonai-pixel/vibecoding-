@@ -15,7 +15,7 @@ const ID = 's1-today'
 const P = S1.phone
 const PL = S1.plan
 
-// Сцена 1 (короткое вступление): Марина и Дима знают меню наизусть, Ира, новый тренер, видит его
+// Сцена 1 (короткое вступление): Марина и Дима знают меню наизусть, Наташа, новый тренер, видит его
 // впервые, и подсказать некому; план дня — первое знакомство, пустые экраны, полировка, доступность.
 export function S1Today() {
   const b = (i: number) => beat(ID, i)
@@ -27,7 +27,7 @@ export function S1Today() {
   const rowAt = SECTIONS.map((_, i) => b(0) + 24 + i * 8)
   const tickAt = SECTIONS.map((_, i) => b(0) + 70 + i * 14)
   const known = appear(frame, b(0) + 110, 10)
-  // Ира: галочки уходят, вместо них вопросы
+  // Наташа: галочки уходят, вместо них вопросы
   const ticksOut = 1 - appear(frame, b(1) + 30, 10)
   const askAt = SECTIONS.map((_, i) => b(1) + 44 + i * 8)
   const where = appear(frame, b(1) + 70, 10)
@@ -47,7 +47,7 @@ export function S1Today() {
     [b(0) + 90, ['cheer', 'happy']],
     [b(1), ['stand', 'happy']],
   ])
-  const ira = stepAt<[Pose, Mood]>(frame, [
+  const nat = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
     [b(1) + 40, ['think', 'worried']],
     [b(2) + 20, ['stand', 'neutral']],
@@ -90,13 +90,13 @@ export function S1Today() {
         </Handset>
       </g>
 
-      {/* Ира, новый тренер: видит меню впервые, подсказать некому */}
-      <Coach x={S1.ira.x} y={S1.ira.y} scale={0.8} label="Ира" color={theme.ink} enterAt={b(1) + 16} pose={ira[0]} mood={ira[1]} />
+      {/* Наташа, новый тренер: видит меню впервые, подсказать некому */}
+      <Coach x={S1.nat.x} y={S1.nat.y} scale={0.8} label="Наташа" color={theme.ink} enterAt={b(1) + 16} pose={nat[0]} mood={nat[1]} />
       <g opacity={where}>
-        <Callout x={1060} y={190} tx={S1.ira.x + 16} ty={S1.ira.y - 62} text="с чего начать?" color={theme.ink} />
+        <Callout x={1060} y={190} tx={S1.nat.x + 16} ty={S1.nat.y - 62} text="с чего начать?" color={theme.ink} />
       </g>
       <g opacity={alone}>
-        <Pill x={S1.ira.x} y={424} w={224} text="подсказать некому" color={theme.soft} size={20} compact />
+        <Pill x={S1.nat.x} y={424} w={224} text="подсказать некому" color={theme.soft} size={20} compact />
       </g>
 
       {/* план дня */}
@@ -106,7 +106,7 @@ export function S1Today() {
         return (
           <g key={t}>
             <g opacity={slots * (1 - appear(frame, cardAt[i], 10))}>
-              <Slot x={x} y={PL.y} w={PL.w} h={PL.h} />
+              <Slot x={x} y={PL.y} w={PL.w} h={PL.h} text={String(i + 1)} />
             </g>
             <g opacity={appear(frame, cardAt[i], 10)}>
               <Card x={x} y={PL.y} w={PL.w} h={PL.h} stroke={on > 0 ? theme.accent : theme.line} fill={theme.white}>

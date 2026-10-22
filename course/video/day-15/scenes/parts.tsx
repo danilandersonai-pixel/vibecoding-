@@ -4,7 +4,7 @@ import { Label } from '../../kit/parts'
 import { Slot } from '../../kit/props'
 import { typed } from '../../kit/reveal'
 import { theme } from '../../theme'
-import { EMPTY_Y, FIELDS, FOCUS, FORM, HAND, screenOf, TABS_H, WELCOME_Y, type EmptyState } from '../layout'
+import { EMPTY_Y, FIELDS, FOCUS, FORM, HAND, screenOf, TABS_H, WELCOME_Y, type EmptyState, type Field } from '../layout'
 
 // Детали сцен ролика дня 15 «Первое знакомство и полировка»: крупный телефон и экраны приложения
 // тренера (шапка, разделы, пустой экран, первый экран, приглашение, регистрация, список),
@@ -110,8 +110,8 @@ export function ScreenButton({ cx, y, w, h = 44, text, fill = theme.accent, colo
 
 /** Пустой экран: значок и «что здесь будет», «что сделать», кнопка; show — видимость трёх частей,
  * slots — пунктирные места частей, пока их нет; missing — места слов и кнопки пунктиром цвета риска
- * (на экране их нет совсем). */
-export function EmptyBody({ s, state, show = [1, 1, 1], slots = false, missing = [0, 0], tapAt, glow = 0 }: { s: Rect; state: EmptyState; show?: [number, number, number]; slots?: boolean; missing?: [number, number]; tapAt?: number; glow?: number }) {
+ * (на экране их нет совсем); tabTapAt — кадр нажатия на свой раздел внизу. */
+export function EmptyBody({ s, state, show = [1, 1, 1], slots = false, missing = [0, 0], tapAt, glow = 0, tabTapAt }: { s: Rect; state: EmptyState; show?: [number, number, number]; slots?: boolean; missing?: [number, number]; tapAt?: number; glow?: number; tabTapAt?: number }) {
   const cx = s.x + s.w / 2
   const bw = s.w - 48
   const tab = SCREEN_TAB[state.screen] ?? 'home'
@@ -161,14 +161,14 @@ export function EmptyBody({ s, state, show = [1, 1, 1], slots = false, missing =
           <ScreenButton cx={cx} y={s.y + EMPTY_Y.button} w={bw} h={EMPTY_Y.buttonH} text={state.button} tapAt={tapAt} />
         </g>
       )}
-      <TabBar s={s} active={tab} />
+      <TabBar s={s} active={tab} tap={tab} tapAt={tabTapAt} />
     </g>
   )
 }
 
 /** Первый экран после регистрации: приветствие, пояснение и одна кнопка. polish — 0: кнопка бледная,
  * текст мелкий; 1: после правки. glow — рамка вокруг кнопки; name — имя в приветствии ('' — без имени). */
-export function WelcomeBody({ s, polish = 0, glow = 0, tapAt, name = 'Ира' }: { s: Rect; polish?: number; glow?: number; tapAt?: number; name?: string }) {
+export function WelcomeBody({ s, polish = 0, glow = 0, tapAt, name = 'Наташа' }: { s: Rect; polish?: number; glow?: number; tapAt?: number; name?: string }) {
   const cx = s.x + s.w / 2
   const bw = s.w - 32
   const small = polish < 0.5
@@ -176,7 +176,7 @@ export function WelcomeBody({ s, polish = 0, glow = 0, tapAt, name = 'Ира' }:
     <g>
       <ScreenHead s={s} title="Главная" />
       <Label x={s.x + 18} y={s.y + WELCOME_Y.hello} anchor="start" size={22} weight={800}>
-        {name === '' ? 'Здравствуйте!' : `Здравствуйте, ${name}!`}
+        {name === '' ? 'Привет!' : `Привет, ${name}!`}
       </Label>
       {['Здесь вы ведёте', 'подопечных.'].map((l, i) => (
         <Label key={l} x={s.x + 18} y={s.y + WELCOME_Y.about + i * 24} anchor="start" size={20} color={theme.soft} weight={600}>
@@ -193,7 +193,7 @@ export function WelcomeBody({ s, polish = 0, glow = 0, tapAt, name = 'Ира' }:
   )
 }
 
-/** Экран приглашения (из дня 12): ссылка печатается с кадра at. */
+/** Экран приглашения (как в дне 12, но своя одноразовая ссылка Наташи): ссылка печатается с кадра at. */
 export function InviteBody({ s, at }: { s: Rect; at: number }) {
   const frame = useCurrentFrame()
   const cx = s.x + s.w / 2
@@ -205,7 +205,7 @@ export function InviteBody({ s, at }: { s: Rect; at: number }) {
       </Label>
       <rect x={s.x + 16} y={s.y + 104} width={s.w - 32} height={42} rx={8} fill={theme.accentTint} stroke={theme.accent} strokeWidth={2.5} />
       <text x={s.x + 28} y={s.y + 131} fill={theme.ink} style={{ font: `500 18px ${theme.mono}`, whiteSpace: 'pre', fontVariantLigatures: 'none' }}>
-        {typed('join/k7Qx9fLm2aT4', frame, at, 40)}
+        {typed('join/R4mw8zTq6bHe', frame, at, 40)}
       </text>
       <Label x={s.x + 18} y={s.y + 176} anchor="start" size={18} color={theme.soft} weight={600}>
         одноразовая, 48 часов
@@ -216,15 +216,15 @@ export function InviteBody({ s, at }: { s: Rect; at: number }) {
   )
 }
 
-/** Регистрация: три поля и кнопка; values — сколько полей уже заполнено, focus — номер элемента в фокусе
- * (0–2 поля, 3 кнопка), tapAt — нажатие на кнопку. */
-export function RegisterBody({ s, filled = 3, focus = -1, focusOn = 1, tapAt }: { s: Rect; filled?: number; focus?: number; focusOn?: number; tapAt?: number }) {
+/** Регистрация: три поля и кнопка; fields — подписи и значения, filled — сколько полей уже заполнено,
+ * focus — номер элемента в фокусе (0–2 поля, 3 кнопка), tapAt — нажатие на кнопку. */
+export function RegisterBody({ s, fields = FIELDS, filled = 3, focus = -1, focusOn = 1, tapAt }: { s: Rect; fields?: Field[]; filled?: number; focus?: number; focusOn?: number; tapAt?: number }) {
   const cx = s.x + s.w / 2
   const f = focus >= 0 ? FOCUS[focus] : null
   return (
     <g>
       <ScreenHead s={s} title="Регистрация" />
-      {FIELDS.map((fl, i) => (
+      {fields.map((fl, i) => (
         <g key={fl.label}>
           <Label x={s.x + 18} y={s.y + FORM.label + i * FORM.step} anchor="start" size={18} color={theme.soft} weight={600}>
             {fl.label}

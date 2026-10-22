@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { scriptProblems, stagingProblems } from '../kit/checks'
 import { sceneStart } from '../lib/timeline'
-import { BLANK, EMPTY_STATES, fitsScreen, HAND, TODAY } from './layout'
+import { BLANK, CLIENT, EMPTY_STATES, fitsScreen, HAND, LAST30, NEW_COACH_EMPTY, TODAY } from './layout'
 import { day15Script, STAGING } from './script'
 
 // Текст реплик сцены — для проверки, что нужные слова прозвучали.
@@ -27,7 +27,7 @@ describe('сценарий ролика дня 15 «Первое знакомс�
 
   it('вступление короткое: старые тренеры и новый, план дня — без подробностей следующих сцен', () => {
     const text = sceneText('s1-today')
-    for (const word of ['марина и дима', 'ира, новый тренер', 'впервые', 'первое знакомство', 'пустые экраны', 'полировка', 'доступности']) expect(text, word).toContain(word)
+    for (const word of ['марина и дима', 'наташа, новый тренер', 'впервые', 'первое знакомство', 'пустые экраны', 'полировка', 'доступности']) expect(text, word).toContain(word)
     for (const word of ['белый лист', 'клавиатур', 'скриншот', 'пригласить']) expect(text, word).not.toContain(word)
     expect(day15Script.cues.filter((c) => c.from < day15Script.scenes[0].durationInFrames).length).toBeLessThanOrEqual(3)
   })
@@ -37,9 +37,9 @@ describe('сценарий ролика дня 15 «Первое знакомс�
     for (const word of ['зарегистрировалась', 'первым', 'не все разделы', 'один ясный первый шаг', 'пригласить подопечного', 'приглашение по ссылке', 'полировка', 'снимите экран', '«кнопка бледная»', 'остальное не трогай']) expect(text, word).toContain(word)
   })
 
-  it('подводный камень: пустой экран без подсказки — Ира уходит; исправленный экран говорит, что делать, и даёт кнопку', () => {
+  it('подводный камень: пустой экран без подсказки — Наташа уходит; исправленный экран говорит, что делать, и даёт кнопку', () => {
     const text = sceneText('s3-empty')
-    for (const word of ['подводный камень', 'пустой экран без подсказки', 'анна', 'олег', 'белый лист', 'ни кнопки', 'закрывает приложение', 'последних 30%', 'что здесь будет', 'что сделать', 'кнопку', '«назначить»', '«пригласить первого»']) expect(text, word).toContain(word)
+    for (const word of ['подводный камень', 'пустой экран без подсказки', 'анна', 'олег', 'рома', 'белый лист', 'ни кнопки', 'закрывает приложение', 'последних 30%', 'что здесь будет', 'что сделать', 'кнопку', '«назначить»', 'без подопечных', '«пригласить первого»', 'для ромы']) expect(text, word).toContain(word)
   })
 
   it('проверьте у себя: путь нового тренера, пустые списки, клавиатура, контраст, подписи, показ новому человеку', () => {
@@ -65,15 +65,31 @@ describe('сценарий ролика дня 15 «Первое знакомс�
 })
 
 describe('экраны примера', () => {
-  it('у каждого исправленного пустого экрана три части: что здесь появится, что сделать и кнопка', () => {
-    expect(EMPTY_STATES.map((e) => e.screen)).toEqual(['Тренировки', 'Подопечные'])
-    for (const e of EMPTY_STATES) {
+  it('у каждого исправленного пустого экрана три части: что здесь будет, что сделать и кнопка', () => {
+    expect(EMPTY_STATES.map((e) => e.screen)).toEqual(['Тренировки', 'Тренировки'])
+    for (const e of [...EMPTY_STATES, ...NEW_COACH_EMPTY]) {
       expect(e.what.length, e.screen).toBeGreaterThan(0)
       expect(e.todo.length, e.screen).toBeGreaterThan(0)
       expect(e.button.length, e.screen).toBeGreaterThan(0)
     }
-    // кнопки — те, что звучат в реплике
+    // кнопки — те, что звучат в реплике: с подопечным — «Назначить», без подопечных — «Пригласить первого»
     expect(EMPTY_STATES.map((e) => e.button)).toEqual(['Назначить', 'Пригласить первого'])
+  })
+
+  it('у нового тренера без подопечных каждый пустой список ведёт к приглашению — в порядке реплики', () => {
+    expect(NEW_COACH_EMPTY.map((e) => e.screen)).toEqual(['Подопечные', 'Тренировки', 'Рекорды'])
+    for (const e of NEW_COACH_EMPTY) expect(e.button, e.screen).toBe('Пригласить первого')
+  })
+
+  it('«Назначить» — только когда подопечный уже есть: он пришёл по ссылке и звучит в реплике', () => {
+    expect(CLIENT).toBe('Рома')
+    const text = day15Script.cues.map((c) => c.text).join(' ')
+    expect(text).toContain('первый подопечный, Рома')
+  })
+
+  it('последние 30% — все семь областей таблицы главы 3, среди них необычные случаи', () => {
+    expect(LAST30).toHaveLength(7)
+    expect(LAST30).toContain('необычные случаи:')
   })
 
   it('пустой экран из подводного камня — без слов и без кнопки', () => {
@@ -84,7 +100,7 @@ describe('экраны примера', () => {
   })
 
   it('надписи экранов помещаются в ширину телефона', () => {
-    for (const e of EMPTY_STATES) {
+    for (const e of [...EMPTY_STATES, ...NEW_COACH_EMPTY]) {
       for (const line of [...e.what, ...e.todo]) expect(fitsScreen(line, 20), line).toBe(true)
       expect(fitsScreen(e.button, 20, 40), e.button).toBe(true)
     }

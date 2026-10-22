@@ -7,16 +7,18 @@ import { Arrow, Card, Label } from '../../kit/parts'
 import { Callout, Mark, Pill, Slot } from '../../kit/props'
 import { stepAt } from '../../kit/reveal'
 import { theme } from '../../theme'
-import { BLANK, DIMA_ROWS, EMPTY_STATES, EMPTY_Y, HAND, LAST30, MARINA_ROWS, PARTS, S3, screenOf } from '../layout'
+import { BLANK, CLIENT, DIMA_ROWS, EMPTY_STATES, EMPTY_Y, HAND, LAST30, LAST30_H, MARINA_ROWS, PARTS, S3, screenOf } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 import { EmptyBody, Handset, ListBody, ScreenButton, ScreenHead, TabBar } from './parts'
 
 const ID = 's3-empty'
 const L = S3.last
 
-// Сцена 3 (подводный камень): экраны проверяли со списками Марины и Димы, а Ира видит белый лист
-// без слов и кнопки и закрывает приложение; пустые списки ИИ часто упускает (последние 30%).
-// Исправление примера: у пустого экрана три части — что здесь будет, что сделать и кнопка.
+// Сцена 3 (подводный камень): экраны проверяли со списками Марины и Димы; к Наташе по ссылке пришёл
+// первый подопечный, Рома, а в «Тренировках» — белый лист без слов и кнопки, и она закрывает приложение;
+// пустые списки ИИ часто упускает (последние 30%, все семь областей таблицы главы 3). Исправление
+// примера: у пустого экрана три части — что здесь будет, что сделать и кнопка; с подопечным кнопка
+// «Назначить», без подопечных — «Пригласить первого».
 export function S3Empty() {
   const b = (i: number) => beat(ID, i)
   const frame = useCurrentFrame()
@@ -30,41 +32,47 @@ export function S3Empty() {
   const blank = appear(frame, 4, 12)
   const tagsOut = 1 - appear(frame, b(2) - 10, 10)
   // экраны со списками Марины и Димы: места в крупном плане, сами экраны — после отъезда камеры
-  const lists = 1 - appear(frame, b(4) - 10, 12)
+  const lists = 1 - appear(frame, b(5) - 10, 12)
   const slotOut = appear(frame, b(1) + 24, 10)
   const phoneIn = [appear(frame, b(1) + 26, 10), appear(frame, b(1) + 40, 10)]
   const rows = [stepAt(frame, [[0, 0], [b(1) + 44, 1], [b(1) + 56, 2]]), stepAt(frame, [[0, 0], [b(1) + 60, 1], [b(1) + 72, 2]])]
   const okAt = [b(1) + 100, b(1) + 116]
-  // Ира открывает «Тренировки»: ни слов, ни кнопки; вопросы; уходит
-  const noWords = appear(frame, b(2) + 60, 10)
-  const noButton = appear(frame, b(2) + 84, 10)
-  const ask1 = appear(frame, b(3) + 8, 8) * (1 - appear(frame, b(3) + 46, 6))
-  const ask2 = appear(frame, b(3) + 50, 8)
-  const leave = appear(frame, b(3) + 92, 26)
-  const dark = appear(frame, b(3) + 106, 12)
-  // последние 30%
-  const last = appear(frame, b(4) + 6, 12)
-  const rowAt = LAST30.map((_, i) => b(4) + 16 + i * 10)
-  const listsTag = appear(frame, b(4) + 40, 10)
+  // к Наташе пришёл Рома; она открывает «Тренировки»: ни слов, ни кнопки; вопросы; уходит
+  const client = appear(frame, b(2) + 34, 10) * (1 - appear(frame, b(4) - 6, 8))
+  const tabTap = b(2) + 96
+  const noWords = appear(frame, b(3) + 8, 10)
+  const noButton = appear(frame, b(3) + 34, 10)
+  const ask1 = appear(frame, b(4) + 8, 8) * (1 - appear(frame, b(4) + 46, 6))
+  const ask2 = appear(frame, b(4) + 50, 8)
+  const leave = appear(frame, b(4) + 92, 26)
+  const dark = appear(frame, b(4) + 106, 12)
+  // последние 30%: все семь областей
+  const last = appear(frame, b(5) + 6, 12)
+  const rowAt = LAST30.map((_, i) => b(5) + 16 + i * 8)
+  const listsTag = appear(frame, b(5) + 34, 10)
 
-  // доска 2: исправленные пустые экраны
-  const slots = appear(frame, b(5) + 16, 12)
-  const partAt = [b(5) + 44, b(5) + 92, b(5) + 140]
+  // доска 2: экран тренировок с подопечным и без
+  const slots = appear(frame, b(6) + 16, 12)
+  const partAt = [b(6) + 44, b(6) + 92, b(6) + 140]
   const partsA: [number, number, number] = [appear(frame, partAt[0], 10), appear(frame, partAt[1], 10), appear(frame, partAt[2], 10)]
-  const partsB: [number, number, number] = [appear(frame, b(6) + 50, 10), appear(frame, b(6) + 62, 10), appear(frame, b(6) + 74, 10)]
-  const glow = appear(frame, b(6) + 30, 12)
-  const tap = b(7) + 44
+  const partsB: [number, number, number] = [appear(frame, b(7) + 50, 10), appear(frame, b(7) + 62, 10), appear(frame, b(7) + 74, 10)]
+  const hasClient = appear(frame, b(6) + 30, 10)
+  const noClients = appear(frame, b(7) + 40, 10)
+  const glow = appear(frame, b(7) + 30, 12)
+  const tap = b(8) + 44
   const next = frame >= tap + 14
   const labelsOut = 1 - appear(frame, tap + 6, 10)
   const nextOk = appear(frame, tap + 50, 10)
 
-  const ira = stepAt<[Pose, Mood]>(frame, [
+  const nat = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
-    [b(2) + 40, ['think', 'worried']],
-    [b(3), ['surprised', 'worried']],
-    [b(3) + 50, ['think', 'worried']],
+    [b(2) + 40, ['cheer', 'happy']],
+    [tabTap - 10, ['point', 'neutral']],
+    [b(3), ['think', 'worried']],
+    [b(4), ['surprised', 'worried']],
+    [b(4) + 50, ['think', 'worried']],
   ])
-  const ira2 = stepAt<[Pose, Mood]>(frame, [
+  const nat2 = stepAt<[Pose, Mood]>(frame, [
     [0, ['stand', 'neutral']],
     [tap - 14, ['point', 'happy']],
     [tap + 30, ['cheer', 'happy']],
@@ -72,6 +80,8 @@ export function S3Empty() {
 
   // три подписи частей пустого экрана — на высоте своих частей
   const partY = [sa.y + EMPTY_Y.what + 6, sa.y + EMPTY_Y.todo + 6, sa.y + EMPTY_Y.button + EMPTY_Y.buttonH / 2]
+  // подписи «есть подопечный / нет подопечных» — между телефонами, со стрелками к своим экранам
+  const midX = (S3.phoneA.x + HAND.w + S3.phoneB.x) / 2
 
   return (
     <KitScene chip="3 / 4 · Подводный камень: пустой экран" duration={sceneDuration(ID)} {...STAGING[ID]}>
@@ -95,9 +105,9 @@ export function S3Empty() {
         ))}
       </g>
 
-      {/* последние 30%: пустые списки — среди необычных случаев */}
+      {/* последние 30%: все семь областей таблицы; пустые списки — среди необычных случаев */}
       <g opacity={last}>
-        <Card x={L.x} y={L.y} w={L.w} h={L.h} stroke={theme.risk} fill={theme.white}>
+        <Card x={L.x} y={L.y} w={L.w} h={LAST30_H} stroke={theme.risk} fill={theme.white}>
           <Label x={L.x + 26} y={L.y + 44} anchor="start" size={24} weight={800}>
             Последние 30%
           </Label>
@@ -108,7 +118,7 @@ export function S3Empty() {
         </Card>
       </g>
       {LAST30.map((t, i) => {
-        const y = L.y + 140 + i * 54
+        const y = L.y + L.head + i * L.row
         const hit = i === 1
         return (
           <g key={t} opacity={appear(frame, rowAt[i], 8) * last}>
@@ -125,16 +135,16 @@ export function S3Empty() {
         )
       })}
 
-      {/* телефон Иры: белый лист */}
+      {/* телефон Наташи: белый лист */}
       <g opacity={tagsOut * appear(frame, b(0) + 20, 10)}>
-        <Pill x={S3.ira.x} y={250} text="пустой экран" color={theme.risk} fill={theme.riskTint} size={20} compact />
+        <Pill x={S3.nat.x} y={250} text="пустой экран" color={theme.risk} fill={theme.riskTint} size={20} compact />
       </g>
       <g opacity={tagsOut * appear(frame, b(0) + 40, 10)}>
-        <Pill x={S3.ira.x} y={300} w={190} text="без подсказки" color={theme.risk} fill={theme.riskTint} size={20} compact />
+        <Pill x={S3.nat.x} y={300} w={190} text="без подсказки" color={theme.risk} fill={theme.riskTint} size={20} compact />
       </g>
       <g opacity={blank}>
         <Handset x={S3.phone.x} y={S3.phone.y} dark={dark}>
-          <EmptyBody s={si} state={BLANK} missing={[noWords * (1 - dark), noButton * (1 - dark)]} />
+          <EmptyBody s={si} state={BLANK} missing={[noWords * (1 - dark), noButton * (1 - dark)]} tabTapAt={tabTap} />
         </Handset>
       </g>
       <g opacity={dark}>
@@ -143,18 +153,21 @@ export function S3Empty() {
         </Label>
       </g>
 
-      {/* Ира: не понимает и уходит */}
+      {/* Наташа: пришёл первый подопечный; белый лист — не понимает и уходит */}
       <g opacity={1 - leave} transform={`translate(${-leave * 60} 0)`}>
-        <Coach x={S3.ira.x} y={S3.ira.y} scale={0.8} label="Ира" color={theme.ink} enterAt={b(2) + 4} pose={ira[0]} mood={ira[1]} />
+        <Coach x={S3.nat.x} y={S3.nat.y} scale={0.8} label="Наташа" color={theme.ink} enterAt={b(2) + 4} pose={nat[0]} mood={nat[1]} />
         <g opacity={ask1}>
-          <Callout x={S3.ira.x} y={200} tx={S3.ira.x + 12} ty={S3.ira.y - 62} text="сломалось?" color={theme.ink} />
+          <Callout x={S3.nat.x} y={200} tx={S3.nat.x + 12} ty={S3.nat.y - 62} text="сломалось?" color={theme.ink} />
         </g>
         <g opacity={ask2}>
-          <Callout x={S3.ira.x} y={200} tx={S3.ira.x + 12} ty={S3.ira.y - 62} text="так и задумано?" color={theme.ink} />
+          <Callout x={S3.nat.x} y={200} tx={S3.nat.x + 12} ty={S3.nat.y - 62} text="так и задумано?" color={theme.ink} />
         </g>
       </g>
+      <g opacity={client}>
+        <Pill x={S3.nat.x - 15} y={200} w={276} text={`новый подопечный: ${CLIENT}`} color={theme.ok} fill={theme.okTint} size={20} compact />
+      </g>
 
-      {/* доска 2: пустой экран с подсказкой — три части */}
+      {/* доска 2: экран тренировок с подопечным — три части */}
       <Handset x={S3.phoneA.x} y={S3.phoneA.y}>
         {next ? (
           <g>
@@ -167,6 +180,9 @@ export function S3Empty() {
                 <rect x={sa.x + 16} y={sa.y + 92 + i * 76} width={sa.w - 32} height={40} rx={8} fill={theme.paper} stroke={theme.line} strokeWidth={2} />
               </g>
             ))}
+            <Label x={sa.x + 30} y={sa.y + 119} anchor="start" size={20} weight={600}>
+              {CLIENT}
+            </Label>
             <ScreenButton cx={sa.x + sa.w / 2} y={sa.y + EMPTY_Y.button} w={sa.w - 48} text="Сохранить" />
             <TabBar s={sa} active="workouts" />
           </g>
@@ -178,7 +194,15 @@ export function S3Empty() {
       </Handset>
       <g opacity={nextOk}>
         <Mark x={S3.phoneA.x + HAND.w - 6} y={S3.phoneA.y + 6} ok r={18} />
-        <Pill x={(S3.phoneA.x + HAND.w + S3.phoneB.x) / 2} y={S3.phoneA.y + HAND.h / 2} w={196} text="следующий шаг" color={theme.ok} fill={theme.okTint} size={20} compact />
+        <Pill x={midX} y={S3.phoneA.y + HAND.h / 2} w={196} text="следующий шаг" color={theme.ok} fill={theme.okTint} size={20} compact />
+      </g>
+      <g opacity={hasClient}>
+        <Arrow x1={midX - 104} y1={150} x2={S3.phoneA.x + HAND.w + 6} y2={150} color={theme.ok} />
+        <Pill x={midX} y={150} w={204} text="подопечный есть" color={theme.ok} fill={theme.okTint} size={20} compact />
+      </g>
+      <g opacity={noClients}>
+        <Arrow x1={midX + 100} y1={210} x2={S3.phoneB.x - 6} y2={210} color={theme.alt} />
+        <Pill x={midX} y={210} w={196} text="подопечных нет" color={theme.alt} fill={theme.altTint} size={20} compact />
       </g>
       <g opacity={labelsOut}>
         {PARTS.map((t, i) => (
@@ -194,12 +218,14 @@ export function S3Empty() {
           </g>
         ))}
       </g>
+
+      {/* доска 2: тот же экран без подопечных — первый шаг — приглашение */}
       <Handset x={S3.phoneB.x} y={S3.phoneB.y}>
         <g opacity={slots}>
           <EmptyBody s={sb} state={EMPTY_STATES[1]} show={partsB} slots />
         </g>
       </Handset>
-      <Coach x={S3.ira2.x} y={S3.ira2.y} scale={0.8} label="Ира" color={theme.ink} enterAt={b(6) + 140} pose={ira2[0]} mood={ira2[1]} />
+      <Coach x={S3.nat2.x} y={S3.nat2.y} scale={0.8} label="Наташа" color={theme.ink} enterAt={b(7) + 140} pose={nat2[0]} mood={nat2[1]} />
     </KitScene>
   )
 }

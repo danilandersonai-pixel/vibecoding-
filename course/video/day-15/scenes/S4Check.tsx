@@ -9,7 +9,7 @@ import { stepAt, typed } from '../../kit/reveal'
 import { AgentChat, type ChatMessage } from '../../kit/screens/AgentChat'
 import { chatHeight } from '../../kit/screens/layout'
 import { theme } from '../../theme'
-import { EMPTY_STATES, FOCUS, HAND, LIST_H, RECORDS_EMPTY, S4, screenOf, TODAY } from '../layout'
+import { FOCUS, HAND, LIST_H, NEW_COACH_EMPTY, S4, screenOf, TEST_FIELDS, TODAY } from '../layout'
 import { beat, sceneDuration, STAGING } from '../script'
 import { EmptyBody, Handset, Key, PlusButton, RegisterBody, ScreenButton, Speaker, WelcomeBody } from './parts'
 
@@ -30,7 +30,8 @@ const NOTES = ['искал, где программы', 'что такое «ц�
 
 type Screen = 'register' | 'welcome' | 'empty0' | 'empty1' | 'records'
 
-// Сцена 4 (проверьте у себя): путь нового тренера без подсказок, каждый список пустым — с кнопкой;
+// Сцена 4 (проверьте у себя): путь нового (тестового) тренера без подсказок, каждый список пустым —
+// с кнопкой (без подопечных везде первый шаг — приглашение);
 // доступность — одна клавиатура (Tab, Enter, видимый фокус сверху вниз), контраст, подписи для
 // скринридера; запрос ИИ и своя проверка; показ тому, кто приложение не видел: молчать и записывать.
 export function S4Check() {
@@ -135,11 +136,11 @@ export function S4Check() {
       {/* телефон: путь нового тренера и пустые списки */}
       <g opacity={appear(frame, 6, 12)}>
         <Handset x={S4.phone.x} y={S4.phone.y}>
-          {screen === 'register' && <RegisterBody s={sp} filled={filled} tapAt={signUp} />}
-          {screen === 'welcome' && <WelcomeBody s={sp} polish={1} name={frame >= b(6) - 10 ? '' : 'Ира'} />}
-          {screen === 'empty0' && <EmptyBody s={sp} state={EMPTY_STATES[0]} />}
-          {screen === 'empty1' && <EmptyBody s={sp} state={EMPTY_STATES[1]} />}
-          {screen === 'records' && <EmptyBody s={sp} state={RECORDS_EMPTY} />}
+          {screen === 'register' && <RegisterBody s={sp} fields={TEST_FIELDS} filled={filled} tapAt={signUp} />}
+          {screen === 'welcome' && <WelcomeBody s={sp} polish={1} name="" />}
+          {screen === 'empty0' && <EmptyBody s={sp} state={NEW_COACH_EMPTY[0]} />}
+          {screen === 'empty1' && <EmptyBody s={sp} state={NEW_COACH_EMPTY[1]} />}
+          {screen === 'records' && <EmptyBody s={sp} state={NEW_COACH_EMPTY[2]} />}
         </Handset>
       </g>
       <g opacity={hasButton}>
@@ -179,7 +180,7 @@ export function S4Check() {
       {/* доска 2: одна клавиатура — фокус видно, он идёт сверху вниз, кнопка жмётся клавишей */}
       <g opacity={bench}>
         <Handset x={S4.form.x} y={S4.form.y}>
-          <RegisterBody s={sf} focus={focus} tapAt={enter} />
+          <RegisterBody s={sf} fields={TEST_FIELDS} focus={focus} tapAt={enter} />
         </Handset>
       </g>
       <g opacity={focusOk}>
