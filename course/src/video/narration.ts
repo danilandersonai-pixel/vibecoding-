@@ -55,6 +55,12 @@ const SAY: [RegExp, string][] = [
   [/\bPlan\b/g, 'план'],
   [/\bGPL\b/g, 'джи-пи-эл'],
   [/ЦКОКФ/g, 'цэ-ка-о-ка-эф'],
+  [/\bCRUD\b/g, 'крад'],
+  [/\bStack Overflow\b/g, 'стэк оверфлоу'],
+  [/\bgit log\b/g, 'гит лог'],
+  [/\bgit revert\b/g, 'гит риверт'],
+  [/\/rewind\b/g, 'ривайнд'],
+  [/\bEsc\b/g, 'эскейп'],
   [/\s*×\s*/g, ' на '],
   [/\s*→\s*/g, ', '],
 ]

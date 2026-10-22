@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import { ch01Script } from './ch-01/script'
 import { ch02Script } from './ch-02/script'
+import { ch03Script } from './ch-03/script'
 import { ch12Script } from './ch-12/script'
 import { chAbcScript } from './ch-abc/script'
 import { pilotRlsScript } from './pilot-rls/script'
@@ -45,5 +46,11 @@ export const catalog: Record<string, CatalogEntry> = {
     kind: 'chapter',
     script: ch12Script,
     load: () => import('./ch-12/Video'),
+  },
+  'ch-03': {
+    title: 'Проблема 70%',
+    kind: 'chapter',
+    script: ch03Script,
+    load: () => import('./ch-03/Video'),
   },
 }
