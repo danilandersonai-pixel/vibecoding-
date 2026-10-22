@@ -11,6 +11,7 @@ import { Arrow, Card, Label } from '../../kit/parts'
 import { KeyGlyph, Mark, Pill, Slot } from '../../kit/props'
 import { revealCount, stepAt, typed } from '../../kit/reveal'
 import { Editor } from '../../kit/screens/Editor'
+import { editorHeight } from '../../kit/screens/layout'
 import { Mono } from '../../kit/screens/Window'
 import { theme } from '../../theme'
 import { BIG_FONT, BIG_PHONE, COMMENTS, commentText, canRead, deliverAt, OLEG_NIGHT, POLICY, RULES, S2, S2_FEED_H, S2_RULES_H, SPAM, SQL_CREATE } from '../layout'
@@ -50,7 +51,7 @@ export function S2Pitfall() {
   const badge = appear(frame, b(0) + 110, 10)
   const agentTag = appear(frame, b(0) + 70, 10)
   // лента Олега: запрос и ответ
-  const feedIn = appear(frame, b(1) + 10, 12)
+  const feedIn = appear(frame, b(1) + 24, 12)
   const ask1 = appear(frame, b(1) + 40, 14)
   const back1 = appear(frame, b(1) + 70, 14)
   const rowAt = COMMENTS.map((_, i) => b(1) + 86 + i * 12)
@@ -156,7 +157,6 @@ export function S2Pitfall() {
   return (
     <KitScene chip="2 / 3 · Подводный камень: чужое и спам" duration={sceneDuration(ID)} {...STAGING[ID]}>
       {/* ---- доска 1: лента Олега ---- */}
-      {frame < b(1) + 14 && frame >= b(1) - 10 && <Slot x={F.x} y={F.y} w={F.w} h={S2_FEED_H} text="лента Олега" />}
       <g opacity={feedIn}>
         <Card x={F.x} y={F.y} w={F.w} h={S2_FEED_H} stroke={theme.alt} fill={theme.white}>
           <Label x={F.x + 20} y={F.y + 38} anchor="start" size={22} weight={800}>
@@ -201,7 +201,7 @@ export function S2Pitfall() {
       <g opacity={health}>
         <Pill x={S2.health.x} y={S2.health.y} text="данные о здоровье" color={theme.risk} fill={theme.riskTint} size={18} compact />
       </g>
-      <Client x={S2.oleg.x} y={S2.oleg.y} scale={0.75} color={theme.alt} label="Олег" enterAt={b(1) - 4} pose={oleg[0]} mood={oleg[1]} />
+      <Client x={S2.oleg.x} y={S2.oleg.y} scale={0.75} color={theme.alt} label="Олег" enterAt={b(1) + 22} pose={oleg[0]} mood={oleg[1]} />
 
       {/* запрос ленты и ответ базы */}
       <Arrow x1={F.x + F.w + 6} y1={232} x2={466} y2={232} color={theme.accent} draw={frame < swap ? ask1 * (1 - refresh) : ask2} />
@@ -231,7 +231,7 @@ export function S2Pitfall() {
           <Editor x={S2.editor.x} y={S2.editor.y} w={S2.editor.w} at={sqlAt} file="comments.sql" lines={SQL_CREATE} />
         </g>
       )}
-      {frame < sqlAt && <Slot x={S2.editor.x} y={S2.editor.y} w={S2.editor.w} h={256} text="SQL агента" />}
+      {frame < sqlAt && <Slot x={S2.editor.x} y={S2.editor.y} w={S2.editor.w} h={editorHeight(SQL_CREATE.length)} text="SQL агента" />}
       {frame >= policyAt && <Editor x={S2.editor.x} y={S2.editor.y} w={S2.editor.w} at={policyAt} file="policy.sql" lines={POLICY} highlight={[1, 2, 7, 8]} />}
       <g opacity={agentTag * (1 - sqlOut)}>
         <Pill x={S2.agentTag.x} y={S2.agentTag.y} text="создал через SQL" color={theme.accent} size={18} compact />

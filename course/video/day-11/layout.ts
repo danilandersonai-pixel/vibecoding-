@@ -40,7 +40,7 @@ export const MARINA_SAYS = 'Тогда в четверг присед полег
 export const SETS = ['5 × 50 кг', '5 × 50 кг', '5 × 50 кг']
 
 /** Таблица, которую агент создал SQL-запросом: RLS у неё не включён. */
-export const SQL_CREATE = ['create table comments (', '  workout_id uuid,', '  author_id uuid,', '  body text,', '  created_at timestamptz', ');']
+export const SQL_CREATE = ['create table comments (', '  id uuid primary key,', '  workout_id uuid', '    references workouts,', '  author_id uuid,', '  body text,', '  created_at timestamptz', ');']
 
 /** RLS включается явно, затем политика на чтение: строку видит тот, кто вошёл, если он подопечный или тренер этой тренировки. */
 export const POLICY = ['alter table comments', '  enable row level security;', 'create policy "свои"', 'on comments for select', 'using (workout_id in (', '  select id from workouts', '  where auth.uid() in', '    (client_id, coach_id)))']

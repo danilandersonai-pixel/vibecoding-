@@ -62,7 +62,7 @@ describe('сценарий ролика дня 11 «Комментарии и у
     for (const line of [...SQL_CREATE, ...POLICY, ...TERM.map((l) => l.text)]) expect(line.length, line).toBeLessThanOrEqual(40)
     const policy = POLICY.join('\n')
     for (const part of ['alter table comments', 'enable row level security', 'create policy', 'on comments for select', 'workout_id', 'auth.uid()', 'client_id', 'coach_id']) expect(policy, part).toContain(part)
-    expect(SQL_CREATE.join('\n')).toContain('create table comments')
+    for (const part of ['create table comments', 'id uuid primary key', 'references workouts']) expect(SQL_CREATE.join('\n'), part).toContain(part)
   })
 
   it('спам: пять упражнений по три подхода — 15 уведомлений; ночью уведомление ждёт утра', () => {

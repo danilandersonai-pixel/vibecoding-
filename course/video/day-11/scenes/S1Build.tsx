@@ -46,7 +46,7 @@ export function S1Build() {
   const sent = frame >= b(1) + 66 && frame < b(1) + 82
   const count1 = appear(frame, b(1) + 80, 10)
   // ответ Марины
-  const marinaSlot = appear(frame, b(2) + 16, 12)
+  const marinaSlot = appear(frame, b(2) + 24, 12)
   const c2At = b(2) + 26
   const count2 = frame >= b(2) + 70
   // уведомления: письмо летит к Анне, потом «тренировка завершена» — к Марине
@@ -173,7 +173,7 @@ export function S1Build() {
       )}
 
       <Client x={S1.anna.x} y={S1.anna.y} scale={0.8} color={theme.accent} label="Анна" enterAt={2} pose={anna[0]} mood={anna[1]} />
-      {frame >= b(2) + 4 && <Coach x={S1.marina.x} y={S1.marina.y} scale={0.8} label="Марина" enterAt={b(2) + 4} pose={marina[0]} mood={marina[1]} />}
+      {frame >= b(2) + 22 && <Coach x={S1.marina.x} y={S1.marina.y} scale={0.8} label="Марина" enterAt={b(2) + 22} pose={marina[0]} mood={marina[1]} />}
 
       {/* доска 2: функция целиком — слои снизу вверх */}
       {LAYERS.map((l, i) => {

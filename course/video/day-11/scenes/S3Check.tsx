@@ -15,7 +15,7 @@ const ID = 's3-check'
 const LI = S3.list
 const BR = S3.browser
 const T = S3.term
-const URL = 'client/17/comments'
+const URL = 'client/17/workouts/41/comments'
 
 // Сцена 3 (проверьте у себя): чек-лист по репликам; под чужим входом лента и адрес тренировки Анны пусты;
 // если видно чужое — защиты нет; тесты на доступ и на уведомления в терминале.
@@ -27,8 +27,8 @@ export function S3Check() {
   // отметки пунктов — к концу своей реплики
   const tickAt = [b(0) + 150, b(1) + 110, b(3) + 120, b(4) + 110, b(5) + 70, b(6) + 40]
   // браузер под чужим входом
-  const slots = appear(frame, b(1) - 8, 10)
-  const brAt = b(1) + 14
+  const slots = appear(frame, b(1) + 22, 10)
+  const brAt = b(1) + 24
   const empty = appear(frame, b(1) + 70, 10)
   // пункты появляются по одному, пока звучит первая реплика
   const rowAt = CHECKS.map((_, i) => b(0) + 20 + i * 14)
