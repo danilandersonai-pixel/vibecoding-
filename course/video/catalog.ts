@@ -7,6 +7,7 @@ import { ch05Script } from './ch-05/script'
 import { ch06Script } from './ch-06/script'
 import { ch08Script } from './ch-08/script'
 import { ch09Script } from './ch-09/script'
+import { ch10Script } from './ch-10/script'
 import { ch12Script } from './ch-12/script'
 import { chAbcScript } from './ch-abc/script'
 import { pilotRlsScript } from './pilot-rls/script'
@@ -87,5 +88,11 @@ export const catalog: Record<string, CatalogEntry> = {
     kind: 'chapter',
     script: ch09Script,
     load: () => import('./ch-09/Video'),
+  },
+  'ch-10': {
+    title: 'Фоновые агенты',
+    kind: 'chapter',
+    script: ch10Script,
+    load: () => import('./ch-10/Video'),
   },
 }
