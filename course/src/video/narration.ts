@@ -86,6 +86,8 @@ const SAY: [RegExp, string][] = [
   [/\bNaN\b/g, 'нан'],
   [/\bjoin\/marina\b/g, 'джойн марина'],
   [/\bjoin\/dima\b/g, 'джойн дима'],
+  [/\bPlaywright\b/g, 'плейрайт'],
+  [/\bVitest\b/g, 'витест'],
   [/ЦКОКФ/g, 'цэ-ка-о-ка-эф'],
   [/\bCRUD\b/g, 'крад'],
   [/\bStack Overflow\b/g, 'стэк оверфлоу'],
