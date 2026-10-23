@@ -139,7 +139,28 @@ describe('tokens.css', () => {
       ['--accent', '--paper'],
     ])
   })
+
+  it('правила этих рамок берут проверенные выше переменные', () => {
+    // Точка «впереди» — рамка --ink-soft; пройденная и текущая «таблетка» — кольцо --accent через просвет --paper
+    expect(cssDecls('home.css', '.route-dot').border).toBe('2px solid var(--ink-soft)')
+    expect(cssDecls('day.css', '.toc-item.is-done.is-current')['box-shadow']).toBe('0 0 0 2px var(--paper),0 0 0 4px var(--accent)')
+  })
 })
+
+/** Объявления правил файла стилей, где селектор стоит отдельным пунктом списка (и внутри @media): свойство → значение.
+ *  Стили jsdom не загружает, поэтому читаем сам файл — как parts.test.tsx читает blocks.css. */
+function cssDecls(file: string, selector: string): Record<string, string> {
+  const src = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), file), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  const out: Record<string, string> = {}
+  for (const [, selectors, body] of src.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    if (!selectors.split(',').some((x) => x.trim() === selector)) continue
+    for (const decl of body.split(';')) {
+      const colon = decl.indexOf(':')
+      if (colon > 0) out[decl.slice(0, colon).trim()] = decl.slice(colon + 1).trim()
+    }
+  }
+  return out
+}
 
 /** Пары [цвет, фон, только светлая тема] — контраст не ниже min в светлой и тёмной теме.
  *  Значение с «#» берётся как есть, «--имя» — из темы; фон-массив — слои снизу вверх. */

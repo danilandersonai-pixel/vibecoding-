@@ -72,7 +72,7 @@
 @media (max-width:640px){
   .video-cover-play{width:64px;height:64px;margin:-32px 0 0 -32px}
   .video-cover-play svg{width:26px;height:26px}
-  .video-cover-label,.video-cover-time{bottom:11px;font-size:12px}
+  .video-cover-label,.video-cover-time{bottom:11px}
   .video-cover-label{left:12px}
   .video-cover-time{right:12px}
   .video-end{gap:8px;padding:10px}
