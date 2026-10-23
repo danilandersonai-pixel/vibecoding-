@@ -1,4 +1,6 @@
-import { DaySchema, type Day } from './schema'
+import { z } from 'zod'
+import weeksData from '../../content/weeks.json'
+import { DaySchema, WeekSchema, type Day, type Week } from './schema'
 
 const files = import.meta.glob('../../content/days/*.json', { eager: true, import: 'default' })
 
@@ -13,4 +15,15 @@ export function getDays(): Day[] {
 
 export function getDay(n: number): Day | undefined {
   return days.find((d) => d.number === n)
+}
+
+// Недели — ровно три, по возрастанию номера; название и итог читают карта и шапка дня
+const weeks: Week[] = z
+  .array(WeekSchema)
+  .length(3)
+  .parse(weeksData)
+  .sort((a, b) => a.number - b.number)
+
+export function getWeeks(): Week[] {
+  return weeks
 }
