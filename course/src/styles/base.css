@@ -1,0 +1,10 @@
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--desk);color:var(--ink);font:400 17px/1.6 var(--font-body)}
+h1,h2,h3{font-family:var(--font-ui);line-height:1.2;color:var(--ink)}
+button{font:inherit;cursor:pointer}
+code,pre{font-family:var(--font-code)}
+a{color:var(--accent-ink)}
+.shell{max-width:880px;margin:0 auto;padding:24px 16px 64px}
+.shell-head h1{font-weight:760;font-size:1.7rem;letter-spacing:-.02em;margin:0 0 4px}
+.shell-head p{margin:0;color:var(--ink-soft);font-family:var(--font-ui);font-size:.95rem}

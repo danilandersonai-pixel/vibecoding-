@@ -1,0 +1,30 @@
+{
+  "id": "day-09",
+  "number": 9,
+  "week": 2,
+  "status": "ready",
+  "title": "Тестовый день",
+  "goal": "Проверить схему",
+  "result": "Схема проверена",
+  "minutes": { "theory": 40, "practice": 80 },
+  "blocks": [
+    { "type": "video", "videoId": "pilot-rls", "title": "Ролик" },
+    { "type": "idea", "id": "i1", "title": "Мысль", "text": "Абзац 1\n\nАбзац 2", "figure": "abc_restaurant", "bookRef": { "section": "sa1", "label": "Азбука" } },
+    { "type": "diagram", "id": "d1", "figure": "abc_restaurant", "caption": "Ресторан", "hotspots": [{ "id": "h1", "x": 0.1, "y": 0.1, "w": 0.2, "h": 0.2, "title": "Зал", "text": "Фронтенд" }], "steps": ["Шаг 1", "Шаг 2"] },
+    { "type": "trainer", "kind": "prompt-builder", "id": "t1", "task": "Добавить график", "parts": [{ "key": "goal", "label": "Цель", "good": ["Показать прогресс"], "bad": ["Сделай красиво"] }] },
+    { "type": "trainer", "kind": "find-the-bug", "id": "t2", "title": "Найди ошибку", "lines": ["const a = 1", "const key = 'sk-123'"], "bugLines": [1], "explanation": "Секрет в коде" },
+    { "type": "trainer", "kind": "sort", "id": "t3", "title": "Разложи", "buckets": [{ "id": "b1", "label": "Агент" }, { "id": "b2", "label": "Сам" }], "items": [{ "id": "x1", "text": "Обновить библиотеки", "bucket": "b1" }] },
+    { "type": "scenario", "id": "s1", "title": "Ситуация", "start": "n1", "nodes": { "n1": { "text": "Что делаем?", "choices": [{ "label": "Хорошо", "next": "n2" }] }, "n2": { "text": "Финал", "choices": [], "ending": "good" } } },
+    { "type": "ai-helper", "id": "a1", "mode": "ask", "title": "Спросите ИИ", "placeholder": "Ваш вопрос", "context": "Материал дня" }
+  ],
+  "quiz": [
+    { "id": "q1", "question": "В1", "options": ["а", "б"], "correct": 0, "explanation": "Потому что" },
+    { "id": "q2", "question": "В2", "options": ["а", "б"], "correct": 1, "explanation": "Потому что" },
+    { "id": "q3", "question": "В3", "options": ["а", "б"], "correct": 0, "explanation": "Потому что" },
+    { "id": "q4", "question": "В4", "options": ["а", "б"], "correct": 1, "explanation": "Потому что" },
+    { "id": "q5", "question": "В5", "options": ["а", "б", "в"], "correct": 2, "explanation": "Потому что" }
+  ],
+  "practice": [{ "id": "p1", "title": "Шаг", "prompt": "Запрос", "done": "Готово, когда…" }],
+  "mentor": { "command": "/mentor 9", "checklist": [{ "id": "m1", "text": "Есть CLAUDE.md", "auto": "file" }], "questions": ["Вопрос 1?", "Вопрос 2?"] },
+  "cards": ["Бенчмарк"]
+}
