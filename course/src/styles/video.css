@@ -1,7 +1,36 @@
-/* Плеер роликов */
-.video{margin:12px 0 18px}
-.video-title{font:600 1rem/1.3 var(--font-ui);margin:0 0 8px}
-.video-stage{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--rule);background:#FBFAF6}
+/* Плеер роликов: кадр, под ним панель, название и строка «м:сс · N пояснений по нажатию» */
+.video{display:flex;flex-direction:column;gap:10px;margin:22px 0;font-family:var(--font-ui)}
+.video-screen{display:flex;flex-direction:column;gap:10px}
+/* Кадр — «приподнятая» обложка. Фон — бумага самих роликов: они всегда в светлой теме книги */
+.video-stage{position:relative;border:1px solid var(--paper-edge);border-radius:var(--radius-l);overflow:hidden;background:#FBFAF6;box-shadow:var(--shadow-raised)}
+.video-title{margin:4px 0 0;font:700 18px/1.3 var(--font-ui);letter-spacing:-.01em;overflow-wrap:break-word}
+.video-meta{margin:-4px 0 0;color:var(--ink-soft);font:400 14px/1.4 var(--font-ui)}
+
+/* Сетка роликов теории: два в ряд, одинокий ролик — во всю ширину */
+.video-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 20px;margin:22px 0}
+.video-grid > *{margin:0}
+.video-grid > :only-child{grid-column:1 / -1}
+/* «Дальше» прокручивает к следующему материалу — над ним остаётся место (на узком экране — под полосой плана дня) */
+:is(.day-part,.video-grid) > *{scroll-margin-top:24px}
+
+/* Обложка до первого запуска: затемнение снизу, круглая ▶ по центру, номер ролика и длительность внизу.
+   Рамка фокуса — у круга: светлая на тёмной подложке, видна и на светлом кадре, и на затемнении */
+.video-cover{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;border-radius:0;background:linear-gradient(180deg,transparent 40%,color-mix(in srgb,var(--cover-bg) 55%,transparent));color:var(--cover-ink);font-family:var(--font-ui)}
+.video-cover:focus-visible{outline:none}
+.video-cover-play{position:absolute;left:50%;top:50%;display:flex;align-items:center;justify-content:center;width:76px;height:76px;margin:-38px 0 0 -38px;border-radius:50%;background:var(--cover-ink);color:var(--cover-bg);box-shadow:var(--shadow-raised);transition:transform .2s ease-out}
+.video-cover:hover .video-cover-play{transform:scale(1.06)}
+.video-cover:focus-visible .video-cover-play{outline:3px solid var(--cover-ink);outline-offset:3px;box-shadow:0 0 0 3px var(--cover-bg),0 0 0 9px color-mix(in srgb,var(--cover-bg) 45%,transparent)}
+.video-cover-label,.video-cover-time{position:absolute;bottom:12px;padding:6px 10px;border-radius:999px;background:color-mix(in srgb,var(--term-bg) 78%,transparent);color:var(--cover-ink);font:600 13px/1 var(--font-ui)}
+.video-cover-label{left:12px}
+.video-cover-time{right:12px;font-family:var(--font-code)}
+
+/* Конец ролика: поверх последнего кадра — «Смотреть ещё раз» и «Дальше» */
+.video-end{position:absolute;inset:0;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:12px;padding:16px;background:color-mix(in srgb,var(--cover-bg) 72%,transparent)}
+.video-end .btn{min-height:48px;padding:0 20px;font:700 15px/1.2 var(--font-ui)}
+.video-end-next,.video-end-next:hover:not(:disabled){border-color:var(--cover-ink);background:var(--cover-bg);color:var(--cover-ink)}
+.video-end :focus-visible{outline:3px solid var(--cover-ink);outline-offset:2px;box-shadow:0 0 0 2px var(--cover-bg)}
+
+/* Зоны кадра на паузе: рамки мягко пульсируют */
 .hotspot-layer{position:absolute;inset:0}
 .video-hotspot{position:absolute;padding:0;border:3px solid var(--accent);border-radius:10px;background:color-mix(in srgb,var(--accent) 10%,transparent);animation:hs-pulse 1.6s ease-in-out infinite}
 .video-hotspot.is-open{animation:none;background:color-mix(in srgb,var(--accent) 18%,transparent)}
@@ -9,12 +38,42 @@
 @media (prefers-reduced-motion: reduce){.video-hotspot{animation:none}}
 .video-hotspot-note{position:absolute;left:12px;right:12px;bottom:12px;padding:10px 14px;border-radius:10px;background:var(--paper);color:var(--ink);border:1px solid var(--rule);box-shadow:var(--shadow-raised);font:400 .9rem/1.45 var(--font-ui)}
 .video-hotspot-note p{margin:4px 0 0}
-.video-controls{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;font-family:var(--font-ui)}
-.video-controls input[type=range]{flex:1 1 160px;accent-color:var(--accent)}
-.video-time{font:500 .85rem/1 var(--font-code);color:var(--ink-soft)}
-.video-voice{display:flex;align-items:center;gap:6px;font-size:.9rem}
-.video-hint{margin:6px 0 0;font:400 .85rem/1.4 var(--font-ui);color:var(--ink-soft)}
-.video-download{display:inline-block;margin-top:8px;font:500 .9rem/1.4 var(--font-ui)}
-/* Сообщение лежит внутри кадра 1280×720 и сжимается вместе с ним, поэтому шрифт крупный */
+
+/* Панель: перемотка во всю ширину, под ней кнопки 44 px, время, «Голос» и «Во весь экран» справа */
+.video-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.video-seek{flex:1 1 100%;min-width:0;height:24px;margin:0;accent-color:var(--accent)}
+.video-toggle,.video-fullscreen{width:44px;padding:0}
+.video-toggle,.video-toggle:hover:not(:disabled){border-color:var(--accent);background:var(--accent);color:var(--fig-on)}
+.video-time{color:var(--ink-soft);font:500 13px/1 var(--font-code);white-space:nowrap}
+.video-voice{display:flex;align-items:center;gap:8px;min-height:44px;margin-left:auto;font:500 14px/1 var(--font-ui);cursor:pointer}
+.video-voice input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.video-time + .video-fullscreen{margin-left:auto}
+.video-hint{margin:0;color:var(--ink-soft);font:400 14px/1.4 var(--font-ui)}
+.video-download{margin:0}
+.video-download-btn{padding:0 14px;border-radius:var(--radius-s);font:600 14px/1.2 var(--font-ui)}
+
+/* Во весь экран: кадр вписан в экран, панель под ним той же ширины */
+.video-screen:fullscreen{justify-content:center;align-items:center;padding:24px;background:var(--desk)}
+.video-screen:fullscreen > *{width:min(100%,calc((100vh - 170px) * 16 / 9))}
+.video-screen:fullscreen .video-stage{box-shadow:none}
+
+/* Сообщение лежит внутри кадра 1280×720 и сжимается вместе с ним, поэтому шрифт крупный.
+   Кадра нет — фон бумаги темы, чтобы текст читался и в тёмной теме */
 .video-failed{margin:0;padding:0 120px;text-align:center;font:600 56px/1.3 var(--font-ui);color:var(--ink-soft)}
-@media (max-width: 640px){.video-hotspot-note{left:6px;right:6px;bottom:6px;padding:6px 10px;font-size:.78rem;line-height:1.35}}
+.video-stage:has(.video-failed){background:var(--paper)}
+
+@media (max-width:960px){
+  .video-grid{grid-template-columns:minmax(0,1fr)}
+  :is(.day-part,.video-grid) > *{scroll-margin-top:80px}
+}
+@media (max-width:640px){
+  .video-cover-play{width:64px;height:64px;margin:-32px 0 0 -32px}
+  .video-cover-play svg{width:26px;height:26px}
+  .video-cover-label,.video-cover-time{bottom:10px;padding:5px 8px;font-size:12px}
+  .video-cover-label{left:10px}
+  .video-cover-time{right:10px}
+  .video-end{gap:8px;padding:10px}
+  .video-end .btn{min-height:44px;padding:0 14px;font-size:14px}
+  .video-title{font-size:17px}
+  .video-hotspot-note{left:6px;right:6px;bottom:6px;padding:6px 10px;font-size:.78rem;line-height:1.35}
+}

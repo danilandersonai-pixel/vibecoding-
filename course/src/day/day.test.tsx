@@ -81,6 +81,20 @@ describe('страница дня', () => {
     ])
   })
 
+  it('ролики теории подряд — в одной сетке, у каждого номер среди роликов дня', () => {
+    renderDay(1)
+    const grids = document.querySelectorAll<HTMLElement>('#part-theory .video-grid')
+    expect(grids).toHaveLength(1)
+    const videos = within(grids[0]).getAllByRole('figure')
+    expect(videos).toHaveLength(2)
+    expect(videos[0]).toHaveAccessibleName('Как устроено приложение')
+    expect(videos[1]).toHaveAccessibleName('Вайб-кодинг: шкала, а не выключатель')
+    expect(within(videos[0]).getByText('Видеоурок 1')).toBeInTheDocument()
+    expect(within(videos[1]).getByText('Видеоурок 2')).toBeInTheDocument()
+    // остальная теория идёт после сетки, не внутри неё
+    expect(grids[0].nextElementSibling).toHaveClass('idea')
+  })
+
   it('пройденные части отмечены в плане и в заголовках частей', () => {
     renderDay(1, finishDay(emptyProgress(), getDay(1)!))
     expect(plan().getByText('Сделано 3 из 5 частей')).toBeInTheDocument()

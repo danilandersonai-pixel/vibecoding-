@@ -35,9 +35,11 @@ export const IconPlay = ({ size }: IconProps) => (
   </Icon>
 )
 
+// Пауза — две закрашенные полосы: по весу как закрашенный треугольник «играть», они стоят на одной кнопке
 export const IconPause = ({ size }: IconProps) => (
-  <Icon size={size}>
-    <path d="M9 5v14M15 5v14" />
+  <Icon size={size} fill="currentColor">
+    <rect x="6.5" y="5" width="3.5" height="14" rx="1" />
+    <rect x="14" y="5" width="3.5" height="14" rx="1" />
   </Icon>
 )
 

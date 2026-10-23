@@ -6,7 +6,7 @@ import { Quiz } from '../blocks/Quiz'
 import { BlockView } from '../components/BlockView'
 import { RouteLink } from '../components/RouteLink'
 import { getDay } from '../content/load'
-import type { Day } from '../content/schema'
+import type { Block, Day } from '../content/schema'
 import { dayParts, type PartId } from '../course/dayParts'
 import { plural } from '../course/summary'
 import { DayHeader } from '../day/DayHeader'
@@ -21,11 +21,34 @@ import type { Progress } from '../progress/model'
 function PartBody({ id, day }: { id: PartId; day: Day }) {
   switch (id) {
     case 'theory': {
-      // Мысли нумеруются только между собой: «Мысль 2 из 6», хотя перед ней ролики и схема
+      // Мысли и ролики нумеруются только между собой: «Мысль 2 из 6», хотя перед ней ролики и схема
       const ideas = day.blocks.filter((b) => b.type === 'idea')
-      return day.blocks.map((b, i) => (
-        <BlockView key={i} block={b} dayId={day.id} ideaIndex={b.type === 'idea' ? { i: ideas.indexOf(b) + 1, n: ideas.length } : undefined} />
-      ))
+      const videos = day.blocks.filter((b) => b.type === 'video')
+      const view = (b: Block, i: number) => (
+        <BlockView
+          key={i}
+          block={b}
+          dayId={day.id}
+          ideaIndex={b.type === 'idea' ? { i: ideas.indexOf(b) + 1, n: ideas.length } : undefined}
+          videoIndex={b.type === 'video' ? videos.indexOf(b) + 1 : undefined}
+        />
+      )
+      // Подряд идущие ролики — одной сеткой: два в ряд на широком экране
+      const runs: { at: number; blocks: Block[] }[] = []
+      day.blocks.forEach((b, i) => {
+        const last = runs[runs.length - 1]
+        if (b.type === 'video' && last?.blocks[0].type === 'video') last.blocks.push(b)
+        else runs.push({ at: i, blocks: [b] })
+      })
+      return runs.map(({ at, blocks }) =>
+        blocks[0].type === 'video' ? (
+          <div key={at} className="video-grid">
+            {blocks.map((b, j) => view(b, at + j))}
+          </div>
+        ) : (
+          view(blocks[0], at)
+        ),
+      )
     }
     case 'quiz':
       return <Quiz day={day} />
