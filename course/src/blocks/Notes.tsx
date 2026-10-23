@@ -1,11 +1,12 @@
 import { useCourseProgress } from '../progress/courseProgress'
 import { setNotes } from '../progress/model'
 
+// Заметки дня — поле на «бумаге»; текст сохраняется в прогрессе
 export function Notes({ dayId }: { dayId: string }) {
   const { progress, update } = useCourseProgress()
   return (
     <label className="notes">
-      <span>Заметки дня</span>
+      <span className="notes-title">Заметки дня</span>
       <textarea
         rows={4}
         value={progress.days[dayId]?.notes ?? ''}

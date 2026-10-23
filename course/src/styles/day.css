@@ -46,7 +46,7 @@ a.day-step:hover{border-color:var(--cover-ink)}
 .toc-item:hover:not(:disabled){background:var(--tint)}
 .toc-item.is-current{background:var(--tint);color:var(--accent-ink)}
 .toc-item:disabled{color:var(--ink-soft);cursor:default}
-.toc-num{flex:none;display:flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.5px solid var(--fig-line);border-radius:8px;color:var(--ink-soft);font:700 13px/1 var(--font-ui)}
+.toc-num{flex:none;display:flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.5px solid var(--fig-line);border-radius:var(--radius-s);color:var(--ink-soft);font:700 13px/1 var(--font-ui)}
 .toc-item.is-current .toc-num{border-color:var(--accent);background:var(--accent);color:var(--fig-on)}
 .toc-item.is-done .toc-num{border-color:var(--fig-ok);background:var(--fig-ok);color:var(--fig-on)}
 .toc-item:disabled .toc-num{border-style:dashed;border-color:var(--rule)}
@@ -117,5 +117,3 @@ a.day-step:hover{border-color:var(--cover-ink)}
 .block-soon{border:1px dashed var(--rule);border-radius:8px;padding:8px 14px}
 .block-soon-title{font:600 .95rem/1.4 var(--font-ui);margin:6px 0 0}
 .block-soon .soon{margin:4px 0}
-/* Метка-«таблетка»: пометки пунктов наставника */
-.badge{display:inline-block;align-self:flex-start;margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--tint);color:var(--ink-soft);font:500 .72rem/1.6 var(--font-ui)}

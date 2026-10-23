@@ -70,6 +70,8 @@ describe('страница дня', () => {
     }
     expect(plan().getByText('Сделано 0 из 5 частей')).toBeInTheDocument()
     expect(partIds()).toEqual(['part-why', 'part-theory', 'part-quiz', 'part-practice', 'part-mentor', 'part-summary'])
+    // У полностью готового дня нет карточки «Остальное готовится»
+    expect(screen.queryByText(/Остальное готовится/)).toBeNull()
     expect(screen.getAllByRole('heading', { level: 2 }).slice(0, 5).map((h) => h.textContent)).toEqual([
       'Теория',
       'Проверка понимания',

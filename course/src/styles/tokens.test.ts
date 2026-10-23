@@ -121,6 +121,12 @@ describe('tokens.css', () => {
       ['--cover-ink', ['--cover-bg', ['--cover-ink', 0.08]]], ['--cover-add', ['--cover-bg', ['--cover-ink', 0.08]]],
       ['--accent-ink', ['--paper', '--tint']],
       ['--fig-on', '--fig-ok'],
+      // Тест, практика, наставник, итог дня: варианты и пояснения на зелёной и красной подкраске, ✓ / ✗ в кружке,
+      // «Скопировать» в тёмном блоке и на синей карточке, команда наставника, нажатые «Знаю» / «Повторить»
+      ['--ink', ['--paper', ['--fig-ok', 0.1]]], ['--ink', ['--paper', ['--fig-risk', 0.1]]], ['--ink', ['--paper', ['--warn', 0.1]]],
+      ['--fig-on', '--fig-risk'],
+      ['--term-ink', ['--term-bg', ['--term-ink', 0.08]]], ['--cover-bg', '--cover-ink'],
+      ['--cover-ink', ['--cover-bg', ['--term-bg', 0.35]]],
     ]
     const themes: [string, Record<string, string>][] = [['светлая', light], ['тёмная', dark]]
     for (const [themeName, theme] of themes) {

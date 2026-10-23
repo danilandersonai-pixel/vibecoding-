@@ -8,12 +8,14 @@ import { RouteLink } from '../components/RouteLink'
 import { getDay } from '../content/load'
 import type { Day } from '../content/schema'
 import { dayParts, type PartId } from '../course/dayParts'
+import { plural } from '../course/summary'
 import { DayHeader } from '../day/DayHeader'
 import { DayToc } from '../day/DayToc'
 import { DraftNotice } from '../day/DraftNotice'
 import { NextDayCard } from '../day/NextDayCard'
 import { PartHeading } from '../day/PartHeading'
 import { useCourseProgress } from '../progress/courseProgress'
+import type { Progress } from '../progress/model'
 
 // Содержимое части дня; «Зачем сегодня» — в шапке дня (DayHeader)
 function PartBody({ id, day }: { id: PartId; day: Day }) {
@@ -41,6 +43,14 @@ function PartBody({ id, day }: { id: PartId; day: Day }) {
     case 'why':
       return null
   }
+}
+
+// «Сделано a из b шагов» — справа в заголовке «Практики»; у самого блока практики своего счёта нет
+function stepsLine(day: Day, progress: Progress): string {
+  const steps = progress.days[day.id]?.steps ?? {}
+  const done = day.practice.filter((s) => steps[s.id]).length
+  const total = day.practice.length
+  return `Сделано ${done} из ${total} ${plural(total, 'шага', 'шагов', 'шагов')}`
 }
 
 // Страница дня: синяя шапка во всю ширину, под ней план дня и части — только те, где есть содержание;
@@ -75,7 +85,7 @@ export function DayPage({ n }: { n: number }) {
               p.available &&
               p.id !== 'why' && (
                 <section key={p.id} id={`part-${p.id}`} className="day-part" aria-labelledby={`part-${p.id}-title`}>
-                  <PartHeading part={p} index={i} />
+                  <PartHeading part={p} index={i} extra={p.id === 'practice' ? stepsLine(day, progress) : undefined} />
                   <PartBody id={p.id} day={day} />
                 </section>
               ),

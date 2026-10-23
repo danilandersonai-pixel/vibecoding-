@@ -26,9 +26,9 @@ describe('Practice', () => {
         <StepsProbe />
       </ProgressProvider>,
     )
-    expect(screen.getByText('Готово, когда: Репозиторий виден на GitHub')).toBeInTheDocument()
-    await user.click(screen.getByRole('checkbox', { name: 'Создать репозиторий' }))
-    expect(screen.getByRole('checkbox', { name: 'Создать репозиторий' })).toBeChecked()
+    expect(screen.getByText('Репозиторий виден на GitHub', { exact: false }).textContent).toBe('Готово, когда: Репозиторий виден на GitHub')
+    await user.click(screen.getByRole('checkbox', { name: 'Шаг 1. Создать репозиторий' }))
+    expect(screen.getByRole('checkbox', { name: 'Шаг 1. Создать репозиторий' })).toBeChecked()
     expect(screen.getByTestId('probe')).toHaveTextContent('{"p1":true}')
   })
 })

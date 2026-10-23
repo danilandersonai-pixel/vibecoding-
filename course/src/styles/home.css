@@ -1,6 +1,3 @@
-/* Метка-«таблетка»: «готовится» в шапке дня, пометки пунктов наставника */
-.badge{display:inline-block;align-self:flex-start;margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--tint);color:var(--ink-soft);font:500 .72rem/1.6 var(--font-ui)}
-
 /* Контейнер главной: ширина содержимого и поля страницы; под обложкой это <main> с отступом снизу */
 .home-wrap{max-width:var(--content);margin:0 auto;padding-inline:32px}
 .home-main{padding-bottom:96px}

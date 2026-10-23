@@ -7,21 +7,22 @@ import { setCard } from '../progress/model'
 
 const definitions = new Map(glossary.map((g) => [g.term, g.definition]))
 
+// Карточка термина: термин — кнопка, по нажатию — определение; внизу «Знаю» / «Повторить» поровну, внутри рамки
 function Card({ term }: { term: string }) {
   const { progress, update } = useCourseProgress()
   const [shown, setShown] = useState(false)
   const mark = progress.cards[term]
   return (
-    <li className={`card${mark ? ` is-${mark}` : ''}`}>
+    <li className={`card paper${mark ? ` is-${mark}` : ''}`}>
       <button type="button" className="card-term" aria-expanded={shown} onClick={() => setShown(!shown)}>
         {term}
       </button>
       {shown && <p className="card-def">{definitions.get(term) ?? 'Определения нет в словаре книги.'}</p>}
       <div className="card-actions">
-        <button type="button" aria-pressed={mark === 'know'} onClick={() => update((p) => setCard(p, term, 'know'))}>
+        <button type="button" className="btn card-action" aria-pressed={mark === 'know'} onClick={() => update((p) => setCard(p, term, 'know'))}>
           Знаю
         </button>
-        <button type="button" aria-pressed={mark === 'repeat'} onClick={() => update((p) => setCard(p, term, 'repeat'))}>
+        <button type="button" className="btn card-action" aria-pressed={mark === 'repeat'} onClick={() => update((p) => setCard(p, term, 'repeat'))}>
           Повторить
         </button>
       </div>
