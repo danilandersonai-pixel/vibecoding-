@@ -159,7 +159,15 @@ export const DaySchema = z
     need(day.mentor.questions.length >= 2, 'mentor', 'У наставника нужно не меньше 2 вопросов')
   })
 
+// Неделя курса: номер, название и итог недели (читают карта на главной и шапка дня)
+export const WeekSchema = z.object({
+  number: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  title: z.string().min(1),
+  result: z.string().min(1),
+})
+
 export type Day = z.infer<typeof DaySchema>
+export type Week = z.infer<typeof WeekSchema>
 export type Block = z.infer<typeof BlockSchema>
 export type Hotspot = z.infer<typeof HotspotSchema>
 export type BookRef = z.infer<typeof BookRefSchema>

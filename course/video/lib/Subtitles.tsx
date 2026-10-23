@@ -1,12 +1,15 @@
+import { useContext } from 'react'
 import { AbsoluteFill, useCurrentFrame } from 'remotion'
 import { theme } from '../theme'
 import type { Cue } from '../types'
+import { SubtitlesShown } from './subtitlesShown'
 
-// Субтитры всегда в кадре: текущая реплика на полупрозрачной плашке внизу.
+// Субтитры в кадре: текущая реплика на полупрозрачной плашке внизу. Выключает их только плеер сайта — на обложке ролика.
 export function Subtitles({ cues }: { cues: Cue[] }) {
   const frame = useCurrentFrame()
+  const shown = useContext(SubtitlesShown)
   const cue = cues.find((c) => frame >= c.from && frame < c.to)
-  if (!cue) return null
+  if (!shown || !cue) return null
   return (
     <AbsoluteFill style={{ justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 36, pointerEvents: 'none' }}>
       <div

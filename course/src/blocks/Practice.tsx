@@ -1,38 +1,41 @@
 import { CopyButton } from '../components/CopyButton'
+import { IconCheck } from '../components/icons'
 import type { PracticeStep } from '../content/schema'
 import { useCourseProgress } from '../progress/courseProgress'
 import { markStep } from '../progress/model'
 
-// Шаги практики: галочка, готовый запрос для Claude Code и критерий «готово».
+// Шаги практики: каждый — карточка с галочкой, готовым запросом для Claude Code и критерием «готово».
+// Счёт «Сделано a из b шагов» — в заголовке части (DayPage), здесь его нет
 export function Practice({ dayId, steps }: { dayId: string; steps: PracticeStep[] }) {
   const { progress, update } = useCourseProgress()
   const done = progress.days[dayId]?.steps ?? {}
-  const count = steps.filter((s) => done[s.id]).length
   return (
-    <div className="practice">
-      <p className="practice-count">
-        Сделано {count} из {steps.length}
-      </p>
-      <ol className="practice-steps">
-        {steps.map((s) => (
-          <li key={s.id} className={`practice-step${done[s.id] ? ' is-done' : ''}`}>
-            <label className="practice-title">
-              <input type="checkbox" checked={Boolean(done[s.id])} onChange={(e) => update((p) => markStep(p, dayId, s.id, e.target.checked))} />
-              <span>{s.title}</span>
-            </label>
-            {s.prompt && (
-              <div className="prompt-box">
-                <div className="prompt-head">
-                  <span>Запрос</span>
-                  <CopyButton text={s.prompt} />
-                </div>
-                <pre>{s.prompt}</pre>
+    <ol className="practice-steps">
+      {steps.map((s, i) => (
+        <li key={s.id} className={`practice-step paper${done[s.id] ? ' is-done' : ''}`}>
+          <label className="practice-title">
+            <input type="checkbox" checked={Boolean(done[s.id])} onChange={(e) => update((p) => markStep(p, dayId, s.id, e.target.checked))} />
+            <span>
+              Шаг {i + 1}. {s.title}
+            </span>
+          </label>
+          {s.prompt && (
+            <div className="prompt-box">
+              <div className="prompt-head">
+                <span className="kicker prompt-kicker">Запрос для Claude Code</span>
+                <CopyButton text={s.prompt} tone="term" />
               </div>
-            )}
-            <p className="practice-done">Готово, когда: {s.done}</p>
-          </li>
-        ))}
-      </ol>
-    </div>
+              <pre>{s.prompt}</pre>
+            </div>
+          )}
+          <p className="practice-done">
+            <IconCheck size={20} />
+            <span>
+              <strong>Готово, когда:</strong> {s.done}
+            </span>
+          </p>
+        </li>
+      ))}
+    </ol>
   )
 }

@@ -4,6 +4,8 @@
 
 Опубликованная версия — приватная страница Claude: https://claude.ai/artifact/DQS4Yzu177UmpDCoXDuYJ4
 
+Вид курса («обложка книги»: цвета, шрифты, главная, страница дня, плеер) описан в [`docs/superpowers/specs/2026-10-23-course-look-design.md`](../docs/superpowers/specs/2026-10-23-course-look-design.md), макеты — https://claude.ai/artifact/LHfwPSbDtbWzjbKYWuonzs
+
 ## Запуск на своём компьютере
 
 ```bash

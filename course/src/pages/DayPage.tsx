@@ -6,91 +6,117 @@ import { Quiz } from '../blocks/Quiz'
 import { BlockView } from '../components/BlockView'
 import { RouteLink } from '../components/RouteLink'
 import { getDay } from '../content/load'
-import { DAY_COUNT } from '../router'
+import type { Block, Day } from '../content/schema'
+import { dayParts, type PartId } from '../course/dayParts'
+import { plural } from '../course/summary'
+import { DayHeader } from '../day/DayHeader'
+import { DayToc } from '../day/DayToc'
+import { DraftNotice } from '../day/DraftNotice'
+import { NextDayCard } from '../day/NextDayCard'
+import { PartHeading } from '../day/PartHeading'
+import { useCourseProgress } from '../progress/courseProgress'
+import type { Progress } from '../progress/model'
 
-function Nav({ n }: { n: number }) {
-  return (
-    <nav className="day-nav">
-      <RouteLink to="#/">
-        <span aria-hidden="true">← </span>К карте
-      </RouteLink>
-      {n < DAY_COUNT && (
-        <RouteLink to={`#/day/${n + 1}`}>
-          Следующий день<span aria-hidden="true"> →</span>
-        </RouteLink>
-      )}
-    </nav>
-  )
+// Содержимое части дня; «Зачем сегодня» — в шапке дня (DayHeader)
+function PartBody({ id, day }: { id: PartId; day: Day }) {
+  switch (id) {
+    case 'theory': {
+      // Мысли и ролики нумеруются только между собой: «Мысль 2 из 6», хотя перед ней ролики и схема
+      const ideas = day.blocks.filter((b) => b.type === 'idea')
+      const videos = day.blocks.filter((b) => b.type === 'video')
+      const view = (b: Block, i: number) => (
+        <BlockView
+          key={i}
+          block={b}
+          dayId={day.id}
+          ideaIndex={b.type === 'idea' ? { i: ideas.indexOf(b) + 1, n: ideas.length } : undefined}
+          videoIndex={b.type === 'video' ? videos.indexOf(b) + 1 : undefined}
+        />
+      )
+      // Подряд идущие ролики — одной сеткой: два в ряд на широком экране
+      const runs: { at: number; blocks: Block[] }[] = []
+      day.blocks.forEach((b, i) => {
+        const last = runs[runs.length - 1]
+        if (b.type === 'video' && last?.blocks[0].type === 'video') last.blocks.push(b)
+        else runs.push({ at: i, blocks: [b] })
+      })
+      return runs.map(({ at, blocks }) =>
+        blocks[0].type === 'video' ? (
+          <div key={at} className="video-grid">
+            {blocks.map((b, j) => view(b, at + j))}
+          </div>
+        ) : (
+          view(blocks[0], at)
+        ),
+      )
+    }
+    case 'quiz':
+      return <Quiz day={day} />
+    case 'practice':
+      return <Practice dayId={day.id} steps={day.practice} />
+    case 'mentor':
+      return <MentorBlock day={day} />
+    case 'summary':
+      return (
+        <>
+          <Notes dayId={day.id} />
+          <Cards day={day} />
+        </>
+      )
+    case 'why':
+      return null
+  }
 }
 
-function Soon() {
-  return <p className="soon">Скоро</p>
+// «Сделано a из b шагов» — справа в заголовке «Практики»; у самого блока практики своего счёта нет
+function stepsLine(day: Day, progress: Progress): string {
+  const steps = progress.days[day.id]?.steps ?? {}
+  const done = day.practice.filter((s) => steps[s.id]).length
+  const total = day.practice.length
+  return `Сделано ${done} из ${total} ${plural(total, 'шага', 'шагов', 'шагов')}`
 }
 
-// Страница дня: шесть блоков в порядке спецификации.
+// Страница дня: синяя шапка во всю ширину, под ней план дня и части — только те, где есть содержание;
+// вместо пустых частей одна карточка «Остальное готовится», в конце — «Следующий день»
 export function DayPage({ n }: { n: number }) {
+  const { progress } = useCourseProgress()
   const day = getDay(n)
   if (!day) {
     return (
-      <article className="day">
-        <Nav n={n} />
-        <h1>День {n}</h1>
-        <p className="soon">Этот день ещё готовится.</p>
-      </article>
+      <main className="day-cover">
+        <div className="day-wrap day-cover-inner">
+          <h1 className="day-title">День не найден</h1>
+          <p>
+            <RouteLink to="#/" className="btn btn-cover next-day-btn">
+              К карте
+            </RouteLink>
+          </p>
+        </div>
+      </main>
     )
   }
-  const { theory, practice } = day.minutes
+  const parts = dayParts(day, progress)
+  const missing = parts.filter((p) => !p.available).map((p) => p.id)
   return (
-    <article className="day">
-      <Nav n={n} />
-      <p className="day-kicker">
-        День {day.number} · неделя {day.week}
-        {day.status === 'draft' && <span className="badge">готовится</span>}
-      </p>
-      <h1>{day.title}</h1>
-
-      <section className="day-section" aria-labelledby="why">
-        <h2 id="why">Зачем сегодня</h2>
-        <p>{day.goal}</p>
-        {day.result && (
-          <p>
-            <strong>Результат дня:</strong> {day.result}
-          </p>
-        )}
-        {theory + practice > 0 && (
-          <p className="day-minutes">
-            Теория ≈ {theory} мин · практика ≈ {practice} мин
-          </p>
-        )}
-      </section>
-
-      <section className="day-section" aria-labelledby="theory">
-        <h2 id="theory">Теория</h2>
-        {day.blocks.length ? day.blocks.map((b, i) => <BlockView key={i} block={b} dayId={day.id} />) : <Soon />}
-      </section>
-
-      <section className="day-section" aria-labelledby="quiz">
-        <h2 id="quiz">Проверка понимания</h2>
-        {day.quiz.length ? <Quiz day={day} /> : <Soon />}
-      </section>
-
-      <section className="day-section" aria-labelledby="practice">
-        <h2 id="practice">Практика</h2>
-        {day.practice.length ? <Practice dayId={day.id} steps={day.practice} /> : <Soon />}
-      </section>
-
-      <section className="day-section" aria-labelledby="mentor">
-        <h2 id="mentor">Наставник</h2>
-        {day.mentor.checklist.length ? <MentorBlock day={day} /> : <Soon />}
-      </section>
-
-      <section className="day-section" aria-labelledby="summary">
-        <h2 id="summary">Итог дня</h2>
-        <Notes dayId={day.id} />
-        <Cards day={day} />
-      </section>
-
-      <Nav n={n} />
-    </article>
+    <>
+      <DayHeader day={day} />
+      <div className="day-wrap day-layout">
+        <DayToc parts={parts} showProgress={day.status !== 'draft'} />
+        <main className="day-main">
+          {parts.map(
+            (p, i) =>
+              p.available &&
+              p.id !== 'why' && (
+                <section key={p.id} id={`part-${p.id}`} className="day-part" aria-labelledby={`part-${p.id}-title`}>
+                  <PartHeading part={p} index={i} extra={p.id === 'practice' ? stepsLine(day, progress) : undefined} />
+                  <PartBody id={p.id} day={day} />
+                </section>
+              ),
+          )}
+          {missing.length > 0 && <DraftNotice missing={missing} />}
+          <NextDayCard day={day} />
+        </main>
+      </div>
+    </>
   )
 }

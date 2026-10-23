@@ -5,6 +5,20 @@ h1,h2,h3{font-family:var(--font-ui);line-height:1.2;color:var(--ink)}
 button{font:inherit;cursor:pointer}
 code,pre{font-family:var(--font-code)}
 a{color:var(--accent-ink)}
-.shell{max-width:880px;margin:0 auto;padding:24px 16px 64px}
-.shell-head h1{font-weight:760;font-size:1.7rem;letter-spacing:-.02em;margin:0 0 4px}
-.shell-head p{margin:0;color:var(--ink-soft);font-family:var(--font-ui);font-size:.95rem}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* Текст только для чтения с экрана: «сделано» у пунктов плана дня */
+.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* Кнопки и ссылки-кнопки: всё нажимаемое не меньше 44 × 44 px; варианты меняют только цвета */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:6px 16px;border:1px solid var(--rule);border-radius:var(--radius-m);background:var(--paper);color:var(--ink);font:500 .9rem/1.3 var(--font-ui);text-decoration:none}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+/* Текст на акценте — --fig-on: белый в светлой теме, тёмный в тёмной (белый на светлом акценте тёмной темы даёт 2,5 : 1) */
+.btn-primary,.btn-primary:hover:not(:disabled){background:var(--accent);border-color:var(--accent);color:var(--fig-on)}
+.btn-cover,.btn-cover:hover:not(:disabled){background:var(--cover-ink);border-color:var(--cover-ink);color:var(--cover-bg)}
+.btn-ghost{background:transparent;border-color:currentColor;color:inherit}
+
+/* Кикер над заголовком и «бумага» — карточка раздела */
+.kicker{margin:0;font:600 13px/1.4 var(--font-ui);text-transform:uppercase;letter-spacing:.16em;color:var(--ink-soft)}
+.paper{background:var(--paper);border:1px solid var(--paper-edge);border-radius:var(--radius-xl)}

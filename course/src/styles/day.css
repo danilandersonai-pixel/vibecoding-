@@ -1,0 +1,121 @@
+/* Страница дня: ширина содержимого и поля, как у главной */
+.day-wrap{max-width:var(--content);margin:0 auto;padding-inline:32px}
+
+/* Шапка дня — синий лист во всю ширину, ниже обложки главной. На синем рамка фокуса светлая: акцент там почти не виден */
+.day-cover{background:var(--cover-bg);color:var(--cover-ink);font-family:var(--font-ui)}
+.day-cover :focus-visible,.next-day :focus-visible{outline-color:var(--cover-ink)}
+.day-cover-inner{display:flex;flex-direction:column;gap:32px;padding-top:24px;padding-bottom:48px}
+.day-bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 16px}
+.day-bar-group{display:flex;align-items:center;gap:12px}
+.day-bar-days{gap:8px}
+.day-mark{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-s);background:var(--cover-ink);color:var(--cover-bg);font:800 16px/1 var(--font-ui)}
+.day-bar-link{display:inline-flex;align-items:center;gap:6px;min-height:44px;color:var(--cover-soft);font:500 15px/1 var(--font-ui);text-decoration:none}
+.day-bar-link:hover{color:var(--cover-ink)}
+.day-step{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid color-mix(in srgb,var(--cover-ink) 25%,transparent);border-radius:var(--radius-s);color:var(--cover-ink);font:500 17px/1 var(--font-ui);text-decoration:none}
+a.day-step:hover{border-color:var(--cover-ink)}
+.day-step[aria-disabled="true"]{opacity:.35}
+.day-count{padding:0 6px;color:var(--cover-soft);font:500 14px/1 var(--font-ui)}
+
+/* «Зачем сегодня»: тема, цель, метки и «Результат дня». Прокрутка к ней возвращает в самый верх страницы */
+.day-hero{display:flex;flex-wrap:wrap;gap:40px;align-items:flex-end;scroll-margin-top:200px}
+.day-hero-text{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.day-kicker{color:var(--cover-soft);letter-spacing:.18em;overflow-wrap:break-word}
+.day-title{margin:0;color:var(--cover-ink);font:800 60px/1 var(--font-ui);letter-spacing:-.035em;text-wrap:balance;overflow-wrap:break-word}
+.day-goal{margin:0;max-width:36em;color:var(--cover-soft);font:italic 400 20px/1.45 var(--font-body)}
+.day-facts{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 0;padding:0;list-style:none;font:500 14px/1.2 var(--font-ui)}
+.day-facts li{padding:8px 13px;border-radius:999px;background:color-mix(in srgb,var(--cover-ink) 10%,transparent)}
+.day-result{flex:1 1 340px;min-width:0;display:flex;gap:16px;align-items:flex-start;padding:18px 20px;border:1px solid color-mix(in srgb,var(--cover-ink) 16%,transparent);border-radius:var(--radius-l);background:color-mix(in srgb,var(--cover-ink) 8%,transparent)}
+.day-result svg{flex:none}
+.day-result-body{min-width:0;display:flex;flex-direction:column;gap:6px}
+.day-result-kicker{color:var(--cover-add);letter-spacing:.14em}
+.day-result-text{margin:0;color:var(--cover-ink);font:400 15px/1.5 var(--font-ui)}
+
+/* Под шапкой: план дня колонкой слева (240 px), справа части дня */
+.day-layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:40px;align-items:start;padding-top:40px;padding-bottom:96px}
+.day-main{min-width:0;display:flex;flex-direction:column;gap:48px}
+.day-part{scroll-margin-top:24px}
+
+/* План дня: прилипает к верху; полоса заполняется за 400 мс */
+.toc{position:sticky;top:16px;z-index:5;display:flex;flex-direction:column;gap:14px;padding:20px;font-family:var(--font-ui)}
+.toc-kicker{letter-spacing:.14em}
+.toc-bar{height:6px;border-radius:999px;background:var(--rule);overflow:hidden}
+.toc-bar span{display:block;height:100%;border-radius:inherit;background:var(--accent);transition:width .4s ease-out}
+.toc-count{margin:0;color:var(--ink-soft);font:500 13px/1.3 var(--font-ui)}
+.toc-list{display:flex;flex-direction:column;gap:2px;margin:4px 0 0;padding:0;list-style:none}
+.toc-item{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:6px 10px;border:0;border-radius:var(--radius-s);background:none;color:var(--ink);font:600 15px/1.25 var(--font-ui);text-align:left}
+.toc-item:hover:not(:disabled){background:var(--tint)}
+.toc-item.is-current{background:var(--tint);color:var(--accent-ink)}
+.toc-item:disabled{color:var(--ink-soft);cursor:default}
+.toc-num{flex:none;display:flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.5px solid var(--fig-line);border-radius:var(--radius-s);color:var(--ink-soft);font:700 13px/1 var(--font-ui)}
+.toc-item.is-current .toc-num{border-color:var(--accent);background:var(--accent);color:var(--fig-on)}
+.toc-item.is-done .toc-num{border-color:var(--fig-ok);background:var(--fig-ok);color:var(--fig-on)}
+.toc-item:disabled .toc-num{border-style:dashed;border-color:var(--rule)}
+.toc-soon{margin-left:auto;font:italic 400 13px/1 var(--font-ui)}
+
+/* Заголовок части: номер в квадрате 40 px и название */
+.part-head{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:0 0 22px}
+.part-num{flex:none;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border:2px solid var(--fig-line);border-radius:var(--radius-s);background:var(--paper);color:var(--ink-soft);font:800 18px/1 var(--font-ui)}
+.part-num.is-done{border-color:var(--fig-ok);background:var(--fig-ok);color:var(--fig-on)}
+.part-title{margin:0;min-width:0;font:800 32px/1.1 var(--font-ui);letter-spacing:-.025em;overflow-wrap:break-word}
+.part-extra{margin-left:auto;color:var(--ink-soft);font:600 14px/1.3 var(--font-ui)}
+
+/* «Остальное готовится» — бумага с агентом на синей плашке */
+.draft-notice{display:flex;align-items:center;gap:20px;padding:24px 28px}
+.draft-agent{flex:none;display:flex;align-items:center;justify-content:center;width:88px;height:88px;border-radius:50%;background:var(--cover-bg)}
+.draft-text{margin:0;min-width:0;font:500 17px/1.5 var(--font-ui)}
+
+/* «Следующий день» — большая синяя карточка */
+.next-day{display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:28px 32px;border-radius:var(--radius-xl);background:var(--cover-bg);color:var(--cover-ink);font-family:var(--font-ui)}
+.next-day-text{flex:999 1 360px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.next-day-kicker{color:var(--cover-soft)}
+.next-day-title{margin:0;color:var(--cover-ink);font:800 30px/1.15 var(--font-ui);letter-spacing:-.02em;overflow-wrap:break-word}
+.next-day-meta{margin:0;color:var(--cover-soft);font:400 15px/1.4 var(--font-ui)}
+.next-day-btn{flex:none;min-height:52px;padding:0 24px;gap:10px;font:700 16px/1.2 var(--font-ui)}
+
+/* Планшет и телефон: план — полоса «таблеток» под шапкой, прилипает к верху и прокручивается вбок только внутри себя */
+@media (max-width:960px){
+  .day-layout{grid-template-columns:minmax(0,1fr);gap:32px;padding-top:0}
+  .toc{top:0;margin-inline:-32px;padding:6px 0;border-width:0 0 1px;border-radius:0}
+  .toc-kicker,.toc-bar,.toc-count{display:none}
+  .toc-list{flex-direction:row;gap:8px;margin:0;padding:4px 32px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
+  .toc-list li{flex:none}
+  .toc-item{gap:6px;width:auto;padding:0 14px;border:1px solid var(--paper-edge);border-radius:999px;font-size:14px;white-space:nowrap}
+  .toc-num{width:auto;height:auto;border:0;background:none;color:inherit;font:inherit}
+  .toc-item.is-current,.toc-item.is-current:hover{border-color:var(--accent);background:var(--accent);color:var(--fig-on)}
+  .toc-item.is-done,.toc-item.is-done:hover{border-color:var(--fig-ok);background:var(--fig-ok);color:var(--fig-on)}
+  .toc-item.is-current .toc-num,.toc-item.is-done .toc-num{background:none}
+  /* Пройденная и одновременно текущая — зелёная, текущую выдаёт акцентная рамка 2 px через просвет цвета полосы */
+  .toc-item.is-done.is-current{box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--accent)}
+  .toc-item:disabled{border-style:dashed}
+  .toc-soon{margin-left:2px}
+  .day-part{scroll-margin-top:80px}
+}
+
+@media (max-width:640px){
+  .day-wrap{padding-inline:16px}
+  .day-cover-inner{gap:18px;padding-top:14px;padding-bottom:28px}
+  .day-mark{display:none}
+  .day-hero{gap:18px}
+  .day-hero-text{gap:14px}
+  .day-title{font-size:36px;line-height:1.02;letter-spacing:-.03em}
+  .day-goal{font-size:17px}
+  .day-facts{gap:8px;margin-top:2px;font-size:13px}
+  .day-facts li{padding:8px 11px}
+  .day-layout{gap:24px;padding-bottom:64px}
+  .toc{margin-inline:-16px}
+  .toc-list{padding-inline:16px}
+  .day-main{gap:28px}
+  .part-title{font-size:26px}
+  .draft-notice{gap:16px;padding:20px}
+  .draft-agent{width:72px;height:72px}
+  .next-day{padding:22px 18px}
+  .next-day-title{font-size:24px}
+  .next-day-btn{width:100%}
+}
+
+/* Мелочи блоков дня: «готовится» */
+.soon{color:var(--ink-soft);font:italic 400 .95rem/1.4 var(--font-ui)}
+.block{margin:12px 0}
+.block-soon{border:1px dashed var(--rule);border-radius:8px;padding:8px 14px}
+.block-soon-title{font:600 .95rem/1.4 var(--font-ui);margin:6px 0 0}
+.block-soon .soon{margin:4px 0}

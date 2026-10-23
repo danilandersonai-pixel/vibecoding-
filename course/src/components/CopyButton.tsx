@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
 // Копирует текст; если буфер обмена недоступен — показывает поле с выделенным текстом.
-export function CopyButton({ text }: { text: string }) {
+// tone — цвета блока, где стоит кнопка: тёмного блока запроса (term) или синей карточки наставника (cover)
+export function CopyButton({ text, tone = 'term' }: { text: string; tone?: 'term' | 'cover' }) {
   const [state, setState] = useState<'idle' | 'copied' | 'manual'>('idle')
   const field = useRef<HTMLTextAreaElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -23,8 +24,8 @@ export function CopyButton({ text }: { text: string }) {
   }
 
   return (
-    <span className="copy">
-      <button type="button" className="btn btn-small" onClick={() => void copy()}>
+    <span className={`copy copy-${tone}`}>
+      <button type="button" className={`btn copy-btn copy-btn-${tone}`} onClick={() => void copy()}>
         {state === 'copied' ? 'Скопировано' : 'Скопировать'}
       </button>
       {state === 'manual' && (
