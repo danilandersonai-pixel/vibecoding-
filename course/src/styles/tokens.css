@@ -1,11 +1,14 @@
-/* Цветовые токены и шрифты книги «Вайб-кодинг на практике» (перенесены без изменений) */
+/* Цветовые токены и шрифты книги «Вайб-кодинг на практике». От книги отличаются: светлый фон страницы, цвета обложки и блока кода во всех темах, скругления и ширина содержимого */
 :root{
-  --desk:#D9DCD7; --desk-ink:#24272D; --desk-soft:#5D626B;
+  --desk:#F4F2EC; --desk-ink:#24272D; --desk-soft:#5D626B;
   --paper:#FBFAF6; --paper-edge:#DEDBD2; --ink:#1C1E22; --ink-soft:#5B606A; --rule:#DAD7CE;
   --accent:#2B3FBF; --accent-ink:#2B3FBF; --tint:rgba(43,63,191,.075); --code-bg:#EFEEE8; --warn:#AE3F1C;
   --cover-bg:#1D2B8F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E;
+  --term-bg:#1F2228; --term-ink:#E8E5DD; --term-soft:#A4A8B0; --term-edge:#3A3E46;
   --fig-ink:#1C1E22; --fig-soft:#5B606A; --fig-line:#A3A196; --fig-grid:#D4D1C7; --fig-zone:rgba(28,30,34,.035); --fig-risk:#C4432C;
-  --shadow:0 26px 50px -28px rgba(18,22,40,.55),0 6px 14px -8px rgba(18,22,40,.25);
+  --fig-ok:#2E7D5B; --fig-on:#FFFFFF;
+  --shadow-raised:0 26px 50px -28px rgba(18,22,40,.55),0 6px 14px -8px rgba(18,22,40,.25);
+  --radius-xl:20px; --radius-l:16px; --radius-m:14px; --radius-s:10px; --content:1200px;
   --font-body:'Literata',Georgia,'Times New Roman',serif;
   --font-ui:'Onest','Segoe UI',Roboto,Arial,sans-serif;
   --font-code:'JetBrains Mono',Menlo,Consolas,'Courier New',monospace;
@@ -14,19 +17,21 @@
   --desk:#111317; --desk-ink:#DCDDE1; --desk-soft:#9A9EA7;
   --paper:#1F2228; --paper-edge:#30343B; --ink:#E8E5DD; --ink-soft:#A4A8B0; --rule:#3A3E46;
   --accent:#8D9CFF; --accent-ink:#A8B3FF; --tint:rgba(141,156,255,.12); --code-bg:#2A2D34; --warn:#F18D6B;
+  --cover-bg:#18236F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E;
+  --term-bg:#2A2D34; --term-ink:#E8E5DD; --term-soft:#A4A8B0; --term-edge:#3A3E46;
   --fig-ink:#E8E5DD; --fig-soft:#A4A8B0; --fig-line:#767A83; --fig-grid:#3C4048; --fig-zone:rgba(255,255,255,.035); --fig-risk:#F2765E;
-  --shadow:0 26px 50px -24px rgba(0,0,0,.85),0 6px 14px -8px rgba(0,0,0,.6);
+  --fig-ok:#5CC49A; --fig-on:#1B1D24;
+  --shadow-raised:0 26px 50px -24px rgba(0,0,0,.85),0 6px 14px -8px rgba(0,0,0,.6);
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
   --desk:#111317; --desk-ink:#DCDDE1; --desk-soft:#9A9EA7;
   --paper:#1F2228; --paper-edge:#30343B; --ink:#E8E5DD; --ink-soft:#A4A8B0; --rule:#3A3E46;
   --accent:#8D9CFF; --accent-ink:#A8B3FF; --tint:rgba(141,156,255,.12); --code-bg:#2A2D34; --warn:#F18D6B;
+  --cover-bg:#18236F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E;
+  --term-bg:#2A2D34; --term-ink:#E8E5DD; --term-soft:#A4A8B0; --term-edge:#3A3E46;
   --fig-ink:#E8E5DD; --fig-soft:#A4A8B0; --fig-line:#767A83; --fig-grid:#3C4048; --fig-zone:rgba(255,255,255,.035); --fig-risk:#F2765E;
-  --shadow:0 26px 50px -24px rgba(0,0,0,.85),0 6px 14px -8px rgba(0,0,0,.6);
+  --fig-ok:#5CC49A; --fig-on:#1B1D24;
+  --shadow-raised:0 26px 50px -24px rgba(0,0,0,.85),0 6px 14px -8px rgba(0,0,0,.6);
   color-scheme:dark;
 }
-/* Итоговые цвета схем из книги: в ней они задаются отдельными блоками поверх основных */
-:root{--fig-ok:#2E7D5B;--fig-on:#FFFFFF}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--fig-ok:#5CC49A;--fig-on:#1B1D24}}
-:root[data-theme="dark"]{--fig-ok:#5CC49A;--fig-on:#1B1D24}
