@@ -21,6 +21,15 @@ describe('App', () => {
     expect(document.querySelector('.shell')).toBeNull()
   })
 
+  it('страница дня: шапка во всю ширину и ровно один main', () => {
+    window.location.hash = '#/day/1'
+    render(<App />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Азбука и знакомство с моделями' })).toBeInTheDocument()
+    expect(screen.getAllByRole('main')).toHaveLength(1)
+    expect(screen.getByRole('banner').closest('main')).toBeNull()
+    expect(document.querySelector('.shell')).toBeNull()
+  })
+
   it('неизвестный адрес открывает главную', () => {
     window.location.hash = '#/day/99'
     render(<App />)

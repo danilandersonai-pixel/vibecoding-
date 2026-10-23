@@ -54,7 +54,7 @@ test('прохождение дня 1: день пройден, серия = 1',
   for (const step of day.practice) await page.getByRole('checkbox', { name: step.title }).check()
   await page.getByRole('checkbox', { name: 'Наставник принял день' }).check()
 
-  await page.goto('/')
+  await page.getByRole('link', { name: 'Карта курса' }).click()
   await expect(page.getByTestId('day-card').first()).toContainText('пройден')
   await expect(page.getByRole('region', { name: 'Продолжить обучение' })).toContainText('1 день подряд')
 })

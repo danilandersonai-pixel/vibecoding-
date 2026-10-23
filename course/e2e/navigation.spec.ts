@@ -6,9 +6,18 @@ test('карта показывает 21 день, день 1 открывает
   await page.getByTestId('day-card').first().click()
   await expect(page).toHaveURL(/#\/day\/1$/)
   await expect(page.getByText('Понять, из чего состоит приложение')).toBeVisible()
-  // Ссылку «Карта курса» на странице дня даст задача 8; пока возвращаемся по адресу
-  await page.goto('/')
+  await page.getByRole('link', { name: 'Карта курса' }).click()
+  await expect(page).toHaveURL(/#\/$/)
   await expect(page.getByTestId('day-card')).toHaveCount(21)
+})
+
+test('план дня прокручивает к практике', async ({ page }) => {
+  await page.goto('/#/day/1')
+  const practice = page.locator('#part-practice')
+  await expect(practice).not.toBeInViewport()
+  await page.getByRole('navigation', { name: 'План дня' }).getByRole('button', { name: 'Практика' }).click()
+  await expect(practice).toBeInViewport()
+  await expect(page).toHaveURL(/#\/day\/1$/)
 })
 
 test('ссылка в книгу открывает нужный раздел', async ({ page, request }) => {

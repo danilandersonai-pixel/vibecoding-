@@ -116,6 +116,11 @@ describe('tokens.css', () => {
       ['--accent', '--paper'],
       ['--ink', ['--paper', '--tint']], ['--ink-soft', ['--paper', '--tint']],
       ['--ink', ['--paper', ['--fig-ok', 0.12]]], ['--ink', ['--paper', '--tint', ['--fig-ok', 0.12]]],
+      // Страница дня: метки шапки (10 % светлого на синем), «Результат дня» (8 %), текущий пункт плана, пройденная часть
+      ['--cover-ink', ['--cover-bg', ['--cover-ink', 0.1]]],
+      ['--cover-ink', ['--cover-bg', ['--cover-ink', 0.08]]], ['--cover-add', ['--cover-bg', ['--cover-ink', 0.08]]],
+      ['--accent-ink', ['--paper', '--tint']],
+      ['--fig-on', '--fig-ok'],
     ]
     const themes: [string, Record<string, string>][] = [['светлая', light], ['тёмная', dark]]
     for (const [themeName, theme] of themes) {

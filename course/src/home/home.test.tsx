@@ -2,22 +2,15 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getDay, getDays } from '../content/load'
-import type { Day } from '../content/schema'
 import { currentDay } from '../course/currentDay'
 import { CourseProgressContext, useCourseProgress } from '../progress/courseProgress'
-import { emptyProgress, markStep, recordQuiz, setMentorAccepted, type Progress } from '../progress/model'
+import { emptyProgress, type Progress } from '../progress/model'
+import { finishDay } from '../test/progress'
 import { ContinueCard } from './ContinueCard'
 import { coverCta } from './cta'
 import { DaySteps } from './DaySteps'
 import { HomeCover } from './HomeCover'
 import { scrollToId } from './scroll'
-
-// Отмечает день пройденным: все шаги практики, тест без ошибок, наставник принял
-function finish(p: Progress, day: Day): Progress {
-  const withSteps = day.practice.reduce((acc, s) => markStep(acc, day.id, s.id, true), p)
-  const withQuiz = recordQuiz(withSteps, day.id, {}, day.quiz.length, day.quiz.length)
-  return setMentorAccepted(withQuiz, day.id, true)
-}
 
 // Верх главной так, как его соберёт MapPage; карта — пустое место с id="map" для прокрутки
 function Top() {
@@ -60,7 +53,7 @@ describe('верх главной', () => {
   })
 
   it('вернувшийся: «Продолжить день 2», пройдено 1 из 21, серия', () => {
-    const progress = { ...finish(emptyProgress(), getDay(1)!), streak: { lastDate: '2026-10-22', count: 3 } }
+    const progress = { ...finishDay(emptyProgress(), getDay(1)!), streak: { lastDate: '2026-10-22', count: 3 } }
     const card = renderTop(progress)
     expect(screen.getByRole('link', { name: 'Продолжить день 2' })).toHaveAttribute('href', '#/day/2')
     expect(card.getByText('Вы остановились здесь · пройдено 1 из 21')).toBeInTheDocument()
@@ -73,7 +66,7 @@ describe('верх главной', () => {
   it('всё пройдено: «Курс пройден»', async () => {
     const user = userEvent.setup()
     const scroll = vi.spyOn(Element.prototype, 'scrollIntoView')
-    const card = renderTop(getDays().reduce(finish, emptyProgress()))
+    const card = renderTop(getDays().reduce(finishDay, emptyProgress()))
     expect(card.getByText('Курс пройден')).toBeInTheDocument()
     expect(card.getByText('100%')).toBeInTheDocument()
     expect(card.queryByRole('link', { name: 'Продолжить' })).toBeNull()

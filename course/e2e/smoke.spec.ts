@@ -9,3 +9,16 @@ for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, {
     expect(fits).toBe(true)
   })
 }
+
+// Страница дня: шапка и полоса плана дня не выталкивают страницу вбок — полоса прокручивается только внутри себя
+for (const size of [{ width: 390, height: 844 }, { width: 320, height: 640 }]) {
+  test(`день 1 открывается на ${size.width}×${size.height} без горизонтальной прокрутки`, async ({ page }) => {
+    await page.setViewportSize(size)
+    await page.goto('/#/day/1')
+    await expect(page.getByRole('heading', { level: 1, name: 'Азбука и знакомство с моделями' })).toBeVisible()
+    const fits = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+    expect(fits).toBe(true)
+    const strip = page.getByRole('navigation', { name: 'План дня' }).getByRole('list')
+    expect(await strip.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true)
+  })
+}

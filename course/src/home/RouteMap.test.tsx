@@ -1,20 +1,13 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { getDays } from '../content/load'
-import type { Day } from '../content/schema'
 import { readinessLine } from '../course/summary'
-import { emptyProgress, markStep, recordQuiz, setMentorAccepted, type Progress } from '../progress/model'
+import { emptyProgress } from '../progress/model'
+import { finishDay } from '../test/progress'
 import { RouteMap } from './RouteMap'
 
-// Отмечает день пройденным: все шаги практики, тест без ошибок, наставник принял
-function finish(p: Progress, day: Day): Progress {
-  const withSteps = day.practice.reduce((acc, s) => markStep(acc, day.id, s.id, true), p)
-  const withQuiz = recordQuiz(withSteps, day.id, {}, day.quiz.length, day.quiz.length)
-  return setMentorAccepted(withQuiz, day.id, true)
-}
-
 const days = getDays()
-const finished = (...numbers: number[]) => numbers.reduce((p, n) => finish(p, days[n - 1]), emptyProgress())
+const finished = (...numbers: number[]) => numbers.reduce((p, n) => finishDay(p, days[n - 1]), emptyProgress())
 const row = (n: number) => screen.getAllByTestId('day-card')[n - 1]
 const mark = (n: number) => within(row(n)).queryByText(/^(пройден|сейчас)$/)?.textContent ?? null
 
@@ -69,7 +62,7 @@ describe('RouteMap', () => {
     expect(days.slice(2).map((d) => mark(d.number))).toEqual(Array(19).fill(null))
 
     // Всё пройдено: «сейчас» нет ни у одного дня
-    rerender(<RouteMap progress={days.reduce(finish, emptyProgress())} />)
+    rerender(<RouteMap progress={days.reduce(finishDay, emptyProgress())} />)
     expect(days.map((d) => mark(d.number))).toEqual(Array(21).fill('пройден'))
   })
 
