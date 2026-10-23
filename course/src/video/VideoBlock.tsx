@@ -1,5 +1,6 @@
 import { Player, type PlayerRef } from '@remotion/player'
 import { useEffect, useId, useRef, useState } from 'react'
+import { SubtitlesShown } from '../../video/lib/subtitlesShown'
 import { totalFrames } from '../../video/lib/timeline'
 import { getClaude, type DownloadsLike } from '../claude'
 import { IconArrow, IconPlay } from '../components/icons'
@@ -177,22 +178,25 @@ function VideoBlockBody({ videoId, title, index }: Props) {
     <figure ref={figureRef} className="block video" aria-labelledby={titleId}>
       <div ref={screenRef} className="video-screen">
         <div className="video-stage">
-          {/* Класс video-frame стилей не имеет — это крючок e2e (кадр ролика нарисован), не удалять */}
-          <Player
-            ref={playerRef}
-            className="video-frame"
-            lazyComponent={load}
-            errorFallback={loadFailed}
-            durationInFrames={frames}
-            compositionWidth={script.width}
-            compositionHeight={script.height}
-            fps={script.fps}
-            initialFrame={meta.posterFrame}
-            style={{ width: '100%', aspectRatio: '16 / 9' }}
-            clickToPlay={false}
-            spaceKeyToPlayOrPause={false}
-            acknowledgeRemotionLicense
-          />
+          {/* Пока ролик стоит на обложке, субтитры кадра обложки не рисуются: под нижним затемнением они только шумят */}
+          <SubtitlesShown.Provider value={started}>
+            {/* Класс video-frame стилей не имеет — это крючок e2e (кадр ролика нарисован), не удалять */}
+            <Player
+              ref={playerRef}
+              className="video-frame"
+              lazyComponent={load}
+              errorFallback={loadFailed}
+              durationInFrames={frames}
+              compositionWidth={script.width}
+              compositionHeight={script.height}
+              fps={script.fps}
+              initialFrame={meta.posterFrame}
+              style={{ width: '100%', aspectRatio: '16 / 9' }}
+              clickToPlay={false}
+              spaceKeyToPlayOrPause={false}
+              acknowledgeRemotionLicense
+            />
+          </SubtitlesShown.Provider>
           {!failed && !started && <VideoCover title={title} label={index ? `Видеоурок ${index}` : 'Видеоурок'} duration={duration} onPlay={start} />}
           {!failed && paused && <HotspotLayer key={frame} hotspots={script.hotspots} frame={frame} />}
           {!failed && ended && (

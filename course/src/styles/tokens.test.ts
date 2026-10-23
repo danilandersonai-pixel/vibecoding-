@@ -145,6 +145,14 @@ describe('tokens.css', () => {
     expect(cssDecls('home.css', '.route-dot').border).toBe('2px solid var(--ink-soft)')
     expect(cssDecls('day.css', '.toc-item.is-done.is-current')['box-shadow']).toBe('0 0 0 2px var(--paper),0 0 0 4px var(--accent)')
   })
+
+  it('метки обложки ролика — светлый текст на синей плашке 75 %: читаются даже на белом кадре', () => {
+    // Затемнение обложки под метками не учитываем — худший случай: кадр ролика под плашкой белый
+    expectContrast(4.5, [['--cover-ink', ['#FFFFFF', ['--cover-bg', 0.75]]]])
+    const label = cssDecls('video.css', '.video-cover-label')
+    expect(label.background).toBe('color-mix(in srgb,var(--cover-bg) 75%,transparent)')
+    expect(label.color).toBe('var(--cover-ink)')
+  })
 })
 
 /** Объявления правил файла стилей, где селектор стоит отдельным пунктом списка (и внутри @media): свойство → значение.

@@ -11,12 +11,14 @@ type FakePlayer = { pause: Spy; play: Spy; toggle: Spy; seekTo: Spy; initialFram
 const fake = vi.hoisted(() => ({ players: [] as FakePlayer[] }))
 
 // Плеер Remotion подменён: ref со шпионами и событиями, запоминает кадр, с которого начал (initialFrame);
-// загрузку ролика и отказ он ведёт как настоящий.
+// загрузку ролика и отказ он ведёт как настоящий, загруженный ролик рисует внутри себя — в том же дереве React.
 vi.mock('@remotion/player', async () => {
   const { createElement, forwardRef, useEffect, useImperativeHandle, useState } = await import('react')
-  type Props = { lazyComponent: () => Promise<unknown>; errorFallback: (info: { error: Error }) => unknown; initialFrame?: number }
+  type Loaded = { default: () => unknown }
+  type Props = { lazyComponent: () => Promise<Loaded>; errorFallback: (info: { error: Error }) => unknown; initialFrame?: number }
   const Player = forwardRef(function Player(props: Props, ref) {
     const [error, setError] = useState<Error | null>(null)
+    const [video, setVideo] = useState<Loaded | null>(null)
     const [api] = useState(() => {
       const handlers = new Map<string, Set<Handler>>()
       const p = {
@@ -36,23 +38,32 @@ vi.mock('@remotion/player', async () => {
     useImperativeHandle(ref, () => api, [api])
     const { lazyComponent } = props
     useEffect(() => {
-      lazyComponent().catch((e: Error) => {
+      lazyComponent().then(setVideo, (e: Error) => {
         setError(e)
         api.emit('error', { error: e })
       })
     }, [api, lazyComponent])
-    return createElement('div', { 'data-testid': 'player' }, error ? (props.errorFallback({ error }) as never) : null)
+    const content = error ? props.errorFallback({ error }) : video ? createElement(video.default as never) : null
+    return createElement('div', { 'data-testid': 'player' }, content as never)
   })
   return { Player }
 })
 
+// Кадр ролика вне композиции Remotion: useCurrentFrame — всегда начало
+vi.mock('remotion', async (importOriginal) => ({ ...(await importOriginal<typeof import('remotion')>()), useCurrentFrame: () => 0 }))
+
 vi.mock('./registry', async () => {
+  const { createElement } = await import('react')
   const { pilotRlsScript } = await import('../../video/pilot-rls/script')
+  const { Subtitles } = await import('../../video/lib/Subtitles')
   const ok = () => Promise.resolve({ default: () => null })
+  // Ролик с настоящими субтитрами: реплика идёт с первого кадра
+  const withSubtitles = () => Promise.resolve({ default: () => createElement(Subtitles, { cues: [{ from: 0, to: 6000, text: 'Первая реплика' }] }) })
   return {
     videos: {
       a: { script: pilotRlsScript, load: ok },
       b: { script: pilotRlsScript, load: ok },
+      subs: { script: pilotRlsScript, load: withSubtitles },
       // 7789 кадров = 259,6 с: полная длительность округляется до 4:20, последний кадр — 4:19 целых секунд
       long: { script: { ...pilotRlsScript, scenes: [{ id: 'всё', durationInFrames: 7789 }] }, load: ok },
       broken: { script: pilotRlsScript, load: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) },
@@ -139,6 +150,16 @@ describe('VideoBlock', () => {
     expect(screen.queryByText(/Нажмите на подсвеченное/)).toBeNull()
     // время в панели — с начала ролика, полная длительность — та же, что на обложке
     expect(screen.getByTestId('video-time')).toHaveTextContent('0:00 / 3:23')
+  })
+
+  it('субтитры ролика: на обложке их нет, после запуска — есть', async () => {
+    const user = userEvent.setup()
+    render(<VideoBlock videoId="subs" title="Ролик" />)
+    await act(async () => {})
+    expect(cover()).toBeInTheDocument()
+    expect(screen.queryByText('Первая реплика')).toBeNull()
+    await user.click(cover()!)
+    expect(screen.getByText('Первая реплика')).toBeInTheDocument()
   })
 
   it('нажатие на обложку запускает ролик с начала', async () => {

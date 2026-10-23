@@ -4,6 +4,7 @@ import { IconArrow } from '../components/icons'
 import { RouteLink } from '../components/RouteLink'
 import { plural } from '../course/summary'
 import { videos } from '../video/registry'
+import type { CoverCta } from './cta'
 import { scrollToId } from './scroll'
 import { SiteBar } from './SiteBar'
 
@@ -25,7 +26,7 @@ const FACTS = [
 ]
 
 // Обложка главной во всю ширину: что за курс, куда нажать, герои роликов и диф
-export function HomeCover({ cta }: { cta: { label: string; to: string } }) {
+export function HomeCover({ cta }: { cta: CoverCta }) {
   return (
     <header className="cover">
       <div className="home-wrap cover-inner">
@@ -38,10 +39,17 @@ export function HomeCover({ cta }: { cta: { label: string; to: string } }) {
               Каждый день — короткая теория, видеоурок и практика в Claude Code. К концу курса у вас работает приложение для тренера и его подопечных.
             </p>
             <div className="cover-actions">
-              <RouteLink to={cta.to} className="btn btn-cover cover-btn">
-                {cta.label}
-                <IconArrow />
-              </RouteLink>
+              {'to' in cta ? (
+                <RouteLink to={cta.to} className="btn btn-cover cover-btn">
+                  {cta.label}
+                  <IconArrow />
+                </RouteLink>
+              ) : (
+                <button type="button" className="btn btn-cover cover-btn" onClick={() => scrollToId(cta.scrollTo)}>
+                  {cta.label}
+                  <IconArrow />
+                </button>
+              )}
               <button type="button" className="btn btn-ghost cover-btn cover-how" onClick={() => scrollToId('how')}>
                 Как устроен курс
               </button>

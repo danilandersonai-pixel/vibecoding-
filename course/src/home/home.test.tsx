@@ -38,6 +38,7 @@ function renderTop(progress: Progress = emptyProgress()) {
 afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+  window.location.hash = ''
 })
 
 describe('верх главной', () => {
@@ -68,11 +69,27 @@ describe('верх главной', () => {
     const scroll = vi.spyOn(Element.prototype, 'scrollIntoView')
     const card = renderTop(getDays().reduce(finishDay, emptyProgress()))
     expect(card.getByText('Курс пройден')).toBeInTheDocument()
+    expect(card.getByText('Пройдено 21 из 21')).toBeInTheDocument()
+    expect(card.getByText('Любой день можно пройти заново — выберите его на карте.')).toBeInTheDocument()
     expect(card.getByText('100%')).toBeInTheDocument()
     expect(card.queryByRole('link', { name: 'Продолжить' })).toBeNull()
     await user.click(card.getByRole('button', { name: 'К карте' }))
     expect(scroll).toHaveBeenCalledTimes(1)
     expect(scroll.mock.contexts[0]).toBe(document.getElementById('map'))
+  })
+
+  it('всё пройдено: кнопка обложки — «К карте», прокручивает к карте, адрес не меняется', async () => {
+    const user = userEvent.setup()
+    window.location.hash = '#/'
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView')
+    renderTop(getDays().reduce(finishDay, emptyProgress()))
+    const cover = within(screen.getByRole('banner'))
+    // в пройденный день 21 обложка не зовёт
+    expect(cover.queryByRole('link', { name: /^Продолжить день/ })).toBeNull()
+    await user.click(cover.getByRole('button', { name: 'К карте' }))
+    expect(scroll).toHaveBeenCalledTimes(1)
+    expect(scroll.mock.contexts[0]).toBe(document.getElementById('map'))
+    expect(window.location.hash).toBe('#/')
   })
 
   it('книга открывается в новой вкладке', () => {

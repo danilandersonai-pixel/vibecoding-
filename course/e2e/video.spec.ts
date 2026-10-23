@@ -56,6 +56,18 @@ test('до запуска ролик не пустой: видна обложк�
   expect(a).toBe(b)
 })
 
+test('на обложке субтитров нет, после запуска — идут', async ({ page }) => {
+  const poster = pilotRlsScript.hotspots[0].from
+  const atPoster = pilotRlsScript.cues.find((c) => poster >= c.from && poster < c.to)!
+  await page.goto('/#/day/4')
+  const frame = page.locator('.video-frame')
+  // кадр обложки уже нарисован, но реплики этого кадра в нём нет
+  await expect(frame.locator('svg').first()).toBeVisible()
+  await expect(frame.getByText(atPoster.text)).toHaveCount(0)
+  await page.getByRole('button', { name: 'Смотреть ролик «Почему тренер не увидит чужих подопечных»' }).click()
+  await expect(frame.getByText(pilotRlsScript.cues[0].text)).toBeVisible({ timeout: 5000 })
+})
+
 test('на дне 1 два ролика: запуск второго ставит первый на паузу', async ({ page }) => {
   await page.goto('/#/day/1')
   await expect(page.getByRole('button', { name: /^Смотреть ролик «/ })).toHaveCount(2)
