@@ -27,7 +27,7 @@ a.day-step:hover{border-color:var(--cover-ink)}
 .day-result{flex:1 1 340px;min-width:0;display:flex;gap:16px;align-items:flex-start;padding:18px 20px;border:1px solid color-mix(in srgb,var(--cover-ink) 16%,transparent);border-radius:var(--radius-l);background:color-mix(in srgb,var(--cover-ink) 8%,transparent)}
 .day-result svg{flex:none}
 .day-result-body{min-width:0;display:flex;flex-direction:column;gap:6px}
-.day-result-kicker{color:var(--cover-add);font-size:12px;letter-spacing:.14em}
+.day-result-kicker{color:var(--cover-add);letter-spacing:.14em}
 .day-result-text{margin:0;color:var(--cover-ink);font:400 15px/1.5 var(--font-ui)}
 
 /* Под шапкой: план дня колонкой слева (240 px), справа части дня */
@@ -37,7 +37,7 @@ a.day-step:hover{border-color:var(--cover-ink)}
 
 /* План дня: прилипает к верху; полоса заполняется за 400 мс */
 .toc{position:sticky;top:16px;z-index:5;display:flex;flex-direction:column;gap:14px;padding:20px;font-family:var(--font-ui)}
-.toc-kicker{font-size:12px;letter-spacing:.14em}
+.toc-kicker{letter-spacing:.14em}
 .toc-bar{height:6px;border-radius:999px;background:var(--rule);overflow:hidden}
 .toc-bar span{display:block;height:100%;border-radius:inherit;background:var(--accent);transition:width .4s ease-out}
 .toc-count{margin:0;color:var(--ink-soft);font:500 13px/1.3 var(--font-ui)}
@@ -84,6 +84,8 @@ a.day-step:hover{border-color:var(--cover-ink)}
   .toc-item.is-current,.toc-item.is-current:hover{border-color:var(--accent);background:var(--accent);color:var(--fig-on)}
   .toc-item.is-done,.toc-item.is-done:hover{border-color:var(--fig-ok);background:var(--fig-ok);color:var(--fig-on)}
   .toc-item.is-current .toc-num,.toc-item.is-done .toc-num{background:none}
+  /* Пройденная и одновременно текущая — зелёная, текущую выдаёт акцентная рамка 2 px через просвет цвета полосы */
+  .toc-item.is-done.is-current{box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--accent)}
   .toc-item:disabled{border-style:dashed}
   .toc-soon{margin-left:2px}
   .day-part{scroll-margin-top:80px}

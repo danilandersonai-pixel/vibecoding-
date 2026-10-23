@@ -76,12 +76,13 @@
 .route-week-title{margin:0;font:760 24px/1.15 var(--font-ui);letter-spacing:-.02em;overflow-wrap:break-word}
 .route-week-result{margin:0;color:var(--ink-soft);font:italic 400 16px/1.5 var(--font-body)}
 
-/* День на линии пути: точка 22 px (--dot-top — её отступ сверху), от её центра линия 2 px к следующей точке; цвет линии — по этому дню */
+/* День на линии пути: точка 22 px (--dot-top — её отступ сверху), от её центра линия 2 px к следующей точке; цвет линии — по этому дню.
+   Рамка пустой точки «впереди» — --ink-soft: точка показывает состояние, ей нужно ≥ 3 : 1 к бумаге (у --fig-line 2,5 : 1) */
 .route-days{flex:999 1 560px;min-width:0;margin:0;padding:0;list-style:none}
 .route-day{--dot-top:15px;position:relative;display:flex;align-items:flex-start;gap:18px}
 .route-day:not(:last-child)::before{content:'';position:absolute;left:10px;top:calc(var(--dot-top) + 11px);bottom:calc(-11px - var(--dot-top));width:2px;background:var(--rule)}
 .route-day.is-done:not(:last-child)::before{background:var(--accent)}
-.route-dot{position:relative;flex:none;display:block;width:22px;height:22px;margin-top:var(--dot-top,0);border:2px solid var(--fig-line);border-radius:50%;background:var(--paper)}
+.route-dot{position:relative;flex:none;display:block;width:22px;height:22px;margin-top:var(--dot-top,0);border:2px solid var(--ink-soft);border-radius:50%;background:var(--paper)}
 .route-dot.is-done{border-color:var(--accent);background:var(--accent)}
 .route-dot.is-now{border:5px solid var(--accent)}
 
@@ -92,7 +93,7 @@
 .route-row-num{flex:none;min-width:64px;color:var(--ink-soft);font:600 13px/1.2 var(--font-ui);letter-spacing:.06em;text-transform:uppercase}
 .route-row-title{flex:1 1 180px;min-width:0;font:600 17px/1.3 var(--font-ui);overflow-wrap:break-word}
 .route-row-video{flex:none;display:inline-flex;align-items:center;gap:6px;color:var(--ink-soft);font:500 14px/1 var(--font-ui)}
-.route-mark{flex:none;padding:6px 10px;border-radius:999px;font:600 12px/1 var(--font-ui)}
+.route-mark{flex:none;padding:6px 10px;border-radius:999px;font:600 13px/1 var(--font-ui)}
 .route-mark.is-done{background:color-mix(in srgb,var(--fig-ok) 12%,transparent);color:var(--ink)}
 .route-mark.is-now{background:var(--accent);color:var(--fig-on)}
 

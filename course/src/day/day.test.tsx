@@ -20,6 +20,34 @@ function renderDay(n: number, progress: Progress = emptyProgress()) {
 const plan = () => within(screen.getByRole('navigation', { name: 'План дня' }))
 const partIds = () => Array.from(document.querySelectorAll('section[id^="part-"]'), (s) => s.id)
 
+// Подменённый IntersectionObserver: запоминает обработчик и наблюдаемые секции; отключение — шпион.
+// cross(id, да/нет) — секция входит в полосу текущей части или выходит из неё.
+type FakeObserver = { callback: IntersectionObserverCallback; targets: Element[]; disconnect: () => void }
+function stubObserver() {
+  const observers: FakeObserver[] = []
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      targets: Element[] = []
+      disconnect = vi.fn()
+      callback: IntersectionObserverCallback
+      constructor(callback: IntersectionObserverCallback) {
+        this.callback = callback
+        observers.push(this)
+      }
+      observe(el: Element) {
+        this.targets.push(el)
+      }
+      unobserve() {}
+    },
+  )
+  const entry = (id: string, isIntersecting: boolean) =>
+    ({ target: document.getElementById(id)!, isIntersecting }) as unknown as IntersectionObserverEntry
+  const cross = (...changes: [string, boolean][]) =>
+    act(() => observers[0].callback(changes.map(([id, on]) => entry(id, on)), {} as IntersectionObserver))
+  return { observers, cross }
+}
+
 afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
@@ -155,39 +183,61 @@ describe('страница дня', () => {
     expect(plan().getAllByRole('button').filter((b) => b.hasAttribute('aria-current'))).toEqual([])
     unmount()
 
-    // Подменённый IntersectionObserver: запоминает обработчик и наблюдаемые секции; отключение — шпион
-    const observers: { callback: IntersectionObserverCallback; targets: Element[]; disconnect: () => void }[] = []
-    vi.stubGlobal(
-      'IntersectionObserver',
-      class {
-        targets: Element[] = []
-        disconnect = vi.fn()
-        callback: IntersectionObserverCallback
-        constructor(callback: IntersectionObserverCallback) {
-          this.callback = callback
-          observers.push(this)
-        }
-        observe(el: Element) {
-          this.targets.push(el)
-        }
-        unobserve() {}
-      },
-    )
+    const { observers, cross } = stubObserver()
     const view = renderDay(1)
     const [observer] = observers
     expect(observer.targets.map((t) => t.id)).toEqual(partIds())
-    const cross = (id: string, isIntersecting: boolean) =>
-      ({ target: document.getElementById(id)!, isIntersecting }) as unknown as IntersectionObserverEntry
-    act(() => observer.callback([cross('part-quiz', true)], {} as IntersectionObserver))
+    cross(['part-quiz', true])
     expect(plan().getByRole('button', { name: 'Проверка понимания' })).toHaveAttribute('aria-current', 'true')
-    act(() => observer.callback([cross('part-quiz', false), cross('part-practice', true)], {} as IntersectionObserver))
+    cross(['part-quiz', false], ['part-practice', true])
     expect(plan().getByRole('button', { name: 'Практика' })).toHaveAttribute('aria-current', 'true')
     expect(plan().getByRole('button', { name: 'Проверка понимания' })).not.toHaveAttribute('aria-current')
     // Полоса между частями — подсветка остаётся на прежней
-    act(() => observer.callback([cross('part-practice', false)], {} as IntersectionObserver))
+    cross(['part-practice', false])
     expect(plan().getByRole('button', { name: 'Практика' })).toHaveAttribute('aria-current', 'true')
     view.unmount()
     expect(observer.disconnect).toHaveBeenCalled()
+  })
+
+  it('полоса плана (≤ 960 px) сама прокручивается вбок к текущей части, страница — нет', () => {
+    const { cross } = stubObserver()
+    renderDay(1)
+    // Полоса 300 px с прокруткой вбок, уже сдвинута на 40 px; «Практика» шириной 100 px стоит в 500 px от её левого края
+    const list = plan().getByRole('list')
+    const scrollTo = vi.fn()
+    Object.defineProperties(list, {
+      scrollWidth: { value: 900 },
+      clientWidth: { value: 300 },
+      scrollLeft: { value: 40 },
+      scrollTo: { value: scrollTo },
+    })
+    vi.spyOn(list, 'getBoundingClientRect').mockReturnValue({ left: 16, width: 300 } as DOMRect)
+    for (const [name, left] of [['Практика', 516], ['Наставник', 636]] as const) {
+      const item = plan().getByRole('button', { name })
+      vi.spyOn(item, 'getBoundingClientRect').mockReturnValue({ left, width: 100 } as DOMRect)
+    }
+    const page = vi.spyOn(Element.prototype, 'scrollIntoView')
+
+    // Текущий пункт встаёт к середине полосы: 40 + 500 − (300 − 100) / 2 = 440
+    cross(['part-practice', true])
+    expect(scrollTo).toHaveBeenLastCalledWith({ left: 440, behavior: 'smooth' })
+    // При «уменьшить движение» — без анимации
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query === '(prefers-reduced-motion: reduce)' }))
+    cross(['part-practice', false], ['part-mentor', true])
+    expect(scrollTo).toHaveBeenLastCalledWith({ left: 560, behavior: 'auto' })
+    expect(scrollTo).toHaveBeenCalledTimes(2)
+    expect(page).not.toHaveBeenCalled()
+  })
+
+  it('план колонкой (> 960 px) не прокручивается вбок', () => {
+    const { cross } = stubObserver()
+    renderDay(1)
+    const list = plan().getByRole('list')
+    const scrollTo = vi.fn()
+    Object.defineProperties(list, { scrollWidth: { value: 240 }, clientWidth: { value: 240 }, scrollTo: { value: scrollTo } })
+    cross(['part-practice', true])
+    expect(plan().getByRole('button', { name: 'Практика' })).toHaveAttribute('aria-current', 'true')
+    expect(scrollTo).not.toHaveBeenCalled()
   })
 
   it('следующий день и конец курса', () => {

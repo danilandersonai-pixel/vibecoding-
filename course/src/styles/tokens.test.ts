@@ -103,8 +103,7 @@ describe('tokens.css', () => {
   })
 
   it('контраст текста не ниже 4,5 : 1', () => {
-    // [текст, фон, только светлая тема]; значение с «#» берётся как есть, «--имя» — из темы; фон-массив — слои снизу вверх.
-    const pairs: [string, string | Layer[], boolean?][] = [
+    expectContrast(4.5, [
       ['--ink', '--desk'], ['--ink', '--paper'], ['--ink-soft', '--paper'], ['--accent-ink', '--paper'],
       ['--ink-soft', '--desk'], ['--accent-ink', '--desk'],
       ['#FFFFFF', '--accent', true],
@@ -129,20 +128,34 @@ describe('tokens.css', () => {
       ['--cover-ink', ['--cover-bg', ['--term-bg', 0.35]]],
       // Рамка 2 px нажатой «Повторить» на бумаге (рамке хватило бы 3 : 1; «Знаю» — пара --fig-ok выше)
       ['--warn', '--paper'],
-    ]
-    const themes: [string, Record<string, string>][] = [['светлая', light], ['тёмная', dark]]
-    for (const [themeName, theme] of themes) {
-      const color = (token: string) => {
-        const value = token.startsWith('#') ? token : theme[token]
-        if (!value) throw new Error(`${themeName} тема: нет переменной ${token}`)
-        return value
-      }
-      const background = (bg: string | Layer[]) =>
-        typeof bg === 'string' ? color(bg) : flatten(bg.map((l): [string, number] => (typeof l === 'string' ? [color(l), 1] : [color(l[0]), l[1]])))
-      for (const [text, bg, lightOnly] of pairs) {
-        if (lightOnly && theme !== light) continue
-        expect(contrast(color(text), background(bg)), `${themeName}: ${text} на ${JSON.stringify(bg)}`).toBeGreaterThanOrEqual(4.5)
-      }
-    }
+    ])
+  })
+
+  it('рамки, по которым видно состояние, — не ниже 3 : 1 (WCAG 1.4.11)', () => {
+    expectContrast(3, [
+      // Карта-путь: рамка пустой точки дня «впереди» на бумаге недели и в легенде на фоне страницы
+      ['--ink-soft', '--paper'], ['--ink-soft', '--desk'],
+      // План дня полосой: акцентная рамка пройденной и одновременно текущей части на бумаге полосы
+      ['--accent', '--paper'],
+    ])
   })
 })
+
+/** Пары [цвет, фон, только светлая тема] — контраст не ниже min в светлой и тёмной теме.
+ *  Значение с «#» берётся как есть, «--имя» — из темы; фон-массив — слои снизу вверх. */
+function expectContrast(min: number, pairs: [string, string | Layer[], boolean?][]) {
+  const themes: [string, Record<string, string>][] = [['светлая', light], ['тёмная', dark]]
+  for (const [themeName, theme] of themes) {
+    const color = (token: string) => {
+      const value = token.startsWith('#') ? token : theme[token]
+      if (!value) throw new Error(`${themeName} тема: нет переменной ${token}`)
+      return value
+    }
+    const background = (bg: string | Layer[]) =>
+      typeof bg === 'string' ? color(bg) : flatten(bg.map((l): [string, number] => (typeof l === 'string' ? [color(l), 1] : [color(l[0]), l[1]])))
+    for (const [text, bg, lightOnly] of pairs) {
+      if (lightOnly && theme !== light) continue
+      expect(contrast(color(text), background(bg)), `${themeName}: ${text} на ${JSON.stringify(bg)}`).toBeGreaterThanOrEqual(min)
+    }
+  }
+}

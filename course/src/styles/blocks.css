@@ -7,7 +7,7 @@
 :is(.idea,.diagram,.trainer,.scenario,.ai-helper):last-child{margin-bottom:0}
 :is(.idea,.diagram,.trainer,.scenario,.ai-helper) > *{margin:0}
 :is(.idea,.diagram,.trainer,.scenario,.ai-helper) > .btn{align-self:flex-start}
-.block-kicker{color:var(--accent-ink);font-size:12px;letter-spacing:.14em}
+.block-kicker{color:var(--accent-ink);letter-spacing:.14em}
 :is(.diagram,.trainer,.scenario,.ai-helper) h3{font:700 24px/1.25 var(--font-ui);letter-spacing:-.015em}
 
 /* Мысль из книги: заголовок 26 px, текст Literata 18 px не шире 40 em, ссылка в книгу — кнопка на подкраске со значком */
@@ -143,8 +143,10 @@
 .practice-title input{flex:none;width:24px;height:24px;margin:0;accent-color:var(--fig-ok)}
 .prompt-box{border-radius:var(--radius-m);background:var(--term-bg);color:var(--term-ink);overflow:hidden}
 .prompt-box :focus-visible{outline-color:var(--term-ink)}
-.prompt-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px 0 18px}
-.prompt-kicker{color:var(--term-soft);font-size:12px;letter-spacing:.14em}
+/* Шапка блока: кикер и «Скопировать»; когда тесно (320 px), кнопка уходит под кикер вправо, а не сжимает его в столбик */
+.prompt-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px 0 18px}
+.prompt-kicker{flex:1 1 10em;color:var(--term-soft);letter-spacing:.14em}
+.prompt-head .copy{margin-left:auto}
 .prompt-box pre{margin:0;padding:8px 18px 18px;white-space:pre-wrap;overflow-wrap:anywhere;font:400 14px/1.65 var(--font-code)}
 .practice-done{display:flex;align-items:flex-start;gap:10px;color:var(--ink-soft);font:400 15px/1.5 var(--font-ui)}
 .practice-done svg{flex:none;margin-top:2px;color:var(--fig-ok)}
@@ -167,7 +169,7 @@
 .mentor-checklist li::before{content:"";position:absolute;left:0;top:.2em;width:16px;height:16px;border:2px solid var(--fig-line);border-radius:50%;box-sizing:border-box}
 .mentor-questions li::before{content:"—"/"";position:absolute;left:0;color:var(--ink-soft)}
 /* Метка-«таблетка»: что наставник проверит сам */
-.badge{display:inline-block;align-self:flex-start;margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--tint);color:var(--ink-soft);font:500 .72rem/1.6 var(--font-ui)}
+.badge{display:inline-block;align-self:flex-start;margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--tint);color:var(--ink-soft);font:500 13px/1.5 var(--font-ui)}
 .mentor-accept{display:flex;align-items:center;gap:14px;min-height:56px;padding:12px 20px;border-radius:var(--radius-l);font:600 16px/1.3 var(--font-ui);cursor:pointer}
 .mentor-accept input{flex:none;width:24px;height:24px;margin:0;accent-color:var(--fig-ok)}
 .mentor-accept.is-on{border-color:var(--fig-ok)}

@@ -177,6 +177,7 @@ function VideoBlockBody({ videoId, title, index }: Props) {
     <figure ref={figureRef} className="block video" aria-labelledby={titleId}>
       <div ref={screenRef} className="video-screen">
         <div className="video-stage">
+          {/* Класс video-frame стилей не имеет — это крючок e2e (кадр ролика нарисован), не удалять */}
           <Player
             ref={playerRef}
             className="video-frame"
