@@ -18,3 +18,79 @@
 .day-card.is-done .day-status{color:var(--fig-ok);font-weight:600}
 .badge{display:inline-block;align-self:flex-start;margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--tint);color:var(--ink-soft);font:500 .72rem/1.6 var(--font-ui)}
 .day-card .badge{margin-left:0}
+
+/* Контейнер главной: ширина содержимого и поля страницы */
+.home-wrap{max-width:var(--content);margin:0 auto;padding-inline:32px}
+
+/* Обложка — синий лист книги во всю ширину; рамка фокуса светлая: акцент на синем почти не виден */
+.cover{background:var(--cover-bg);color:var(--cover-ink);font-family:var(--font-ui);overflow:hidden}
+.cover :focus-visible{outline-color:var(--cover-ink)}
+.cover-inner{display:flex;flex-direction:column;gap:48px;padding-top:40px;padding-bottom:56px}
+
+.sitebar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.sitebar-brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:16px;letter-spacing:.01em}
+.sitebar-mark{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:var(--radius-s);background:var(--cover-ink);color:var(--cover-bg);font:800 18px/1 var(--font-ui)}
+.sitebar-links{display:flex;gap:8px;flex-wrap:wrap}
+.sitebar-link{display:inline-flex;align-items:center;min-height:44px;padding:10px 14px;border:1px solid transparent;border-radius:var(--radius-s);background:none;color:var(--cover-ink);font:500 15px/1 var(--font-ui);text-decoration:none}
+.sitebar-book{border-color:color-mix(in srgb,var(--cover-ink) 28%,transparent)}
+.sitebar-link:hover{border-color:var(--cover-ink)}
+
+.cover-main{display:flex;flex-wrap:wrap;gap:48px;align-items:flex-end}
+.cover-text{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:22px}
+.cover-kicker{color:var(--cover-soft);letter-spacing:.18em}
+.cover-title{margin:0;color:var(--cover-ink);font:800 76px/.98 var(--font-ui);letter-spacing:-.035em;text-wrap:balance;overflow-wrap:break-word}
+.cover-lead{margin:0;max-width:34em;color:var(--cover-soft);font:italic 400 21px/1.45 var(--font-body)}
+.cover-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+.cover-btn{min-height:52px;padding:0 24px;gap:10px;font:700 17px/1.2 var(--font-ui)}
+.cover-how{padding:0 22px;border-color:color-mix(in srgb,var(--cover-ink) 35%,transparent);font:600 16px/1.2 var(--font-ui)}
+.cover-how:hover:not(:disabled){border-color:var(--cover-ink)}
+
+/* Герои и диф «было / стало» */
+.cover-art{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:18px}
+.cover-heroes{display:flex;gap:14px;align-items:flex-end;justify-content:flex-end}
+.cover-heroes svg{flex:none}
+.cover-diff{margin:0;padding-top:18px;border-top:1px solid color-mix(in srgb,var(--cover-ink) 18%,transparent);white-space:pre-wrap;overflow-wrap:break-word;color:var(--cover-ink);font:400 15px/1.8 var(--font-code)}
+.diff-head{color:var(--cover-soft)}
+.diff-del{color:var(--cover-del)}
+.diff-add{color:var(--cover-add)}
+
+.cover-facts{display:flex;flex-wrap:wrap;gap:12px;margin:0;padding:24px 0 0;list-style:none;border-top:1px solid color-mix(in srgb,var(--cover-ink) 14%,transparent);color:var(--cover-soft);font:500 15px/1.3 var(--font-ui)}
+.cover-facts li{padding:8px 14px;border-radius:999px;background:color-mix(in srgb,var(--cover-ink) 8%,transparent)}
+
+/* «Продолжить» — приподнятая карточка, заходит на нижний край обложки */
+.continue{position:relative;margin-top:-28px;padding:24px 28px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;box-shadow:var(--shadow-raised);font-family:var(--font-ui)}
+.continue-ring{flex:none;display:flex;align-items:center;justify-content:center;width:76px;height:76px;border-radius:50%;background:conic-gradient(var(--accent) var(--ring,0deg),var(--rule) 0)}
+.continue-percent{display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:var(--paper);color:var(--accent-ink);font:800 18px/1 var(--font-ui)}
+.continue-body{flex:999 1 360px;min-width:0;display:flex;flex-direction:column;gap:6px}
+.continue-title{margin:0;font:760 26px/1.2 var(--font-ui);letter-spacing:-.015em;overflow-wrap:break-word}
+.continue-meta{margin:0;display:flex;flex-wrap:wrap;gap:4px 8px;color:var(--ink-soft);font:400 15px/1.4 var(--font-ui)}
+.continue-streak{font-weight:600}
+.continue-btn{flex:none;min-height:52px;padding:0 24px;gap:10px;font:700 16px/1.2 var(--font-ui)}
+
+/* «Как проходит день» — четыре шага; на узком экране сетка сама встаёт столбиком */
+.how{margin-top:72px;font-family:var(--font-ui)}
+.how-title{margin:0 0 24px;font:800 44px/1.05 var(--font-ui);letter-spacing:-.03em}
+.how-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:0;padding:0;list-style:none}
+.how-step{display:flex;flex-direction:column;gap:8px;padding:24px;background:var(--paper);border:1px solid var(--paper-edge);border-radius:var(--radius-xl)}
+.how-icon{display:flex;align-items:center;justify-content:center;width:44px;height:44px;margin-bottom:8px;border-radius:50%;background:var(--tint);color:var(--accent-ink)}
+.how-step-title{margin:0;font:700 19px/1.25 var(--font-ui);letter-spacing:-.01em}
+.how-step-text{margin:0;color:var(--ink-soft);font:400 15px/1.5 var(--font-ui)}
+
+/* Телефон: заголовок меньше, диф под текстом, герои мельче, кнопки во всю ширину */
+@media (max-width:640px){
+  .home-wrap{padding-inline:16px}
+  .sitebar{gap:8px}
+  .sitebar-links{gap:4px}
+  .sitebar-link{padding:10px 12px}
+  .cover-inner{gap:32px;padding-top:20px;padding-bottom:52px}
+  .cover-main{gap:32px}
+  .cover-title{font-size:40px;line-height:1.02}
+  .cover-lead{font-size:18px}
+  .cover-btn,.continue-btn{width:100%}
+  .cover-heroes{justify-content:flex-start}
+  .cover-heroes svg{width:auto;height:72px}
+  .continue{padding:20px;gap:16px}
+  .continue-title{font-size:21px}
+  .how{margin-top:48px}
+  .how-title{font-size:30px}
+}
