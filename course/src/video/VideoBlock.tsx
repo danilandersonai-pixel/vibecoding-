@@ -152,6 +152,14 @@ function VideoBlockBody({ videoId, title, index }: Props) {
     setFrame(f)
     playerRef.current?.seekTo(f)
   }
+  // «Дальше» во весь экран: сначала выйти из него, иначе прокрутится документ под полноэкранным блоком
+  const goNext = () => {
+    const figure = figureRef.current
+    if (!figure) return
+    const go = () => scrollToElement(nextMaterial(figure))
+    if (document.fullscreenElement != null && document.fullscreenElement === screenRef.current) document.exitFullscreen().then(go, go)
+    else go()
+  }
   const toggleFullscreen = () => {
     const el = screenRef.current
     if (!el) return
@@ -171,6 +179,7 @@ function VideoBlockBody({ videoId, title, index }: Props) {
         <div className="video-stage">
           <Player
             ref={playerRef}
+            className="video-frame"
             lazyComponent={load}
             errorFallback={loadFailed}
             durationInFrames={frames}
@@ -190,7 +199,7 @@ function VideoBlockBody({ videoId, title, index }: Props) {
               <button type="button" className="btn btn-cover" onClick={start}>
                 <IconPlay size={18} /> Смотреть ещё раз
               </button>
-              <button type="button" className="btn video-end-next" onClick={() => figureRef.current && scrollToElement(nextMaterial(figureRef.current))}>
+              <button type="button" className="btn video-end-next" onClick={goNext}>
                 Дальше <IconArrow size={18} />
               </button>
             </div>

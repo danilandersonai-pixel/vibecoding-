@@ -1,6 +1,6 @@
 /* Плеер роликов: кадр, под ним панель, название и строка «м:сс · N пояснений по нажатию» */
 .video{display:flex;flex-direction:column;gap:10px;margin:22px 0;font-family:var(--font-ui)}
-.video-screen{display:flex;flex-direction:column;gap:10px}
+.video-screen{display:flex;flex-direction:column;gap:4px}
 /* Кадр — «приподнятая» обложка. Фон — бумага самих роликов: они всегда в светлой теме книги */
 .video-stage{position:relative;border:1px solid var(--paper-edge);border-radius:var(--radius-l);overflow:hidden;background:#FBFAF6;box-shadow:var(--shadow-raised)}
 .video-title{margin:4px 0 0;font:700 18px/1.3 var(--font-ui);letter-spacing:-.01em;overflow-wrap:break-word}
@@ -34,23 +34,24 @@
 
 /* Зоны кадра на паузе: рамки мягко пульсируют */
 .hotspot-layer{position:absolute;inset:0}
-.video-hotspot{position:absolute;padding:0;border:3px solid var(--accent);border-radius:10px;background:color-mix(in srgb,var(--accent) 10%,transparent);animation:hs-pulse 1.6s ease-in-out infinite}
+.video-hotspot{position:absolute;padding:0;border:3px solid var(--accent);border-radius:var(--radius-s);background:color-mix(in srgb,var(--accent) 10%,transparent);animation:hs-pulse 1.6s ease-in-out infinite}
 .video-hotspot.is-open{animation:none;background:color-mix(in srgb,var(--accent) 18%,transparent)}
 @keyframes hs-pulse{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 25%,transparent)}}
 @media (prefers-reduced-motion: reduce){.video-hotspot{animation:none}}
-.video-hotspot-note{position:absolute;left:12px;right:12px;bottom:12px;padding:10px 14px;border-radius:10px;background:var(--paper);color:var(--ink);border:1px solid var(--rule);box-shadow:var(--shadow-raised);font:400 .9rem/1.45 var(--font-ui)}
+.video-hotspot-note{position:absolute;left:12px;right:12px;bottom:12px;padding:10px 14px;border-radius:var(--radius-s);background:var(--paper);color:var(--ink);border:1px solid var(--rule);box-shadow:var(--shadow-raised);font:400 .9rem/1.45 var(--font-ui)}
 .video-hotspot-note p{margin:4px 0 0}
 
-/* Панель: перемотка во всю ширину, под ней кнопки 44 px, время, «Голос» и «Во весь экран» справа */
-.video-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
-.video-seek{flex:1 1 100%;min-width:0;height:24px;margin:0;accent-color:var(--accent)}
+/* Панель: перемотка во всю ширину, под ней кнопки 44 px, время, «Голос» и «Во весь экран» справа.
+   У перемотки область нажатия 44 px, дорожка браузера остаётся тонкой посередине — она же даёт отступы панели */
+.video-controls{display:flex;flex-wrap:wrap;align-items:center;gap:0 10px}
+.video-seek{flex:1 1 100%;min-width:0;height:44px;margin:0;accent-color:var(--accent)}
 .video-toggle,.video-fullscreen{width:44px;padding:0}
 .video-toggle,.video-toggle:hover:not(:disabled){border-color:var(--accent);background:var(--accent);color:var(--fig-on)}
 .video-time{color:var(--ink-soft);font:500 13px/1 var(--font-code);white-space:nowrap}
 .video-voice{display:flex;align-items:center;gap:8px;min-height:44px;margin-left:auto;font:500 14px/1 var(--font-ui);cursor:pointer}
 .video-voice input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
 .video-time + .video-fullscreen{margin-left:auto}
-.video-hint{margin:0;color:var(--ink-soft);font:400 14px/1.4 var(--font-ui)}
+.video-hint{margin:6px 0 0;color:var(--ink-soft);font:400 14px/1.4 var(--font-ui)}
 .video-download{margin:0}
 .video-download-btn{padding:0 14px;border-radius:var(--radius-s);font:600 14px/1.2 var(--font-ui)}
 

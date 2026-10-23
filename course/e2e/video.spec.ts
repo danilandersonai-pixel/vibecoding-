@@ -34,8 +34,8 @@ test('день 4 с роликом на телефоне (390 px) — без г�
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/#/day/4')
   await expect(page.getByRole('button', PLAY)).toBeVisible()
-  // кадр ролика уже нарисован: ленивый код сцен загрузился
-  await expect(page.locator('.video-stage svg').first()).toBeVisible()
+  // кадр ролика уже нарисован: ленивый код сцен загрузился (svg внутри плеера, а не значок ▶ на обложке)
+  await expect(page.locator('.video-frame svg').first()).toBeVisible()
   const fits = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
   expect(fits).toBe(true)
 })
@@ -47,8 +47,9 @@ test('до запуска ролик не пустой: видна обложк�
   await expect(covers.first()).toBeVisible()
   await expect(page.getByRole('button', { name: 'Смотреть ролик «Как устроено приложение»' })).toContainText('Видеоурок 1')
   await expect(page.getByRole('button', { name: 'Смотреть ролик «Вайб-кодинг: шкала, а не выключатель»' })).toContainText('Видеоурок 2')
-  // под обложкой нарисован кадр ролика, рамок горячих точек на обложке нет
-  await expect(page.locator('.video-stage').first().locator('svg').first()).toBeVisible()
+  // под обложкой нарисован кадр ролика (svg внутри плеера, а не значок ▶), рамок горячих точек на обложке нет
+  await expect(page.locator('.video-frame')).toHaveCount(2)
+  for (const frame of await page.locator('.video-frame').all()) await expect(frame.locator('svg').first()).toBeVisible()
   await expect(page.locator('.video-hotspot')).toHaveCount(0)
   // два ролика на компьютере — в один ряд
   const [a, b] = await page.locator('.video-grid .video-stage').evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top))

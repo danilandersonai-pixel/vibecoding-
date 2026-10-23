@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { pilotRlsScript } from '../../video/pilot-rls/script'
@@ -64,11 +64,38 @@ const play = (id: string, instance: string) => window.dispatchEvent(new CustomEv
 const cover = (title = 'Ролик') => screen.queryByRole('button', { name: `Смотреть ролик «${title}»` })
 const poster = pilotRlsScript.hotspots[0].from
 
+// Полноэкранный режим jsdom не умеет — подменяем его: вход и выход сообщают fullscreenchange, как браузер
+function stubFullscreen() {
+  const fs = { full: null as Element | null, change: () => void document.dispatchEvent(new Event('fullscreenchange')) }
+  const enter = vi.fn((el: Element) => {
+    fs.full = el
+    fs.change()
+    return Promise.resolve()
+  })
+  const exit = vi.fn(() => {
+    fs.full = null
+    fs.change()
+    return Promise.resolve()
+  })
+  Object.defineProperty(document, 'fullscreenEnabled', { configurable: true, value: true })
+  Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => fs.full })
+  Object.defineProperty(document, 'exitFullscreen', { configurable: true, value: exit })
+  Object.defineProperty(HTMLElement.prototype, 'requestFullscreen', {
+    configurable: true,
+    value: function (this: Element) {
+      return enter(this)
+    },
+  })
+  return { fs, enter, exit }
+}
+
 afterEach(() => {
   fake.players.length = 0
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   window.location.hash = ''
+  for (const key of ['fullscreenEnabled', 'fullscreenElement', 'exitFullscreen'] as const) Reflect.deleteProperty(document, key)
+  Reflect.deleteProperty(HTMLElement.prototype, 'requestFullscreen')
 })
 
 describe('VideoBlock', () => {
@@ -255,56 +282,52 @@ describe('VideoBlock', () => {
     expect(screen.queryByRole('button', { name: 'Во весь экран' })).toBeNull()
     cleanup()
 
-    // Полноэкранный режим jsdom не умеет — подменяем его: вход и выход сообщают fullscreenchange, как браузер
-    let full: Element | null = null
-    const change = () => document.dispatchEvent(new Event('fullscreenchange'))
-    Object.defineProperty(document, 'fullscreenEnabled', { configurable: true, value: true })
-    Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => full })
-    const enter = vi.fn((el: Element) => {
-      full = el
-      change()
-      return Promise.resolve()
-    })
-    const exit = vi.fn(() => {
-      full = null
-      change()
-      return Promise.resolve()
-    })
-    Object.defineProperty(HTMLElement.prototype, 'requestFullscreen', {
-      configurable: true,
-      value: function (this: Element) {
-        return enter(this)
-      },
-    })
-    Object.defineProperty(document, 'exitFullscreen', { configurable: true, value: exit })
+    const { fs, enter, exit } = stubFullscreen()
     const user = userEvent.setup()
-    try {
-      const { unmount } = render(<VideoBlock videoId="a" title="Ролик" />)
-      await act(async () => {})
-      await user.click(screen.getByRole('button', { name: 'Во весь экран' }))
-      // во весь экран — блок с кадром и панелью, а не одна страница
-      const [[screenEl]] = enter.mock.calls
-      expect(screenEl).toContainElement(screen.getByTestId('player'))
-      expect(screenEl).toContainElement(screen.getByRole('slider', { name: 'Перемотка' }))
-      await user.click(screen.getByRole('button', { name: 'Выйти из полноэкранного режима' }))
-      expect(exit).toHaveBeenCalledTimes(1)
-      expect(screen.getByRole('button', { name: 'Во весь экран' })).toBeInTheDocument()
+    const { unmount } = render(<VideoBlock videoId="a" title="Ролик" />)
+    await act(async () => {})
+    await user.click(screen.getByRole('button', { name: 'Во весь экран' }))
+    // во весь экран — блок с кадром и панелью, а не одна страница
+    const [[screenEl]] = enter.mock.calls
+    expect(screenEl).toContainElement(screen.getByTestId('player'))
+    expect(screenEl).toContainElement(screen.getByRole('slider', { name: 'Перемотка' }))
+    await user.click(screen.getByRole('button', { name: 'Выйти из полноэкранного режима' }))
+    expect(exit).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: 'Во весь экран' })).toBeInTheDocument()
 
-      // Esc: браузер выходит сам и сообщает fullscreenchange
-      await user.click(screen.getByRole('button', { name: 'Во весь экран' }))
-      act(() => {
-        full = null
-        change()
-      })
-      expect(screen.getByRole('button', { name: 'Во весь экран' })).toBeInTheDocument()
+    // Esc: браузер выходит сам и сообщает fullscreenchange
+    await user.click(screen.getByRole('button', { name: 'Во весь экран' }))
+    act(() => {
+      fs.full = null
+      fs.change()
+    })
+    expect(screen.getByRole('button', { name: 'Во весь экран' })).toBeInTheDocument()
 
-      const off = vi.spyOn(document, 'removeEventListener')
-      unmount()
-      expect(off.mock.calls.some(([name]) => name === 'fullscreenchange')).toBe(true)
-    } finally {
-      for (const key of ['fullscreenEnabled', 'fullscreenElement', 'exitFullscreen'] as const) Reflect.deleteProperty(document, key)
-      Reflect.deleteProperty(HTMLElement.prototype, 'requestFullscreen')
-    }
+    const off = vi.spyOn(document, 'removeEventListener')
+    unmount()
+    expect(off.mock.calls.some(([name]) => name === 'fullscreenchange')).toBe(true)
+  })
+
+  it('«Дальше» во весь экран сначала выходит из полноэкранного режима, потом прокручивает', async () => {
+    const { exit } = stubFullscreen()
+    const user = userEvent.setup()
+    // прокрутка запоминает, был ли в этот момент полноэкранный режим
+    const fullAtScroll: (Element | null)[] = []
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => void fullAtScroll.push(document.fullscreenElement))
+    render(
+      <section>
+        <VideoBlock videoId="a" title="Ролик" />
+        <p>Дальше по теории</p>
+      </section>,
+    )
+    await act(async () => {})
+    await user.click(screen.getByRole('button', { name: 'Во весь экран' }))
+    act(() => fake.players[0].emit('ended'))
+    await user.click(screen.getByRole('button', { name: 'Дальше' }))
+    await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1))
+    expect(exit).toHaveBeenCalledTimes(1)
+    expect(fullAtScroll).toEqual([null])
+    expect(scroll.mock.contexts[0]).toBe(screen.getByText('Дальше по теории'))
   })
 
   it('неизвестный ролик — «Ролик готовится»', () => {
