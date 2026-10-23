@@ -55,7 +55,7 @@ function contrast(a: string, b: string): number {
 // Переменные, которые есть во всех трёх блоках.
 const EVERYWHERE = [
   '--desk', '--paper', '--paper-edge', '--rule', '--ink', '--ink-soft', '--accent', '--accent-ink', '--tint',
-  '--cover-bg', '--cover-ink', '--cover-soft', '--cover-add', '--cover-del',
+  '--cover-bg', '--cover-ink', '--cover-soft', '--cover-add', '--cover-del', '--cover-accent',
   '--fig-ok', '--fig-risk', '--term-bg', '--term-ink', '--term-soft', '--term-edge', '--shadow-raised',
 ]
 // Не зависят от темы — только в светлом блоке.

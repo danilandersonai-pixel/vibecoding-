@@ -3,7 +3,7 @@
   --desk:#F4F2EC; --desk-ink:#24272D; --desk-soft:#5D626B;
   --paper:#FBFAF6; --paper-edge:#DEDBD2; --ink:#1C1E22; --ink-soft:#5B606A; --rule:#DAD7CE;
   --accent:#2B3FBF; --accent-ink:#2B3FBF; --tint:rgba(43,63,191,.075); --code-bg:#EFEEE8; --warn:#AE3F1C;
-  --cover-bg:#1D2B8F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E;
+  --cover-bg:#1D2B8F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E; --cover-accent:#8D9CFF;
   --term-bg:#1F2228; --term-ink:#E8E5DD; --term-soft:#A4A8B0; --term-edge:#3A3E46;
   --fig-ink:#1C1E22; --fig-soft:#5B606A; --fig-line:#A3A196; --fig-grid:#D4D1C7; --fig-zone:rgba(28,30,34,.035); --fig-risk:#C4432C;
   --fig-ok:#2E7D5B; --fig-on:#FFFFFF;
@@ -17,7 +17,7 @@
   --desk:#111317; --desk-ink:#DCDDE1; --desk-soft:#9A9EA7;
   --paper:#1F2228; --paper-edge:#30343B; --ink:#E8E5DD; --ink-soft:#A4A8B0; --rule:#3A3E46;
   --accent:#8D9CFF; --accent-ink:#A8B3FF; --tint:rgba(141,156,255,.12); --code-bg:#2A2D34; --warn:#F18D6B;
-  --cover-bg:#18236F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E;
+  --cover-bg:#18236F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E; --cover-accent:#8D9CFF;
   --term-bg:#2A2D34; --term-ink:#E8E5DD; --term-soft:#A4A8B0; --term-edge:#3A3E46;
   --fig-ink:#E8E5DD; --fig-soft:#A4A8B0; --fig-line:#767A83; --fig-grid:#3C4048; --fig-zone:rgba(255,255,255,.035); --fig-risk:#F2765E;
   --fig-ok:#5CC49A; --fig-on:#1B1D24;
@@ -28,7 +28,7 @@
   --desk:#111317; --desk-ink:#DCDDE1; --desk-soft:#9A9EA7;
   --paper:#1F2228; --paper-edge:#30343B; --ink:#E8E5DD; --ink-soft:#A4A8B0; --rule:#3A3E46;
   --accent:#8D9CFF; --accent-ink:#A8B3FF; --tint:rgba(141,156,255,.12); --code-bg:#2A2D34; --warn:#F18D6B;
-  --cover-bg:#18236F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E;
+  --cover-bg:#18236F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E; --cover-accent:#8D9CFF;
   --term-bg:#2A2D34; --term-ink:#E8E5DD; --term-soft:#A4A8B0; --term-edge:#3A3E46;
   --fig-ink:#E8E5DD; --fig-soft:#A4A8B0; --fig-line:#767A83; --fig-grid:#3C4048; --fig-zone:rgba(255,255,255,.035); --fig-risk:#F2765E;
   --fig-ok:#5CC49A; --fig-on:#1B1D24;

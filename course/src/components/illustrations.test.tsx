@@ -47,6 +47,16 @@ describe('иллюстрации героев', () => {
       unmount()
     }
   })
+
+  it('герои живут на синей обложке, поэтому не берут --accent: он в светлой теме темнее фона', () => {
+    for (const Hero of Object.values(heroes)) {
+      const { container, unmount } = render(<Hero />)
+      expect(container.innerHTML).not.toContain('var(--accent)')
+      unmount()
+    }
+    const { container } = render(<Coach />)
+    expect(container.innerHTML).toContain('var(--cover-accent)')
+  })
 })
 
 describe('значки', () => {

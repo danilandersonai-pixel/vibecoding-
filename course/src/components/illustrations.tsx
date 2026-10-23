@@ -14,7 +14,7 @@ export function Coach({ size = 112, className }: HeroProps) {
       <circle cx="41" cy="28" r="2.6" fill="var(--cover-bg)" />
       <circle cx="55" cy="28" r="2.6" fill="var(--cover-bg)" />
       <path d="M41 37q7 5 14 0" stroke="var(--cover-bg)" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-      <path d="M14 120v-30q0-26 34-26t34 26v30z" fill="var(--accent)" />
+      <path d="M14 120v-30q0-26 34-26t34 26v30z" fill="var(--cover-accent)" />
       <path d="M48 64v22" stroke="var(--cover-ink)" strokeWidth="2" />
       <circle cx="48" cy="90" r="4" fill="var(--cover-ink)" />
     </svg>
