@@ -52,6 +52,25 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05)
 }
 
+// Фон из слоёв снизу вверх: нижний — непрозрачный, выше — rgba(…) или [цвет, доля] (как color-mix(… доля, transparent)).
+type Layer = string | [string, number]
+
+/** rgba(r, g, b, a) или #RRGGBB → [r, g, b, a]. */
+function channels(value: string): number[] {
+  const m = value.match(/^rgba\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)$/)
+  return m ? m.slice(1).map(Number) : [...[1, 3, 5].map((i) => parseInt(value.slice(i, i + 2), 16)), 1]
+}
+
+/** Слои, наложенные друг на друга, → #RRGGBB. */
+function flatten(layers: [string, number][]): string {
+  const [base, ...rest] = layers.map(([value, share]) => {
+    const [r, g, b, a] = channels(value)
+    return [r, g, b, a * share]
+  })
+  const out = rest.reduce((under, [r, g, b, a]) => [r, g, b].map((c, i) => c * a + under[i] * (1 - a)), base.slice(0, 3))
+  return `#${out.map((c) => Math.round(c).toString(16).padStart(2, '0')).join('')}`
+}
+
 // Переменные, которые есть во всех трёх блоках.
 const EVERYWHERE = [
   '--desk', '--paper', '--paper-edge', '--rule', '--ink', '--ink-soft', '--accent', '--accent-ink', '--tint',
@@ -84,8 +103,8 @@ describe('tokens.css', () => {
   })
 
   it('контраст текста не ниже 4,5 : 1', () => {
-    // [текст, фон, только светлая тема]; значение с «#» берётся как есть, «--имя» — из темы.
-    const pairs: [string, string, boolean?][] = [
+    // [текст, фон, только светлая тема]; значение с «#» берётся как есть, «--имя» — из темы; фон-массив — слои снизу вверх.
+    const pairs: [string, string | Layer[], boolean?][] = [
       ['--ink', '--desk'], ['--ink', '--paper'], ['--ink-soft', '--paper'], ['--accent-ink', '--paper'],
       ['--ink-soft', '--desk'], ['--accent-ink', '--desk'],
       ['#FFFFFF', '--accent', true],
@@ -93,6 +112,10 @@ describe('tokens.css', () => {
       ['--cover-ink', '--cover-bg'], ['--cover-soft', '--cover-bg'], ['--cover-add', '--cover-bg'], ['--cover-del', '--cover-bg'],
       ['--fig-ok', '--paper'], ['--fig-risk', '--paper'],
       ['--term-ink', '--term-bg'], ['--term-soft', '--term-bg'],
+      // Карта-путь: номер недели; строка «сейчас» и строка под курсором (--tint на бумаге); метка «пройден» — и под курсором
+      ['--accent', '--paper'],
+      ['--ink', ['--paper', '--tint']], ['--ink-soft', ['--paper', '--tint']],
+      ['--ink', ['--paper', ['--fig-ok', 0.12]]], ['--ink', ['--paper', '--tint', ['--fig-ok', 0.12]]],
     ]
     const themes: [string, Record<string, string>][] = [['светлая', light], ['тёмная', dark]]
     for (const [themeName, theme] of themes) {
@@ -101,9 +124,11 @@ describe('tokens.css', () => {
         if (!value) throw new Error(`${themeName} тема: нет переменной ${token}`)
         return value
       }
+      const background = (bg: string | Layer[]) =>
+        typeof bg === 'string' ? color(bg) : flatten(bg.map((l): [string, number] => (typeof l === 'string' ? [color(l), 1] : [color(l[0]), l[1]])))
       for (const [text, bg, lightOnly] of pairs) {
         if (lightOnly && theme !== light) continue
-        expect(contrast(color(text), color(bg)), `${themeName}: ${text} на ${bg}`).toBeGreaterThanOrEqual(4.5)
+        expect(contrast(color(text), background(bg)), `${themeName}: ${text} на ${JSON.stringify(bg)}`).toBeGreaterThanOrEqual(4.5)
       }
     }
   })

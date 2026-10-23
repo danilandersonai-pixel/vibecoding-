@@ -1,26 +1,9 @@
-/* Главная: итоги и карта курса */
-.summary{display:flex;gap:12px;margin:20px 0 8px;flex-wrap:wrap}
-.summary-item{flex:1 1 140px;background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:12px 16px;display:flex;flex-direction:column}
-.summary-value{font:700 1.6rem/1.1 var(--font-ui);color:var(--accent-ink)}
-.summary-label{font:400 .85rem/1.4 var(--font-ui);color:var(--ink-soft)}
-
-.week h2{font-size:1.05rem;margin:28px 0 12px}
-.day-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.day-card{position:relative;display:flex;flex-direction:column;gap:4px;height:100%;padding:12px 14px;background:var(--paper);border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);font-family:var(--font-ui)}
-.day-card:hover{border-color:var(--accent)}
-.day-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.day-num{font-weight:700;font-size:.8rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em}
-.day-title{font-weight:600;font-size:.95rem;line-height:1.3}
-.day-status{margin-top:auto;font-size:.8rem;color:var(--ink-soft)}
-.day-card.is-in-progress{border-color:var(--accent)}
-.day-card.is-in-progress .day-status{color:var(--accent-ink)}
-.day-card.is-done{background:var(--tint)}
-.day-card.is-done .day-status{color:var(--fig-ok);font-weight:600}
+/* Метка-«таблетка»: «готовится» в шапке дня, пометки пунктов наставника */
 .badge{display:inline-block;align-self:flex-start;margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--tint);color:var(--ink-soft);font:500 .72rem/1.6 var(--font-ui)}
-.day-card .badge{margin-left:0}
 
-/* Контейнер главной: ширина содержимого и поля страницы */
+/* Контейнер главной: ширина содержимого и поля страницы; под обложкой это <main> с отступом снизу */
 .home-wrap{max-width:var(--content);margin:0 auto;padding-inline:32px}
+.home-main{padding-bottom:96px}
 
 /* Обложка — синий лист книги во всю ширину; рамка фокуса светлая: акцент на синем почти не виден */
 .cover{background:var(--cover-bg);color:var(--cover-ink);font-family:var(--font-ui);overflow:hidden}
@@ -76,6 +59,56 @@
 .how-step-title{margin:0;font:700 19px/1.25 var(--font-ui);letter-spacing:-.01em}
 .how-step-text{margin:0;color:var(--ink-soft);font:400 15px/1.5 var(--font-ui)}
 
+/* Карта «Путь от идеи до запуска»: заголовок с легендой, строка готовности, три недели */
+.route{margin-top:72px;font-family:var(--font-ui)}
+.route-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px}
+.route-heading{display:flex;flex-direction:column;gap:8px}
+.route-kicker{color:var(--accent-ink);letter-spacing:.18em}
+.route-title{margin:0;font:800 44px/1.05 var(--font-ui);letter-spacing:-.03em}
+.route-legend{display:flex;flex-wrap:wrap;gap:18px;margin:0;padding:0;list-style:none;color:var(--ink-soft);font:500 14px/1 var(--font-ui)}
+.route-legend li{display:inline-flex;align-items:center;gap:8px}
+.route-legend .route-dot{width:14px;height:14px}
+.route-legend .route-dot.is-now{border-width:3px}
+.route-ready{margin:16px 0 28px;max-width:56em;color:var(--ink-soft);font:italic 400 17px/1.55 var(--font-body)}
+.route-weeks{display:flex;flex-direction:column;gap:28px}
+
+/* Неделя — «бумага»: слева номер, название и итог, справа дни; когда тесно, название встаёт над днями */
+.route-week{display:flex;flex-wrap:wrap;gap:32px;padding:32px}
+.route-week-info{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.route-week-num{margin:0;color:var(--accent);font:800 64px/.9 var(--font-ui);letter-spacing:-.04em}
+.route-week-title{margin:0;font:760 24px/1.15 var(--font-ui);letter-spacing:-.02em;overflow-wrap:break-word}
+.route-week-result{margin:0;color:var(--ink-soft);font:italic 400 16px/1.5 var(--font-body)}
+
+/* День на линии пути: точка 22 px (--dot-top — её отступ сверху), от её центра линия 2 px к следующей точке; цвет линии — по этому дню */
+.route-days{flex:999 1 560px;min-width:0;margin:0;padding:0;list-style:none}
+.route-day{--dot-top:15px;position:relative;display:flex;align-items:flex-start;gap:18px}
+.route-day:not(:last-child)::before{content:'';position:absolute;left:10px;top:calc(var(--dot-top) + 11px);bottom:calc(-11px - var(--dot-top));width:2px;background:var(--rule)}
+.route-day.is-done:not(:last-child)::before{background:var(--accent)}
+.route-dot{position:relative;flex:none;display:block;width:22px;height:22px;margin-top:var(--dot-top,0);border:2px solid var(--fig-line);border-radius:50%;background:var(--paper)}
+.route-dot.is-done{border-color:var(--accent);background:var(--accent)}
+.route-dot.is-now{border:5px solid var(--accent)}
+
+/* Строка дня — ссылка; текущий день подсвечен. Метки — цветом текста: зелёный --fig-ok на подложке не добирает 4,5 : 1 */
+.route-row{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;min-height:52px;margin:0 0 4px;padding:8px 14px;border-radius:var(--radius-m);color:var(--ink);text-decoration:none}
+.route-row:hover{background:var(--tint)}
+.route-day.is-now .route-row{background:var(--tint);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent)}
+.route-row-num{flex:none;min-width:64px;color:var(--ink-soft);font:600 13px/1.2 var(--font-ui);letter-spacing:.06em;text-transform:uppercase}
+.route-row-title{flex:1 1 180px;min-width:0;font:600 17px/1.3 var(--font-ui);overflow-wrap:break-word}
+.route-row-video{flex:none;display:inline-flex;align-items:center;gap:6px;color:var(--ink-soft);font:500 14px/1 var(--font-ui)}
+.route-mark{flex:none;padding:6px 10px;border-radius:999px;font:600 12px/1 var(--font-ui)}
+.route-mark.is-done{background:color-mix(in srgb,var(--fig-ok) 12%,transparent);color:var(--ink)}
+.route-mark.is-now{background:var(--accent);color:var(--fig-on)}
+
+/* Движение: кольцо «Продолжить» заполняется за 400 мс, карточка и строки дня при наведении поднимаются на 2 px.
+   При «уменьшить движение» анимацию и переходы гасит правило в base.css, а подъёма нет вовсе */
+@property --ring{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes ring-fill{from{--ring:0deg}}
+.continue-ring{animation:ring-fill .4s ease-out;transition:--ring .4s ease-out}
+.continue,.route-row{transition:transform .2s ease,background-color .2s ease}
+@media (hover:hover) and (prefers-reduced-motion:no-preference){
+  .continue:hover,.route-row:hover{transform:translateY(-2px)}
+}
+
 /* Телефон: заголовок меньше, диф под текстом, герои мельче, кнопки во всю ширину */
 @media (max-width:640px){
   .home-wrap{padding-inline:16px}
@@ -93,4 +126,12 @@
   .continue-title{font-size:21px}
   .how{margin-top:48px}
   .how-title{font-size:30px}
+  .home-main{padding-bottom:64px}
+  .route{margin-top:48px}
+  .route-title{font-size:30px}
+  .route-week{gap:20px;padding:20px 16px}
+  .route-week-title{font-size:21px}
+  /* Строка дня переносится: номер и тема по первой базовой линии, точка — напротив первой строки */
+  .route-day{--dot-top:8px;gap:12px}
+  .route-row{align-items:baseline;gap:6px 12px;padding:8px 10px}
 }
