@@ -18,8 +18,13 @@ import { useCourseProgress } from '../progress/courseProgress'
 // Содержимое части дня; «Зачем сегодня» — в шапке дня (DayHeader)
 function PartBody({ id, day }: { id: PartId; day: Day }) {
   switch (id) {
-    case 'theory':
-      return day.blocks.map((b, i) => <BlockView key={i} block={b} dayId={day.id} />)
+    case 'theory': {
+      // Мысли нумеруются только между собой: «Мысль 2 из 6», хотя перед ней ролики и схема
+      const ideas = day.blocks.filter((b) => b.type === 'idea')
+      return day.blocks.map((b, i) => (
+        <BlockView key={i} block={b} dayId={day.id} ideaIndex={b.type === 'idea' ? { i: ideas.indexOf(b) + 1, n: ideas.length } : undefined} />
+      ))
+    }
     case 'quiz':
       return <Quiz day={day} />
     case 'practice':

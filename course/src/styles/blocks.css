@@ -1,20 +1,39 @@
 /* Блоки дня: теория, схемы, тест, тренажёры, практика, наставник, заметки и карточки, помощник с ИИ */
-.idea h3{font-size:1.05rem;margin:18px 0 6px}
 .figure{margin:12px 0}
-.diagram{margin:16px 0}
+
+/* Теория: мысль, схема, тренажёры, ситуация и помощник ИИ — карточки «бумаги» (.paper) с кикером типа над заголовком.
+   Содержимое идёт столбиком через 14 px, поэтому своих внешних отступов у детей карточки нет */
+.idea,.diagram,.trainer,.scenario,.ai-helper{display:flex;flex-direction:column;gap:14px;margin:22px 0;padding:28px 32px;font:400 16px/1.5 var(--font-ui)}
+:is(.idea,.diagram,.trainer,.scenario,.ai-helper):last-child{margin-bottom:0}
+:is(.idea,.diagram,.trainer,.scenario,.ai-helper) > *{margin:0}
+:is(.idea,.diagram,.trainer,.scenario,.ai-helper) > .btn{align-self:flex-start}
+.block-kicker{color:var(--accent-ink);font-size:12px;letter-spacing:.14em}
+:is(.diagram,.trainer,.scenario,.ai-helper) h3{font:700 24px/1.25 var(--font-ui);letter-spacing:-.015em}
+
+/* Мысль из книги: заголовок 26 px, текст Literata 18 px не шире 40 em, ссылка в книгу — кнопка на подкраске со значком */
+.idea{padding:32px 36px}
+.idea h3{font:760 26px/1.2 var(--font-ui);letter-spacing:-.02em}
+.idea-text{max-width:40em;font:400 18px/1.7 var(--font-body)}
+.book-link{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 14px;border-radius:var(--radius-m);background:var(--tint);color:var(--accent-ink);font:600 14px/1.3 var(--font-ui);text-decoration:none}
+.book-link:hover{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.book-link svg{flex:none}
+
+/* Схема: зоны поверх схемы книги, подпись под ней, пояснение зоны и шаги */
+.diagram-figure{display:flex;flex-direction:column;gap:10px}
 .diagram-stage{position:relative}
 .diagram-stage .figure{margin:0}
-.hotspot{position:absolute;padding:0;border:2px dashed transparent;border-radius:8px;background:transparent}
+.diagram-figure figcaption{color:var(--ink-soft);font:400 14px/1.45 var(--font-ui)}
+.hotspot{position:absolute;padding:0;border:2px dashed transparent;border-radius:var(--radius-s);background:transparent}
 .hotspot:hover,.hotspot:focus-visible{border-color:var(--accent);outline:none}
 .hotspot.is-open{border-color:var(--accent);border-style:solid;background:color-mix(in srgb,var(--accent) 10%,transparent)}
-.hotspot-note{margin:8px 0;padding:10px 14px;border-left:3px solid var(--accent);background:var(--tint);border-radius:0 8px 8px 0;font-family:var(--font-ui);font-size:.92rem}
+.hotspot-note{padding:14px 16px;border-radius:var(--radius-m);background:var(--tint);font:400 15px/1.5 var(--font-ui)}
 .hotspot-note p{margin:4px 0 0}
-.diagram-steps{display:flex;align-items:center;gap:10px;margin:8px 0;font-family:var(--font-ui);font-size:.92rem}
-.diagram-steps p{flex:1;margin:0}
-.diagram figcaption{font:400 .82rem/1.4 var(--font-ui);color:var(--ink-soft);margin-top:6px}
+/* Подпись шага — над кнопками, чтобы на телефоне не сжиматься в узкий столбец */
+.diagram-steps{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font:400 15px/1.5 var(--font-ui)}
+.diagram-steps p{flex:1 1 100%;order:-1;margin:0}
+.diagram-steps .btn:last-child{margin-left:auto}
 
-.quiz-result button,.diagram-steps button,.card-actions button{padding:6px 12px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);color:var(--ink);font:500 .9rem/1.3 var(--font-ui)}
-.diagram-steps button:disabled{opacity:.45;cursor:default}
+.quiz-result button,.card-actions button{padding:6px 12px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);color:var(--ink);font:500 .9rem/1.3 var(--font-ui)}
 .quiz-list{padding-left:1.2em;margin:8px 0}
 .quiz-question{margin:0 0 18px}
 .quiz-q{font-weight:600;margin:0 0 8px;font-family:var(--font-ui)}
@@ -43,50 +62,56 @@
 .card-actions{display:flex;gap:6px;margin-top:auto}
 .card-actions button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-ink)}
 
-.trainer,.scenario{border:1px solid var(--rule);border-radius:10px;padding:4px 16px 14px;margin:16px 0;background:var(--paper)}
-.trainer h3,.scenario h3{font-size:1rem;margin:14px 0 6px}
-.trainer-task{margin:0 0 10px;font:400 .92rem/1.45 var(--font-ui);color:var(--ink-soft)}
-.trainer-result{margin:10px 0 0;font:400 .92rem/1.45 var(--font-ui)}
-.trainer-result p{margin:4px 0}
+/* Тренажёры: задача, главная кнопка «Проверить», итог в рамке — зелёной, если всё верно */
+.trainer-task{color:var(--ink-soft);font:400 15px/1.5 var(--font-ui)}
+.trainer-result{padding:12px 16px;border:1px solid var(--paper-edge);border-radius:var(--radius-m);font:400 15px/1.5 var(--font-ui)}
+.trainer-result.is-ok,.trainer-result:has(.is-ok){border-color:var(--fig-ok)}
+.trainer-result p{margin:0}
+.trainer-result p + p{margin-top:6px}
 .is-ok{color:var(--fig-ok);font-weight:600}
-.prompt-part{border:1px solid var(--rule);border-radius:8px;margin:0 0 8px;padding:6px 12px 8px;font:400 .92rem/1.4 var(--font-ui)}
-.prompt-part legend{font-weight:600;padding:0 4px}
+/* «Собери запрос»: варианты части — строки не ниже 44 px с кружком-радио */
+.prompt-part{display:flex;flex-direction:column;min-width:0;padding:8px 16px 10px;border:1px solid var(--paper-edge);border-radius:var(--radius-m);font:400 15px/1.4 var(--font-ui)}
+.prompt-part legend{padding:0 6px;font-weight:600}
 .prompt-part.is-missing{border-color:var(--warn)}
 .prompt-part.is-weak{border-color:var(--fig-risk)}
-.prompt-option{display:flex;gap:8px;align-items:flex-start;padding:3px 0}
-.prompt-option input{margin-top:.25em}
-.code-lines{list-style:none;counter-reset:ln;margin:0 0 10px;padding:0;background:var(--code-bg);border-radius:8px;overflow-x:auto}
+.prompt-option{display:flex;gap:10px;align-items:center;min-height:44px;cursor:pointer}
+.prompt-option input{flex:none;width:18px;height:18px;margin:0;accent-color:var(--accent)}
+/* «Найди ошибку»: строки кода — кнопки во всю ширину не ниже 44 px. all:unset снимает и рамку фокуса — она возвращена ниже,
+   а поля блока кода оставляют ей место, чтобы прокрутка вбок её не обрезала */
+.code-lines{list-style:none;counter-reset:ln;padding:6px;background:var(--code-bg);border-radius:var(--radius-m);overflow-x:auto}
 .code-lines li{counter-increment:ln}
-.code-line{all:unset;box-sizing:border-box;display:flex;gap:10px;width:100%;padding:2px 10px;cursor:pointer;font:400 .85rem/1.6 var(--font-code);white-space:pre}
+.code-line{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 10px;border-radius:var(--radius-s);cursor:pointer;color:var(--ink);font:400 14px/1.6 var(--font-code);white-space:pre}
 .code-line::before{content:counter(ln);color:var(--ink-soft);min-width:1.5em;text-align:right}
 .code-line:hover,.code-line:focus-visible{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.code-line:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .code-line.is-picked{background:color-mix(in srgb,var(--accent) 16%,transparent)}
 .code-line.is-found{background:color-mix(in srgb,var(--fig-ok) 18%,transparent)}
 .code-line.is-wrong{background:color-mix(in srgb,var(--fig-risk) 16%,transparent)}
-.sort-pool,.sort-bucket ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
-.sort-pool{margin-bottom:10px}
-.sort-buckets{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:10px}
-.sort-bucket{border:1px dashed var(--rule);border-radius:8px;padding:4px 10px 10px;min-height:80px}
-.sort-bucket h4{margin:8px 0;font:600 .9rem/1.3 var(--font-ui)}
-.sort-item{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);font:400 .9rem/1.4 var(--font-ui);cursor:grab}
+/* Раскладка по корзинам: у каждого утверждения кнопки корзин, выбранная — с акцентной рамкой */
+.sort-pool,.sort-bucket ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.sort-buckets{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.sort-bucket{display:flex;flex-direction:column;gap:8px;min-height:96px;padding:12px;border:1px dashed var(--fig-line);border-radius:var(--radius-l)}
+.sort-bucket h4{margin:0;font:600 15px/1.3 var(--font-ui)}
+.sort-item{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px solid var(--paper-edge);border-radius:var(--radius-m);background:var(--paper);font:400 15px/1.45 var(--font-ui);cursor:grab}
 .sort-item.is-found{border-color:var(--fig-ok)}
 .sort-item.is-wrong{border-color:var(--fig-risk)}
-.sort-pick{display:flex;flex-wrap:wrap;gap:4px}
-.sort-pick button{padding:2px 8px;border:1px solid var(--rule);border-radius:999px;background:transparent;color:var(--ink-soft);font:500 .75rem/1.5 var(--font-ui)}
-.sort-pick button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-ink)}
-.scenario-path{margin:0 0 6px;padding-left:1.2em;font:400 .82rem/1.4 var(--font-ui);color:var(--ink-soft)}
-.scenario-text{margin:6px 0 10px}
-.scenario-choices{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
-.scenario-end{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:var(--font-ui)}
+.sort-pick{display:flex;flex-wrap:wrap;gap:6px}
+.sort-pick .btn[aria-pressed="true"]{border-color:var(--accent);background:var(--tint);color:var(--accent-ink)}
+
+/* Ситуация: путь решений, текст Literata, варианты — строки во всю ширину; концовка красит рамку карточки */
+.scenario-path{padding-left:1.2em;color:var(--ink-soft);font:400 14px/1.45 var(--font-ui)}
+.scenario-text{font:400 17px/1.65 var(--font-body)}
+.scenario-choices{display:flex;flex-direction:column;gap:10px}
+.scenario-choice{justify-content:flex-start;min-height:52px;padding:10px 18px;text-align:left;font-size:15px}
+.scenario-end{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .scenario.is-good{border-color:var(--fig-ok)}
 .scenario.is-bad{border-color:var(--fig-risk)}
 
-.ai-helper{border:1px solid var(--rule);border-radius:10px;padding:4px 16px 14px;margin:16px 0;background:var(--paper);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
-.ai-helper h3{font-size:1rem;margin:14px 0 0}
-.ai-helper textarea{width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);color:var(--ink);font:400 .95rem/1.5 var(--font-ui);resize:vertical}
+/* Помощник с ИИ: поле на всю ширину, ответ и разбор запроса — в рамке */
+.ai-helper textarea{width:100%;padding:12px 14px;border:1px solid var(--paper-edge);border-radius:var(--radius-m);background:var(--paper);color:var(--ink);font:400 16px/1.5 var(--font-ui);resize:vertical}
 .ai-helper.is-off{border-style:dashed}
-.ai-error{margin:0;color:var(--fig-risk);font:500 .9rem/1.4 var(--font-ui)}
-.ai-answer,.ai-review{width:100%;padding:10px 14px;border-left:3px solid var(--accent);background:var(--tint);border-radius:0 8px 8px 0;font:400 .95rem/1.5 var(--font-ui)}
+.ai-error{color:var(--fig-risk);font:500 15px/1.4 var(--font-ui)}
+.ai-answer,.ai-review{padding:14px 16px;border:1px solid var(--paper-edge);border-radius:var(--radius-m);font:400 15px/1.55 var(--font-ui)}
 .ai-answer p,.ai-review p{margin:4px 0}
 .ai-review ul{list-style:none;margin:0;padding:0}
 .ai-review li{margin:4px 0}
@@ -118,13 +143,13 @@
 .mentor-accept input{width:18px;height:18px;accent-color:var(--fig-ok)}
 .mentor-accept.is-on{border-color:var(--fig-ok);color:var(--fig-ok)}
 
-/* Подпись шага — над кнопками, чтобы на телефоне не сжиматься в узкий столбец. */
-.diagram-steps{flex-wrap:wrap}
-.diagram-steps p{flex:1 1 100%;order:-1}
-.diagram-steps button:last-of-type{margin-left:auto}
 .card-list{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
-/* На узком экране схемы книги шире блока и прокручиваются внутри него — иначе подписи не прочитать. */
+/* Телефон: карточки теории плотнее; схемы книги шире карточки и прокручиваются вбок внутри неё — иначе подписи не прочитать */
 @media (max-width: 640px){
+  .idea,.diagram,.trainer,.scenario,.ai-helper{gap:12px;padding:22px 18px}
+  .idea h3{font-size:22px;letter-spacing:-.015em}
+  :is(.diagram,.trainer,.scenario,.ai-helper) h3{font-size:20px}
+  .idea-text{font-size:17px;line-height:1.65}
   .idea .figure,.diagram-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .idea .figure svg,.diagram-stage{min-width:600px}
 }

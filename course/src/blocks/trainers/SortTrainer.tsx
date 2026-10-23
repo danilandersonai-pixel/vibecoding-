@@ -37,7 +37,7 @@ export function SortTrainer({ block, dayId }: { block: Trainer; dayId: string })
         <span>{text}</span>
         <span className="sort-pick" role="group" aria-label={`Куда отнести: ${text}`}>
           {block.buckets.map((b) => (
-            <button key={b.id} type="button" aria-pressed={placed[id] === b.id} onClick={() => place(id, b.id)}>
+            <button key={b.id} type="button" className="btn" aria-pressed={placed[id] === b.id} onClick={() => place(id, b.id)}>
               {b.label}
             </button>
           ))}
@@ -48,7 +48,8 @@ export function SortTrainer({ block, dayId }: { block: Trainer; dayId: string })
 
   const unplaced = block.items.filter((i) => !placed[i.id])
   return (
-    <div className="block trainer">
+    <div className="block trainer paper">
+      <p className="kicker block-kicker">Тренажёр</p>
       <h3>{block.title}</h3>
       {unplaced.length > 0 && (
         <ul className="sort-pool">
@@ -67,7 +68,7 @@ export function SortTrainer({ block, dayId }: { block: Trainer; dayId: string })
           </section>
         ))}
       </div>
-      <button type="button" className="btn" onClick={check} disabled={unplaced.length > 0}>
+      <button type="button" className="btn btn-primary" onClick={check} disabled={unplaced.length > 0}>
         Проверить
       </button>
       {result && (

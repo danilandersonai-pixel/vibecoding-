@@ -7,7 +7,7 @@ type ScenarioBlock = Extract<Block, { type: 'scenario' }>
 
 const ENDING_LABEL = { good: 'Хороший исход', bad: 'Плохой исход', neutral: 'Так тоже бывает' }
 
-// Ситуация с выбором: история ветвится по узлам, концовка записывается в прогресс.
+// Ситуация с выбором — карточка «бумаги» с кикером: история ветвится по узлам, концовка записывается в прогресс.
 export function Scenario({ block, dayId }: { block: ScenarioBlock; dayId: string }) {
   const { update } = useCourseProgress()
   const [nodeId, setNodeId] = useState(block.start)
@@ -22,7 +22,8 @@ export function Scenario({ block, dayId }: { block: ScenarioBlock; dayId: string
   }
 
   return (
-    <div className={`block scenario${node.ending ? ` is-${node.ending}` : ''}`}>
+    <div className={`block scenario paper${node.ending ? ` is-${node.ending}` : ''}`}>
+      <p className="kicker block-kicker">Ситуация</p>
       <h3>{block.title}</h3>
       {path.length > 0 && (
         <ol className="scenario-path" aria-label="Ваши решения">
@@ -51,7 +52,7 @@ export function Scenario({ block, dayId }: { block: ScenarioBlock; dayId: string
       ) : (
         <div className="scenario-choices">
           {node.choices.map((c) => (
-            <button key={c.label} type="button" className="btn" onClick={() => choose(c.label, c.next)}>
+            <button key={c.label} type="button" className="btn scenario-choice" onClick={() => choose(c.label, c.next)}>
               {c.label}
             </button>
           ))}

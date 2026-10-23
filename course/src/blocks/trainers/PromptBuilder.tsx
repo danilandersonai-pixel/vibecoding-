@@ -25,7 +25,8 @@ export function PromptBuilder({ block, dayId }: { block: Trainer; dayId: string 
   }
 
   return (
-    <div className="block trainer">
+    <div className="block trainer paper">
+      <p className="kicker block-kicker">Тренажёр</p>
       <h3>Собери запрос</h3>
       <p className="trainer-task">Задача: {block.task}</p>
       {block.parts.map((part) => (
@@ -47,7 +48,7 @@ export function PromptBuilder({ block, dayId }: { block: Trainer; dayId: string 
           ))}
         </fieldset>
       ))}
-      <button type="button" className="btn" onClick={check}>
+      <button type="button" className="btn btn-primary" onClick={check}>
         Проверить запрос
       </button>
       {result && (

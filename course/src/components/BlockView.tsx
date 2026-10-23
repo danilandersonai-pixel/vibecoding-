@@ -8,11 +8,11 @@ import { SortTrainer } from '../blocks/trainers/SortTrainer'
 import type { Block } from '../content/schema'
 import { VideoBlock } from '../video/VideoBlock'
 
-// Переключатель блоков теории по типу.
-export function BlockView({ block, dayId }: { block: Block; dayId: string }) {
+// Переключатель блоков теории по типу; ideaIndex — номер мысли среди мыслей дня («Мысль i из n»).
+export function BlockView({ block, dayId, ideaIndex }: { block: Block; dayId: string; ideaIndex?: { i: number; n: number } }) {
   switch (block.type) {
     case 'idea':
-      return <IdeaBlock block={block} />
+      return <IdeaBlock block={block} index={ideaIndex} />
     case 'diagram':
       return <DiagramBlock block={block} />
     case 'scenario':

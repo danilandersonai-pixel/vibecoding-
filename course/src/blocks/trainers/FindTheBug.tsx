@@ -31,7 +31,8 @@ export function FindTheBug({ block, dayId }: { block: Trainer; dayId: string }) 
   }
 
   return (
-    <div className="block trainer">
+    <div className="block trainer paper">
+      <p className="kicker block-kicker">Тренажёр</p>
       <h3>Найди ошибку: {block.title}</h3>
       <p className="trainer-task">Нажмите на строки, где проблема, и проверьте.</p>
       <ol className="code-lines">
@@ -43,7 +44,7 @@ export function FindTheBug({ block, dayId }: { block: Trainer; dayId: string }) 
           </li>
         ))}
       </ol>
-      <button type="button" className="btn" onClick={check} disabled={clicked.length === 0}>
+      <button type="button" className="btn btn-primary" onClick={check} disabled={clicked.length === 0}>
         Проверить
       </button>
       {result && (

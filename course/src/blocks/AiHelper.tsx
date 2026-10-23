@@ -12,7 +12,7 @@ const PART_LABEL: Record<PromptReview['parts'][number]['key'], string> = {
   format: 'Формат',
 }
 
-// ИИ прямо на странице: оценка запроса по ЦКОКФ или вопрос по теме дня.
+// ИИ прямо на странице — карточка «бумаги» с кикером «Спросите ИИ»: оценка запроса по ЦКОКФ или вопрос по теме дня.
 export function AiHelper({ block }: { block: Helper }) {
   const [ai, setAi] = useState<Ai | null | undefined>(undefined)
   const [input, setInput] = useState('')
@@ -62,7 +62,8 @@ export function AiHelper({ block }: { block: Helper }) {
   if (ai === undefined) return null
   if (ai === null || blocked) {
     return (
-      <div className="block ai-helper is-off">
+      <div className="block ai-helper paper is-off">
+        <p className="kicker block-kicker">Спросите ИИ</p>
         <h3>{block.title}</h3>
         <p className="soon">{blocked ?? 'ИИ доступен, когда курс открыт в Claude'}</p>
       </div>
@@ -70,10 +71,11 @@ export function AiHelper({ block }: { block: Helper }) {
   }
 
   return (
-    <div className="block ai-helper">
+    <div className="block ai-helper paper">
+      <p className="kicker block-kicker">Спросите ИИ</p>
       <h3>{block.title}</h3>
       <textarea rows={isReview ? 5 : 3} value={input} placeholder={block.placeholder} aria-label={block.title} onChange={(e) => setInput(e.target.value)} />
-      <button type="button" className="btn" disabled={busy || !input.trim()} onClick={() => void submit()}>
+      <button type="button" className="btn btn-primary" disabled={busy || !input.trim()} onClick={() => void submit()}>
         {action}
       </button>
       {busy && !answer && <p className="soon">ИИ думает…</p>}

@@ -10,7 +10,7 @@ for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, {
   })
 }
 
-// Страница дня: шапка и полоса плана дня не выталкивают страницу вбок — полоса прокручивается только внутри себя
+// Страница дня: шапка, полоса плана дня и схема не выталкивают страницу вбок — полоса и схема прокручиваются только внутри себя
 for (const size of [{ width: 390, height: 844 }, { width: 320, height: 640 }]) {
   test(`день 1 открывается на ${size.width}×${size.height} без горизонтальной прокрутки`, async ({ page }) => {
     await page.setViewportSize(size)
@@ -20,5 +20,7 @@ for (const size of [{ width: 390, height: 844 }, { width: 320, height: 640 }]) {
     expect(fits).toBe(true)
     const strip = page.getByRole('navigation', { name: 'План дня' }).getByRole('list')
     expect(await strip.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true)
+    const diagram = page.locator('.diagram-scroll').first()
+    expect(await diagram.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true)
   })
 }
