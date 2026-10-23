@@ -53,6 +53,8 @@ vi.mock('./registry', async () => {
     videos: {
       a: { script: pilotRlsScript, load: ok },
       b: { script: pilotRlsScript, load: ok },
+      // 7789 кадров = 259,6 с: полная длительность округляется до 4:20, последний кадр — 4:19 целых секунд
+      long: { script: { ...pilotRlsScript, scenes: [{ id: 'всё', durationInFrames: 7789 }] }, load: ok },
       broken: { script: pilotRlsScript, load: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) },
     },
   }
@@ -206,6 +208,21 @@ describe('VideoBlock', () => {
     expect(first.seekTo).toHaveBeenLastCalledWith(0)
     expect(first.play).toHaveBeenCalledTimes(1)
     expect(screen.getAllByRole('button', { name: 'Смотреть ещё раз' })).toHaveLength(1)
+  })
+
+  it('в конце ролика в панели текущее время равно полной длительности', async () => {
+    render(<VideoBlock videoId="long" title="Ролик" />)
+    await act(async () => {})
+    const player = fake.players[0]
+    act(() => {
+      player.emit('play')
+      player.emit('frameupdate', { frame: 7788 })
+      player.emit('pause')
+    })
+    // на паузе — целые прошедшие секунды, как раньше
+    expect(screen.getByTestId('video-time')).toHaveTextContent('4:19 / 4:20')
+    act(() => player.emit('ended'))
+    expect(screen.getByTestId('video-time')).toHaveTextContent('4:20 / 4:20')
   })
 
   it('«Дальше» при «уменьшить движение» прокручивает без анимации', async () => {

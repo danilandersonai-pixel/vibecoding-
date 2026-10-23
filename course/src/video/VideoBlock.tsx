@@ -199,6 +199,7 @@ function VideoBlockBody({ videoId, title, index }: Props) {
         {!failed && (
           <VideoControls
             playing={playing}
+            ended={ended}
             frame={shownFrame}
             frames={frames}
             duration={duration}

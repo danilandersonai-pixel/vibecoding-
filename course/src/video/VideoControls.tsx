@@ -8,6 +8,7 @@ function clock(frame: number, fps: number): string {
 
 type Props = {
   playing: boolean
+  ended?: boolean // ролик досмотрен: текущее время — полная длительность, а не 4:19 из 4:20
   frame: number
   frames: number // кадров в ролике
   duration: string // полная длительность «м:сс» — та же, что на обложке и в шапке дня
@@ -22,7 +23,7 @@ type Props = {
 }
 
 // Панель под кадром: перемотка сверху, под ней ▶/⏸, время, «Голос» и «Во весь экран»
-export function VideoControls({ playing, frame, frames, duration, fps, voice, voiceOn, onToggle, onSeek, onVoice, fullscreen = false, onFullscreen }: Props) {
+export function VideoControls({ playing, ended = false, frame, frames, duration, fps, voice, voiceOn, onToggle, onSeek, onVoice, fullscreen = false, onFullscreen }: Props) {
   return (
     <div className="video-controls">
       <input
@@ -38,7 +39,7 @@ export function VideoControls({ playing, frame, frames, duration, fps, voice, vo
         {playing ? <IconPause size={20} /> : <IconPlay size={20} />}
       </button>
       <span className="video-time" data-testid="video-time">
-        {clock(frame, fps)} / {duration}
+        {ended ? duration : clock(frame, fps)} / {duration}
       </span>
       {voice && (
         <label className="video-voice">

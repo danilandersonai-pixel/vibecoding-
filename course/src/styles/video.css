@@ -14,15 +14,17 @@
 :is(.day-part,.video-grid) > *{scroll-margin-top:24px}
 
 /* Обложка до первого запуска: затемнение снизу, круглая ▶ по центру, номер ролика и длительность внизу.
+   Затемнение плотнее, чем 55 % в спецификации: субтитры вшиты в ролики, и к 80 % высоты кадра их плашка
+   уходит под сплошной синий — метки лежат на ровном тёмном фоне, а схема в верхних двух третях видна.
    Рамка фокуса — у круга: светлая на тёмной подложке, видна и на светлом кадре, и на затемнении */
-.video-cover{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;border-radius:0;background:linear-gradient(180deg,transparent 40%,color-mix(in srgb,var(--cover-bg) 55%,transparent));color:var(--cover-ink);font-family:var(--font-ui)}
+.video-cover{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;border-radius:0;background:linear-gradient(180deg,transparent 38%,color-mix(in srgb,var(--cover-bg) 50%,transparent) 58%,var(--cover-bg) 80%);color:var(--cover-ink);font-family:var(--font-ui)}
 .video-cover:focus-visible{outline:none}
 .video-cover-play{position:absolute;left:50%;top:50%;display:flex;align-items:center;justify-content:center;width:76px;height:76px;margin:-38px 0 0 -38px;border-radius:50%;background:var(--cover-ink);color:var(--cover-bg);box-shadow:var(--shadow-raised);transition:transform .2s ease-out}
 .video-cover:hover .video-cover-play{transform:scale(1.06)}
 .video-cover:focus-visible .video-cover-play{outline:3px solid var(--cover-ink);outline-offset:3px;box-shadow:0 0 0 3px var(--cover-bg),0 0 0 9px color-mix(in srgb,var(--cover-bg) 45%,transparent)}
-.video-cover-label,.video-cover-time{position:absolute;bottom:12px;padding:6px 10px;border-radius:999px;background:color-mix(in srgb,var(--term-bg) 78%,transparent);color:var(--cover-ink);font:600 13px/1 var(--font-ui)}
-.video-cover-label{left:12px}
-.video-cover-time{right:12px;font-family:var(--font-code)}
+.video-cover-label,.video-cover-time{position:absolute;bottom:14px;color:var(--cover-ink);font:600 13px/1 var(--font-ui)}
+.video-cover-label{left:16px}
+.video-cover-time{right:16px;font-family:var(--font-code)}
 
 /* Конец ролика: поверх последнего кадра — «Смотреть ещё раз» и «Дальше» */
 .video-end{position:absolute;inset:0;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:12px;padding:16px;background:color-mix(in srgb,var(--cover-bg) 72%,transparent)}
@@ -69,9 +71,9 @@
 @media (max-width:640px){
   .video-cover-play{width:64px;height:64px;margin:-32px 0 0 -32px}
   .video-cover-play svg{width:26px;height:26px}
-  .video-cover-label,.video-cover-time{bottom:10px;padding:5px 8px;font-size:12px}
-  .video-cover-label{left:10px}
-  .video-cover-time{right:10px}
+  .video-cover-label,.video-cover-time{bottom:11px;font-size:12px}
+  .video-cover-label{left:12px}
+  .video-cover-time{right:12px}
   .video-end{gap:8px;padding:10px}
   .video-end .btn{min-height:44px;padding:0 14px;font-size:14px}
   .video-title{font-size:17px}
