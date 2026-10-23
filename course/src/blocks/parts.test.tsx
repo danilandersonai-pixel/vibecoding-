@@ -21,9 +21,20 @@ function renderDay() {
   )
 }
 
-// Стили jsdom не загружает: правило кнопок карточки читаем из самого blocks.css (как tokens.test.ts — tokens.css)
-const blocksCss = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../styles/blocks.css'), 'utf8')
-const cssRule = (selector: string) => blocksCss.match(new RegExp(`(?:^|\\})\\s*${selector.replace('.', '\\.')}\\{([^}]*)\\}`, 'm'))?.[1] ?? ''
+// Стили jsdom не загружает: правила читаем из самого blocks.css (как tokens.test.ts — tokens.css).
+// Объявления всех правил, где селектор стоит отдельным пунктом списка: свойство → значение; пробелы и комментарии не мешают
+const blocksCss = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../styles/blocks.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+function cssDecls(selector: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [, selectors, body] of blocksCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    if (!selectors.split(',').some((x) => x.trim() === selector)) continue
+    for (const decl of body.split(';')) {
+      const colon = decl.indexOf(':')
+      if (colon > 0) out[decl.slice(0, colon).trim()] = decl.slice(colon + 1).trim()
+    }
+  }
+  return out
+}
 
 beforeEach(() => localStorage.clear())
 
@@ -60,6 +71,22 @@ describe('части дня', () => {
     expect(second[q2.correct]).toHaveClass('is-correct')
     expect(within(questions[1]).getByText('Неверно.')).toBeInTheDocument()
     expect(quiz.getByText('Верно: 1')).toBeInTheDocument()
+  })
+
+  it('тест: «Пройти заново» обнуляет «Верно: k», лучший результат остаётся', async () => {
+    const user = userEvent.setup()
+    renderDay()
+    const quiz = part('quiz')
+    const questions = quiz.getAllByTestId('quiz-question')
+    for (const [i, q] of day.quiz.entries()) await user.click(within(questions[i]).getAllByRole('button')[q.correct])
+    expect(quiz.getByText('Верно: 6')).toBeInTheDocument()
+    expect(quiz.getByTestId('quiz-result')).toHaveTextContent('Результат: 6 из 6')
+
+    await user.click(quiz.getByRole('button', { name: 'Пройти заново' }))
+    expect(quiz.getByText('Верно: 0')).toBeInTheDocument()
+    expect(quiz.queryByTestId('quiz-result')).toBeNull()
+    expect(quiz.getByTestId('quiz-best')).toHaveTextContent('Лучший результат: 6 из 6')
+    for (const option of within(questions[0]).getAllByRole('button')) expect(option).toBeEnabled()
   })
 
   it('практика: «Шаг 1. …», «Запрос для Claude Code», «Готово, когда:», счёт шагов', async () => {
@@ -106,13 +133,10 @@ describe('части дня', () => {
     for (const term of day.cards) {
       const card = summary.getByRole('button', { name: term }).closest('li')!
       expect(card).toHaveClass('paper')
-      const buttons = within(card).getAllByRole('button')
-      const know = within(card).getByRole('button', { name: 'Знаю' })
-      const repeat = within(card).getByRole('button', { name: 'Повторить' })
-      expect(buttons).toEqual(expect.arrayContaining([know, repeat]))
-      for (const b of [know, repeat]) expect(b).toHaveClass('btn', 'card-action')
+      for (const name of ['Знаю', 'Повторить']) expect(within(card).getByRole('button', { name })).toHaveClass('btn', 'card-action')
     }
-    expect(cssRule('.card-action')).toContain('flex:1 1 0')
+    // Поровну, но не уже своего слова: у .btn свой min-width:44px, без min-content кнопки не переносились бы друг под друга
+    expect(cssDecls('.card-action')).toMatchObject({ flex: '1 1 0', 'min-width': 'min-content' })
 
     const [term] = day.cards
     const card = within(summary.getByRole('button', { name: term }).closest('li')!)

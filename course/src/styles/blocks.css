@@ -144,7 +144,7 @@
 .prompt-box{border-radius:var(--radius-m);background:var(--term-bg);color:var(--term-ink);overflow:hidden}
 .prompt-box :focus-visible{outline-color:var(--term-ink)}
 .prompt-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px 0 18px}
-.prompt-kicker{color:var(--term-soft);font-size:12px;letter-spacing:.12em}
+.prompt-kicker{color:var(--term-soft);font-size:12px;letter-spacing:.14em}
 .prompt-box pre{margin:0;padding:8px 18px 18px;white-space:pre-wrap;overflow-wrap:anywhere;font:400 14px/1.65 var(--font-code)}
 .practice-done{display:flex;align-items:flex-start;gap:10px;color:var(--ink-soft);font:400 15px/1.5 var(--font-ui)}
 .practice-done svg{flex:none;margin-top:2px;color:var(--fig-ok)}
@@ -173,7 +173,7 @@
 .mentor-accept.is-on{border-color:var(--fig-ok)}
 
 /* Итог дня: заметки — поле на «бумаге»; карточки терминов сеткой. Термин — кнопка, по нажатию — определение;
-   внизу «Знаю» / «Повторить» поровну внутри рамки карточки, а если не помещаются рядом — друг под другом */
+   внизу «Знаю» / «Повторить» внутри рамки карточки: рядом (поровну, но не уже своего слова), а если не помещаются — друг под другом */
 .notes{display:flex;flex-direction:column;gap:10px;margin:0 0 28px}
 .notes-title{font:700 20px/1.25 var(--font-ui);letter-spacing:-.01em}
 .notes textarea{width:100%;min-height:132px;padding:16px 18px;border:1px solid var(--paper-edge);border-radius:var(--radius-l);background:var(--paper);color:var(--ink);font:400 17px/1.6 var(--font-body);resize:vertical}
@@ -188,8 +188,12 @@
 .card-term{display:flex;align-items:center;min-height:44px;padding:0;border:0;background:none;color:var(--ink);font:700 17px/1.25 var(--font-ui);text-align:left;overflow-wrap:anywhere}
 .card-def{margin:0;color:var(--ink-soft);font:400 15px/1.45 var(--font-ui)}
 .card-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
-.card-action{flex:1 1 0;padding:0 8px;border-radius:var(--radius-s);font:600 14px/1.2 var(--font-ui)}
-/* Нажатая кнопка — в цвет рамки карточки: «Знаю» зелёная, «Повторить» — цвета предупреждения; текст основным цветом */
+/* flex:1 1 0 делит строку поровну; min-width:min-content не даёт кнопке стать уже своего слова (min-width:44px из .btn
+   этот предел отменял). Когда два слова с полями не помещаются в строку, wrap ставит кнопки друг под другом во всю ширину */
+.card-action{flex:1 1 0;min-width:min-content;padding:0 4px;border-radius:var(--radius-s);font:600 14px/1.2 var(--font-ui)}
+/* Нажатая кнопка — рамка 2 px в цвет рамки карточки («Знаю» — зелёная, «Повторить» — цвета предупреждения) и подкраска;
+   толщина рамки отличает её не только цветом. Поле на 1 px уже — ширина по слову не меняется. Текст основным цветом */
+.card-action[aria-pressed="true"]{padding:0 3px;border-width:2px}
 .card.is-know .card-action[aria-pressed="true"]{border-color:var(--fig-ok);background:color-mix(in srgb,var(--fig-ok) 10%,var(--paper))}
 .card.is-repeat .card-action[aria-pressed="true"]{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--paper))}
 
@@ -208,7 +212,6 @@
   .practice-step{gap:14px;padding:18px}
   .practice-title{gap:12px;font-size:17px}
   .prompt-head{padding:8px 8px 0 14px}
-  .prompt-kicker{font-size:11px}
   .prompt-box pre{padding:6px 14px 14px;font-size:13px;line-height:1.6}
   .mentor-run,.mentor-checks{padding:20px 18px}
   .mentor-command code{font-size:18px}

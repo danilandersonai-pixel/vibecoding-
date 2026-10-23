@@ -127,6 +127,8 @@ describe('tokens.css', () => {
       ['--fig-on', '--fig-risk'],
       ['--term-ink', ['--term-bg', ['--term-ink', 0.08]]], ['--cover-bg', '--cover-ink'],
       ['--cover-ink', ['--cover-bg', ['--term-bg', 0.35]]],
+      // Рамка 2 px нажатой «Повторить» на бумаге (рамке хватило бы 3 : 1; «Знаю» — пара --fig-ok выше)
+      ['--warn', '--paper'],
     ]
     const themes: [string, Record<string, string>][] = [['светлая', light], ['тёмная', dark]]
     for (const [themeName, theme] of themes) {
