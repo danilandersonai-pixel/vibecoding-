@@ -101,7 +101,7 @@ export function DayPage({ n }: { n: number }) {
     <>
       <DayHeader day={day} />
       <div className="day-wrap day-layout">
-        <DayToc parts={parts} />
+        <DayToc parts={parts} showProgress={day.status !== 'draft'} />
         <main className="day-main">
           {parts.map(
             (p, i) =>

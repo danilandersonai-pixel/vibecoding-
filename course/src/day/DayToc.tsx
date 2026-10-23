@@ -29,8 +29,9 @@ function useCurrentSection(key: string): string | null {
 }
 
 // План дня: шесть частей и счёт сделанного. Пункт — кнопка с прокруткой к части (якорь занят маршрутом #/day/N);
-// часть без содержания — бледная, с подписью «скоро», не нажимается.
-export function DayToc({ parts }: { parts: Part[] }) {
+// часть без содержания — бледная, с подписью «скоро», не нажимается. У черновика счёта и полосы нет
+// (showProgress=false): засчитать день, пока нет остальных частей, нельзя, и «Сделано 1 из 1» вводило бы в заблуждение.
+export function DayToc({ parts, showProgress = true }: { parts: Part[]; showProgress?: boolean }) {
   const { done, total } = partsDone(parts)
   const current = useCurrentSection(parts.map((p) => `${p.id}:${p.available}`).join())
   // Полоса «таблеток» (≤ 960 px) сама подкручивается вбок: текущий пункт — к её середине. Прокручиваем только
@@ -47,10 +48,14 @@ export function DayToc({ parts }: { parts: Part[] }) {
   return (
     <nav className="paper toc" aria-label="План дня">
       <p className="kicker toc-kicker">План дня</p>
-      <div className="toc-bar" aria-hidden="true">
-        <span style={{ width: `${total ? (done / total) * 100 : 0}%` }} />
-      </div>
-      <p className="toc-count">{`Сделано ${done} из ${total} ${plural(total, 'части', 'частей', 'частей')}`}</p>
+      {showProgress && (
+        <>
+          <div className="toc-bar" aria-hidden="true">
+            <span style={{ width: `${total ? (done / total) * 100 : 0}%` }} />
+          </div>
+          <p className="toc-count">{`Сделано ${done} из ${total} ${plural(total, 'части', 'частей', 'частей')}`}</p>
+        </>
+      )}
       <ol ref={listRef} className="toc-list">
         {parts.map((p, i) => {
           const isCurrent = current === `part-${p.id}`

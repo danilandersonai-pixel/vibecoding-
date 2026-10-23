@@ -148,6 +148,13 @@ describe('страница дня', () => {
     expect(within(screen.getByRole('banner')).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['1 видеоурок · 2:44'])
   })
 
+  it('у чернового дня в плане нет счёта «Сделано» и полосы — день ещё нельзя засчитать', () => {
+    renderDay(10)
+    expect(plan().queryByText(/^Сделано/)).toBeNull()
+    expect(document.querySelector('.toc-bar')).toBeNull()
+    expect(plan().getByRole('button', { name: 'Итог дня' })).toBeEnabled()
+  })
+
   it('пункт плана прокручивает к части, адрес не меняется', async () => {
     const user = userEvent.setup()
     window.location.hash = '#/day/1'
