@@ -218,20 +218,31 @@ describe('окно поиска: выдача', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Азбука и знакомство с моделями' })).toBeInTheDocument()
     await waitFor(() => expect(scrolledTo(scroll)).toContain('block-restaurant'))
     expect(document.getElementById('block-restaurant')).toHaveClass('idea')
+    // фокус — на найденном месте: следующий Tab пойдёт от него, а не от начала страницы
+    await waitFor(() => expect(document.getElementById('block-restaurant')).toHaveFocus())
   })
 
-  it('открыт тот же день — только прокрутка к блоку, без перехода', async () => {
+  it('открыт тот же день — только прокрутка к блоку, без перехода; выбор с клавиатуры: фокус на блоке, следующий Tab — дальше от него', async () => {
     window.location.hash = '#/day/1'
     const scroll = vi.spyOn(Element.prototype, 'scrollIntoView')
     const heading = () => screen.getByRole('heading', { level: 1, name: 'Азбука и знакомство с моделями' })
     render(<App />)
     const before = heading()
+    const button = within(screen.getByRole('banner')).getByRole('button', { name: 'Поиск' })
     const user = await search('Подписки токены')
-    await user.click(within(group('В курсе')).getByRole('button', { name: /Подписки, токены и лимиты/ }))
+    act(() => within(group('В курсе')).getByRole('button', { name: /Подписки, токены и лимиты/ }).focus())
+    await user.keyboard('{Enter}')
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(scrolledTo(scroll)).toContain('block-limits')
     expect(window.location.hash).toBe('#/day/1')
     expect(heading()).toBe(before)
+    // фокус не вернулся на «Поиск» в шапке, а встал на сам блок (своего фокуса у блока нет — tabindex="-1")
+    const block = document.getElementById('block-limits')!
+    expect(button).not.toHaveFocus()
+    expect(block).toHaveFocus()
+    expect(block).toHaveAttribute('tabindex', '-1')
+    await user.tab()
+    expect(block.compareDocumentPosition(document.activeElement!) & (Node.DOCUMENT_POSITION_FOLLOWING | Node.DOCUMENT_POSITION_CONTAINED_BY)).toBeTruthy()
   })
 
   it('«День N» у термина ведёт к «Итогу дня»', async () => {
@@ -242,6 +253,7 @@ describe('окно поиска: выдача', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(window.location.hash).toBe('#/day/1')
     await waitFor(() => expect(scrolledTo(scroll)).toContain('part-summary'))
+    await waitFor(() => expect(document.getElementById('part-summary')).toHaveFocus())
   })
 
   it('запрос из пробелов или из одних знаков («c++») — как пустой: примеры', async () => {
@@ -331,12 +343,17 @@ describe('окно поиска: книга', () => {
       expect(link).toHaveAttribute('target', '_blank')
       expect(link).toHaveAttribute('rel', 'noopener')
     }
-    // запись-заголовок: только подпись и название, фрагмент не повторяет название
-    expect(links[0]).toHaveTextContent(/^Книга · Глава 4\. Данные → Политики RLS\s*Политики RLS$/)
-    expect(links[1]).toHaveTextContent('Включите RLS для каждой таблицы: <b>select</b> & insert.')
+    // Раздел и глава видны по одному разу. Запись-заголовок: подпись «Книга · глава» и название-раздел, фрагмент его не повторяет
+    expect(links[0]).toHaveTextContent(/^Книга · Глава 4\. Данные\s*Политики RLS$/)
+    expect(links[0].querySelector('.search-title')).toHaveTextContent('Политики RLS')
+    // абзац: подпись «Книга · глава → раздел» и фрагмент, без названия
+    expect(links[1]).toHaveTextContent(/^Книга · Глава 4\. Данные → Политики RLS\s*Включите RLS для каждой таблицы: <b>select<\/b> & insert\.$/)
+    expect(links[1].querySelector('.search-title')).toBeNull()
     expect(links[1].querySelector('b')).toBeNull()
+    // абзац без раздела: подпись «Книга · глава» и фрагмент
     expect(links[2]).toHaveAttribute('href', 'book.html#ch9')
-    expect(links[2]).toHaveTextContent(/^Книга · Глава 9\. Запуск\s*Глава 9\. Запуск\s*Перед запуском проверьте RLS\.$/)
+    expect(links[2]).toHaveTextContent(/^Книга · Глава 9\. Запуск\s*Перед запуском проверьте RLS\.$/)
+    expect(links[2].querySelector('.search-title')).toBeNull()
     // три группы в порядке спецификации; окно после ссылки в книгу остаётся открытым
     expect(within(dialog()).getAllByRole('region').map((r) => r.querySelector('h2')!.firstChild!.textContent!.trim())).toEqual(['Термины', 'В курсе', 'В книге'])
     expect(screen.getByText(/^Найдено: \d+$/)).toBeInTheDocument()

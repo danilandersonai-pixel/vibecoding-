@@ -55,6 +55,39 @@ test('из другого дня: день открывается и после 
   await expect(page.getByRole('heading', { level: 1, name: 'Азбука и знакомство с моделями' })).toBeVisible()
   await expect(page.locator('#block-benchmarks')).toBeInViewport()
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+  await expect(page.locator('#block-benchmarks')).toBeFocused()
+})
+
+test('выбор с клавиатуры: фокус на найденном месте, следующий Tab не уводит страницу наверх', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/#/day/1')
+  await expect(page.getByRole('heading', { level: 1, name: 'Азбука и знакомство с моделями' })).toBeVisible()
+  const button = page.getByRole('banner').getByRole('button', { name: 'Поиск' })
+  await button.focus()
+  await page.keyboard.press('Enter')
+  await expect(field(page)).toBeFocused()
+  await page.keyboard.type('ресторан')
+  const hit = group(page, 'В курсе').getByRole('button', { name: /Приложение устроено как ресторан/ })
+  await expect(hit).toBeVisible()
+  for (let i = 0; i < 10 && !(await hit.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab')
+  await expect(hit).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(dialog(page)).toBeHidden()
+
+  const block = page.locator('#block-restaurant')
+  await expect(block).toBeFocused()
+  await expect(block).toBeInViewport()
+  await expect(button).not.toBeFocused()
+  const before = await page.evaluate(() => window.scrollY)
+  expect(before).toBeGreaterThan(0)
+
+  await page.keyboard.press('Tab')
+  // следующий элемент — внутри блока или после него, а не стрелка дня в шапке
+  expect(
+    await block.evaluate((b) => Boolean(b.compareDocumentPosition(document.activeElement!) & (Node.DOCUMENT_POSITION_FOLLOWING | Node.DOCUMENT_POSITION_CONTAINED_BY))),
+  ).toBe(true)
+  await expect(page.locator(':focus')).toBeInViewport()
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThanOrEqual(before - 20)
 })
 
 test('на странице дня: Ctrl+K открывает окно; результат того же дня — прокрутка без перезагрузки; «/» в заметках — просто символ', async ({ page }) => {

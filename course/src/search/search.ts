@@ -124,7 +124,8 @@ function rankOf(foldedTitle: string, phrase: string, words: string[]): number {
   return words.every((w) => foldedTitle.includes(w)) ? 2 : 3
 }
 
-function search<T extends object>(query: string, entries: T[], fields: (e: T) => { title: string; text: string }): Hit<T>[] {
+// byTitle — запись подходит и по словам из названия; без него — только по своему тексту, а название лишь влияет на порядок
+function search<T extends object>(query: string, entries: T[], fields: (e: T) => { title: string; text: string }, byTitle = true): Hit<T>[] {
   const words = queryWords(query)
   if (words.length === 0) return []
   const phrase = normalize(query)
@@ -134,7 +135,7 @@ function search<T extends object>(query: string, entries: T[], fields: (e: T) =>
     const { title, text } = fields(entry)
     const f = foldedOf(entry, title, text)
     // слово ищется отдельно в названии и в тексте: через границу между ними слова не склеиваются
-    if (!words.every((w) => f.foldedTitle.includes(w) || f.foldedText.includes(w))) return
+    if (!words.every((w) => (byTitle && f.foldedTitle.includes(w)) || f.foldedText.includes(w))) return
     const { snippet, marks } = snippetOf(text, f.foldedText, words, 160)
     found.push({
       hit: { entry, titleMarks: markRanges(f.foldedTitle, words), snippet, snippetMarks: marks },
@@ -154,7 +155,9 @@ export function searchTerms(query: string, entries: TermEntry[]): Hit<TermEntry>
   return search(query, entries, (e) => ({ title: e.term, text: e.definition }))
 }
 
-// Для книги название — заголовок раздела (а если раздела нет — главы), текст — абзац
+// Для книги название — заголовок раздела (а если раздела нет — главы), текст — абзац. Запись подходит только по своему тексту:
+// иначе выдачу засоряют абзацы, совпавшие одним заголовком раздела. Запись-заголовок (текст = раздел) подходит по нему же,
+// а заголовок у абзацев только поднимает их в порядке
 export function searchBook(query: string, entries: BookEntry[]): Hit<BookEntry>[] {
-  return search(query, entries, (e) => ({ title: e.s || e.c, text: e.t }))
+  return search(query, entries, (e) => ({ title: e.s || e.c, text: e.t }), false)
 }

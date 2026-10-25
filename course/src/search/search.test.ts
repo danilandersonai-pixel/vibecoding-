@@ -543,24 +543,23 @@ describe('searchBook', () => {
     { a: 's1', c: 'Глава про базу', s: '', t: 'Первый абзац про политики' },
     { a: 's2', c: 'Глава про базу', s: 'Политики доступа', t: 'Текст раздела' },
     { a: 's3', c: 'Другая глава', s: 'Другой раздел', t: 'Здесь тоже политики и политики' },
+    // запись-заголовок раздела (текст = название) и абзац этого раздела
+    { a: 's4', c: 'Другая глава', s: 'Политики строк', t: 'Политики строк' },
+    { a: 's4', c: 'Другая глава', s: 'Политики строк', t: 'Каждая политика проверяет строку' },
   ]
 
-  it('заголовок записи — раздел, а без раздела — глава; порядок: название выше текста, затем порядок книги', () => {
-    const hits = searchBook('политики', book)
-    expect(hits.map((h) => h.entry.a)).toEqual(['s2', 's1', 's3'])
-    expect(hits[0].titleMarks).toEqual([[0, 8]])
-    expect(hits[0].snippetMarks).toEqual([])
-    expect(hits[1].snippetMarks).toEqual([[17, 25]])
+  it('запись подходит только по своему тексту; заголовок раздела — лишь для порядка: заголовок, абзацы раздела, остальные по порядку книги', () => {
+    const hits = searchBook('политик', book)
+    // s2 совпал бы только по названию раздела — его нет
+    expect(hits.map((h) => h.entry.t)).toEqual(['Политики строк', 'Каждая политика проверяет строку', 'Первый абзац про политики', 'Здесь тоже политики и политики'])
+    expect(hits[0].titleMarks).toEqual([[0, 7]])
+    expect(hits[1].snippetMarks).toEqual([[7, 14]])
+    expect(hits[2].snippetMarks).toEqual([[17, 24]])
   })
 
-  it('заголовок главы ищется, когда раздела нет', () => {
-    const hits = searchBook('глава про базу', book)
-    expect(hits.map((h) => h.entry.a)).toEqual(['s1'])
-    expect(hits[0].titleMarks).toEqual([
-      [0, 5],
-      [6, 9],
-      [10, 14],
-    ])
+  it('название главы или раздела без слова в тексте записи не находит', () => {
+    expect(searchBook('глава про базу', book)).toEqual([])
+    expect(searchBook('политики доступа', book)).toEqual([])
   })
 
   it('метки во фрагменте — по всем вхождениям', () => {
@@ -578,6 +577,16 @@ describe('searchBook', () => {
       for (const [a, b] of h.titleMarks) expect(fold(title.slice(a, b))).toBe('rls')
       for (const [a, b] of h.snippetMarks) expect(fold(h.snippet.slice(a, b))).toBe('rls')
       expect(h.snippet.length).toBeLessThanOrEqual(160)
+    }
+  })
+
+  it('на настоящем индексе книги: каждое найденное — со словом в своём тексте (метка во фрагменте), кроме записи-заголовка', () => {
+    const entries: BookEntry[] = bookIndex
+    for (const q of ['Бенчмарк', 'Агент']) {
+      const hits = searchBook(q, entries)
+      expect(hits.length, q).toBeGreaterThan(5)
+      const bare = hits.filter((h) => h.snippetMarks.length === 0 && h.entry.t !== h.entry.s)
+      expect(bare.map((h) => `${h.entry.s} | ${h.entry.t.slice(0, 40)}`), q).toEqual([])
     }
   })
 

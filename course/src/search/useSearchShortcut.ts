@@ -16,6 +16,8 @@ export function useSearchShortcut(open: () => void) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing || e.altKey) return
+      // code 'Slash' — физическая клавиша «/» раскладки US. В немецкой и французской раскладке на ней знак препинания
+      // («-» и «!»): окно откроется и по нему, но только вне полей ввода — в полях это просто символ
       const slashKey = e.key === '/' || (e.code === 'Slash' && !e.shiftKey)
       const slash = slashKey && !e.ctrlKey && !e.metaKey && !inField(e.target)
       const k = (e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key.toLowerCase() === 'k' || e.code === 'KeyK')

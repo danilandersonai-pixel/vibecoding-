@@ -71,14 +71,17 @@ function Marked({ text, marks }: { text: string; marks: Mark[] }) {
   return parts
 }
 
-// Подпись, название и фрагмент результата. Фрагмента нет, если он пустой или повторяет название (запись-заголовок книги)
+// Подпись, название и фрагмент результата. Названия нет, если оно пустое (абзац книги: раздел уже в подписи);
+// фрагмента нет, если он пустой или повторяет название (запись-заголовок книги)
 function HitBody<T>({ label, title, text, hit }: { label: string; title: string; text: string; hit: Hit<T> }) {
   return (
     <>
       <span className="search-label">{label}</span>
-      <span className="search-title">
-        <Marked text={title} marks={hit.titleMarks} />
-      </span>
+      {title !== '' && (
+        <span className="search-title">
+          <Marked text={title} marks={hit.titleMarks} />
+        </span>
+      )}
       {hit.snippet !== '' && text !== title && (
         <span className="search-snippet">
           <Marked text={hit.snippet} marks={hit.snippetMarks} />
@@ -157,10 +160,15 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
   // в поле мышью, ни нажатие на затемнении с отпусканием на панели (click тогда приходит общему предку — затемнению) не закроют окно
   const pressOnLayer = useRef(false)
 
+  // Закрыли выбором результата — фокус не возвращается на кнопку «Поиск»: его ставит на найденное место goToResult
+  const returnFocus = useRef(true)
+
   // Открытие: прокрутка страницы заблокирована, фокус в поле, Tab и фокус не уходят из окна.
-  // Закрытие и размонтирование: всё обратно, фокус — туда, где был при открытии (кнопка «Поиск» или поле, откуда нажали Ctrl+K)
+  // Закрытие (Esc, «Закрыть», затемнение) и размонтирование: всё обратно, фокус — туда, где был при открытии
+  // (кнопка «Поиск» или поле, откуда нажали Ctrl+K)
   useLayoutEffect(() => {
     if (!open) return
+    returnFocus.current = true
     const from = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const root = document.documentElement
     const prev = { overflow: root.style.overflow, padding: document.body.style.paddingRight }
@@ -179,7 +187,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
       document.removeEventListener('focusin', keep)
       root.style.overflow = prev.overflow
       document.body.style.paddingRight = prev.padding
-      if (from?.isConnected) from.focus({ preventScroll: true })
+      if (returnFocus.current && from?.isConnected) from.focus({ preventScroll: true })
     }
   }, [open])
 
@@ -201,8 +209,9 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
 
   if (!open) return null
 
-  // Окно закрывается сразу (страница разблокирована, фокус вернулся), затем переход и прокрутка к месту
+  // Окно закрывается сразу (страница разблокирована), затем переход, прокрутка и фокус на найденном месте
   const go = (target: SearchTarget) => {
+    returnFocus.current = false
     flushSync(onClose)
     goToResult(target)
   }
@@ -367,9 +376,11 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                   hits={results.book}
                   render={(hit) => {
                     const { a, c, s, t } = hit.entry
+                    // Раздел виден один раз: у записи-заголовка — названием, у абзаца — в подписи
+                    const heading = s !== '' && t === s
                     return (
                       <a className="search-hit" href={`book.html#${a}`} target="_blank" rel="noopener">
-                        <HitBody label={s ? `Книга · ${c} → ${s}` : `Книга · ${c}`} title={s || c} text={t} hit={hit} />
+                        <HitBody label={s && !heading ? `Книга · ${c} → ${s}` : `Книга · ${c}`} title={heading ? s : ''} text={t} hit={hit} />
                       </a>
                     )
                   }}
