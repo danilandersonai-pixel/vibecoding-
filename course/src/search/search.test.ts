@@ -229,6 +229,71 @@ describe('поиск: метки и фрагмент', () => {
     expect(hit.snippetMarks).toEqual([])
   })
 
+  it('окно вокруг самого длинного слова запроса, а не самого раннего: «в» в начале абзаца не уводит фрагмент', () => {
+    const text = `в ${'лорем '.repeat(70)}цитатой завершается абзац`
+    const { snippet, marks } = makeSnippet(text, ['в', 'цитат'])
+    expect(snippet).toContain('цитатой')
+    expect(marks.map(([a, b]) => snippet.slice(a, b))).toEqual(['цитат'])
+    // то же через поиск: два коротких слова в начале, длинное — в конце
+    const [hit] = searchCourse('в на цитат', [course('Абзац', `в начале на старте ${'лорем '.repeat(70)}цитатой завершается абзац`)])
+    expect(hit.snippet).toContain('цитатой')
+    expect(hit.snippetMarks.map(([a, b]) => hit.snippet.slice(a, b))).toEqual(['цитат'])
+  })
+
+  it('при равной длине слов окно — вокруг более раннего вхождения; самое длинное слово, которого нет в тексте, окно не определяет', () => {
+    const text = `ббббб ${'лорем '.repeat(70)}ааааа`
+    const early = makeSnippet(text, ['ааааа', 'ббббб'])
+    expect(early.snippet.startsWith('ббббб')).toBe(true)
+    expect(early.snippet).not.toContain('ааааа')
+    // «длиннослово» в тексте нет (нашлось бы в названии) — берётся самое длинное из тех, что есть в тексте
+    const other = makeSnippet(`ко ${'лорем '.repeat(70)}цитата конец`, ['длиннослово', 'цитата'])
+    expect(other.snippet).toContain('цитата')
+  })
+
+  it('слова из одного знака должны совпасть (И), но не подсвечиваются ни в названии, ни во фрагменте', () => {
+    const entries = [course('Агент в деле', 'Агент работает в сервисе, а не в браузере'), course('Агент', 'Нет такой'), course('Просто', 'ничего')]
+    const hits = searchCourse('в агент', entries)
+    // «в» есть только в первой записи: И по однознаковому слову работает
+    expect(hits.map((h) => h.entry.title)).toEqual(['Агент в деле'])
+    const [hit] = hits
+    expect(hit.titleMarks.map(([a, b]) => hit.entry.title.slice(a, b))).toEqual(['Агент'])
+    expect(hit.snippetMarks.map(([a, b]) => hit.snippet.slice(a, b))).toEqual(['Агент'])
+    // запрос из однознаковых слов находит записи, но меток нет совсем
+    const [only] = searchCourse('в а', [course('Вода в реке', 'а вот и берег')])
+    expect(only.titleMarks).toEqual([])
+    expect(only.snippetMarks).toEqual([])
+    expect(only.snippet).toBe('а вот и берег')
+  })
+
+  it('«…» ставится, только если обрезаны непробельные символы', () => {
+    const tail = makeSnippet(`искомое слово${' '.repeat(300)}`, ['искомое'])
+    expect(tail.snippet).toBe('искомое слово')
+    const lead = makeSnippet(`${' '.repeat(300)}искомое слово`, ['искомое'])
+    expect(lead.snippet).toBe('искомое слово')
+    expect(lead.marks).toEqual([[0, 7]])
+    // а настоящая обрезка по-прежнему с «…»
+    expect(makeSnippet(`искомое слово${' '.repeat(300)}конец`, ['искомое']).snippet.endsWith('…')).toBe(true)
+  })
+
+  it('слова makeSnippet сворачиваются внутри: регистр, «ё», знаки; пустые слова не зацикливают', () => {
+    expect(makeSnippet('Агент читает файлы.', ['Агент'])).toEqual({ snippet: 'Агент читает файлы.', marks: [[0, 5]] })
+    expect(makeSnippet('Ёлка в лесу', ['ЕЛКА'])).toEqual({ snippet: 'Ёлка в лесу', marks: [[0, 4]] })
+    expect(makeSnippet('Агент читает файлы.', ['', '  ', '«»', 'читает'])).toEqual({ snippet: 'Агент читает файлы.', marks: [[6, 12]] })
+    expect(makeSnippet('Агент читает файлы.', [''])).toEqual({ snippet: 'Агент читает файлы.', marks: [] })
+  })
+
+  it('края окна не режут суррогатную пару (эмодзи)', () => {
+    const lone = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/
+    for (const pad of ['', 'я']) {
+      const text = `${pad}${'😀'.repeat(150)}яискомое${'😀'.repeat(150)}`
+      const { snippet, marks } = makeSnippet(text, ['искомое'])
+      expect(snippet).toContain('искомое')
+      expect(snippet).not.toMatch(lone)
+      expect(snippet.length).toBeLessThanOrEqual(160)
+      expect(snippet.slice(...marks[0])).toBe('искомое')
+    }
+  })
+
   it('сырые «<» и «&» остаются обычным текстом', () => {
     const t = 'if (a < b && c) { return fn<T>() }'
     const [hit] = searchBook('return', [{ a: 'x', c: 'Глава', s: 'Раздел', t }])
@@ -261,14 +326,26 @@ describe('courseEntries (настоящие дни)', () => {
     for (const e of practice) expect(e.target.anchor).toBe('part-practice')
   })
 
-  it('тест: вопрос — в заголовке, варианты и пояснение — в тексте, цель — «Проверка понимания»', () => {
+  it('тест: вопрос — в заголовке, только варианты ответа — в тексте, цель — «Проверка понимания»', () => {
     const quiz = day1.filter((e) => e.kind === 'quiz')
     expect(quiz).toHaveLength(days[0].quiz.length)
     expect(quiz[0].title).toBe(days[0].quiz[0].question)
-    for (const option of days[0].quiz[0].options) expect(quiz[0].text).toContain(option)
-    expect(quiz[0].text).toContain(days[0].quiz[0].explanation)
+    expect(quiz[0].text).toBe(days[0].quiz[0].options.join(' · '))
     expect(quiz[0].label).toBe('День 1 · Тест')
     expect(quiz[0].target).toEqual({ day: 1, anchor: 'part-quiz' })
+  })
+
+  it('пояснение к вопросу теста не попадает ни в запись, ни в выдачу: на странице оно видно только после ответа', () => {
+    const quiz = day1.filter((e) => e.kind === 'quiz')
+    days[0].quiz.forEach((q, i) => {
+      expect(quiz[i].text).not.toContain(q.explanation)
+      // запрос из самого пояснения не находит этот вопрос
+      expect(searchCourse(q.explanation, quiz).map((h) => h.entry.title)).not.toContain(q.question)
+    })
+    // «бэкенд» находит вопрос по вариантам, но во фрагменте нет ответа из пояснения
+    const hits = searchCourse('бэкенд', quiz)
+    expect(hits.map((h) => h.entry.title)).toContain(days[0].quiz[0].question)
+    for (const h of hits) expect(h.snippet).not.toContain('Проверки и расчёты')
   })
 
   it('наставник: каждый пункт проверки и каждый вопрос — отдельная запись, цель — «Наставник»', () => {
@@ -279,7 +356,10 @@ describe('courseEntries (настоящие дни)', () => {
     for (const e of mentor) {
       expect(e.label).toBe('День 1 · Наставник')
       expect(e.target).toEqual({ day: 1, anchor: 'part-mentor' })
+      // слов, которых нет на странице («пункт проверки», «вопрос наставника»), в тексте записи нет
+      expect(e.text).toBe('')
     }
+    expect(searchCourse('вопрос наставника', mentor)).toEqual([])
   })
 
   it('тема дня: цель и результат — в тексте, цель — начало дня', () => {

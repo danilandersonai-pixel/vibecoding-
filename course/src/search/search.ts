@@ -10,10 +10,17 @@ export type Mark = [number, number]
 
 export type Hit<T> = { entry: T; titleMarks: Mark[]; snippet: string; snippetMarks: Mark[] }
 
-// Все вхождения слов во свёрнутой строке; пересекающиеся и соприкасающиеся диапазоны сливаются
+// Слово из одного знака участвует в совпадении (И), но не подсвечивается: метки на каждой «а» и «в» только мешают
+function markable(word: string): boolean {
+  return [...word].length > 1
+}
+
+// Все вхождения слов в свёрнутой строке; пересекающиеся и соприкасающиеся диапазоны сливаются.
+// Слова должны быть свёрнуты (normalize); однознаковые и пустые пропускаются.
 function markRanges(folded: string, words: string[]): Mark[] {
   const all: Mark[] = []
   for (const w of words) {
+    if (!markable(w)) continue
     for (let i = folded.indexOf(w); i !== -1; i = folded.indexOf(w, i + 1)) all.push([i, i + w.length])
   }
   all.sort((x, y) => x[0] - y[0] || x[1] - y[1])
@@ -32,16 +39,19 @@ function snippetOf(text: string, folded: string, words: string[], max: number): 
   if (text.length <= max) return { snippet: text, marks: markRanges(folded, words) }
 
   const room = max - 2 // «…» может стоять с обеих сторон
+  // Якорь окна — первое вхождение самого длинного слова, которое есть в тексте (при равной длине — более раннее):
+  // короткие частые слова («на», «ко») стоят в начале любого абзаца и увели бы окно от искомого
   let first = -1
   let firstLen = 0
   for (const w of words) {
+    if (!markable(w)) continue
     const i = folded.indexOf(w)
-    if (i !== -1 && (first === -1 || i < first)) {
+    if (i !== -1 && (w.length > firstLen || (w.length === firstLen && i < first))) {
       first = i
       firstLen = w.length
     }
   }
-  // Окно вокруг первого совпадения: треть места — до него, остальное — после; у конца текста окно сдвигается назад
+  // Окно вокруг якоря: треть места — до него, остальное — после; у конца текста окно сдвигается назад
   let start = first === -1 ? 0 : Math.max(0, first - Math.floor(room / 3))
   let end = Math.min(text.length, start + room)
   start = Math.max(0, end - room)
@@ -66,19 +76,32 @@ function snippetOf(text: string, folded: string, words: string[], max: number): 
       }
     }
   }
+  // Окно не режет суррогатную пару; якорь — буквы слова, так что он остаётся внутри
+  if (start > 0 && isLow(text, start)) start++
+  if (end < text.length && isLow(text, end)) end--
   while (start < end && space(start)) start++
   while (end > start && space(end - 1)) end--
 
-  const lead = start > 0 ? '…' : ''
-  const tail = end < text.length ? '…' : ''
+  // «…» — только если обрезано что-то кроме пробелов
+  const lead = /\S/.test(text.slice(0, start)) ? '…' : ''
+  const tail = /\S/.test(text.slice(end)) ? '…' : ''
   const marks = markRanges(folded.slice(start, end), words).map(([a, b]): Mark => [a + lead.length, b + lead.length])
   return { snippet: lead + text.slice(start, end) + tail, marks }
 }
 
-// Фрагмент до max знаков (вместе с «…») вокруг первого совпадения слов в тексте, с «…» по краям, если текст обрезан.
+// Вторая половина суррогатной пары стоит на позиции i, а первая — перед ней
+function isLow(text: string, i: number): boolean {
+  const c = text.charCodeAt(i)
+  const p = text.charCodeAt(i - 1)
+  return c >= 0xdc00 && c <= 0xdfff && p >= 0xd800 && p <= 0xdbff
+}
+
+// Фрагмент до max знаков (вместе с «…») вокруг самого длинного искомого слова, с «…» по краям, если текст обрезан.
+// Слова сворачиваются здесь же (подойдут «Агент» и «ЕЛКА»); слова из одного знака в метках не участвуют.
 // Совпадения нет (слова нашлись в названии) — начало текста; пустой текст — пустой фрагмент.
 export function makeSnippet(text: string, words: string[], max = 160): { snippet: string; marks: Mark[] } {
-  return snippetOf(text, fold(text), words, max)
+  const folded = [...new Set(words.flatMap((w) => normalize(w).split(' ')))].filter(markable)
+  return snippetOf(text, fold(text), folded, max)
 }
 
 // Свёрнутые название и текст записи: книга большая, запрос меняется на каждую букву — сворачиваем один раз

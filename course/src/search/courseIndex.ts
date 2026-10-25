@@ -83,10 +83,12 @@ export function courseEntries(days: Day[]): CourseEntry[] {
         // ролик без id — к части «Теория»; у остальных блоков id есть, и он стоит на самом блоке
         return entry(f.kind, f.title, f.text, 'id' in b ? `block-${b.id}` : 'part-theory')
       }),
-      ...d.quiz.map((q) => entry('quiz', q.question, sentences([list(q.options), q.explanation]), 'part-quiz')),
+      // у вопроса теста — только варианты: пояснение на странице видно после ответа, поиск не должен выдавать его заранее
+      ...d.quiz.map((q) => entry('quiz', q.question, list(q.options), 'part-quiz')),
       ...d.practice.map((s) => entry('practice', s.title, sentences([s.prompt, `Готово, когда: ${s.done}`]), 'part-practice')),
-      ...d.mentor.checklist.map((c) => entry('mentor', c.text, 'Пункт проверки наставника', 'part-mentor')),
-      ...d.mentor.questions.map((q) => entry('mentor', q, 'Вопрос наставника', 'part-mentor')),
+      // у записей наставника текста нет: слов вроде «пункт проверки» на странице не написано
+      ...d.mentor.checklist.map((c) => entry('mentor', c.text, '', 'part-mentor')),
+      ...d.mentor.questions.map((q) => entry('mentor', q, '', 'part-mentor')),
     ]
   })
 }
