@@ -1,16 +1,25 @@
-// Достаёт из HTML-книги схемы, маркеры стрелок, стили схем и словарь.
+// Достаёт из HTML-книги схемы, маркеры стрелок, стили схем, словарь и индекс текста для поиска.
 // Запуск: node scripts/extract-book.mjs <book.html> <outDir> [cssOut]
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const ENTITIES = { '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'" }
+const ENTITIES = { nbsp: '\u00a0', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", shy: '' }
 
+// Теги — только `<тег …>` и `</тег>`: голое «<» из текста («символы вроде <code><</code>») остаётся.
 function decode(html) {
-  return html.replace(/<[^>]+>/g, '').replace(/&nbsp;|&amp;|&lt;|&gt;|&quot;|&#39;/g, (e) => ENTITIES[e]).trim()
+  return html
+    .replace(/<\/?[a-zA-Z][^>]*>/g, '')
+    .replace(/&(?:#(\d+)|#[xX]([0-9a-fA-F]+)|([a-zA-Z]+));/g, (e, dec, hex, name) => {
+      if (name) return name in ENTITIES ? ENTITIES[name] : e
+      const code = dec ? Number(dec) : parseInt(hex, 16)
+      return code <= 0x10ffff ? String.fromCodePoint(code) : e
+    })
+    .replace(/\u00ad/g, '')
+    .trim()
 }
 
-function readBook(html) {
+export function readBook(html) {
   const marker = 'const BOOK = '
   const start = html.indexOf(marker)
   if (start < 0) throw new Error('В файле нет данных книги (const BOOK = …)')
@@ -57,22 +66,69 @@ function figureCss(html) {
   ].join('\n')
 }
 
+// Индекс текста книги для окна поиска: плоский список записей по порядку книги.
+// `a` — id ближайшего предшествующего блока `ch`/`h3` (якорь в книге), `c` — название главы,
+// `s` — заголовок текущего раздела (пусто до первого `h3` главы), `t` — чистый текст.
+/** @typedef {{ a: string, c: string, s: string, t: string }} BookEntry */
+
+const squash = (text) => text.replace(/\s+/g, ' ').trim()
+// Границы блоков (абзац, пункт, ячейка, разделитель `<i>`) — пробел, чтобы соседние слова не склеились;
+// строчные теги (`strong`, `code`, `a`…) пропадают бесследно: «<code>RLS</code>-политика» остаётся «RLS-политика».
+const BREAKS = /<\/?(?:br|i|p|div|li|ul|ol|tr|td|th|h[1-6]|header)\b[^>]*>/g
+const plain = (html) => squash(decode(html.replace(BREAKS, ' ')))
+// Ячейки таблицы — каждая отдельным пунктом, иначе соседние слова склеятся.
+const cells = (row) => [...row.matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/g)].map((m) => plain(m[1]))
+
+/** @returns {BookEntry[]} */
+export function bookSearchIndex(book) {
+  const entries = []
+  let a = ''
+  let c = ''
+  let s = ''
+  // До первого `ch`/`h3` якоря нет — такие записи пропускаем, как и пустые.
+  const add = (t) => {
+    if (a && t) entries.push({ a, c, s, t })
+  }
+  const join = (parts) => parts.filter(Boolean).join(' · ')
+  for (const b of book.blocks) {
+    if (b.t === 'ch') {
+      a = b.id
+      c = plain(b.head)
+      s = ''
+    } else if (b.t === 'h3') {
+      a = b.id
+      s = plain(b.h)
+      add(s)
+    } else if (b.t === 'p' || b.t === 'note') add(plain(b.h))
+    // Словарь (`gl`) ищется отдельной группой «Термины».
+    else if (b.t === 'list') {
+      if (b.c !== 'gl') add(join(b.items.map(plain)))
+    }
+    // Код — обычный текст, а не HTML (книга сама экранирует его при показе): угловые скобки и «&» сохраняем.
+    else if (b.t === 'code') add(squash([b.label, ...b.lines].join(' ')))
+    else if (b.t === 'table') add(join([b.head, ...b.rows].flatMap(cells)))
+    else if (b.t === 'fig') add(plain(b.cap))
+  }
+  return entries
+}
+
 export function extractBook(html) {
   const book = readBook(html)
   const defs = html.match(/<svg width="0" height="0"[^>]*>[\s\S]*?<\/svg>/)
   if (!defs) throw new Error('В книге нет скрытого SVG с маркерами стрелок')
-  return { figs: book.figs, defs: defs[0], glossary: parseGlossary(book), css: figureCss(html) }
+  return { figs: book.figs, defs: defs[0], glossary: parseGlossary(book), css: figureCss(html), bookIndex: bookSearchIndex(book) }
 }
 
 export function writeOutputs(html, outDir, cssOut) {
-  const { figs, defs, glossary, css } = extractBook(html)
+  const { figs, defs, glossary, css, bookIndex } = extractBook(html)
   const figDir = join(outDir, 'figures')
   mkdirSync(figDir, { recursive: true })
   for (const [id, svg] of Object.entries(figs)) writeFileSync(join(figDir, `${id}.svg`), svg)
   writeFileSync(join(figDir, '_defs.svg'), defs)
   writeFileSync(join(outDir, 'glossary.json'), JSON.stringify(glossary, null, 2) + '\n')
+  writeFileSync(join(outDir, 'book-index.json'), JSON.stringify(bookIndex) + '\n')
   writeFileSync(cssOut, css)
-  return { figures: Object.keys(figs).length, terms: glossary.length }
+  return { figures: Object.keys(figs).length, terms: glossary.length, bookEntries: bookIndex.length }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
@@ -82,6 +138,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(1)
   }
   const { readFileSync } = await import('node:fs')
-  const { figures, terms } = writeOutputs(readFileSync(book, 'utf8'), outDir, cssOut)
-  console.log(`Схем: ${figures}, терминов: ${terms}`)
+  const { figures, terms, bookEntries } = writeOutputs(readFileSync(book, 'utf8'), outDir, cssOut)
+  console.log(`Схем: ${figures}, терминов: ${terms}, записей индекса книги: ${bookEntries}`)
 }
