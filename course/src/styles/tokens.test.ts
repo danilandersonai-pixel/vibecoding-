@@ -42,13 +42,15 @@ const light = vars(blocks(css, ':root'))
 const dark = vars(blocks(blocks(css, '@media (prefers-color-scheme: dark)').join('\n'), ':root:not([data-theme="light"])'))
 const darkAttr = vars(blocks(css, ':root[data-theme="dark"]'))
 
+/** Относительная яркость цвета #RRGGBB по WCAG 2. */
+function luminance(hex: string): number {
+  const [r, g, bl] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+  return 0.2126 * r + 0.7152 * g + 0.0722 * bl
+}
+
 /** Контраст двух цветов #RRGGBB по формуле WCAG 2. */
 function contrast(a: string, b: string): number {
-  const lum = (hex: string) => {
-    const [r, g, bl] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
-    return 0.2126 * r + 0.7152 * g + 0.0722 * bl
-  }
-  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x)
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
   return (hi + 0.05) / (lo + 0.05)
 }
 
@@ -75,7 +77,7 @@ function flatten(layers: [string, number][]): string {
 const EVERYWHERE = [
   '--desk', '--paper', '--paper-edge', '--rule', '--ink', '--ink-soft', '--accent', '--accent-ink', '--tint',
   '--cover-bg', '--cover-ink', '--cover-soft', '--cover-add', '--cover-del', '--cover-accent',
-  '--fig-ok', '--fig-risk', '--term-bg', '--term-ink', '--term-soft', '--term-edge', '--shadow-raised',
+  '--fig-ok', '--fig-risk', '--term-bg', '--term-ink', '--term-soft', '--term-edge', '--shadow-raised', '--scrim',
 ]
 // Не зависят от темы — только в светлом блоке.
 const LIGHT_ONLY = ['--radius-xl', '--radius-l', '--radius-m', '--radius-s', '--content']
@@ -144,6 +146,17 @@ describe('tokens.css', () => {
     // Точка «впереди» — рамка --ink-soft; пройденная и текущая «таблетка» — кольцо --accent через просвет --paper
     expect(cssDecls('home.css', '.route-dot').border).toBe('2px solid var(--ink-soft)')
     expect(cssDecls('day.css', '.toc-item.is-done.is-current')['box-shadow']).toBe('0 0 0 2px var(--paper),0 0 0 4px var(--accent)')
+  })
+
+  it('затемнение под окном поиска темнит страницу в обеих темах, бумага окна светлее затемнённой страницы', () => {
+    for (const [themeName, theme] of [['светлая', light], ['тёмная', dark]] as const) {
+      for (const bg of ['--desk', '--paper', '--cover-bg']) {
+        const dimmed = flatten([[theme[bg], 1], [theme['--scrim'], 1]])
+        expect(luminance(dimmed), `${themeName}: ${bg} под затемнением`).toBeLessThan(luminance(theme[bg]))
+      }
+      expect(luminance(theme['--paper']), `${themeName}: бумага окна`).toBeGreaterThan(luminance(flatten([[theme['--desk'], 1], [theme['--scrim'], 1]])))
+    }
+    expect(cssDecls('search.css', '.search-layer').background).toBe('var(--scrim)')
   })
 
   it('метки обложки ролика — светлый текст на синей плашке 75 %: читаются даже на белом кадре', () => {

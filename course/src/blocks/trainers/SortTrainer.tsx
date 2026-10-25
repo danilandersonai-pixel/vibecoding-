@@ -48,7 +48,7 @@ export function SortTrainer({ block, dayId }: { block: Trainer; dayId: string })
 
   const unplaced = block.items.filter((i) => !placed[i.id])
   return (
-    <div className="block trainer paper">
+    <div id={`block-${block.id}`} className="block trainer paper">
       <p className="kicker block-kicker">Тренажёр</p>
       <h3>{block.title}</h3>
       {unplaced.length > 0 && (

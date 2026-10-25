@@ -31,7 +31,7 @@ export function FindTheBug({ block, dayId }: { block: Trainer; dayId: string }) 
   }
 
   return (
-    <div className="block trainer paper">
+    <div id={`block-${block.id}`} className="block trainer paper">
       <p className="kicker block-kicker">Тренажёр</p>
       <h3>Найди ошибку: {block.title}</h3>
       <p className="trainer-task">Нажмите на строки, где проблема, и проверьте.</p>

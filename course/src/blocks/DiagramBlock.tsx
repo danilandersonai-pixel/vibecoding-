@@ -15,7 +15,7 @@ export function DiagramBlock({ block }: { block: Diagram }) {
   const steps = block.steps ?? []
 
   return (
-    <div className="block diagram paper">
+    <div id={`block-${block.id}`} className="block diagram paper">
       <p className="kicker block-kicker">Схема</p>
       <figure className="diagram-figure">
         <div className="diagram-scroll">

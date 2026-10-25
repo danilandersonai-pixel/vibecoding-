@@ -7,7 +7,7 @@ type Idea = Extract<Block, { type: 'idea' }>
 // Мысль из книги — карточка «бумаги»: кикер «Мысль i из n» (номер среди мыслей дня), заголовок, текст Literata, ссылка в книгу
 export function IdeaBlock({ block, index }: { block: Idea; index?: { i: number; n: number } }) {
   return (
-    <article className="block idea paper">
+    <article id={`block-${block.id}`} className="block idea paper">
       <p className="kicker block-kicker">{index ? `Мысль ${index.i} из ${index.n}` : 'Мысль из книги'}</p>
       <h3>{block.title}</h3>
       {block.text.split(/\n{2,}/).map((para, i) => (

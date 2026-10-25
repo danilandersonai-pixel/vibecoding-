@@ -62,7 +62,7 @@ export function AiHelper({ block }: { block: Helper }) {
   if (ai === undefined) return null
   if (ai === null || blocked) {
     return (
-      <div className="block ai-helper paper is-off">
+      <div id={`block-${block.id}`} className="block ai-helper paper is-off">
         <p className="kicker block-kicker">Спросите ИИ</p>
         <h3>{block.title}</h3>
         <p className="soon">{blocked ?? 'ИИ доступен, когда курс открыт в Claude'}</p>
@@ -71,7 +71,7 @@ export function AiHelper({ block }: { block: Helper }) {
   }
 
   return (
-    <div className="block ai-helper paper">
+    <div id={`block-${block.id}`} className="block ai-helper paper">
       <p className="kicker block-kicker">Спросите ИИ</p>
       <h3>{block.title}</h3>
       <textarea rows={isReview ? 5 : 3} value={input} placeholder={block.placeholder} aria-label={block.title} onChange={(e) => setInput(e.target.value)} />

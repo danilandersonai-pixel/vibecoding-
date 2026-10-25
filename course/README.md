@@ -28,6 +28,7 @@ npm run lint       # линтер
 
 - `content/days/day-NN.json` — дни курса. Формат проверяет схема `src/content/schema.ts`: ошибка в данных ломает сборку, а не страницу.
 - `content/figures/`, `content/glossary.json`, `src/styles/figures.css` — схемы и словарь, извлечённые из книги. Пересобрать после правки книги: `npm run extract:book`.
+- Поиск по материалам дней, словарю и тексту книги открывается кнопкой «Поиск» в верхней строке, клавишей `/` или Ctrl+K (⌘K). Индекс книги для поиска — `content/book-index.json`, пересобирается командой `node scripts/extract-book.mjs ../vibe-coding-na-praktike-2026-10.html content` (её же запускает `npm run extract:book`).
 - `../mentor/` — навык наставника для Claude Code. Чек-листы дней пересобираются из файлов дней: `npm run build:mentor`.
 
 ## Ролики
