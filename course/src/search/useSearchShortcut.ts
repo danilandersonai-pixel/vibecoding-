@@ -9,13 +9,15 @@ function inField(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])') !== null
 }
 
-// «/» — если фокус не в поле ввода; Ctrl+K / ⌘K — откуда угодно (KeyK — и в русской раскладке, где это «л»).
+// «/» — если фокус не в поле ввода: по символу или по физической клавише Slash без Shift (в русской раскладке она даёт «.»);
+// Ctrl+K / ⌘K — откуда угодно (KeyK — и в русской раскладке, где это «л»).
 // Нажатие гасится: «/» не попадает в открывшееся поле, Ctrl+K не уходит браузеру.
 export function useSearchShortcut(open: () => void) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing || e.altKey) return
-      const slash = e.key === '/' && !e.ctrlKey && !e.metaKey && !inField(e.target)
+      const slashKey = e.key === '/' || (e.code === 'Slash' && !e.shiftKey)
+      const slash = slashKey && !e.ctrlKey && !e.metaKey && !inField(e.target)
       const k = (e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key.toLowerCase() === 'k' || e.code === 'KeyK')
       if (!slash && !k) return
       e.preventDefault()

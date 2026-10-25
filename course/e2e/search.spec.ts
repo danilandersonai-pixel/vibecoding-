@@ -101,6 +101,47 @@ test('кусок книги не загрузился: «Поиск по кни�
   expect(errors).toEqual([])
 })
 
+// Затемнение под окном темнит страницу в обеих темах: цвет слоя поверх фона страницы темнее самого фона
+for (const colorScheme of ['light', 'dark'] as const) {
+  test(`затемнение под окном темнее страницы (${colorScheme === 'light' ? 'светлая' : 'тёмная'} тема)`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme })
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Поиск' }).click()
+    const [desk, dimmed] = await dialog(page).evaluate((d) => {
+      // rgb(…) / rgba(…) или color(srgb 0…1 / a) → [r, g, b, a] в 0…255
+      const parse = (css: string) => {
+        const n = css.match(/[\d.]+/g)!.map(Number)
+        const k = css.startsWith('color(') ? 255 : 1
+        return [n[0] * k, n[1] * k, n[2] * k, n[3] ?? 1]
+      }
+      const lum = ([r, g, b]: number[]) =>
+        [r, g, b].map((c) => c / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)).reduce((s, c, i) => s + c * [0.2126, 0.7152, 0.0722][i], 0)
+      const bg = parse(getComputedStyle(document.body).backgroundColor)
+      const [r, g, b, a] = parse(getComputedStyle(d.parentElement!).backgroundColor)
+      return [lum(bg), lum([r, g, b].map((c, i) => c * a + bg[i] * (1 - a)))]
+    })
+    expect(dimmed).toBeLessThan(desk)
+  })
+}
+
+// Телефон: в верхней строке главной и в шапке дня у «Поиска» только лупа — нажатие 44 × 44, имя «Поиск»;
+// на 390 px строка главной — в один ряд
+test('на 390 px «Поиск» — значок лупы, верхняя строка главной в один ряд', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+  const button = page.getByRole('button', { name: 'Поиск' })
+  const box = (await button.boundingBox())!
+  expect(box.width).toBeGreaterThanOrEqual(44)
+  expect(box.width).toBeLessThan(60)
+  expect(box.height).toBeGreaterThanOrEqual(44)
+  const brand = (await page.locator('.sitebar-brand').boundingBox())!
+  expect(Math.abs(brand.y + brand.height / 2 - (box.y + box.height / 2))).toBeLessThan(4)
+
+  await page.goto('/#/day/1')
+  const day = (await page.getByRole('banner').getByRole('button', { name: 'Поиск' }).boundingBox())!
+  expect([day.width >= 44 && day.width < 60, day.height >= 44]).toEqual([true, true])
+})
+
 // Телефон: окно на весь экран; длинный термин и длинный фрагмент книги с кодом переносятся, вбок ничего не прокручивается
 for (const size of [{ width: 390, height: 844 }, { width: 320, height: 640 }]) {
   test(`на ${size.width}×${size.height} окно на весь экран, без прокрутки вбок`, async ({ page }) => {

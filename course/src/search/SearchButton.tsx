@@ -3,6 +3,7 @@ import { IconSearch } from '../components/icons'
 import { SearchOpenContext } from './useSearchShortcut'
 
 // Кнопка «Поиск» со значком лупы — в верхней строке главной и шапки дня; вид задаёт место (className).
+// На телефоне подпись скрыта визуально (search.css), доступное имя «Поиск» остаётся.
 // Фокус ставится на кнопку явно: Safari не фокусирует кнопки по щелчку, а окно вернёт фокус туда, где он был.
 export function SearchButton({ className }: { className: string }) {
   const open = useContext(SearchOpenContext)
@@ -17,7 +18,7 @@ export function SearchButton({ className }: { className: string }) {
       }}
     >
       <IconSearch size={18} />
-      Поиск
+      <span className="search-open-label">Поиск</span>
     </button>
   )
 }

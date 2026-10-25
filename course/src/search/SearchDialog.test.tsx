@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import glossary from '../../content/glossary.json'
@@ -132,6 +132,27 @@ describe('окно поиска: открытие и закрытие', () => {
     expect(dialog()).toBeInTheDocument()
     expect(field()).toHaveFocus()
     expect(field()).toHaveValue('a/b')
+  })
+
+  it('«/» по физической клавише: в русской раскладке она даёт «.» — окно открывается так же; в поле ввода и с Shift — нет', () => {
+    window.location.hash = '#/day/1'
+    render(<App />)
+    const notes = screen.getByRole('textbox', { name: /Заметки дня/ })
+    act(() => notes.focus())
+    const inNotes = createEvent.keyDown(notes, { key: '.', code: 'Slash' })
+    fireEvent(notes, inNotes)
+    expect(inNotes.defaultPrevented).toBe(false)
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    act(() => notes.blur())
+    fireEvent.keyDown(document.body, { key: ',', code: 'Slash', shiftKey: true })
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    const outside = createEvent.keyDown(document.body, { key: '.', code: 'Slash' })
+    fireEvent(document.body, outside)
+    expect(outside.defaultPrevented).toBe(true)
+    expect(dialog()).toBeInTheDocument()
+    expect(field()).toHaveFocus()
   })
 })
 

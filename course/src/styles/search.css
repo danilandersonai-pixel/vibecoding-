@@ -1,12 +1,13 @@
-/* Кнопка «Поиск»: на главной — как «Карта» (.sitebar-link), в шапке дня — рамка, как у стрелок дней */
+/* Кнопка «Поиск»: на главной — как «Карта» (.sitebar-link), в шапке дня — рамка, как у стрелок дней.
+   На телефоне — только лупа: подпись скрыта визуально (как .visually-hidden), имя «Поиск» остаётся */
 .search-open svg{flex:none}
 .sitebar-link.search-open{gap:8px}
 .day-search{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border:1px solid color-mix(in srgb,var(--cover-ink) 25%,transparent);border-radius:var(--radius-s);background:none;color:var(--cover-ink);font:500 15px/1 var(--font-ui)}
 .day-search:hover{border-color:var(--cover-ink)}
 
-/* Окно поиска: затемнение во весь экран, панель-«бумага» 720 px по центру, отступ сверху 10vh, высота до 80vh.
+/* Окно поиска: затемнение (--scrim) во весь экран, панель-«бумага» 720 px по центру, отступ сверху 10vh, высота до 80vh.
    Прокручивается только выдача внутри панели; длинные слова и фрагменты переносятся */
-.search-layer{position:fixed;inset:0;z-index:50;display:flex;justify-content:center;align-items:flex-start;padding:10vh 32px 0;background:color-mix(in srgb,var(--ink) 40%,transparent);font-family:var(--font-ui)}
+.search-layer{position:fixed;inset:0;z-index:50;display:flex;justify-content:center;align-items:flex-start;padding:10vh 32px 0;background:var(--scrim);font-family:var(--font-ui)}
 .search-panel{display:flex;flex-direction:column;width:min(720px,100%);max-height:80vh;overflow:hidden;border-radius:var(--radius-xl);box-shadow:var(--shadow-raised);color:var(--ink)}
 /* Панель берёт фокус только щелчком по пустому месту — рамка там не нужна */
 .search-panel:focus{outline:none}
@@ -60,8 +61,11 @@
 .search-link:hover{background:color-mix(in srgb,var(--accent) 14%,transparent)}
 .search-link svg{flex:none}
 
-/* Телефон: окно на весь экран, без затемнения по краям */
+/* Телефон: окно на весь экран, без затемнения по краям; у кнопки «Поиск» — только лупа, нажатие 44 × 44 */
 @media (max-width:640px){
+  .search-open{justify-content:center;min-width:44px}
+  .sitebar-link.search-open,.day-search{padding-inline:12px}
+  .search-open-label{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   .search-layer{padding:0}
   .search-panel{width:100%;height:100%;max-height:none;border:0;border-radius:0;box-shadow:none}
   .search-head{padding:6px 6px 6px 16px}
