@@ -25,7 +25,7 @@ export function PromptBuilder({ block, dayId }: { block: Trainer; dayId: string 
   }
 
   return (
-    <div className="block trainer paper">
+    <div id={`block-${block.id}`} className="block trainer paper">
       <p className="kicker block-kicker">Тренажёр</p>
       <h3>Собери запрос</h3>
       <p className="trainer-task">Задача: {block.task}</p>

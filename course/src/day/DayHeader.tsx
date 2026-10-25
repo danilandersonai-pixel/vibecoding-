@@ -4,6 +4,7 @@ import { getWeeks } from '../content/load'
 import type { Day } from '../content/schema'
 import { dayVideoSummary, formatDuration, plural } from '../course/summary'
 import { DAY_COUNT } from '../router'
+import { SearchButton } from '../search/SearchButton'
 
 // Стрелка к соседнему дню; у первого и последнего дня — неактивная, без адреса
 function DayStep({ n, label, arrow }: { n: number; label: string; arrow: string }) {
@@ -49,6 +50,7 @@ export function DayHeader({ day }: { day: Day }) {
             <RouteLink to="#/" className="day-bar-link">
               <span aria-hidden="true">←</span>Карта курса
             </RouteLink>
+            <SearchButton className="day-search" />
           </div>
           <div className="day-bar-group day-bar-days">
             <DayStep n={day.number - 1} label="Предыдущий день" arrow="←" />

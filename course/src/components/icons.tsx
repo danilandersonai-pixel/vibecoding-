@@ -79,3 +79,18 @@ export const IconSteps = ({ size }: IconProps) => (
     <circle cx="5" cy="18" r="1" />
   </Icon>
 )
+
+// Лупа — кнопка «Поиск» и поле в окне поиска
+export const IconSearch = ({ size }: IconProps) => (
+  <Icon size={size}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="M16 16l4 4" />
+  </Icon>
+)
+
+// Крестик — «Закрыть»
+export const IconClose = ({ size }: IconProps) => (
+  <Icon size={size}>
+    <path d="M6 6l12 12M18 6L6 18" />
+  </Icon>
+)

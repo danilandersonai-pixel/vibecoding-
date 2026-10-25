@@ -16,6 +16,7 @@ import { NextDayCard } from '../day/NextDayCard'
 import { PartHeading } from '../day/PartHeading'
 import { useCourseProgress } from '../progress/courseProgress'
 import type { Progress } from '../progress/model'
+import { useSearchArrival } from '../search/goTo'
 
 // Содержимое части дня; «Зачем сегодня» — в шапке дня (DayHeader)
 function PartBody({ id, day }: { id: PartId; day: Day }) {
@@ -77,9 +78,11 @@ function stepsLine(day: Day, progress: Progress): string {
 }
 
 // Страница дня: синяя шапка во всю ширину, под ней план дня и части — только те, где есть содержание;
-// вместо пустых частей одна карточка «Остальное готовится», в конце — «Следующий день»
+// вместо пустых частей одна карточка «Остальное готовится», в конце — «Следующий день».
+// Пришли из поиска — после отрисовки страница прокручивается к найденному месту
 export function DayPage({ n }: { n: number }) {
   const { progress } = useCourseProgress()
+  useSearchArrival(n)
   const day = getDay(n)
   if (!day) {
     return (

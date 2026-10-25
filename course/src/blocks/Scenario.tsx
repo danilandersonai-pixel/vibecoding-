@@ -22,7 +22,7 @@ export function Scenario({ block, dayId }: { block: ScenarioBlock; dayId: string
   }
 
   return (
-    <div className={`block scenario paper${node.ending ? ` is-${node.ending}` : ''}`}>
+    <div id={`block-${block.id}`} className={`block scenario paper${node.ending ? ` is-${node.ending}` : ''}`}>
       <p className="kicker block-kicker">Ситуация</p>
       <h3>{block.title}</h3>
       {path.length > 0 && (
