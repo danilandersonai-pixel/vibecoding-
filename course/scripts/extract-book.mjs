@@ -100,9 +100,9 @@ export function bookSearchIndex(book) {
       s = plain(b.h)
       add(s)
     } else if (b.t === 'p' || b.t === 'note') add(plain(b.h))
-    // Словарь (`gl`) ищется отдельной группой «Термины».
+    // Словарь (`gl`) ищется отдельной группой «Термины»; алфавитный указатель (`idx`) — слова со ссылками, шум в выдаче.
     else if (b.t === 'list') {
-      if (b.c !== 'gl') add(join(b.items.map(plain)))
+      if (b.c !== 'gl' && b.c !== 'idx') add(join(b.items.map(plain)))
     }
     // Код — обычный текст, а не HTML (книга сама экранирует его при показе): угловые скобки и «&» сохраняем.
     else if (b.t === 'code') add(squash([b.label, ...b.lines].join(' ')))

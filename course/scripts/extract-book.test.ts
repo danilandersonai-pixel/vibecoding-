@@ -71,10 +71,12 @@ describe('extract-book', () => {
     expect(bookSearchIndex(book).some((e: BookEntry) => e.t.includes('z.infer<typeof CheckinInput>'))).toBe(true)
   })
 
-  it('соседние элементы не склеиваются: указатель книги читается словами', () => {
+  it('алфавитный указатель книги не попадает в индекс', () => {
     const book = readBook(readFileSync(BOOK, 'utf8'))
-    const entry = bookSearchIndex(book).find((e: BookEntry) => e.a === 'index' && e.t.startsWith('Автодополнение'))
-    expect(entry?.t).toMatch(/^Автодополнение гл\. 1, 10 · Агент фонового программирования гл\. 10 · /)
+    const entries: BookEntry[] = bookSearchIndex(book)
+    expect(entries.filter((e) => /Автодополнение|гл\. \d/.test(e.t) && e.a === 'index')).toEqual([])
+    // Вступительный абзац главы «Алфавитный указатель» остаётся.
+    expect(entries.filter((e) => e.a === 'index')).toHaveLength(1)
   })
 })
 
@@ -88,11 +90,12 @@ describe('bookSearchIndex', () => {
     ])
   })
 
-  it('словарь книги не попадает в индекс', () => {
+  it('словарь и алфавитный указатель книги не попадают в индекс', () => {
     const entries = index([
       ...SAMPLE.slice(1, 3),
       { t: 'list', tag: 'ul', c: 'ul', items: ['<li>Первый пункт</li>', '<li><strong>Второй</strong> пункт</li>'] },
       { t: 'list', tag: 'ul', c: 'gl', items: ['<li><strong class="tt">Бенчмарк</strong> — набор задач</li>'] },
+      { t: 'list', tag: 'ul', c: 'idx', items: ['<li><span class="tt">Агент</span><i></i><span class="refs">гл.&nbsp;<button class="go" data-go="ch1">1</button></span></li>'] },
     ])
     expect(entries.map((e) => e.t)).toEqual(['Абзац сразу под заголовком главы.', 'Первый пункт · Второй пункт'])
   })
@@ -134,7 +137,7 @@ describe('bookSearchIndex', () => {
   it('границы блоков не склеивают слова, а внутри слова теги пропадают бесследно', () => {
     const entries = index([
       SAMPLE[1],
-      { t: 'list', tag: 'ul', c: 'idx', items: ['<li><span class="tt">Агент</span><i></i><span class="refs">гл.&nbsp;<button class="go" data-go="ch1">1</button></span></li>'] },
+      { t: 'list', tag: 'ul', c: 'ul', items: ['<li><span class="tt">Агент</span><i></i><span class="refs">гл.&nbsp;<button class="go" data-go="ch1">1</button></span></li>'] },
       { t: 'p', h: '<p>Первый</p><p>второй, <code>RLS</code>-политика и <strong>Н</strong>ачало<br>конец</p>' },
     ])
     expect(entries.map((e) => e.t)).toEqual(['Агент гл. 1', 'Первый второй, RLS-политика и Начало конец'])
