@@ -55,10 +55,15 @@ export function goToResult(target: SearchTarget): void {
   }
 }
 
-// Страница дня отмечает, что день n открыт, и после отрисовки прокручивает к цели, запомненной goToResult
+// Страница дня отмечает, что день n открыт, и после отрисовки прокручивает к цели, запомненной goToResult.
+// Открыт другой день — цель забывается: если hashchange так и не пришёл, она не сработает при следующем переходе
 export function useSearchArrival(n: number) {
   useEffect(() => {
     shownDay = n
+    if (arrival && arrival.target.day !== n) {
+      arrival = null
+      window.removeEventListener('hashchange', onHashSettled)
+    }
     arrive()
     return () => {
       if (shownDay === n) shownDay = null

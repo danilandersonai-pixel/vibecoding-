@@ -19,7 +19,9 @@ function localEntries() {
   return local
 }
 
-// Индекс книги — отдельный кусок сборки, грузится при первом открытии окна; не загрузился — следующее открытие попробует снова.
+// Индекс книги — отдельный кусок сборки, грузится при первом открытии окна. Не загрузился — «В книге» говорит об этом.
+// Следующее открытие зовёт import() ещё раз, но браузер (так делает Chromium) запоминает неудачную загрузку того же куска
+// и сразу отвечает прежней ошибкой: книга в поиске вернётся только после перезагрузки страницы.
 // Состояние загрузки живёт вне React (одно на приложение), окно читает его через useSyncExternalStore
 type Book = BookEntry[] | 'loading' | 'failed'
 let book: Book = 'loading'
@@ -151,8 +153,9 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
   const panel = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLInputElement>(null)
   const body = useRef<HTMLDivElement>(null)
-  // Щелчок по затемнению закрывает окно, только если и нажали на затемнении: выделение текста в поле мышью не закроет окно
-  const downOnLayer = useRef(false)
+  // Щелчок по затемнению закрывает окно, только если и нажали, и отпустили на самом затемнении: ни выделение текста
+  // в поле мышью, ни нажатие на затемнении с отпусканием на панели (click тогда приходит общему предку — затемнению) не закроют окно
+  const pressOnLayer = useRef(false)
 
   // Открытие: прокрутка страницы заблокирована, фокус в поле, Tab и фокус не уходят из окна.
   // Закрытие и размонтирование: всё обратно, фокус — туда, где был при открытии (кнопка «Поиск» или поле, откуда нажали Ctrl+K)
@@ -240,10 +243,13 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
     <div
       className="search-layer"
       onMouseDown={(e) => {
-        downOnLayer.current = e.target === e.currentTarget
+        pressOnLayer.current = e.target === e.currentTarget
+      }}
+      onMouseUp={(e) => {
+        pressOnLayer.current &&= e.target === e.currentTarget
       }}
       onClick={(e) => {
-        if (downOnLayer.current && e.target === e.currentTarget) onClose()
+        if (pressOnLayer.current && e.target === e.currentTarget) onClose()
       }}
     >
       <div ref={panel} className="search-panel paper" role="dialog" aria-modal="true" aria-label="Поиск" tabIndex={-1} onKeyDown={onKeyDown}>

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import glossary from '../../content/glossary.json'
 import App from '../App'
 import { getDays } from '../content/load'
+import { navigate } from '../router'
 import { courseEntries } from './courseIndex'
 
 // Книга в тестах — маленький индекс вместо 900 записей. Запись-заголовок: текст совпадает с названием.
@@ -87,6 +88,26 @@ describe('окно поиска: открытие и закрытие', () => {
 
     await user.click(button)
     await user.click(dialog().parentElement!)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('затемнение закрывает окно, только если и нажали, и отпустили на нём самом', async () => {
+    render(<App />)
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Поиск' }))
+    const layer = dialog().parentElement!
+    // Нажали на затемнении, отпустили на панели — браузер шлёт click общему предку, то есть затемнению
+    fireEvent.mouseDown(layer)
+    fireEvent.mouseUp(dialog())
+    fireEvent.click(layer)
+    expect(dialog()).toBeInTheDocument()
+    // Выделяли текст в поле и отпустили на затемнении
+    fireEvent.mouseDown(field())
+    fireEvent.mouseUp(layer)
+    fireEvent.click(layer)
+    expect(dialog()).toBeInTheDocument()
+    fireEvent.mouseDown(layer)
+    fireEvent.mouseUp(layer)
+    fireEvent.click(layer)
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
@@ -256,6 +277,46 @@ describe('цели переходов', () => {
       unmount()
     }
   })
+
+  it('цель, не дождавшаяся hashchange, забывается, когда открыт другой день, и не срабатывает при следующем переходе', async () => {
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView')
+    const nextHashchange = (to: string) =>
+      new Promise<void>((resolve) => {
+        const on = (e: HashChangeEvent) => {
+          if (!e.newURL.endsWith(to)) return
+          window.removeEventListener('hashchange', on)
+          resolve()
+        }
+        window.addEventListener('hashchange', on)
+      })
+    render(<App />)
+    const user = await search('ресторан')
+    // hashchange перехода в день 1 до цели не доходит
+    let blocked = false
+    const block = (e: HashChangeEvent) => {
+      if (!e.newURL.endsWith('#/day/1')) return
+      blocked = true
+      e.stopImmediatePropagation()
+      window.removeEventListener('hashchange', block)
+    }
+    window.addEventListener('hashchange', block)
+    await user.click(within(group('В курсе')).getByRole('button', { name: /Приложение устроено как ресторан/ }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Азбука и знакомство с моделями' })).toBeInTheDocument()
+    await waitFor(() => expect(blocked).toBe(true))
+    expect(scrolledTo(scroll)).not.toContain('block-restaurant')
+
+    // Открыли другой день, затем снова день 1 — к старой цели не прокручивает
+    let settled = nextHashchange('#/day/2')
+    act(() => navigate('#/day/2'))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Эталоны и спецификация' })).toBeInTheDocument()
+    await settled
+    settled = nextHashchange('#/day/1')
+    act(() => navigate('#/day/1'))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Азбука и знакомство с моделями' })).toBeInTheDocument()
+    await settled
+    await act(() => new Promise((r) => requestAnimationFrame(r)))
+    expect(scrolledTo(scroll)).not.toContain('block-restaurant')
+  })
 })
 
 describe('окно поиска: книга', () => {
@@ -288,13 +349,16 @@ describe('окно поиска: книга', () => {
     vi.doMock('../../content/book-index.json', async () => {
       throw new Error('обрыв куска')
     })
-    const { default: FreshApp } = await import('../App')
-    render(<FreshApp />)
-    await search('RLS')
-    expect(await screen.findByText('Поиск по книге сейчас недоступен')).toBeInTheDocument()
-    expect(within(group('Термины')).getAllByRole('listitem').length).toBeGreaterThan(0)
-    expect(within(group('В курсе')).getAllByRole('button').length).toBeGreaterThan(0)
-    expect(screen.queryByText('Загружаю книгу…')).toBeNull()
-    vi.doUnmock('../../content/book-index.json')
+    try {
+      const { default: FreshApp } = await import('../App')
+      render(<FreshApp />)
+      await search('RLS')
+      expect(await screen.findByText('Поиск по книге сейчас недоступен')).toBeInTheDocument()
+      expect(within(group('Термины')).getAllByRole('listitem').length).toBeGreaterThan(0)
+      expect(within(group('В курсе')).getAllByRole('button').length).toBeGreaterThan(0)
+      expect(screen.queryByText('Загружаю книгу…')).toBeNull()
+    } finally {
+      vi.doUnmock('../../content/book-index.json')
+    }
   })
 })
