@@ -180,13 +180,14 @@ export function termVariants(term) {
 }
 
 // Совпадение слова варианта со словом текста: латинское (и любое не кириллическое) — только целиком;
-// кириллическое до 3 букв — целиком; из 4 букв — само слово и до 2 букв окончания; от 5 букв — по началу
-// длиной max(5, длина − 2).
+// кириллическое до 2 букв — целиком; из 3 и 4 букв — само слово и окончание до `ENDING` букв
+// («код» → «кодом», не «кодинг»; «тест» → «тестами», не «тестирование»); от 5 букв — по началу длиной max(5, длина − 2).
 const CYRILLIC = /^[\p{Script=Cyrillic}\p{M}]+$/u
+const ENDING = { 3: 2, 4: 3 }
 
 function wordMatcher(v) {
-  if (!CYRILLIC.test(v) || v.length <= 3) return (word) => word === v
-  if (v.length === 4) return (word) => word.startsWith(v) && word.length <= v.length + 2
+  if (!CYRILLIC.test(v) || v.length <= 2) return (word) => word === v
+  if (v.length in ENDING) return (word) => word.startsWith(v) && word.length - v.length <= ENDING[v.length]
   const head = v.slice(0, Math.max(5, v.length - 2))
   return (word) => word.startsWith(head)
 }

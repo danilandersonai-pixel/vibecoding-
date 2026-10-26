@@ -315,10 +315,21 @@ describe('build-graph: упоминания терминов', () => {
   })
 
   it('короткие слова — только целиком', () => {
-    expect(mentions(['код'], 'кодинг и кодовая база')).toBe(false)
-    expect(mentions(['код'], 'пишет код')).toBe(true)
-    expect(mentions(['код'], 'нет кода')).toBe(false)
+    // Кириллица до 2 букв и латиница — только целым словом.
+    expect(mentions(['ос'], 'своя ос')).toBe(true)
+    expect(mentions(['ос'], 'осы и осень')).toBe(false)
     expect(mentions(['rls'], 'политики rls')).toBe(true)
+  })
+
+  it('слово из 3 букв — само и до 2 букв окончания', () => {
+    expect(mentions(['код'], 'пишет код')).toBe(true)
+    expect(mentions(['код'], 'нет кода')).toBe(true)
+    expect(mentions(['код'], 'с кодом')).toBe(true)
+    expect(mentions(['код'], 'коды ответа')).toBe(true)
+    expect(mentions(['код'], 'кодинг и кодовая база')).toBe(false)
+    expect(mentions(['код'], 'перекодировка')).toBe(false)
+    // Окончание — после слова, не приставка перед ним: «лог» не находит «блог».
+    expect(mentions(['лог'], 'свой блог')).toBe(false)
   })
 
   it('латинские слова — только целиком, любой длины', () => {
@@ -330,15 +341,16 @@ describe('build-graph: упоминания терминов', () => {
     expect(mentions(['model card'], 'models cards')).toBe(false)
   })
 
-  it('слово из 4 букв — само и до 2 букв окончания', () => {
+  it('слово из 4 букв — само и до 3 букв окончания', () => {
     expect(mentions(['тест'], 'тест')).toBe(true)
     expect(mentions(['тест'], 'тесты')).toBe(true)
-    expect(mentions(['тест'], 'теста')).toBe(true)
     expect(mentions(['тест'], 'тестов')).toBe(true)
-    // Окончание длиннее 2 букв — уже другое слово по правилу (§3.1), даже «тестами».
-    expect(mentions(['тест'], 'тестами')).toBe(false)
+    expect(mentions(['тест'], 'тестами')).toBe(true)
+    // Окончание длиннее 3 букв — уже другое слово по правилу (§3.1).
+    expect(mentions(['тест'], 'тестовая')).toBe(false)
     expect(mentions(['тест'], 'тестирование')).toBe(false)
     expect(mentions(['тест'], 'автотест')).toBe(false)
+    expect(mentions(['тест'], 'протест')).toBe(false)
   })
 
   it('длинные слова — по началу', () => {
@@ -380,7 +392,7 @@ describe('build-graph: упоминания терминов', () => {
 
 // Словарь для упоминаний: «Агент» (в своём определении упоминает себя — связи нет), составной термин
 // «Агент фонового программирования» (упоминает «Агент» в названии), термин с сокращением в скобках, короткое «Код»,
-// «Модель (ИИ)» (скобки без латиницы — «ИИ» не вариант) и «Тест» из 4 букв.
+// «Модель (ИИ)» (скобки без латиницы — «ИИ» не вариант) и «Тест» из 4 букв: короткие слова находят окончания («кода», «тестами»).
 const MENTION_GLOSSARY = [
   { term: 'Агент', definition: 'ИИ-агент, который сам действует.', refs: ['ch1'] },
   { term: 'Агент фонового программирования', definition: 'ИИ-система в изолированной среде.', refs: ['ch1'] },
@@ -403,6 +415,7 @@ const MENTION_INDEX = [
   entryOf('s1', 'Что такое RLS', 'Кодинг и кодовая база.'),
   entryOf('s1', 'Что такое RLS', 'Модерация ответов ИИ.'),
   entryOf('s1', 'Что такое RLS', 'Тесты, а не тестирование вручную.'),
+  entryOf('s1', 'Что такое RLS', 'Ревью кода вместе с тестами.'),
   { a: 's9', c: 'Об авторе', s: 'Кто я', t: 'Агент и код.' },
 ]
 
@@ -414,8 +427,9 @@ const MENTIONS = [
   { s: 'term:1', t: 'sec:s1', kind: 'term-text', w: 1 },
   { s: 'term:4', t: 'sec:s1', kind: 'term-text', w: 2 },
   { s: 'term:5', t: 'ch:ch1', kind: 'term-text', w: 1 },
+  { s: 'term:5', t: 'sec:s1', kind: 'term-text', w: 1 },
   { s: 'term:6', t: 'ch:ch1', kind: 'term-text', w: 1 },
-  { s: 'term:7', t: 'sec:s1', kind: 'term-text', w: 1 },
+  { s: 'term:7', t: 'sec:s1', kind: 'term-text', w: 2 },
 ]
 
 describe('build-graph: раскладка и сборка', () => {
