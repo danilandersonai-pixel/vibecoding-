@@ -3,6 +3,7 @@ import { RouteLink } from '../components/RouteLink'
 import { getWeeks } from '../content/load'
 import type { Day } from '../content/schema'
 import { dayVideoSummary, formatDuration, plural } from '../course/summary'
+import { GraphButton } from '../graph/GraphButton'
 import { DAY_COUNT } from '../router'
 import { SearchButton } from '../search/SearchButton'
 
@@ -51,6 +52,7 @@ export function DayHeader({ day }: { day: Day }) {
               <span aria-hidden="true">←</span>Карта курса
             </RouteLink>
             <SearchButton className="day-search" />
+            <GraphButton className="day-graph" />
           </div>
           <div className="day-bar-group day-bar-days">
             <DayStep n={day.number - 1} label="Предыдущий день" arrow="←" />

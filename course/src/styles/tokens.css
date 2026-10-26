@@ -7,7 +7,7 @@
   --cover-bg:#1D2B8F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E; --cover-accent:#8D9CFF;
   --term-bg:#1F2228; --term-ink:#E8E5DD; --term-soft:#A4A8B0; --term-edge:#3A3E46;
   --fig-ink:#1C1E22; --fig-soft:#5B606A; --fig-line:#A3A196; --fig-grid:#D4D1C7; --fig-zone:rgba(28,30,34,.035); --fig-risk:#C4432C;
-  --fig-ok:#2E7D5B; --fig-on:#FFFFFF;
+  --fig-ok:#2E7D5B; --fig-on:#FFFFFF; --graph-book:#A86B00;
   --shadow-raised:0 26px 50px -28px rgba(18,22,40,.55),0 6px 14px -8px rgba(18,22,40,.25);
   --scrim:rgba(28,30,34,.4);
   --radius-xl:20px; --radius-l:16px; --radius-m:14px; --radius-s:10px; --content:1200px;
@@ -22,7 +22,7 @@
   --cover-bg:#18236F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E; --cover-accent:#8D9CFF;
   --term-bg:#2A2D34; --term-ink:#E8E5DD; --term-soft:#A4A8B0; --term-edge:#3A3E46;
   --fig-ink:#E8E5DD; --fig-soft:#A4A8B0; --fig-line:#767A83; --fig-grid:#3C4048; --fig-zone:rgba(255,255,255,.035); --fig-risk:#F2765E;
-  --fig-ok:#5CC49A; --fig-on:#1B1D24;
+  --fig-ok:#5CC49A; --fig-on:#1B1D24; --graph-book:#E5B54A;
   --shadow-raised:0 26px 50px -24px rgba(0,0,0,.85),0 6px 14px -8px rgba(0,0,0,.6);
   --scrim:rgba(0,0,0,.55);
   color-scheme:dark;
@@ -34,7 +34,7 @@
   --cover-bg:#18236F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E; --cover-accent:#8D9CFF;
   --term-bg:#2A2D34; --term-ink:#E8E5DD; --term-soft:#A4A8B0; --term-edge:#3A3E46;
   --fig-ink:#E8E5DD; --fig-soft:#A4A8B0; --fig-line:#767A83; --fig-grid:#3C4048; --fig-zone:rgba(255,255,255,.035); --fig-risk:#F2765E;
-  --fig-ok:#5CC49A; --fig-on:#1B1D24;
+  --fig-ok:#5CC49A; --fig-on:#1B1D24; --graph-book:#E5B54A;
   --shadow-raised:0 26px 50px -24px rgba(0,0,0,.85),0 6px 14px -8px rgba(0,0,0,.6);
   --scrim:rgba(0,0,0,.55);
   color-scheme:dark;

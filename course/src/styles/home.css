@@ -133,3 +133,9 @@
   .route-day{--dot-top:8px;gap:12px}
   .route-row{align-items:baseline;gap:6px 12px;padding:8px 10px}
 }
+
+/* Узкий телефон (до 420 px): название курса скрыто визуально (как .visually-hidden), знак «В» остаётся — строка
+   обложки (знак, «Поиск», «Граф», «Карта», «Книга») стоит в один ряд и на 320 px; название читается с экрана */
+@media (max-width:420px){
+  .sitebar-name{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+}

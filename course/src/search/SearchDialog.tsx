@@ -1,8 +1,9 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import glossary from '../../content/glossary.json'
-import { IconBook, IconClose, IconSearch } from '../components/icons'
+import { IconBook, IconClose, IconGraph, IconSearch } from '../components/icons'
 import { getDays } from '../content/load'
+import { navigate, parseRoute } from '../router'
 import { courseEntries, termEntries, type CourseEntry, type SearchTarget, type TermEntry } from './courseIndex'
 import { goToResult } from './goTo'
 import { queryWords } from './normalize'
@@ -216,6 +217,20 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
     goToResult(target)
   }
 
+  // «На графе»: окно закрывается так же сразу, затем переход к узлу термина. Фокус возвращается, куда был при открытии:
+  // открыли поверх графа — туда же на экране графа; с другой страницы — та уйдёт вместе с кнопкой «Поиск».
+  // Граф уже открыт — адрес заменяется, как при выборе узла на самом графе: «Назад» уводит с графа, а не по узлам
+  const toGraph = (graphId: string) => {
+    let onGraph = false
+    try {
+      onGraph = parseRoute(window.location.hash).name === 'graph'
+    } catch {
+      // якорь недоступен — обычный переход
+    }
+    flushSync(onClose)
+    navigate(`#/graph/${encodeURIComponent(graphId)}`, { replace: onGraph })
+  }
+
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     if (e.key === 'Escape') {
       e.preventDefault()
@@ -328,28 +343,37 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                         <span className="search-text">
                           <Marked text={def.snippet} marks={def.marks} />
                         </span>
-                        {(t.bookRef || t.day !== undefined) && (
-                          <span className="search-links">
-                            {t.bookRef && (
-                              <a className="search-link" href={`book.html#${t.bookRef}`} target="_blank" rel="noopener">
-                                <IconBook size={16} />В книге
-                              </a>
-                            )}
-                            {t.day !== undefined && (
-                              <a
-                                className="search-link"
-                                href={`#/day/${t.day}`}
-                                onClick={(e) => {
-                                  if (!plainClick(e)) return
-                                  e.preventDefault()
-                                  go({ day: t.day!, anchor: 'part-summary' })
-                                }}
-                              >
-                                {`День ${t.day}`}
-                              </a>
-                            )}
-                          </span>
-                        )}
+                        <span className="search-links">
+                          {t.bookRef && (
+                            <a className="search-link" href={`book.html#${t.bookRef}`} target="_blank" rel="noopener">
+                              <IconBook size={16} />В книге
+                            </a>
+                          )}
+                          {t.day !== undefined && (
+                            <a
+                              className="search-link"
+                              href={`#/day/${t.day}`}
+                              onClick={(e) => {
+                                if (!plainClick(e)) return
+                                e.preventDefault()
+                                go({ day: t.day!, anchor: 'part-summary' })
+                              }}
+                            >
+                              {`День ${t.day}`}
+                            </a>
+                          )}
+                          <a
+                            className="search-link"
+                            href={`#/graph/${encodeURIComponent(t.graphId)}`}
+                            onClick={(e) => {
+                              if (!plainClick(e)) return
+                              e.preventDefault()
+                              toGraph(t.graphId)
+                            }}
+                          >
+                            <IconGraph size={16} />На графе
+                          </a>
+                        </span>
                       </div>
                     )
                   }}

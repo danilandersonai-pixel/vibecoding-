@@ -75,7 +75,7 @@ const squash = (text) => text.replace(/\s+/g, ' ').trim()
 // Границы блоков (абзац, пункт, ячейка, разделитель `<i>`) — пробел, чтобы соседние слова не склеились;
 // строчные теги (`strong`, `code`, `a`…) пропадают бесследно: «<code>RLS</code>-политика» остаётся «RLS-политика».
 const BREAKS = /<\/?(?:br|i|p|div|li|ul|ol|tr|td|th|h[1-6]|header)\b[^>]*>/g
-const plain = (html) => squash(decode(html.replace(BREAKS, ' ')))
+export const plain = (html) => squash(decode(html.replace(BREAKS, ' ')))
 // Ячейки таблицы — каждая отдельным пунктом, иначе соседние слова склеятся.
 const cells = (row) => [...row.matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/g)].map((m) => plain(m[1]))
 // Подпись врезки («Совет», «Внимание», «Простыми словами») отделена от текста: «Внимание: Таблицы…», а не «Внимание Таблицы…».

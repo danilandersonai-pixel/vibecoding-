@@ -19,9 +19,13 @@ test('ролик дня 4 запускается с обложки, на пау�
   await expect(page.getByText(/Подменённый номер/)).toBeVisible()
 })
 
-test('если код ролика не загрузился, блок это говорит, а день остаётся на месте', async ({ page }) => {
-  // ломаем все куски кода, кроме основного: ролик грузится отдельным файлом
-  await page.route('**/assets/*.js', (route) => (route.request().url().includes('/assets/index-') ? route.continue() : route.abort()))
+test('если код ролика не загрузился, блок это говорит, а день остаётся на месте', async ({ page, request }) => {
+  // ломаем все куски кода, кроме основного: ролик грузится отдельным файлом. Основной — то, что грузит сама страница
+  // (index-*.js и общие с ленивыми кусками файлы из modulepreload в index.html)
+  const html = await (await request.get('/')).text()
+  const main = [...html.matchAll(/\.\/assets\/([^"]+\.js)"/g)].map((m) => `/assets/${m[1]}`)
+  expect(main.some((f) => f.startsWith('/assets/index-'))).toBe(true)
+  await page.route('**/assets/*.js', (route) => (main.some((f) => route.request().url().endsWith(f)) ? route.continue() : route.abort()))
   await page.goto('/#/day/4')
   await expect(page.getByText('Ролик не загрузился')).toBeVisible()
   await expect(page.getByRole('heading', { level: 1, name: 'Вход для двух ролей и защита данных' })).toBeVisible()
