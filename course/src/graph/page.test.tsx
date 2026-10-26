@@ -382,8 +382,8 @@ describe('рисунок графа', () => {
       const s = sigma.instances[0]
       const color = (id: string) => s.settings.nodeReducer(id, s.graph.getNodeAttributes(id)).color
       expect([color('ch:abc'), color('part:I'), color('sec:s1'), color('fig:abc_restaurant'), color('term:1'), color('day:1'), color('video:ch-01')]).toEqual([
-        '#1D2B8F',
-        '#1D2B8F',
+        '#A86B00',
+        '#A86B00',
         '#5B606A',
         '#A3A196',
         '#2B3FBF',
@@ -395,7 +395,7 @@ describe('рисунок графа', () => {
       // тема сайта: цвета заново и перерисовка
       s.refresh.mockClear()
       root.setAttribute('data-theme', 'dark')
-      await waitFor(() => expect(color('ch:abc')).toBe('#B2BAF0'))
+      await waitFor(() => expect(color('ch:abc')).toBe('#E5B54A'))
       expect([color('term:1'), color('day:1'), color('video:ch-01')]).toEqual(['#8D9CFF', '#5CC49A', '#F18D6B'])
       expect(s.setSetting).toHaveBeenCalledWith('labelColor', { color: '#E8E5DD' })
       expect(s.refresh).toHaveBeenCalled()
@@ -451,7 +451,7 @@ describe('рисунок графа', () => {
     expect(s.refresh).toHaveBeenCalled()
     expect(view('term:1')).toMatchObject({ highlighted: true, forceLabel: true })
     // сосед — в своём цвете, остальное бледнеет и без подписи
-    expect(view('ch:abc').color).toBe('#1D2B8F')
+    expect(view('ch:abc').color).toBe('#A86B00')
     expect(view('day:21').color).not.toBe('#2E7D5B')
     expect(view('day:21').label).toBeNull()
     expect(view('ch:abc').label).toBe('Азбука')
