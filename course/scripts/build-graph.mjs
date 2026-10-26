@@ -166,42 +166,57 @@ export function normalize(text) {
 
 const words = (normalized) => (normalized ? normalized.split(' ') : [])
 
-// Варианты термина: название без скобок и текст в скобках, если он не короче 2 знаков.
+// Варианты термина: название без скобок; текст в скобках (через запятую — несколько вариантов) — только
+// с латинскими буквами, то есть сокращение или английское название: «(RLS)» — вариант, «(ИИ)» — нет.
+const LATIN = /[a-z]/
+
 export function termVariants(term) {
   const name = normalize(term.replace(/\([^)]*\)/g, ' '))
-  const inner = [...term.matchAll(/\(([^)]*)\)/g)].map((m) => normalize(m[1])).filter((v) => v.length >= 2)
+  const inner = [...term.matchAll(/\(([^)]*)\)/g)]
+    .flatMap((m) => m[1].split(','))
+    .map((part) => normalize(part))
+    .filter((v) => LATIN.test(v))
   return [...new Set([name, ...inner])].filter(Boolean)
 }
 
-// Слово варианта до 4 знаков совпадает только целым словом, длиннее — по началу длиной max(4, длина − 2).
-function wordMatches(variantWord, word) {
-  if (variantWord.length <= 4) return word === variantWord
-  return word.startsWith(variantWord.slice(0, Math.max(4, variantWord.length - 2)))
+// Совпадение слова варианта со словом текста: латинское (и любое не кириллическое) — только целиком;
+// кириллическое до 3 букв — целиком; из 4 букв — само слово и до 2 букв окончания; от 5 букв — по началу
+// длиной max(5, длина − 2).
+const CYRILLIC = /^[\p{Script=Cyrillic}\p{M}]+$/u
+
+function wordMatcher(v) {
+  if (!CYRILLIC.test(v) || v.length <= 3) return (word) => word === v
+  if (v.length === 4) return (word) => word.startsWith(v) && word.length <= v.length + 2
+  const head = v.slice(0, Math.max(5, v.length - 2))
+  return (word) => word.startsWith(head)
 }
 
 // Слова варианта идут в тексте подряд.
-function hasRun(variantWords, textWords) {
-  for (let i = 0; i + variantWords.length <= textWords.length; i++) {
-    if (variantWords.every((v, j) => wordMatches(v, textWords[i + j]))) return true
+function hasRun(matchers, textWords) {
+  for (let i = 0; i + matchers.length <= textWords.length; i++) {
+    if (matchers.every((match, j) => match(textWords[i + j]))) return true
   }
   return false
 }
 
+const matchersOf = (variant) => words(variant).map(wordMatcher)
+
 /** Упомянут ли термин (любой из нормализованных вариантов) в нормализованном тексте. */
 export function mentions(variants, normalizedText) {
   const textWords = words(normalizedText)
-  return variants.some((v) => hasRun(words(v), textWords))
+  return variants.some((v) => hasRun(matchersOf(v), textWords))
 }
 
 /**
  * Связи упоминаний: `term-term` — термин упомянут в статье словаря другого термина (название и определение:
- * «Агент фонового программирования» упоминает «Агент» уже в названии), сам себя термин не упоминает;
+ * «Агент фонового программирования» упоминает «Агент» уже в названии), сам себя термин не упоминает, взаимные
+ * упоминания — две связи;
  * `term-text` — термин во фрагментах индекса книги, `w` — число фрагментов. Фрагмент с якорем раздела ведёт
  * к разделу, с якорем главы (введение до первого раздела) — к главе; заголовок раздела (`t === s`) — не текст.
  * `chapterOf` — якорь главы или раздела графа → id главы; фрагменты с другими якорями пропускаются.
  */
 export function mentionEdges({ glossary, bookIndex, chapterOf }) {
-  const variants = glossary.map((g) => termVariants(g.term).map(words))
+  const variants = glossary.map((g) => termVariants(g.term).map(matchersOf))
   const mentioned = (i, textWords) => variants[i].some((v) => hasRun(v, textWords))
   const edges = []
 

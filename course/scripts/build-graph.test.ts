@@ -305,17 +305,40 @@ describe('build-graph: упоминания терминов', () => {
   it('варианты термина: без скобок и из скобок', () => {
     expect(termVariants('Политики доступа к строкам (RLS)')).toEqual(['политики доступа к строкам', 'rls'])
     expect(termVariants('Агент')).toEqual(['агент'])
-    // Текст в скобках короче 2 знаков не берётся; одинаковые варианты не повторяются.
-    expect(termVariants('Тип (Я)')).toEqual(['тип'])
-    expect(termVariants('Лог (лог)')).toEqual(['лог'])
+    // Скобки без латинских букв — не вариант: «ии» иначе нашлось бы почти в каждом разделе.
+    expect(termVariants('Модель (ИИ)')).toEqual(['модель'])
+    expect(termVariants('Код ответа (401, 400, 404, 201)')).toEqual(['код ответа'])
+    // Скобки с запятыми — несколько вариантов, каждый по тому же правилу латиницы; повторов нет.
+    expect(termVariants('Карточка модели (model card, system card)')).toEqual(['карточка модели', 'model card', 'system card'])
+    expect(termVariants('Копилефт (например, GPL)')).toEqual(['копилефт', 'gpl'])
+    expect(termVariants('MCP (MCP)')).toEqual(['mcp'])
   })
 
   it('короткие слова — только целиком', () => {
     expect(mentions(['код'], 'кодинг и кодовая база')).toBe(false)
     expect(mentions(['код'], 'пишет код')).toBe(true)
+    expect(mentions(['код'], 'нет кода')).toBe(false)
     expect(mentions(['rls'], 'политики rls')).toBe(true)
-    // Ровно 4 знака — тоже целиком.
-    expect(mentions(['тест'], 'тесты')).toBe(false)
+  })
+
+  it('латинские слова — только целиком, любой длины', () => {
+    expect(mentions(['api'], 'ключ api')).toBe(true)
+    expect(mentions(['api'], 'два apis')).toBe(false)
+    expect(mentions(['model'], 'model')).toBe(true)
+    expect(mentions(['model'], 'models')).toBe(false)
+    expect(mentions(['model card'], 'model card модели')).toBe(true)
+    expect(mentions(['model card'], 'models cards')).toBe(false)
+  })
+
+  it('слово из 4 букв — само и до 2 букв окончания', () => {
+    expect(mentions(['тест'], 'тест')).toBe(true)
+    expect(mentions(['тест'], 'тесты')).toBe(true)
+    expect(mentions(['тест'], 'теста')).toBe(true)
+    expect(mentions(['тест'], 'тестов')).toBe(true)
+    // Окончание длиннее 2 букв — уже другое слово по правилу (§3.1), даже «тестами».
+    expect(mentions(['тест'], 'тестами')).toBe(false)
+    expect(mentions(['тест'], 'тестирование')).toBe(false)
+    expect(mentions(['тест'], 'автотест')).toBe(false)
   })
 
   it('длинные слова — по началу', () => {
@@ -323,12 +346,15 @@ describe('build-graph: упоминания терминов', () => {
     expect(mentions(['модель'], 'модели')).toBe(true)
     expect(mentions(['политики доступа к строкам'], 'политики доступа к строкам базы')).toBe(true)
     expect(mentions(['политики доступа к строкам'], 'политики доступа и к строкам')).toBe(false)
-    // Начало длиной «длина − 2»: «программирования» → «программирован…»; совпадает начало слова, а не середина.
+    // Начало длиной max(5, длина − 2): «модель» → «модел…», «скрипт» → «скрип…», «агент» → «агент…».
+    expect(mentions(['модель'], 'модерация')).toBe(false)
+    expect(mentions(['скрипт'], 'скринридер')).toBe(false)
+    expect(mentions(['скрипт'], 'скрипты')).toBe(true)
+    expect(mentions(['агент'], 'агенда')).toBe(false)
     expect(mentions(['программирования'], 'программирование')).toBe(true)
     expect(mentions(['программирования'], 'программа')).toBe(false)
     expect(mentions(['строкам'], 'строки')).toBe(true)
-    // Начало не короче 4 знаков: «токен» → «токе…», а не «ток…».
-    expect(mentions(['токен'], 'токсичный')).toBe(false)
+    // Совпадает начало слова, а не середина.
     expect(mentions(['модель'], 'супермодели')).toBe(false)
     // Совпадает любой из вариантов.
     expect(mentions(['политики доступа к строкам', 'rls'], 'включите rls')).toBe(true)
@@ -353,34 +379,43 @@ describe('build-graph: упоминания терминов', () => {
 })
 
 // Словарь для упоминаний: «Агент» (в своём определении упоминает себя — связи нет), составной термин
-// «Агент фонового программирования» (упоминает «Агент» в названии), термин с сокращением в скобках и короткое «Код».
+// «Агент фонового программирования» (упоминает «Агент» в названии), термин с сокращением в скобках, короткое «Код»,
+// «Модель (ИИ)» (скобки без латиницы — «ИИ» не вариант) и «Тест» из 4 букв.
 const MENTION_GLOSSARY = [
   { term: 'Агент', definition: 'ИИ-агент, который сам действует.', refs: ['ch1'] },
   { term: 'Агент фонового программирования', definition: 'ИИ-система в изолированной среде.', refs: ['ch1'] },
   { term: 'Бенчмарк', definition: 'Набор задач для агентов: кодинг и кодовая база.', refs: ['ch1'] },
   { term: 'Политики доступа к строкам (RLS)', definition: 'Правила базы: какие строки видит пользователь.', refs: ['ch1'] },
   { term: 'Код', definition: 'Текст программы.', refs: ['ch1'] },
+  { term: 'Модель (ИИ)', definition: 'Нейросеть, которая пишет код.', refs: ['ch1'] },
+  { term: 'Тест', definition: 'Проверка программы.', refs: ['ch1'] },
 ]
 
 const entryOf = (a: string, s: string, t: string) => ({ a, c: 'Глава 1 · Введение', s, t })
 // Индекс книги-образца: введение главы ch1, раздел s1 (его заголовок — не текст) и раздел s9 главы «Об авторе» вне графа.
 const MENTION_INDEX = [
   entryOf('ch1', '', 'Введение к главе: агенты пишут код.'),
+  entryOf('ch1', '', 'Модели ошибаются.'),
   entryOf('s1', 'Что такое RLS', 'Что такое RLS'),
   entryOf('s1', 'Что такое RLS', 'Политики строк защищают данные.'),
   entryOf('s1', 'Что такое RLS', 'Включите RLS для каждой таблицы.'),
   entryOf('s1', 'Что такое RLS', 'Политики доступа к строкам базы проверяет агент.'),
   entryOf('s1', 'Что такое RLS', 'Кодинг и кодовая база.'),
+  entryOf('s1', 'Что такое RLS', 'Модерация ответов ИИ.'),
+  entryOf('s1', 'Что такое RLS', 'Тесты, а не тестирование вручную.'),
   { a: 's9', c: 'Об авторе', s: 'Кто я', t: 'Агент и код.' },
 ]
 
 const MENTIONS = [
   { s: 'term:2', t: 'term:1', kind: 'term-term' },
   { s: 'term:3', t: 'term:1', kind: 'term-term' },
+  { s: 'term:6', t: 'term:5', kind: 'term-term' },
   { s: 'term:1', t: 'ch:ch1', kind: 'term-text', w: 1 },
   { s: 'term:1', t: 'sec:s1', kind: 'term-text', w: 1 },
   { s: 'term:4', t: 'sec:s1', kind: 'term-text', w: 2 },
   { s: 'term:5', t: 'ch:ch1', kind: 'term-text', w: 1 },
+  { s: 'term:6', t: 'ch:ch1', kind: 'term-text', w: 1 },
+  { s: 'term:7', t: 'sec:s1', kind: 'term-text', w: 1 },
 ]
 
 describe('build-graph: раскладка и сборка', () => {
