@@ -12,6 +12,13 @@ describe('parseRoute', () => {
     expect(parseRoute('#/abc')).toEqual({ name: 'map' })
     expect(parseRoute('')).toEqual({ name: 'map' })
   })
+  it('граф: общий вид, узел из адреса (id закодирован), битая кодировка — общий вид', () => {
+    expect(parseRoute('#/graph')).toEqual({ name: 'graph' })
+    expect(parseRoute('#/graph/term%3A12')).toEqual({ name: 'graph', node: 'term:12' })
+    expect(parseRoute('#/graph/%E0%A4%A')).toEqual({ name: 'graph' })
+    expect(parseRoute('#/graph/')).toEqual({ name: 'graph' })
+    expect(parseRoute('#/graphs')).toEqual({ name: 'map' })
+  })
 })
 
 describe('navigate', () => {

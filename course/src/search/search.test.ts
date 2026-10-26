@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import bookIndex from '../../content/book-index.json'
 import glossary from '../../content/glossary.json'
+import graph from '../../content/graph.json'
 import { getDays } from '../content/load'
 import { DaySchema, type Day } from '../content/schema'
 import { courseEntries, termEntries, type CourseEntry, type TermEntry } from './courseIndex'
@@ -12,8 +13,9 @@ function course(title: string, text = ''): CourseEntry {
   return { kind: 'idea', label: 'День 1 · Мысль', title, text, target: { day: 1, anchor: 'part-theory' } }
 }
 
+// Термин словаря для проверок поиска: узел графа не важен
 function term(title: string, definition = ''): TermEntry {
-  return { term: title, definition }
+  return { term: title, definition, graphId: 'term:1' }
 }
 
 // Текст из слов-«заполнителей» и одного искомого слова на заданной позиции
@@ -518,8 +520,14 @@ describe('termEntries и поиск терминов', () => {
       ],
       [mk(5, ['Икс', 'Игрек']), mk(3, ['Игрек'])],
     )
-    expect(result[0]).toEqual({ term: 'Икс', definition: 'Определение', day: 5 })
-    expect(result[1]).toEqual({ term: 'Игрек', definition: 'Определение', bookRef: 'ch1', day: 3 })
+    expect(result[0]).toEqual({ term: 'Икс', definition: 'Определение', graphId: 'term:1', day: 5 })
+    expect(result[1]).toEqual({ term: 'Игрек', definition: 'Определение', graphId: 'term:2', bookRef: 'ch1', day: 3 })
+  })
+
+  it('graphId — узел термина на графе: term:<номер в словаре с 1>', () => {
+    const labels = new Map(graph.nodes.map((n) => [n.id, n.label]))
+    expect(terms[0].graphId).toBe('term:1')
+    for (const t of terms) expect(labels.get(t.graphId)).toBe(t.term)
   })
 
   it('searchTerms("rls") ставит термин про RLS первым', () => {

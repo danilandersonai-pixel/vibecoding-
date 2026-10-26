@@ -174,7 +174,8 @@ describe('страница дня', () => {
       expect(item.tagName).toBe('BUTTON')
       expect(item).not.toHaveAttribute('tabindex', '-1')
     }
-    // В шапке три остановки («Карта курса», «Поиск» и «Следующий день»), четвёртый Tab — первый пункт плана
+    // В шапке четыре остановки («Карта курса», «Поиск», «Граф» и «Следующий день»), пятый Tab — первый пункт плана
+    await user.tab()
     await user.tab()
     await user.tab()
     await user.tab()

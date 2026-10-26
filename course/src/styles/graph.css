@@ -1,5 +1,6 @@
-/* Экран «Граф знаний»: карточка узла, поиск узла, фильтры типов. Цвета — только переменные темы, поэтому всё читается
-   и в тёмной теме. Нажимаемое — не меньше 44 px, текст — не меньше 13 px, длинные названия переносятся */
+/* Экран «Граф знаний»: карточка узла, поиск узла, фильтры типов, разметка экрана, кнопка «Граф». Цвета — только
+   переменные темы, поэтому всё читается и в тёмной теме. Нажимаемое — не меньше 44 px, текст — не меньше 13 px,
+   длинные названия переносятся */
 
 /* Карточка узла — «бумага» (.paper, --radius-xl): кикер-тип, название, текст, миниатюра схемы, действия, группы связей */
 .graph-card{min-width:0;padding:20px 22px 24px;color:var(--ink);font-family:var(--font-ui);overflow-wrap:anywhere}
@@ -57,3 +58,56 @@
 .graph-filter-count{color:var(--ink-soft);font-weight:600;font-variant-numeric:tabular-nums}
 .graph-dot{flex:none;width:12px;height:12px;border:2px solid var(--dot);border-radius:50%;background:var(--dot);box-shadow:0 0 0 1px color-mix(in srgb,var(--ink) 22%,transparent)}
 .graph-filter[aria-pressed="false"] .graph-dot{background:transparent}
+
+/* Кнопка «Граф» (GraphButton): на главной — как «Поиск» (.sitebar-link), в шапке дня — рамка, как у «Поиска» (.day-search).
+   На телефоне — только значок: подпись скрыта визуально (как .visually-hidden), имя «Граф» остаётся, нажатие 44 × 44 */
+.graph-open svg{flex:none}
+.sitebar-link.graph-open{gap:8px}
+.day-graph{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border:1px solid color-mix(in srgb,var(--cover-ink) 25%,transparent);border-radius:var(--radius-s);background:none;color:var(--cover-ink);font:500 15px/1 var(--font-ui)}
+.day-graph:hover{border-color:var(--cover-ink)}
+@media (max-width:640px){
+  .graph-open{justify-content:center;min-width:44px}
+  .sitebar-link.graph-open{padding-inline:12px}
+  .graph-open-label{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+}
+
+/* Экран графа. Компьютер (> 960 px): строка сверху — «← Курс», заголовок, поиск, фильтры (переносятся, если не влезли);
+   ниже на всю оставшуюся высоту окна — рисунок (две трети ширины) и карточка справа, она прокручивается внутри себя */
+.graph-page{display:flex;flex-direction:column;gap:16px;max-width:1600px;height:100vh;height:100dvh;min-height:560px;margin:0 auto;padding:16px 24px 24px;color:var(--ink);font-family:var(--font-ui)}
+.graph-bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px}
+.graph-back{display:inline-flex;align-items:center;gap:6px;min-height:44px;color:var(--accent-ink);font:600 15px/1 var(--font-ui);text-decoration:none}
+.graph-back:hover{text-decoration:underline}
+.graph-title{margin:0;font:700 24px/1.2 var(--font-ui)}
+.graph-bar .graph-search{flex:1 1 260px;max-width:420px}
+.graph-bar .graph-filters{flex:1 1 auto}
+.graph-main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px}
+.graph-status{flex:1}
+/* Рисунок — «бумага», холсты Sigma заполняют её целиком */
+.graph-stage{position:relative;min-height:0;overflow:hidden;background:var(--paper);border:1px solid var(--paper-edge);border-radius:var(--radius-xl)}
+.graph-canvas{position:absolute;inset:0}
+.graph-note{margin:0;padding:24px;color:var(--ink-soft);font:400 16px/1.55 var(--font-ui)}
+.graph-side{min-height:0;overflow-y:auto;overscroll-behavior:contain;border-radius:var(--radius-xl)}
+.graph-side-head{display:none}
+
+/* Телефон (≤ 960 px): поиск во всю ширину, фильтры — полоса с прокруткой вбок внутри себя от края до края экрана,
+   рисунок на всю ширину. Карточка — панель снизу поверх рисунка (до 70 % высоты, «Закрыть» всегда видна);
+   пока узел не выбран или панель закрыта — её нет. Панель ниже вариантов поиска (z-index 30) и окна поиска */
+@media (max-width:960px){
+  .graph-page{height:auto;min-height:100vh;padding:12px 16px 16px;gap:12px}
+  .graph-bar{gap:8px 16px}
+  .graph-title{font-size:20px}
+  .graph-bar .graph-search{flex-basis:100%;max-width:none}
+  .graph-bar .graph-filters{flex:1 1 100%;min-width:0;flex-wrap:nowrap;margin:0 -16px;padding:4px 16px 6px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
+  .graph-filters .graph-filter{flex:none}
+  .graph-main{display:block}
+  .graph-stage{height:65vh;min-height:300px}
+  .graph-stage.is-note{height:auto;min-height:0}
+  .graph-side{display:none;position:fixed;z-index:20;left:0;right:0;bottom:0;max-height:70vh;max-height:70dvh;border:1px solid var(--paper-edge);border-bottom:0;border-radius:var(--radius-xl) var(--radius-xl) 0 0;background:var(--paper);box-shadow:var(--shadow-raised)}
+  .graph-side.is-open{display:block}
+  .graph-side-head{position:sticky;top:0;z-index:1;display:flex;justify-content:flex-end;padding:8px 8px 0;background:var(--paper)}
+  .graph-side .graph-card{padding-top:0;border:0;border-radius:0;background:none}
+}
+@media (max-width:960px) and (prefers-reduced-motion:no-preference){
+  .graph-side.is-open{animation:graph-panel-in .2s ease-out}
+}
+@keyframes graph-panel-in{from{opacity:0;transform:translateY(32px)}}

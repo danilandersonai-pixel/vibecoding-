@@ -94,3 +94,13 @@ export const IconClose = ({ size }: IconProps) => (
     <path d="M6 6l12 12M18 6L6 18" />
   </Icon>
 )
+
+// Граф — три узла, связанные линиями: кнопка «Граф» и «На графе» в окне поиска
+export const IconGraph = ({ size }: IconProps) => (
+  <Icon size={size}>
+    <circle cx="6" cy="6" r="2.5" />
+    <circle cx="18" cy="9" r="2.5" />
+    <circle cx="9" cy="18" r="2.5" />
+    <path d="M8.4 6.6l7.2 1.8M6.6 8.4l1.8 7.2M16.2 10.8l-5.4 5.4" />
+  </Icon>
+)

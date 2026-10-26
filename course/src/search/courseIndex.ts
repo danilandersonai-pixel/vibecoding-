@@ -16,7 +16,8 @@ export type CourseEntry = {
   target: SearchTarget
 }
 
-export type TermEntry = { term: string; definition: string; bookRef?: string; day?: number }
+// graphId — узел термина на графе знаний: term:<номер в словаре с 1>
+export type TermEntry = { term: string; definition: string; graphId: string; bookRef?: string; day?: number }
 
 // Запись словаря книги (course/content/glossary.json)
 export type GlossaryItem = { term: string; definition: string; refs: string[] }
@@ -102,8 +103,8 @@ export function termEntries(glossary: GlossaryItem[], days: Day[]): TermEntry[] 
       if (known === undefined || d.number < known) firstDay.set(t, d.number)
     }
   }
-  return glossary.map((g) => {
-    const entry: TermEntry = { term: g.term, definition: g.definition }
+  return glossary.map((g, i) => {
+    const entry: TermEntry = { term: g.term, definition: g.definition, graphId: `term:${i + 1}` }
     if (g.refs[0]) entry.bookRef = g.refs[0]
     const day = firstDay.get(g.term)
     if (day !== undefined) entry.day = day
