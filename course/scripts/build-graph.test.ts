@@ -541,7 +541,7 @@ describe('build-graph: настоящие данные', () => {
   })
 
   it('graph.json совпадает со свежей сборкой', () => {
-    expect(JSON.parse(readFileSync(join(CONTENT, 'graph.json'), 'utf8'))).toEqual(graph)
+    expect(readFileSync(join(CONTENT, 'graph.json'), 'utf8')).toBe(JSON.stringify(graph) + '\n')
   })
 
   it('graph.json не больше 500 КБ', () => {

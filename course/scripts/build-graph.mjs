@@ -264,8 +264,8 @@ function seededRandom(seed) {
   }
 }
 
-// До 0,1; `|| 0` убирает «-0».
-const round = (v) => Math.round(v * 10) / 10 || 0
+// До 0,1; `+ 0` убирает «-0», а NaN оставляет — его поймают проверки чисел.
+const round = (v) => Math.round(v * 10) / 10 + 0
 
 /** Силовая раскладка: те же узлы с `x`, `y` (до 0,1) и `size`; при том же `seed` — те же числа. */
 export function layout(nodes, edges, seed = 1) {
