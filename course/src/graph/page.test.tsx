@@ -38,6 +38,7 @@ type FakeSigma = {
     nodeReducer: (id: string, attrs: Record<string, unknown>) => Record<string, unknown>
     edgeReducer: (id: string, attrs: Record<string, unknown>) => Record<string, unknown>
     defaultDrawNodeHover: (context: CanvasRenderingContext2D, data: Record<string, unknown>, settings: Record<string, unknown>) => void
+    defaultDrawNodeLabel: (context: CanvasRenderingContext2D, data: Record<string, unknown>, settings: Record<string, unknown>) => void
   }
   handlers: Record<string, (payload: unknown) => void>
   camera: { animate: Mock; setState: Mock; getState: () => { x: number; y: number; ratio: number; angle: number } }
@@ -550,6 +551,43 @@ describe('рисунок графа', () => {
     draw(modern as unknown as CanvasRenderingContext2D, data, settings)
     expect(modern.roundRect).toHaveBeenCalled()
     expect(modern.rect).not.toHaveBeenCalled()
+  })
+
+  // Подпись узла — с обводкой цвета «бумаги» темы: читается поверх узлов и связей. Ячейка сетки подписей 150 px:
+  // на общем виде длинные названия реже наезжают друг на друга
+  it('подпись узла — с обводкой цвета бумаги темы; сетка подписей 150 px', async () => {
+    const GraphCanvas = await realCanvas()
+    const root = document.documentElement
+    try {
+      render(<GraphCanvas index={INDEX} selected={null} hidden={new Set()} onSelect={() => {}} onUnsupported={() => {}} />)
+      const s = sigma.instances[0]
+      expect(s.settings.labelGridCellSize).toBe(150)
+      const draw = s.settings.defaultDrawNodeLabel
+      const settings = { labelSize: 13, labelWeight: '500', labelFont: 'Onest' }
+      // что и каким цветом рисуется, по порядку: обводка под заливкой
+      const drawn = (label: string | null) => {
+        const steps: string[] = []
+        const context = {
+          font: '',
+          fillStyle: '',
+          strokeStyle: '',
+          lineWidth: 0,
+          lineJoin: '',
+          strokeText: vi.fn((text: string, x: number) => steps.push(`обводка ${context.strokeStyle} ${context.lineWidth} ${text} ${x}`)),
+          fillText: vi.fn((text: string, x: number) => steps.push(`текст ${context.fillStyle} ${text} ${x}`)),
+        }
+        draw(context as unknown as CanvasRenderingContext2D, { x: 10, y: 20, size: 5, label }, settings)
+        return steps
+      }
+      expect(drawn('Агент')).toEqual(['обводка #FBFAF6 4 Агент 18', 'текст #1C1E22 Агент 18'])
+      expect(drawn(null)).toEqual([])
+
+      root.setAttribute('data-theme', 'dark')
+      await waitFor(() => expect(s.setSetting).toHaveBeenCalledWith('labelColor', { color: '#E8E5DD' }))
+      expect(drawn('Агент')).toEqual(['обводка #1F2228 4 Агент 18', 'текст #E8E5DD Агент 18'])
+    } finally {
+      root.removeAttribute('data-theme')
+    }
   })
 
   it('Sigma не создался (нет WebGL) — onUnsupported, контейнер пуст', async () => {

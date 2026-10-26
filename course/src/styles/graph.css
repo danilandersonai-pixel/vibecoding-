@@ -89,20 +89,21 @@
 .graph-side{min-height:0;overflow-y:auto;overscroll-behavior:contain;border-radius:var(--radius-xl)}
 .graph-side-head{display:none}
 
-/* Телефон (≤ 960 px): поиск во всю ширину, фильтры — полоса с прокруткой вбок внутри себя от края до края экрана,
-   рисунок на всю ширину. Карточка — панель снизу поверх рисунка (до 70 % высоты, «Закрыть» всегда видна);
-   пока узел не выбран или панель закрыта — её нет. Панель ниже вариантов поиска (z-index 30) и окна поиска */
+/* Телефон (≤ 960 px): поиск во всю ширину, фильтры — полоса с прокруткой вбок внутри себя от края до края экрана
+   (таблетка в фокусе подкручивается в неё с полем 16 px — рамка фокуса не у самого края), рисунок на всю ширину.
+   Карточка — панель снизу поверх рисунка (до 60 % высоты, «Закрыть» всегда видна); пока узел не выбран или панель
+   закрыта — её нет. Панель ниже вариантов поиска (z-index 30) и окна поиска */
 @media (max-width:960px){
   .graph-page{height:auto;min-height:100vh;padding:12px 16px 16px;gap:12px}
   .graph-bar{gap:8px 16px}
   .graph-title{font-size:20px}
   .graph-bar .graph-search{flex-basis:100%;max-width:none}
-  .graph-bar .graph-filters{flex:1 1 100%;min-width:0;flex-wrap:nowrap;margin:0 -16px;padding:4px 16px 6px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
+  .graph-bar .graph-filters{flex:1 1 100%;min-width:0;flex-wrap:nowrap;margin:0 -16px;padding:4px 16px 6px;overflow-x:auto;overscroll-behavior-x:contain;scroll-padding-inline:16px;scrollbar-width:none}
   .graph-filters .graph-filter{flex:none}
   .graph-main{display:block}
   .graph-stage{height:65vh;min-height:300px}
   .graph-stage.is-note{height:auto;min-height:0}
-  .graph-side{display:none;position:fixed;z-index:20;left:0;right:0;bottom:0;max-height:70vh;max-height:70dvh;border:1px solid var(--paper-edge);border-bottom:0;border-radius:var(--radius-xl) var(--radius-xl) 0 0;background:var(--paper);box-shadow:var(--shadow-raised)}
+  .graph-side{display:none;position:fixed;z-index:20;left:0;right:0;bottom:0;max-height:60vh;max-height:60dvh;border:1px solid var(--paper-edge);border-bottom:0;border-radius:var(--radius-xl) var(--radius-xl) 0 0;background:var(--paper);box-shadow:var(--shadow-raised)}
   .graph-side.is-open{display:block}
   .graph-side-head{position:sticky;top:0;z-index:1;display:flex;justify-content:flex-end;padding:8px 8px 0;background:var(--paper)}
   .graph-side .graph-card{padding-top:0;border:0;border-radius:0;background:none}

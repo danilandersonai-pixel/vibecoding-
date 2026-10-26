@@ -1,7 +1,7 @@
 import Graph from 'graphology'
 import { useEffect, useRef } from 'react'
 import Sigma from 'sigma'
-import type { NodeHoverDrawingFunction } from 'sigma/rendering'
+import type { NodeHoverDrawingFunction, NodeLabelDrawingFunction } from 'sigma/rendering'
 import type { EdgeDisplayData, NodeDisplayData } from 'sigma/types'
 import { scrollBehavior } from '../home/scroll'
 import { TYPE_COLOR_VAR, TYPE_ORDER, type GraphIndex, type NodeType } from './model'
@@ -23,6 +23,11 @@ type NodeAttrs = { x: number; y: number; size: number; label: string; kind: Node
 // Подписи — у узлов, которые на экране не меньше 9 px (при общем виде — у крупных, примерно каждого десятого);
 // размер на экране растёт с приближением, и подписи появляются у всё более мелких узлов
 const LABEL_SIZE_THRESHOLD = 9
+// Сетка подписей: в каждой клетке — подпись самого крупного узла. У Sigma клетка 100 px, и длинные названия глав
+// на общем виде наезжают на соседние подписи; в клетке 150 px подписей меньше и они почти не пересекаются
+const LABEL_GRID_CELL = 150
+// Обводка подписи цветом «бумаги» — подпись читается поверх узлов и связей
+const LABEL_HALO = 4
 // Камера подводит выбранный узел к центру за это время; при «уменьшить движение» — сразу
 const CAMERA_MS = 500
 
@@ -96,6 +101,21 @@ export function GraphCanvas({ index, selected, hidden, onSelect, onUnsupported, 
       context.fillText(data.label, x, data.y + size / 3)
     }
 
+    // Подпись узла — обводка цветом «бумаги» под текстом (у Sigma по умолчанию текст прямо на узлах и связях)
+    const drawLabel: NodeLabelDrawingFunction<NodeAttrs> = (context, data, settings) => {
+      if (!data.label) return
+      const size = settings.labelSize
+      context.font = `${settings.labelWeight} ${size}px ${settings.labelFont}`
+      const x = data.x + data.size + 3
+      const y = data.y + size / 3
+      context.lineJoin = 'round'
+      context.lineWidth = LABEL_HALO
+      context.strokeStyle = palette.paper
+      context.strokeText(data.label, x, y)
+      context.fillStyle = palette.ink
+      context.fillText(data.label, x, y)
+    }
+
     let renderer: Sigma<NodeAttrs>
     try {
       renderer = new Sigma(graph, container, {
@@ -107,6 +127,8 @@ export function GraphCanvas({ index, selected, hidden, onSelect, onUnsupported, 
         labelWeight: '500',
         labelColor: { color: palette.ink },
         labelRenderedSizeThreshold: LABEL_SIZE_THRESHOLD,
+        labelGridCellSize: LABEL_GRID_CELL,
+        defaultDrawNodeLabel: drawLabel,
         defaultDrawNodeHover: drawHover,
         nodeReducer: (node, data) => {
           const { selected: chosen, neighbors } = view.current

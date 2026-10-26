@@ -156,7 +156,7 @@ test('кусок экрана графа не загрузился — «Гра�
   await expect(page.getByRole('link', { name: 'Курс' })).toHaveAttribute('href', '#/')
 })
 
-// Телефон: поиск сверху, фильтры — полоса с прокруткой внутри себя, карточка — панель снизу до 70 % высоты.
+// Телефон: поиск сверху, фильтры — полоса с прокруткой внутри себя, карточка — панель снизу до 60 % высоты.
 // Длинное название раздела и раскрытая группа не выталкивают ничего вбок; «Закрыть» скрывает панель
 for (const size of [{ width: 390, height: 844 }, { width: 320, height: 640 }]) {
   test(`на ${size.width}×${size.height} без прокрутки вбок, карточка-панель закрывается`, async ({ page }) => {
@@ -177,7 +177,7 @@ for (const size of [{ width: 390, height: 844 }, { width: 320, height: 640 }]) {
     const box = (await panel.boundingBox())!
     expect(box.x).toBeGreaterThanOrEqual(0)
     expect(box.x + box.width).toBeLessThanOrEqual(size.width + 0.5)
-    expect(box.height).toBeLessThanOrEqual(size.height * 0.7 + 1)
+    expect(box.height).toBeLessThanOrEqual(size.height * 0.6 + 1)
     expect(await overflows(page)).toBe(false)
     expect(await panel.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false)
     // «Закрыть» видна и у прокрученной панели; нажимаемое — не меньше 44 px
@@ -200,6 +200,38 @@ for (const size of [{ width: 390, height: 844 }, { width: 320, height: 640 }]) {
     await expect(card(page)).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(card(page)).toBeHidden()
+  })
+}
+
+// Телефон: полоса фильтров прокручивается вбок. Таблетка в фокусе (Tab) встаёт в полосу целиком, с местом для рамки
+// фокуса (2 px с отступом 2 px): сам Chrome к частично видной таблетке не докручивает. Нажатие мышью полосу не двигает —
+// переключается та таблетка, что под указателем
+for (const width of [390, 320]) {
+  test(`на ${width} px Tab по фильтрам: таблетка в фокусе видна целиком, нажатие мышью полосу не двигает`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.setViewportSize({ width, height: 800 })
+    await page.goto('/#/graph')
+    const strip = page.getByRole('group', { name: 'Типы узлов' })
+    await expect(strip.getByRole('button')).toHaveCount(8)
+    const pills = await strip.getByRole('button').all()
+    await field(page).focus()
+    for (const pill of pills) {
+      await page.keyboard.press('Tab')
+      await expect(pill).toBeFocused()
+      await expect.poll(async () => (await pill.boundingBox())!.x).toBeGreaterThanOrEqual(4)
+      const box = (await pill.boundingBox())!
+      expect(box.x + box.width).toBeLessThanOrEqual(width - 4)
+    }
+
+    await page.mouse.click(1, 1)
+    await strip.evaluate((el) => el.scrollTo(0, 0))
+    // первая таблетка, которая видна только частично
+    const boxes = await Promise.all(pills.map((p) => p.boundingBox()))
+    const at = boxes.findIndex((b) => b!.x < width && b!.x + b!.width > width)
+    expect(at).toBeGreaterThan(0)
+    await page.mouse.click(boxes[at]!.x + 12, boxes[at]!.y + boxes[at]!.height / 2)
+    await expect(pills[at]).toHaveAttribute('aria-pressed', 'false')
+    expect(await strip.evaluate((el) => el.scrollLeft)).toBe(0)
   })
 }
 

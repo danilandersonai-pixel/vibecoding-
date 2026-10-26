@@ -244,6 +244,32 @@ describe('поиск узла', () => {
 })
 
 describe('фильтры типов', () => {
+  // На телефоне фильтры — полоса с прокруткой вбок: таблетка в фокусе с клавиатуры подкручивается в неё целиком,
+  // фокус от мыши полосу не двигает. :focus-visible в jsdom непоследователен — фокус «с клавиатуры» задаёт тест,
+  // настоящий браузер проверяет e2e
+  it('таблетка в фокусе с клавиатуры прокручивается в полосу, фокус от мыши — нет', async () => {
+    const user = userEvent.setup()
+    const reveal = vi.spyOn(Element.prototype, 'scrollIntoView')
+    let keyboard = true
+    const matches = Element.prototype.matches
+    vi.spyOn(Element.prototype, 'matches').mockImplementation(function (this: Element, selector: string) {
+      return selector === ':focus-visible' ? keyboard : matches.call(this, selector)
+    })
+    render(<TypeFilters counts={index.counts} hidden={new Set<NodeType>()} onToggle={() => {}} />)
+    await user.tab()
+    await user.tab()
+    const chapters = screen.getByRole('button', { name: 'Главы 1' })
+    expect(chapters).toHaveFocus()
+    expect(reveal).toHaveBeenCalledTimes(2)
+    expect(reveal).toHaveBeenLastCalledWith({ block: 'nearest', inline: 'nearest' })
+    expect(reveal.mock.contexts.at(-1)).toBe(chapters)
+
+    keyboard = false
+    await user.click(screen.getByRole('button', { name: 'Схемы 1' }))
+    expect(screen.getByRole('button', { name: 'Схемы 1' })).toHaveFocus()
+    expect(reveal).toHaveBeenCalledTimes(2)
+  })
+
   it('фильтры: aria-pressed и переключение', async () => {
     const user = userEvent.setup()
     const onToggle = vi.fn()
