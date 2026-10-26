@@ -257,8 +257,8 @@ describe('фильтры типов', () => {
 
     // точка — цвет типа из переменной темы (§5); эту же таблицу берёт рисунок графа
     expect(TYPE_COLOR_VAR).toEqual({
-      part: '--cover-bg',
-      chapter: '--cover-bg',
+      part: '--graph-book',
+      chapter: '--graph-book',
       section: '--ink-soft',
       figure: '--fig-line',
       term: '--accent',
@@ -268,7 +268,7 @@ describe('фильтры типов', () => {
     })
     const dot = (name: string) => filters.getByRole('button', { name }).querySelector<HTMLElement>('.graph-dot')!
     expect(dot('Термины 2').style.getPropertyValue('--dot')).toBe('var(--accent)')
-    expect(dot('Главы 1').style.getPropertyValue('--dot')).toBe('var(--cover-bg)')
+    expect(dot('Главы 1').style.getPropertyValue('--dot')).toBe('var(--graph-book)')
     const tokens = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../styles/tokens.css'), 'utf8')
     for (const name of Object.values(TYPE_COLOR_VAR)) expect(tokens).toContain(`${name}:`)
   })

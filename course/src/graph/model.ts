@@ -65,10 +65,11 @@ export const TYPE_FILTER_LABEL: Record<NodeType, string> = {
 }
 
 // Цвет типа — имя переменной темы (спецификация §5): точка в фильтрах — var(<имя>), узлы рисунка — значение переменной
-// из getComputedStyle. Задаётся только здесь, чтобы фильтры и рисунок не разошлись
+// из getComputedStyle. Задаётся только здесь, чтобы фильтры и рисунок не разошлись. Части и главы — --graph-book:
+// в светлой теме это --cover-bg, в тёмной — --cover-soft (тёмно-синий --cover-bg на тёмной бумаге не виден)
 export const TYPE_COLOR_VAR: Record<NodeType, string> = {
-  part: '--cover-bg',
-  chapter: '--cover-bg',
+  part: '--graph-book',
+  chapter: '--graph-book',
   section: '--ink-soft',
   figure: '--fig-line',
   term: '--accent',
