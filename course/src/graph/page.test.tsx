@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import data from '../../content/graph.json'
 import App from '../App'
+import { navigate } from '../router'
 import type { GraphCanvasProps } from './GraphCanvas'
 import GraphPage from './GraphPage'
 import { indexGraph, type GraphData, type NodeType } from './model'
@@ -297,6 +298,18 @@ describe('экран графа: телефон', () => {
     await user.click(screen.getByRole('option', { name: 'Азбука Глава' }))
     expect(said).toHaveTextContent('Выбран узел: Азбука, глава')
     expect(field()).toHaveFocus()
+
+    // тот же узел ещё раз — текст области меняется, иначе диктор промолчит
+    const before = said.textContent
+    await user.click(field())
+    await user.click(screen.getByRole('option', { name: 'Азбука Глава' }))
+    expect(said).toHaveTextContent('Выбран узел: Азбука, глава')
+    expect(said.textContent).not.toBe(before)
+
+    // переход по адресу («На графе» из окна поиска) — прежнее объявление стирается
+    act(() => navigate('#/graph/term%3A1', { replace: true }))
+    expect(cardTitle()).toHaveTextContent('Агент')
+    expect(said).toBeEmptyDOMElement()
   })
 
   it('на узком экране выбор из поиска переводит фокус на название в карточке-панели', async () => {

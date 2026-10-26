@@ -36,13 +36,15 @@ export default function GraphPage({ node }: { node?: string }) {
   const heading = useRef<HTMLHeadingElement>(null)
   const stage = useRef<HTMLDivElement>(null)
   const side = useRef<HTMLDivElement>(null)
-  // Объявление выбора из поиска (живая область); n — номер выбора: тот же узел ещё раз тоже перерисовывает экран
+  // Объявление выбора из поиска (живая область); n — номер выбора: тот же узел ещё раз тоже перерисовывает экран,
+  // а неразрывный пробел через раз меняет текст области — иначе диктор повтор не прочтёт
   const [said, setSaid] = useState({ text: '', n: 0 })
   // Выбор из поиска на телефоне: после отрисовки фокус — на название узла в карточке-панели
   const focusCard = useRef(false)
 
-  // Переход извне при открытом графе (адрес, «На графе» в окне поиска) выбирает узел из адреса. Слушаем сами переходы,
-  // а не node: выбор на экране маршрут не меняет, и переход к узлу, который был в адресе раньше, маршрут бы не заметил
+  // Переход извне при открытом графе (адрес, «На графе» в окне поиска) выбирает узел из адреса и стирает объявление.
+  // Слушаем сами переходы, а не node: выбор на экране маршрут не меняет, и переход к узлу, который был в адресе раньше,
+  // маршрут бы не заметил
   useEffect(
     () =>
       onNavigation((hash) => {
@@ -50,6 +52,7 @@ export default function GraphPage({ node }: { node?: string }) {
         if (route.name !== 'graph') return
         setSelected(route.node ?? null)
         setPanel(true)
+        setSaid((cur) => (cur.text === '' ? cur : { text: '', n: cur.n }))
       }),
     [],
   )
@@ -131,7 +134,7 @@ export default function GraphPage({ node }: { node?: string }) {
         <TypeFilters counts={index.counts} hidden={hidden} onToggle={toggle} />
       </GraphBar>
       <p className="visually-hidden" role="status">
-        {said.text}
+        {said.text && said.text + (said.n % 2 ? '\u00A0' : '')}
       </p>
       <main className="graph-main">
         <div ref={stage} className={unsupported ? 'graph-stage is-note' : 'graph-stage'}>
