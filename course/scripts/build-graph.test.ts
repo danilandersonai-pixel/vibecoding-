@@ -540,6 +540,22 @@ describe('build-graph: настоящие данные', () => {
     expect(graph.edges).toContainEqual({ s: termId('Агент фонового программирования'), t: termId('Агент'), kind: 'term-term' })
   })
 
+  it('настоящий граф: островов нет — каждый узел не дальше 2,5 × 95-го процентиля узлов книги от центра', () => {
+    // Недели 2–3 с днями и роликами связаны только между собой: без притяжения к центру они улетают далеко от облака
+    // книги, и общий вид на экране графа становится мелким
+    const n = graph.nodes.length
+    const cx = graph.nodes.reduce((s, p) => s + p.x, 0) / n
+    const cy = graph.nodes.reduce((s, p) => s + p.y, 0) / n
+    const dist = (p: PlacedNode) => Math.hypot(p.x - cx, p.y - cy)
+    const BOOK_TYPES = new Set(['part', 'chapter', 'section', 'figure', 'term'])
+    const book = graph.nodes
+      .filter((p) => BOOK_TYPES.has(p.type))
+      .map(dist)
+      .sort((a, b) => a - b)
+    const limit = 2.5 * book[Math.floor(0.95 * (book.length - 1))]
+    expect(graph.nodes.filter((p) => dist(p) > limit).map((p) => p.id)).toEqual([])
+  })
+
   it('graph.json совпадает со свежей сборкой', () => {
     expect(readFileSync(join(CONTENT, 'graph.json'), 'utf8')).toBe(JSON.stringify(graph) + '\n')
   })

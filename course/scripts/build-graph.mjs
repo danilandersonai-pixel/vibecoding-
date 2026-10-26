@@ -4,7 +4,7 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation } from 'd3-force'
+import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation, forceX, forceY } from 'd3-force'
 import { plain, readBook } from './extract-book.mjs'
 
 // Главы, которых в графе нет: «Об авторе», «Оформление книги», «Алфавитный указатель» и всё, что в них.
@@ -277,13 +277,17 @@ export function layout(nodes, edges, seed = 1) {
   const top = Math.log1p(Math.max(0, ...degree.values()))
   const sizes = nodes.map((n) => (top ? SIZE_MIN + ((SIZE_MAX - SIZE_MIN) * Math.log1p(degree.get(n.id))) / top : SIZE_MIN))
   const points = nodes.map((n, i) => ({ id: n.id, r: sizes[i] }))
-  // Таймер симуляции останавливается сразу: шаги считаются синхронно.
+  // Таймер симуляции останавливается сразу: шаги считаются синхронно. Слабое притяжение к центру (x, y) держит рядом
+  // с облаком книги части графа, связанные только между собой (недели 2–3 с днями и роликами): иначе они улетают далеко
+  // и общий вид на экране графа становится мелким.
   forceSimulation(points)
     .stop()
     .randomSource(seededRandom(seed))
     .force('link', forceLink(edges.map((e) => ({ source: e.s, target: e.t }))).id((p) => p.id))
     .force('charge', forceManyBody())
     .force('center', forceCenter(0, 0))
+    .force('x', forceX(0).strength(0.1))
+    .force('y', forceY(0).strength(0.1))
     .force('collide', forceCollide((p) => p.r))
     .tick(LAYOUT_TICKS)
   return nodes.map((n, i) => ({ ...n, x: round(points[i].x), y: round(points[i].y), size: round(sizes[i]) }))
