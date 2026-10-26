@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { navigate } from '../router'
@@ -84,12 +84,15 @@ describe('карточка узла', () => {
     expect(group('Объясняется в главе').getByRole('button', { name: 'Глава 1 · Введение' })).toBeInTheDocument()
     expect(group('Упоминает термины').getByRole('button', { name: 'Агент фонового программирования' })).toBeInTheDocument()
     expect(group('В курсе').getByRole('button', { name: 'День 1 · Азбука' })).toBeInTheDocument()
-    // в тексте — число упоминаний, по убыванию; видны первые 8
+    // в тексте — число упоминаний, по убыванию; видны первые 8. Число подписано для чтения с экрана
+    const w = (n: number) => `Раздел ${n} · упоминаний: ${n}`
     expect(
       group('Встречается в тексте')
         .getAllByRole('listitem')
         .map((li) => li.textContent),
-    ).toEqual(['Раздел 10 · 10', 'Раздел 9 · 9', 'Раздел 8 · 8', 'Раздел 7 · 7', 'Раздел 6 · 6', 'Раздел 5 · 5', 'Раздел 4 · 4', 'Раздел 3 · 3'])
+    ).toEqual([10, 9, 8, 7, 6, 5, 4, 3].map(w))
+    expect(group('Встречается в тексте').getByRole('button', { name: w(10) })).toBeInTheDocument()
+    expect(group('Встречается в тексте').getAllByText('упоминаний:')[0]).toHaveClass('visually-hidden')
 
     const book = card().getByRole('link', { name: 'Открыть в книге' })
     expect(book).toHaveAttribute('href', 'book.html#abc')
@@ -110,7 +113,7 @@ describe('карточка узла', () => {
 
     await user.click(group('Встречается в тексте').getByRole('button', { name: 'Показать все 10' }))
     const items = group('Встречается в тексте').getAllByRole('listitem')
-    expect(items.map((li) => li.textContent).slice(8)).toEqual(['Раздел 2 · 2', 'Раздел 1 · 1'])
+    expect(items.map((li) => li.textContent).slice(8)).toEqual(['Раздел 2 · упоминаний: 2', 'Раздел 1 · упоминаний: 1'])
     expect(group('Встречается в тексте').queryByRole('button', { name: /^Показать все/ })).toBeNull()
     // фокус — на первом новом соседе: Tab идёт дальше от него
     expect(within(items[8]).getByRole('button')).toHaveFocus()
@@ -154,9 +157,14 @@ describe('карточка узла', () => {
     expect(card().getByText('День 1 · Азбука', { selector: 'p' })).toBeInTheDocument()
     const video = card().getByRole('link', { name: 'Смотреть ролик' })
     expect(video).toHaveAttribute('href', '#/day/1')
-    await user.click(video)
+    // с Ctrl — как обычная ссылка: переход не перехвачен
+    expect(fireEvent.click(video, { ctrlKey: true })).toBe(true)
+    expect(goToResult).not.toHaveBeenCalled()
+    // обычный щелчок: переход ссылки отменён (preventDefault), ролик — тем же механизмом, что в поиске
+    expect(fireEvent.click(video)).toBe(false)
     expect(goToResult).toHaveBeenCalledWith({ day: 1, anchor: 'part-theory' })
-    // ролик — тем же механизмом, что в поиске: сам navigate не зовётся
+    expect(goToResult).toHaveBeenCalledTimes(1)
+    // сам navigate не зовётся
     expect(navigate).toHaveBeenCalledTimes(1)
     expect(card().queryByRole('link', { name: 'Открыть день' })).toBeNull()
   })
@@ -205,6 +213,11 @@ describe('поиск узла', () => {
     expect(options[0]).toHaveAttribute('aria-selected', 'true')
     expect(options[1]).toHaveAttribute('aria-selected', 'false')
     expect(field).toHaveFocus()
+    // по кругу: ↑ с первого — на последний, ↓ с последнего — на первый
+    await user.keyboard('{ArrowUp}')
+    expect(field).toHaveAttribute('aria-activedescendant', options[2].id)
+    await user.keyboard('{ArrowDown}')
+    expect(field).toHaveAttribute('aria-activedescendant', options[0].id)
     await user.keyboard('{Enter}')
     expect(onSelect).toHaveBeenCalledWith('term:1')
     expect(screen.queryByRole('listbox')).toBeNull()

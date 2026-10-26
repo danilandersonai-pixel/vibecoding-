@@ -34,7 +34,10 @@ function Group({ group, onSelect }: { group: NeighborGroup; onSelect: (id: strin
               {group.kind === 'term-text' && w !== undefined && (
                 <>
                   {' '}
-                  <span className="graph-node-w">· {w}</span>
+                  {/* число подписано для чтения с экрана: иначе «Раздел 10 · 10» */}
+                  <span className="graph-node-w">
+                    · <span className="visually-hidden">упоминаний:</span> {w}
+                  </span>
                 </>
               )}
             </button>
