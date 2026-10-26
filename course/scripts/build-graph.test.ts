@@ -1,9 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { normalize as searchNormalize } from '../src/search/normalize'
 // @ts-expect-error — скрипт на чистом JS, типы не нужны
-import { buildNodes, structureEdges } from './build-graph.mjs'
+import { buildGraph, buildNodes, layout, mentionEdges, mentions, normalize, readSources, structureEdges, termVariants } from './build-graph.mjs'
 
 type GraphNode = { id: string; type: string; label: string; text: string; book?: string; day?: number; video?: string; figure?: string }
 type GraphEdge = { s: string; t: string; kind: string; w?: number }
+type PlacedNode = GraphNode & { x: number; y: number; size: number }
 
 const header = (title: string) => `<header class="ch-open"><h2>${title}</h2></header>`
 const chapter = (id: string, head: string, title: string) => ({
@@ -33,6 +37,8 @@ const BOOK = {
     chapter('ch2', 'Глава 2 · Запросы', 'Искусство составления запросов'),
     { t: 'h3', id: 's2', h: '<h3>Хороший запрос</h3>' },
     { t: 'fig', n: 'x2', cap: 'Рис. 2.1 · запрос' },
+    // Глава без номера в id внутри части — часть ей даёт позиция, а не id.
+    chapter('ch2a', 'Глава 2 · Дополнение', 'Дополнение к главе 2'),
     part('p2', 'II', 'Практика'),
     chapter('ch3', 'Глава 3 · Проблема 70%', 'Проблема 70%: как работать по-настоящему'),
     chapter('glossary', 'Словарь терминов', 'Словарь терминов'),
@@ -135,7 +141,7 @@ describe('build-graph: узлы', () => {
   it('число узлов по типам и неповторяющиеся id', () => {
     const nodes = nodesOf()
     const count = (type: string) => nodes.filter((n) => n.type === type).length
-    expect([count('part'), count('chapter'), count('section'), count('figure')]).toEqual([2, 7, 2, 4])
+    expect([count('part'), count('chapter'), count('section'), count('figure')]).toEqual([2, 8, 2, 4])
     expect([count('term'), count('week'), count('day'), count('video')]).toEqual([3, 1, 2, 4])
     expect(new Set(nodes.map((n) => n.id)).size).toBe(nodes.length)
   })
@@ -180,15 +186,41 @@ describe('build-graph: узлы', () => {
     expect(text('sec:b')).toBe('')
     expect(text('sec:c')).toBe(exact)
   })
+
+  it('сущности в заголовках главы, раздела и подписи схемы разобраны', () => {
+    const book = {
+      blocks: [
+        chapter('ch1', 'Глава 1 · Тесты &amp; отладка', 'Тесты &amp;&nbsp;отладка'),
+        { t: 'h3', id: 's1', h: '<h3>Код&nbsp;&amp; <code>данные</code></h3>' },
+        { t: 'fig', n: 'x1', cap: 'Рис. 1.1 · A&nbsp;&amp;&nbsp;B' },
+      ],
+    }
+    const nodes: GraphNode[] = buildNodes({ book, glossary: [], bookIndex: [], weeks: [], days: [] })
+    const byId = (id: string) => nodes.find((n) => n.id === id)
+    expect(byId('ch:ch1')).toMatchObject({ label: 'Глава 1 · Тесты & отладка', text: 'Тесты & отладка' })
+    expect(byId('sec:s1')).toMatchObject({ label: 'Код & данные' })
+    expect(byId('fig:x1')).toMatchObject({ label: 'Рис. 1.1 · A & B' })
+  })
+
+  it('термин без refs — без ключа book', () => {
+    const glossary = [{ term: 'Песочница', definition: 'Изолированная среда.', refs: [] }]
+    const [node] = buildNodes({ book: { blocks: [] }, glossary, bookIndex: [], weeks: [], days: [] })
+    expect(node).toEqual({ id: 'term:1', type: 'term', label: 'Песочница', text: 'Изолированная среда.' })
+    expect(node).not.toHaveProperty('book')
+  })
 })
 
 describe('build-graph: связи', () => {
   it('главы до первой части и после последней главы части — без части', () => {
     const partCh = pairs(edgesOf(), 'part-ch')
-    expect(partCh).toEqual(['part:I → ch:ch1', 'part:I → ch:ch2', 'part:II → ch:ch3'])
+    expect(partCh).toEqual(['part:I → ch:ch1', 'part:I → ch:ch2', 'part:I → ch:ch2a', 'part:II → ch:ch3'])
     for (const free of ['ch:pre', 'ch:abc', 'ch:glossary', 'ch:sources']) {
       expect(edgesOf().filter((e) => e.kind === 'part-ch' && e.t === free)).toEqual([])
     }
+  })
+
+  it('глава внутри части получает часть по позиции, а не по id', () => {
+    expect(pairs(edgesOf(), 'part-ch')).toContain('part:I → ch:ch2a')
   })
 
   it('связи строения книги', () => {
@@ -266,5 +298,186 @@ describe('build-graph: связи', () => {
     // Один видеоурок в двух днях и дважды в одном — один узел, остаётся у первого дня и с первым названием.
     const videos = nodesOf(tangled).filter((n) => n.type === 'video')
     expect(videos).toEqual([{ id: 'video:ch-01', type: 'video', label: 'Введение', text: 'День 1 · Т', day: 1, video: 'ch-01' }])
+  })
+})
+
+describe('build-graph: упоминания терминов', () => {
+  it('варианты термина: без скобок и из скобок', () => {
+    expect(termVariants('Политики доступа к строкам (RLS)')).toEqual(['политики доступа к строкам', 'rls'])
+    expect(termVariants('Агент')).toEqual(['агент'])
+    // Текст в скобках короче 2 знаков не берётся; одинаковые варианты не повторяются.
+    expect(termVariants('Тип (Я)')).toEqual(['тип'])
+    expect(termVariants('Лог (лог)')).toEqual(['лог'])
+  })
+
+  it('короткие слова — только целиком', () => {
+    expect(mentions(['код'], 'кодинг и кодовая база')).toBe(false)
+    expect(mentions(['код'], 'пишет код')).toBe(true)
+    expect(mentions(['rls'], 'политики rls')).toBe(true)
+    // Ровно 4 знака — тоже целиком.
+    expect(mentions(['тест'], 'тесты')).toBe(false)
+  })
+
+  it('длинные слова — по началу', () => {
+    expect(mentions(['агент'], 'два агентов')).toBe(true)
+    expect(mentions(['модель'], 'модели')).toBe(true)
+    expect(mentions(['политики доступа к строкам'], 'политики доступа к строкам базы')).toBe(true)
+    expect(mentions(['политики доступа к строкам'], 'политики доступа и к строкам')).toBe(false)
+    // Начало длиной «длина − 2»: «программирования» → «программирован…»; совпадает начало слова, а не середина.
+    expect(mentions(['программирования'], 'программирование')).toBe(true)
+    expect(mentions(['программирования'], 'программа')).toBe(false)
+    expect(mentions(['строкам'], 'строки')).toBe(true)
+    // Начало не короче 4 знаков: «токен» → «токе…», а не «ток…».
+    expect(mentions(['токен'], 'токсичный')).toBe(false)
+    expect(mentions(['модель'], 'супермодели')).toBe(false)
+    // Совпадает любой из вариантов.
+    expect(mentions(['политики доступа к строкам', 'rls'], 'включите rls')).toBe(true)
+    expect(mentions(['агент'], '')).toBe(false)
+  })
+
+  it('нормализация совпадает с поиском курса', () => {
+    const samples = [
+      'Ёжик в «тумане» — ЁЛКА',
+      '“Кавычки” и „лапки“ – короткое тире',
+      'Политики доступа к строкам (RLS)!!!',
+      '  ИИ-агент:   читает файлы…  ',
+      'Cafe\u0301 İstanbul 2026 — №5 🙂',
+    ]
+    for (const text of samples) expect(normalize(text)).toBe(searchNormalize(text))
+    expect(normalize(samples[0])).toBe('ежик в тумане елка')
+  })
+
+  it('упоминания: термин в определении и в тексте раздела с весом', () => {
+    expect(mentionEdges({ glossary: MENTION_GLOSSARY, bookIndex: MENTION_INDEX, chapterOf: new Map([['ch1', 'ch1'], ['s1', 'ch1']]) })).toEqual(MENTIONS)
+  })
+})
+
+// Словарь для упоминаний: «Агент» (в своём определении упоминает себя — связи нет), составной термин
+// «Агент фонового программирования» (упоминает «Агент» в названии), термин с сокращением в скобках и короткое «Код».
+const MENTION_GLOSSARY = [
+  { term: 'Агент', definition: 'ИИ-агент, который сам действует.', refs: ['ch1'] },
+  { term: 'Агент фонового программирования', definition: 'ИИ-система в изолированной среде.', refs: ['ch1'] },
+  { term: 'Бенчмарк', definition: 'Набор задач для агентов: кодинг и кодовая база.', refs: ['ch1'] },
+  { term: 'Политики доступа к строкам (RLS)', definition: 'Правила базы: какие строки видит пользователь.', refs: ['ch1'] },
+  { term: 'Код', definition: 'Текст программы.', refs: ['ch1'] },
+]
+
+const entryOf = (a: string, s: string, t: string) => ({ a, c: 'Глава 1 · Введение', s, t })
+// Индекс книги-образца: введение главы ch1, раздел s1 (его заголовок — не текст) и раздел s9 главы «Об авторе» вне графа.
+const MENTION_INDEX = [
+  entryOf('ch1', '', 'Введение к главе: агенты пишут код.'),
+  entryOf('s1', 'Что такое RLS', 'Что такое RLS'),
+  entryOf('s1', 'Что такое RLS', 'Политики строк защищают данные.'),
+  entryOf('s1', 'Что такое RLS', 'Включите RLS для каждой таблицы.'),
+  entryOf('s1', 'Что такое RLS', 'Политики доступа к строкам базы проверяет агент.'),
+  entryOf('s1', 'Что такое RLS', 'Кодинг и кодовая база.'),
+  { a: 's9', c: 'Об авторе', s: 'Кто я', t: 'Агент и код.' },
+]
+
+const MENTIONS = [
+  { s: 'term:2', t: 'term:1', kind: 'term-term' },
+  { s: 'term:3', t: 'term:1', kind: 'term-term' },
+  { s: 'term:1', t: 'ch:ch1', kind: 'term-text', w: 1 },
+  { s: 'term:1', t: 'sec:s1', kind: 'term-text', w: 1 },
+  { s: 'term:4', t: 'sec:s1', kind: 'term-text', w: 2 },
+  { s: 'term:5', t: 'ch:ch1', kind: 'term-text', w: 1 },
+]
+
+describe('build-graph: раскладка и сборка', () => {
+  it('раскладка повторяется и без NaN', () => {
+    const nodes = nodesOf()
+    const edges = edgesOf()
+    const random = vi.spyOn(Math, 'random')
+    const first: PlacedNode[] = layout(nodes, edges)
+    const again: PlacedNode[] = layout(nodes, edges, 1)
+    expect(random).not.toHaveBeenCalled()
+    random.mockRestore()
+    expect(again).toEqual(first)
+    // Те же узлы в том же порядке, к ним добавлены x, y, size.
+    expect(first).toMatchObject(nodes)
+    for (const n of first) {
+      for (const v of [n.x, n.y, n.size]) {
+        expect(Number.isFinite(v)).toBe(true)
+        expect(Math.round(v * 10) / 10).toBe(v)
+      }
+      expect(n.size).toBeGreaterThanOrEqual(3)
+      expect(n.size).toBeLessThanOrEqual(14)
+    }
+  })
+
+  it('размер узла — логарифм от числа связей: 3 без связей, 14 у самого связанного', () => {
+    const nodes = ['a', 'b', 'c', 'd'].map((id) => ({ id, type: 'term', label: id, text: '' }))
+    const edges = [
+      { s: 'a', t: 'b', kind: 'term-term' },
+      { s: 'a', t: 'c', kind: 'term-term' },
+    ]
+    const sizes = Object.fromEntries((layout(nodes, edges) as PlacedNode[]).map((n) => [n.id, n.size]))
+    // 3 + 11 · ln 2 / ln 3 ≈ 9,94
+    expect(sizes).toEqual({ a: 14, b: 9.9, c: 9.9, d: 3 })
+  })
+
+  it('сборка на образце: связи строения, затем упоминания; разделы глав вне графа пропущены', () => {
+    const sources = { book: BOOK, glossary: MENTION_GLOSSARY, bookIndex: MENTION_INDEX, weeks: WEEKS, days: DAYS }
+    const { nodes, edges }: { nodes: PlacedNode[]; edges: GraphEdge[] } = buildGraph(sources)
+    expect(nodes).toMatchObject(buildNodes(sources))
+    expect(edges).toEqual([...structureEdges(sources), ...MENTIONS])
+  })
+})
+
+type Day = { number: number; cards?: string[]; blocks?: { figure?: string; bookRef?: { section: string } }[] }
+type Sources = { glossary: { term: string; refs: string[] }[]; days: Day[] }
+
+describe('build-graph: настоящие данные', () => {
+  const CONTENT = join(__dirname, '..', 'content')
+  const BOOK_FILE = join(__dirname, '..', '..', 'vibe-coding-na-praktike-2026-10.html')
+  let sources: Sources
+  let graph: { nodes: PlacedNode[]; edges: GraphEdge[] }
+  beforeAll(() => {
+    sources = readSources(BOOK_FILE, CONTENT)
+    graph = buildGraph(sources)
+  }, 60_000)
+  const termId = (name: string) => `term:${sources.glossary.findIndex((g) => g.term === name) + 1}`
+  const count = (kind: string) => graph.edges.filter((e) => e.kind === kind).length
+
+  it('настоящий граф: число узлов по типам', () => {
+    const byType = (type: string) => graph.nodes.filter((n) => n.type === type).length
+    const types = ['part', 'chapter', 'section', 'figure', 'term', 'week', 'day', 'video']
+    expect(types.map(byType)).toEqual([4, 16, 99, 112, 280, 3, 21, 27])
+    expect(graph.nodes).toHaveLength(562)
+  })
+
+  it('настоящий граф: связи целы', () => {
+    const ids = new Set(graph.nodes.map((n) => n.id))
+    expect(ids.size).toBe(graph.nodes.length)
+    expect(graph.edges.filter((e) => !ids.has(e.s) || !ids.has(e.t))).toEqual([])
+    expect(graph.edges.filter((e) => e.s === e.t)).toEqual([])
+    const keys = graph.edges.map((e) => `${e.kind} ${e.s} ${e.t}`)
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+
+  it('настоящий граф: связи строения совпадают со счётом в источниках', () => {
+    // Опечатка в данных (ссылка на несуществующую главу, раздел, схему или термин) не теряется молча.
+    const blocks = sources.days.flatMap((d) => d.blocks ?? [])
+    expect(count('part-ch')).toBe(12)
+    expect(count('term-ch')).toBe(new Set(sources.glossary.flatMap((g, i) => g.refs.map((r) => `${i} ${r}`))).size)
+    expect(count('day-term')).toBe(sources.days.flatMap((d) => d.cards ?? []).length)
+    expect(count('day-sec')).toBe(blocks.filter((b) => b.bookRef).length)
+    expect(count('day-fig')).toBe(blocks.filter((b) => b.figure).length)
+  })
+
+  it('RLS связан с разделом s43', () => {
+    expect(graph.edges).toContainEqual(expect.objectContaining({ s: termId('Политики доступа к строкам (RLS)'), t: 'sec:s43', kind: 'term-text' }))
+  })
+
+  it('«Агент фонового программирования» упоминает «Агент»', () => {
+    expect(graph.edges).toContainEqual({ s: termId('Агент фонового программирования'), t: termId('Агент'), kind: 'term-term' })
+  })
+
+  it('graph.json совпадает со свежей сборкой', () => {
+    expect(JSON.parse(readFileSync(join(CONTENT, 'graph.json'), 'utf8'))).toEqual(graph)
+  })
+
+  it('graph.json не больше 500 КБ', () => {
+    expect(statSync(join(CONTENT, 'graph.json')).size).toBeLessThanOrEqual(500 * 1024)
   })
 })
