@@ -64,6 +64,19 @@ export const TYPE_FILTER_LABEL: Record<NodeType, string> = {
   video: 'Видеоуроки',
 }
 
+// Цвет типа — имя переменной темы (спецификация §5): точка в фильтрах — var(<имя>), узлы рисунка — значение переменной
+// из getComputedStyle. Задаётся только здесь, чтобы фильтры и рисунок не разошлись
+export const TYPE_COLOR_VAR: Record<NodeType, string> = {
+  part: '--cover-bg',
+  chapter: '--cover-bg',
+  section: '--ink-soft',
+  figure: '--fig-line',
+  term: '--accent',
+  week: '--fig-ok',
+  day: '--fig-ok',
+  video: '--warn',
+}
+
 // Подписи групп карточки (спецификация §3): out — у узла «откуда» (смотрит на концы связей), in — у узла «куда».
 // Порядок ключей — порядок строк таблицы: в таком порядке группы идут в карточке
 export const GROUP_TITLES: Record<EdgeKind, { out: string; in: string }> = {

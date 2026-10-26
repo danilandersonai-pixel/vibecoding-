@@ -1,0 +1,59 @@
+/* Экран «Граф знаний»: карточка узла, поиск узла, фильтры типов. Цвета — только переменные темы, поэтому всё читается
+   и в тёмной теме. Нажимаемое — не меньше 44 px, текст — не меньше 13 px, длинные названия переносятся */
+
+/* Карточка узла — «бумага» (.paper, --radius-xl): кикер-тип, название, текст, миниатюра схемы, действия, группы связей */
+.graph-card{min-width:0;padding:20px 22px 24px;color:var(--ink);font-family:var(--font-ui);overflow-wrap:anywhere}
+.graph-card-hint{margin:0;color:var(--ink-soft);font:400 16px/1.55 var(--font-ui)}
+.graph-card-title{margin:6px 0 0;font:700 22px/1.25 var(--font-ui)}
+.graph-card-text{margin:10px 0 0;color:var(--ink);font:400 16px/1.6 var(--font-body)}
+.graph-card-figure{margin-top:14px}
+.graph-card-figure .figure{margin:0}
+.graph-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.graph-actions svg{flex:none}
+
+/* Группа связей: заголовок-кикер с числом, список кнопок-узлов во всю ширину, «Показать все N» */
+.graph-group{margin-top:22px}
+.graph-group-title{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 6px;color:var(--ink-soft);font:700 13px/1.4 var(--font-ui);text-transform:uppercase;letter-spacing:.14em}
+.graph-count{min-width:24px;padding:2px 7px;border-radius:var(--radius-s);background:var(--tint);color:var(--accent-ink);font:700 13px/1.3 var(--font-ui);letter-spacing:0;text-align:center}
+.graph-list{display:flex;flex-direction:column;gap:2px;margin:0;padding:0;list-style:none}
+.graph-list > li{min-width:0}
+.graph-node{display:block;width:100%;min-height:44px;padding:10px 12px;border:0;border-radius:var(--radius-m);background:none;color:var(--accent-ink);font:500 15px/1.4 var(--font-ui);text-align:left;overflow-wrap:anywhere}
+.graph-node:hover{background:var(--tint)}
+/* Рамка фокуса внутрь: у карточки-панели с прокруткой наружная обрезалась бы по краям */
+.graph-node:focus-visible{outline-offset:-2px}
+.graph-node-w{color:var(--ink-soft);font-weight:400;white-space:nowrap}
+.graph-more{margin-top:6px}
+
+/* Поиск узла: поле с лупой; рамка фокуса — у всего поля. Варианты и «Ничего не нашлось» — всплывающая «бумага» под полем */
+.graph-search{position:relative;min-width:0;font-family:var(--font-ui)}
+.graph-search-field{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:1px solid var(--rule);border-radius:var(--radius-m);background:var(--paper)}
+.graph-search-field:hover{border-color:var(--ink-soft)}
+.graph-search-field:has(.graph-search-input:focus-visible){border-color:var(--accent);outline:2px solid var(--accent);outline-offset:2px}
+.graph-search-icon{flex:none;display:flex;color:var(--ink-soft)}
+/* 16 px — меньше телефон увеличивает страницу при фокусе в поле */
+.graph-search-input{flex:1;min-width:0;min-height:42px;padding:8px 0;border:0;background:none;color:var(--ink);font:500 16px/1.3 var(--font-ui)}
+.graph-search-input::placeholder{color:var(--ink-soft);opacity:1}
+.graph-search-input:focus-visible{outline:none}
+/* Свой крестик очистки у поля поиска меньше 44 px; очищает Esc */
+.graph-search-input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+.graph-options,.graph-search-status:not(:empty){position:absolute;z-index:30;top:calc(100% + 6px);left:0;right:0;border:1px solid var(--paper-edge);border-radius:var(--radius-l);background:var(--paper);box-shadow:var(--shadow-raised)}
+.graph-options{margin:0;padding:6px;list-style:none;max-height:min(560px,70vh);overflow-y:auto;overscroll-behavior:contain}
+.graph-options[hidden]{display:none}
+/* Вариант: подпись и тип; на узком поле тип уходит под подпись. Выбранный стрелками — фон и рамка, не только цвет */
+.graph-option{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 12px;min-height:44px;padding:10px 12px;border-radius:var(--radius-m);color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.graph-option:hover{background:var(--tint)}
+.graph-option[aria-selected="true"]{background:var(--tint);box-shadow:inset 0 0 0 2px var(--accent)}
+.graph-option-label{flex:1 1 12em;min-width:0;font:600 15px/1.35 var(--font-ui)}
+.graph-option-type{flex:none;color:var(--ink-soft);font:500 13px/1.35 var(--font-ui)}
+.graph-search-status{margin:0}
+.graph-search-status:not(:empty){padding:12px 14px;color:var(--ink-soft);font:italic 400 15px/1.5 var(--font-ui)}
+
+/* Фильтры типов — «таблетки» с цветной точкой типа (--dot — переменная темы из TYPE_COLOR_VAR) и числом узлов.
+   Нажата — тип показан: рамка и фон акцента, точка закрашена; скрыт — точка пустая.
+   Тонкое кольцо у точки — чтобы тёмная точка была видна и на тёмной «бумаге» */
+.graph-filters{display:flex;flex-wrap:wrap;gap:8px}
+.graph-filter{padding:6px 14px;border-radius:var(--radius-xl);color:var(--ink-soft);font:500 14px/1.3 var(--font-ui);white-space:nowrap}
+.graph-filter[aria-pressed="true"]{border-color:var(--accent);background:var(--tint);color:var(--ink)}
+.graph-filter-count{color:var(--ink-soft);font-weight:600;font-variant-numeric:tabular-nums}
+.graph-dot{flex:none;width:12px;height:12px;border:2px solid var(--dot);border-radius:50%;background:var(--dot);box-shadow:0 0 0 1px color-mix(in srgb,var(--ink) 22%,transparent)}
+.graph-filter[aria-pressed="false"] .graph-dot{background:transparent}
