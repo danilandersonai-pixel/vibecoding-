@@ -24,9 +24,13 @@ export function parseRoute(hash: string): Route {
 }
 
 // Переход из скрипта. В просмотрщике Claude якорь может не меняться — тогда маршрут переключается событием.
-export function navigate(hash: string) {
+// replace — без новой записи истории (replaceState не шлёт hashchange — маршрут переключает то же событие)
+export function navigate(hash: string, { replace = false }: { replace?: boolean } = {}) {
   try {
-    if (window.location.hash !== hash) window.location.hash = hash
+    if (window.location.hash !== hash) {
+      if (replace) history.replaceState(null, '', hash)
+      else window.location.hash = hash
+    }
   } catch {
     // Якорь недоступен — хватит события ниже.
   }

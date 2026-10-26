@@ -107,14 +107,12 @@
   .continue:hover,.route-row:hover{transform:translateY(-2px)}
 }
 
-/* Телефон: заголовок меньше, диф под текстом, герои мельче, кнопки во всю ширину.
-   Верхняя строка плотнее — на 390 px знак, «Поиск», «Граф», «Карта» и «Книга» стоят в один ряд */
+/* Телефон: заголовок меньше, диф под текстом, герои мельче, кнопки во всю ширину */
 @media (max-width:640px){
   .home-wrap{padding-inline:16px}
   .sitebar{gap:8px}
-  .sitebar-brand{gap:8px}
-  .sitebar-links{gap:2px}
-  .sitebar-link{padding:10px 8px}
+  .sitebar-links{gap:4px}
+  .sitebar-link{padding:10px 12px}
   .cover-inner{gap:32px;padding-top:20px;padding-bottom:52px}
   .cover-main{gap:32px}
   .cover-title{font-size:40px;line-height:1.02}
@@ -134,4 +132,10 @@
   /* Строка дня переносится: номер и тема по первой базовой линии, точка — напротив первой строки */
   .route-day{--dot-top:8px;gap:12px}
   .route-row{align-items:baseline;gap:6px 12px;padding:8px 10px}
+}
+
+/* Узкий телефон (до 420 px): название курса скрыто визуально (как .visually-hidden), знак «В» остаётся — строка
+   обложки (знак, «Поиск», «Граф», «Карта», «Книга») стоит в один ряд и на 320 px; название читается с экрана */
+@media (max-width:420px){
+  .sitebar-name{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 }

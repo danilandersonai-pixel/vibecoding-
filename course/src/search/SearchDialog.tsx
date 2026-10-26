@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom'
 import glossary from '../../content/glossary.json'
 import { IconBook, IconClose, IconGraph, IconSearch } from '../components/icons'
 import { getDays } from '../content/load'
-import { navigate } from '../router'
+import { navigate, parseRoute } from '../router'
 import { courseEntries, termEntries, type CourseEntry, type SearchTarget, type TermEntry } from './courseIndex'
 import { goToResult } from './goTo'
 import { queryWords } from './normalize'
@@ -218,10 +218,17 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
   }
 
   // «На графе»: окно закрывается так же сразу, затем переход к узлу термина. Фокус возвращается, куда был при открытии:
-  // открыли поверх графа — туда же на экране графа; с другой страницы — та уйдёт вместе с кнопкой «Поиск»
+  // открыли поверх графа — туда же на экране графа; с другой страницы — та уйдёт вместе с кнопкой «Поиск».
+  // Граф уже открыт — адрес заменяется, как при выборе узла на самом графе: «Назад» уводит с графа, а не по узлам
   const toGraph = (graphId: string) => {
+    let onGraph = false
+    try {
+      onGraph = parseRoute(window.location.hash).name === 'graph'
+    } catch {
+      // якорь недоступен — обычный переход
+    }
     flushSync(onClose)
-    navigate(`#/graph/${encodeURIComponent(graphId)}`)
+    navigate(`#/graph/${encodeURIComponent(graphId)}`, { replace: onGraph })
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {

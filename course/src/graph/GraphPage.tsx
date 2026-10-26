@@ -20,9 +20,12 @@ function showInAddress(id: string | null) {
   }
 }
 
+// Телефон (≤ 960 px): карточка — панель снизу поверх рисунка (graph.css)
+const PHONE = '(max-width: 960px)'
+
 // Экран «Граф знаний» (спецификация §5): сверху «← Курс», заголовок, поиск узла и фильтры типов; ниже рисунок
-// и карточка узла (на телефоне — панель снизу с «Закрыть»). node — узел из адреса при открытии экрана; дальше выбор
-// живёт здесь. Неизвестный id — общий вид. Ленивый кусок сборки: с ним грузятся sigma и graphology
+// и карточка узла (на телефоне — панель снизу с «Закрыть», её закрывает и Esc). node — узел из адреса при открытии
+// экрана; дальше выбор живёт здесь. Неизвестный id — общий вид. Ленивый кусок сборки: с ним грузятся sigma и graphology
 export default function GraphPage({ node }: { node?: string }) {
   const graph = useGraph()
   const [selected, setSelected] = useState<string | null>(node ?? null)
@@ -31,6 +34,8 @@ export default function GraphPage({ node }: { node?: string }) {
   const [hidden, setHidden] = useState<ReadonlySet<NodeType>>(() => new Set())
   const [unsupported, setUnsupported] = useState(false)
   const heading = useRef<HTMLHeadingElement>(null)
+  const stage = useRef<HTMLDivElement>(null)
+  const side = useRef<HTMLDivElement>(null)
 
   // Переход извне при открытом графе (адрес, «На графе» в окне поиска) выбирает узел из адреса. Слушаем сами переходы,
   // а не node: выбор на экране маршрут не меняет, и переход к узлу, который был в адресе раньше, маршрут бы не заметил
@@ -61,16 +66,39 @@ export default function GraphPage({ node }: { node?: string }) {
     [],
   )
   const onUnsupported = useCallback(() => setUnsupported(true), [])
+  // Сколько пикселей рисунка снизу закрывает карточка-панель: она прижата к низу окна (position: fixed) только
+  // на телефоне. Высота — offsetHeight, без сдвига анимации появления
+  const bottomInset = useCallback(() => {
+    const panel = side.current
+    const box = stage.current?.getBoundingClientRect()
+    if (!panel || !box || getComputedStyle(panel).position !== 'fixed') return 0
+    return Math.min(Math.max(box.bottom - (window.innerHeight - panel.offsetHeight), 0), box.height)
+  }, [])
 
-  if (graph.status !== 'ready' || !graph.index) return <GraphStatus failed={graph.status === 'failed'} />
-  const index = graph.index
-  const current = selected !== null && index.byId.has(selected) ? selected : null
+  const index = graph.status === 'ready' ? graph.index : undefined
+  const current = selected !== null && index?.byId.has(selected) ? selected : null
+  const open = panel && current !== null
 
-  // «Закрыть» скрывает панель, выбор остаётся; фокус — на заголовке экрана, а не в начале страницы
-  const close = () => {
+  // «Закрыть» и Esc скрывают панель, выбор остаётся; фокус — на заголовке экрана, а не в начале страницы
+  const close = useCallback(() => {
     setPanel(false)
     heading.current?.focus()
-  }
+  }, [])
+
+  // Esc закрывает панель на телефоне. Esc в поле поиска с текстом сюда не доходит (поле очищается), из окна поиска —
+  // тоже (окно закрывается само); на компьютере карточка — колонка, закрывать нечего
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || !window.matchMedia?.(PHONE).matches) return
+      e.preventDefault()
+      close()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, close])
+
+  if (!index) return <GraphStatus failed={graph.status === 'failed'} />
 
   return (
     <div className="graph-page">
@@ -79,14 +107,14 @@ export default function GraphPage({ node }: { node?: string }) {
         <TypeFilters counts={index.counts} hidden={hidden} onToggle={toggle} />
       </GraphBar>
       <main className="graph-main">
-        <div className={unsupported ? 'graph-stage is-note' : 'graph-stage'}>
+        <div ref={stage} className={unsupported ? 'graph-stage is-note' : 'graph-stage'}>
           {unsupported ? (
             <p className="graph-note">Рисунок графа не поддерживается этим браузером — пользуйтесь поиском и карточками</p>
           ) : (
-            <GraphCanvas index={index} selected={current} hidden={hidden} onSelect={select} onUnsupported={onUnsupported} />
+            <GraphCanvas index={index} selected={current} hidden={hidden} onSelect={select} onUnsupported={onUnsupported} bottomInset={bottomInset} />
           )}
         </div>
-        <div className={panel && current !== null ? 'graph-side is-open' : 'graph-side'}>
+        <div ref={side} className={open ? 'graph-side is-open' : 'graph-side'}>
           <div className="graph-side-head">
             <button type="button" className="btn graph-close" onClick={close}>
               <IconClose size={18} />

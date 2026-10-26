@@ -28,18 +28,24 @@ vi.mock('./load', () => ({ useGraph: () => graph.state }))
 // Окно поиска не ждёт индекс книги: в этих проверках нужны только термины
 vi.mock('../../content/book-index.json', () => ({ default: [] }))
 
-// Подменённый Sigma: запоминает граф, настройки и обработчики; камера — шпионы
+// Подменённый Sigma: запоминает граф, настройки и обработчики; камера, размеры и перевод координат — шпионы.
+// Рисунок 800 × 600; viewportToFramedGraph — как у Sigma: точка экрана при заданной камере (1 = весь рисунок)
+type Mock = ReturnType<typeof vi.fn>
 type FakeSigma = {
   graph: { getNodeAttributes: (id: string) => Record<string, unknown>; edges: () => string[]; extremities: (e: string) => [string, string]; getEdgeAttributes: (e: string) => Record<string, unknown> }
   container: HTMLElement
   settings: Record<string, unknown> & {
     nodeReducer: (id: string, attrs: Record<string, unknown>) => Record<string, unknown>
     edgeReducer: (id: string, attrs: Record<string, unknown>) => Record<string, unknown>
+    defaultDrawNodeHover: (context: CanvasRenderingContext2D, data: Record<string, unknown>, settings: Record<string, unknown>) => void
   }
   handlers: Record<string, (payload: unknown) => void>
-  camera: { animate: ReturnType<typeof vi.fn>; setState: ReturnType<typeof vi.fn> }
-  refresh: ReturnType<typeof vi.fn>
-  kill: ReturnType<typeof vi.fn>
+  camera: { animate: Mock; setState: Mock; getState: () => { x: number; y: number; ratio: number; angle: number } }
+  setSetting: Mock
+  refresh: Mock
+  resize: Mock
+  viewportToFramedGraph: Mock
+  kill: Mock
 }
 const sigma = vi.hoisted(() => ({ instances: [] as FakeSigma[], fail: false }))
 vi.mock('sigma', () => ({
@@ -48,9 +54,18 @@ vi.mock('sigma', () => ({
     container: HTMLElement
     settings: Record<string, unknown>
     handlers: Record<string, (payload: unknown) => void> = {}
-    camera = { animate: vi.fn(), setState: vi.fn() }
+    camera = { animate: vi.fn(), setState: vi.fn(), getState: () => ({ x: 0.5, y: 0.5, ratio: 1, angle: 0 }) }
+    setSetting = vi.fn((key: string, value: unknown) => {
+      this.settings[key] = value
+      return this
+    })
     refresh = vi.fn()
+    resize = vi.fn()
     kill = vi.fn()
+    viewportToFramedGraph = vi.fn((p: { x: number; y: number }, o: { cameraState: { x: number; y: number } }) => ({
+      x: o.cameraState.x + (p.x - 400) / 800,
+      y: o.cameraState.y - (p.y - 300) / 600,
+    }))
     constructor(graph: unknown, container: HTMLElement, settings: Record<string, unknown>) {
       // как настоящий Sigma без WebGL: холст уже в контейнере, контекста нет — ошибка
       container.append(document.createElement('canvas'))
@@ -64,12 +79,11 @@ vi.mock('sigma', () => ({
       this.handlers[event] = handler
       return this
     }
-    setSetting(key: string, value: unknown) {
-      this.settings[key] = value
-      return this
-    }
     getCamera() {
       return this.camera
+    }
+    getDimensions() {
+      return { width: 800, height: 600 }
     }
     getNodeDisplayData(id: string) {
       return id === 'term:1' ? { x: 0.25, y: 0.75 } : { x: 0.5, y: 0.5 }
@@ -223,6 +237,61 @@ describe('экран графа', () => {
   })
 })
 
+describe('экран графа: телефон', () => {
+  // ≤ 960 px — карточка панелью снизу
+  function phone(on: () => boolean) {
+    vi.stubGlobal('matchMedia', vi.fn((query: string) => ({ ...fakeMediaQuery(), matches: query === '(max-width: 960px)' && on() })))
+  }
+  const side = () => screen.getByRole('complementary', { name: 'Узел графа' }).parentElement!
+
+  it('Esc закрывает карточку-панель; в поле поиска с текстом — только очищает поле', async () => {
+    let narrow = true
+    phone(() => narrow)
+    const user = userEvent.setup()
+    render(<GraphPage node="term:1" />)
+    expect(side()).toHaveClass('is-open')
+
+    await user.type(field(), 'код')
+    await user.keyboard('{Escape}')
+    expect(field()).toHaveValue('')
+    expect(side()).toHaveClass('is-open')
+    // поле пустое — Esc закрывает панель, фокус на заголовке
+    await user.keyboard('{Escape}')
+    expect(side()).not.toHaveClass('is-open')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveFocus()
+
+    // выбор на рисунке снова открывает панель; фокус вне поля (после нажатия на рисунок) — Esc тоже закрывает
+    act(() => canvas.props!.onSelect('day:1'))
+    expect(side()).toHaveClass('is-open')
+    act(() => (document.activeElement as HTMLElement).blur())
+    await user.keyboard('{Escape}')
+    expect(side()).not.toHaveClass('is-open')
+
+    // компьютер: карточка — колонка справа, Esc её не трогает
+    narrow = false
+    act(() => canvas.props!.onSelect('term:1'))
+    await user.keyboard('{Escape}')
+    expect(side()).toHaveClass('is-open')
+  })
+
+  it('рисунок знает, сколько его закрывает панель снизу', () => {
+    render(<GraphPage node="term:1" />)
+    const inset = canvas.props!.bottomInset!
+    // панель — колонка справа (компьютер): рисунок не закрыт
+    expect(inset()).toBe(0)
+    // телефон: панель прижата к низу окна (768 px), высота 300 — закрывает рисунок от 468 до его низа (600)
+    side().style.position = 'fixed'
+    Object.defineProperty(side(), 'offsetHeight', { configurable: true, value: 300 })
+    const stage = screen.getByTestId('graph-canvas').parentElement!
+    vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue({ top: 100, bottom: 600, height: 500 } as DOMRect)
+    expect(window.innerHeight).toBe(768)
+    expect(inset()).toBe(132)
+    // панель выше всего рисунка — закрыт целиком, но не больше его высоты
+    Object.defineProperty(side(), 'offsetHeight', { configurable: true, value: 700 })
+    expect(inset()).toBe(500)
+  })
+})
+
 describe('входы на граф', () => {
   it('кнопка «Граф» в верхней строке главной и в шапке дня', async () => {
     const user = userEvent.setup()
@@ -243,6 +312,7 @@ describe('входы на граф', () => {
   it('«На графе» у термина в поиске', async () => {
     const user = userEvent.setup()
     render(<App />)
+    const start = window.history.length
     await user.click(screen.getByRole('button', { name: 'Поиск' }))
     await user.type(screen.getByRole('searchbox', { name: 'Поиск по курсу и книге' }), 'Агент')
     const onGraph = () => {
@@ -254,17 +324,24 @@ describe('входы на граф', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(document.documentElement.style.overflow).toBe('')
     expect(window.location.hash).toBe('#/graph/term%3A1')
+    // с главной — новая запись истории: «Назад» вернёт на главную
+    expect(window.history.length).toBe(start + 1)
     await screen.findByRole('complementary', { name: 'Узел графа' })
     expect(cardTitle()).toHaveTextContent('Агент')
 
     // граф открыт, выбор ушёл с узла из адреса; «На графе» в окне поиска снова выбирает его
     act(() => canvas.props!.onSelect('day:1'))
     expect(cardTitle()).toHaveTextContent('День 1')
+    const replace = vi.spyOn(window.history, 'replaceState')
     await user.keyboard('/')
     await user.click(onGraph())
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(cardTitle()).toHaveTextContent('Агент')
     expect(canvas.props?.selected).toBe('term:1')
+    // при открытом графе адрес заменяется, а не добавляется: «Назад» уводит с графа
+    expect(replace).toHaveBeenLastCalledWith(null, '', '#/graph/term%3A1')
+    expect(window.location.hash).toBe('#/graph/term%3A1')
+    expect(window.history.length).toBe(start + 1)
   })
 })
 
@@ -314,11 +391,12 @@ describe('рисунок графа', () => {
       ])
       expect(s.settings.labelColor).toEqual({ color: '#1C1E22' })
 
-      // тема сайта
+      // тема сайта: цвета заново и перерисовка
+      s.refresh.mockClear()
       root.setAttribute('data-theme', 'dark')
       await waitFor(() => expect(color('ch:abc')).toBe('#B2BAF0'))
       expect([color('term:1'), color('day:1'), color('video:ch-01')]).toEqual(['#8D9CFF', '#5CC49A', '#F18D6B'])
-      expect(s.settings.labelColor).toEqual({ color: '#E8E5DD' })
+      expect(s.setSetting).toHaveBeenCalledWith('labelColor', { color: '#E8E5DD' })
       expect(s.refresh).toHaveBeenCalled()
 
       // тема системы: prefers-color-scheme
@@ -329,6 +407,14 @@ describe('рисунок графа', () => {
 
       unmount()
       expect(s.kill).toHaveBeenCalled()
+      // после уборки смена темы рисунок не трогает: наблюдатель отключён, слушатель снят
+      s.refresh.mockClear()
+      s.setSetting.mockClear()
+      root.setAttribute('data-theme', 'light')
+      await new Promise((r) => setTimeout(r, 0))
+      act(() => scheme.change())
+      expect(s.setSetting).not.toHaveBeenCalled()
+      expect(s.refresh).not.toHaveBeenCalled()
       expect(scheme.removeEventListener).toHaveBeenCalled()
     } finally {
       root.removeAttribute('data-theme')
@@ -345,7 +431,8 @@ describe('рисунок графа', () => {
     expect(s.container).toHaveAttribute('aria-hidden', 'true')
     expect(container.contains(s.container)).toBe(true)
     // координаты и размер — из данных; подписи мелких узлов — по мере приближения
-    expect(s.graph.getNodeAttributes('term:1')).toMatchObject({ x: 13.2, y: 122.1, size: 13.2, label: 'Агент' })
+    const agent = INDEX.byId.get('term:1')!
+    expect(s.graph.getNodeAttributes('term:1')).toMatchObject({ x: agent.x, y: agent.y, size: agent.size, label: 'Агент' })
     expect(s.settings.labelRenderedSizeThreshold).toBeGreaterThan(0)
 
     s.handlers.clickNode({ node: 'term:1' })
@@ -381,6 +468,88 @@ describe('рисунок графа', () => {
     expect(edgeView(edge((a, b) => a === 'ch:ch1' && b.startsWith('sec:'))).hidden).toBe(true)
     // камера подводит выбранный узел к центру
     expect([...s.camera.animate.mock.calls, ...s.camera.setState.mock.calls].at(-1)?.[0]).toMatchObject({ x: 0.25, y: 0.75 })
+  })
+
+  it('камера: без анимации при «уменьшить движение»; узел — в середину видимой части над панелью', async () => {
+    const GraphCanvas = await realCanvas()
+    let reduce = true
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({ ...fakeMediaQuery(), matches: reduce && query === '(prefers-reduced-motion: reduce)' })),
+    )
+    const props = { index: INDEX, hidden: new Set<NodeType>(), onSelect: () => {}, onUnsupported: () => {} }
+    const { rerender } = render(<GraphCanvas {...props} selected={null} />)
+    const s = sigma.instances[0]
+    rerender(<GraphCanvas {...props} selected="term:1" />)
+    expect(s.camera.setState).toHaveBeenLastCalledWith({ x: 0.25, y: 0.75 })
+    expect(s.camera.animate).not.toHaveBeenCalled()
+
+    reduce = false
+    rerender(<GraphCanvas {...props} selected="ch:abc" />)
+    expect(s.camera.animate).toHaveBeenCalledTimes(1)
+    expect(s.camera.animate.mock.calls[0][0]).toEqual({ x: 0.5, y: 0.5 })
+
+    // нижние 200 px рисунка 800 × 600 закрыты панелью: камера смотрит на точку на 100 px ниже узла,
+    // и узел встаёт в середину видимых 400 px
+    rerender(<GraphCanvas {...props} selected="term:1" bottomInset={() => 200} />)
+    expect(s.viewportToFramedGraph).toHaveBeenLastCalledWith({ x: 400, y: 400 }, { cameraState: { x: 0.25, y: 0.75, ratio: 1, angle: 0 } })
+    expect(s.camera.animate.mock.calls.at(-1)?.[0]).toEqual({ x: 0.25, y: 0.75 - 100 / 600 })
+  })
+
+  it('размер рисунка следует за контейнером (ResizeObserver)', async () => {
+    const GraphCanvas = await realCanvas()
+    const observers: { callback: () => void; observe: Mock; disconnect: Mock }[] = []
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        callback: () => void
+        observe = vi.fn()
+        unobserve = vi.fn()
+        disconnect = vi.fn()
+        constructor(callback: () => void) {
+          this.callback = callback
+          observers.push(this)
+        }
+      },
+    )
+    const { unmount } = render(<GraphCanvas index={INDEX} selected={null} hidden={new Set()} onSelect={() => {}} onUnsupported={() => {}} />)
+    const s = sigma.instances[0]
+    expect(observers).toHaveLength(1)
+    expect(observers[0].observe).toHaveBeenCalledWith(s.container)
+    s.refresh.mockClear()
+    act(() => observers[0].callback())
+    expect(s.resize).toHaveBeenCalled()
+    expect(s.refresh).toHaveBeenCalled()
+    unmount()
+    expect(observers[0].disconnect).toHaveBeenCalled()
+  })
+
+  it('подпись под указателем — на плашке; без roundRect (старые браузеры) — прямоугольная', async () => {
+    const GraphCanvas = await realCanvas()
+    render(<GraphCanvas index={INDEX} selected={null} hidden={new Set()} onSelect={() => {}} onUnsupported={() => {}} />)
+    const draw = sigma.instances[0].settings.defaultDrawNodeHover
+    const context = () => ({
+      font: '',
+      fillStyle: '',
+      strokeStyle: '',
+      lineWidth: 0,
+      measureText: () => ({ width: 40 }),
+      beginPath: vi.fn(),
+      rect: vi.fn(),
+      fill: vi.fn(),
+      stroke: vi.fn(),
+      fillText: vi.fn(),
+    })
+    const data = { x: 10, y: 20, size: 5, label: 'Агент', color: '#000000' }
+    const settings = { labelSize: 13, labelWeight: '500', labelFont: 'Onest' }
+    const old = context()
+    draw(old as unknown as CanvasRenderingContext2D, data, settings)
+    expect(old.rect).toHaveBeenCalled()
+    expect(old.fillText).toHaveBeenCalledWith('Агент', 18, expect.any(Number))
+    const modern = { ...context(), roundRect: vi.fn() }
+    draw(modern as unknown as CanvasRenderingContext2D, data, settings)
+    expect(modern.roundRect).toHaveBeenCalled()
+    expect(modern.rect).not.toHaveBeenCalled()
   })
 
   it('Sigma не создался (нет WebGL) — onUnsupported, контейнер пуст', async () => {

@@ -60,6 +60,24 @@ test('с главной «Граф»: поиск «Агент», связь в �
   expect(errors).toEqual([])
 })
 
+test('«На графе» из окна поиска при открытом графе не копит историю: «Назад» уводит с графа', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('navigation', { name: 'Разделы' }).getByRole('button', { name: 'Граф' }).click()
+  await pick(page, 'Агент', /^Агент Термин$/)
+  await expect(cardTitle(page)).toHaveText('Агент')
+  await page.keyboard.press('Control+KeyK')
+  const dialog = page.getByRole('dialog', { name: 'Поиск' })
+  await dialog.getByRole('searchbox', { name: 'Поиск по курсу и книге' }).fill('Код')
+  const terms = dialog.getByRole('region', { name: /^Термины/ })
+  await expect(terms.getByRole('listitem').first()).toContainText('Код')
+  await terms.getByRole('listitem').first().getByRole('link', { name: 'На графе' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(cardTitle(page)).toHaveText('Код')
+  await expect(page).toHaveURL(/#\/graph\/term%3A\d+$/)
+  await page.goBack()
+  await expect(page.getByRole('heading', { level: 1, name: 'Своё приложение с ИИ за 21 день' })).toBeVisible()
+})
+
 test('«Открыть день» у дня ведёт в день курса', async ({ page }) => {
   await page.goto('/#/graph')
   await pick(page, 'День 1', /^День 1 · .* День$/)
@@ -176,6 +194,12 @@ for (const size of [{ width: 390, height: 844 }, { width: 320, height: 640 }]) {
     await expect(page).toHaveURL(/#\/graph\/sec%3As74$/)
     await pick(page, 'Будущее языков программирования', /^Будущее языков программирования/)
     await expect(card(page)).toBeVisible()
+    // Esc: в поле с текстом — только очищает поле; в пустом — закрывает панель
+    await page.keyboard.press('Escape')
+    await expect(field(page)).toHaveValue('')
+    await expect(card(page)).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(card(page)).toBeHidden()
   })
 }
 
@@ -189,6 +213,27 @@ test('на 390 px «Граф» — значок, нажатие 44 × 44', async
     expect([box.width >= 44 && box.width < 60, box.height >= 44]).toEqual([true, true])
   }
 })
+
+// Верхняя строка главной со знаком, «Поиском», «Графом», «Картой» и «Книгой» — в один ряд на всех телефонах:
+// до 420 px название курса скрыто визуально (знак «В» остаётся, название читается с экрана)
+for (const width of [320, 360, 375, 390, 414]) {
+  test(`на ${width} px верхняя строка главной — в один ряд, без прокрутки вбок`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 })
+    await page.goto('/')
+    const center = async (name: string) => {
+      const box = (await page.locator(name).boundingBox())!
+      return box.y + box.height / 2
+    }
+    const brand = await center('.sitebar-brand')
+    const links = page.getByRole('navigation', { name: 'Разделы' })
+    for (const item of await links.locator(':scope > *').all()) {
+      const box = (await item.boundingBox())!
+      expect(Math.abs(box.y + box.height / 2 - brand)).toBeLessThan(4)
+    }
+    expect(await overflows(page)).toBe(false)
+    await expect(page.getByText('Вайб-курс', { exact: true })).toBeAttached()
+  })
+}
 
 test('тёмная тема: экран открывается без ошибок, смена темы при открытом графе — тоже', async ({ page }) => {
   const errors = problems(page)

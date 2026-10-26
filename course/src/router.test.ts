@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { navigate, parseRoute, useRoute } from './router'
 
 describe('parseRoute', () => {
@@ -28,5 +28,25 @@ describe('navigate', () => {
     await waitFor(() => expect(result.current).toEqual({ name: 'day', n: 2 }))
     act(() => navigate('#/'))
     await waitFor(() => expect(result.current).toEqual({ name: 'map' }))
+  })
+
+  it('replace: адрес меняется без новой записи истории, маршрут переключается событием', async () => {
+    window.location.hash = '#/graph/term%3A1'
+    const length = window.history.length
+    const replace = vi.spyOn(window.history, 'replaceState')
+    const { result } = renderHook(() => useRoute())
+    act(() => navigate('#/graph/term%3A2', { replace: true }))
+    expect(replace).toHaveBeenCalledWith(null, '', '#/graph/term%3A2')
+    expect(window.location.hash).toBe('#/graph/term%3A2')
+    expect(window.history.length).toBe(length)
+    await waitFor(() => expect(result.current).toEqual({ name: 'graph', node: 'term:2' }))
+    // history недоступна (чужая рамка) — маршрут всё равно переключается
+    replace.mockImplementation(() => {
+      throw new DOMException('Нет доступа', 'SecurityError')
+    })
+    act(() => navigate('#/graph/term%3A3', { replace: true }))
+    await waitFor(() => expect(result.current).toEqual({ name: 'graph', node: 'term:3' }))
+    replace.mockRestore()
+    window.location.hash = ''
   })
 })

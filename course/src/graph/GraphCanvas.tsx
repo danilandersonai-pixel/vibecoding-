@@ -6,12 +6,15 @@ import type { EdgeDisplayData, NodeDisplayData } from 'sigma/types'
 import { scrollBehavior } from '../home/scroll'
 import { TYPE_COLOR_VAR, TYPE_ORDER, type GraphIndex, type NodeType } from './model'
 
+// bottomInset — сколько пикселей рисунка снизу сейчас закрыто (карточка-панель на телефоне): выбранный узел камера
+// ставит в середину видимой части над ней
 export type GraphCanvasProps = {
   index: GraphIndex
   selected: string | null
   hidden: ReadonlySet<NodeType>
   onSelect: (id: string | null) => void
   onUnsupported: () => void
+  bottomInset?: () => number
 }
 
 // kind — тип узла графа знаний: атрибут type у Sigma занят (программа отрисовки узла)
@@ -48,7 +51,7 @@ type View = { selected: string | null; neighbors: Set<string>; hidden: ReadonlyS
 // (перечитываются при смене темы системы и атрибута data-theme). Выбранный узел и соседи подсвечены, остальное бледнеет;
 // скрытые фильтрами типы не рисуются. Нажатие на узел — onSelect(id), на пустое место — onSelect(null).
 // Sigma не создался (нет WebGL) — onUnsupported(). Для чтения с экрана рисунок скрыт: всё есть в поиске и карточке
-export function GraphCanvas({ index, selected, hidden, onSelect, onUnsupported }: GraphCanvasProps) {
+export function GraphCanvas({ index, selected, hidden, onSelect, onUnsupported, bottomInset }: GraphCanvasProps) {
   const box = useRef<HTMLDivElement>(null)
   const sigma = useRef<{ renderer: Sigma<NodeAttrs>; graph: Graph<NodeAttrs> } | null>(null)
   // Что подсвечено и скрыто — читают функции вида Sigma (nodeReducer, edgeReducer) при каждой перерисовке
@@ -56,9 +59,9 @@ export function GraphCanvas({ index, selected, hidden, onSelect, onUnsupported }
   // Узел, к которому камера подводила в последний раз; undefined — ещё ни разу (первый узел — без анимации)
   const cameraAt = useRef<string | null | undefined>(undefined)
   // Обработчики — последние: Sigma создаётся один раз на данные и не пересоздаётся из-за новых функций
-  const handlers = useRef({ onSelect, onUnsupported })
+  const handlers = useRef({ onSelect, onUnsupported, bottomInset })
   useEffect(() => {
-    handlers.current = { onSelect, onUnsupported }
+    handlers.current = { onSelect, onUnsupported, bottomInset }
   })
 
   useEffect(() => {
@@ -81,7 +84,9 @@ export function GraphCanvas({ index, selected, hidden, onSelect, onUnsupported }
       const x = data.x + data.size + 3
       const width = context.measureText(data.label).width
       context.beginPath()
-      context.roundRect(x - 5, data.y - size / 2 - 5, width + 10, size + 10, 6)
+      // roundRect нет в старых браузерах (Firefox до 112) — там плашка прямоугольная
+      if (typeof context.roundRect === 'function') context.roundRect(x - 5, data.y - size / 2 - 5, width + 10, size + 10, 6)
+      else context.rect(x - 5, data.y - size / 2 - 5, width + 10, size + 10)
       context.fillStyle = palette.paper
       context.fill()
       context.lineWidth = 1
@@ -149,12 +154,19 @@ export function GraphCanvas({ index, selected, hidden, onSelect, onUnsupported }
     scheme?.addEventListener('change', onTheme)
     const observer = new MutationObserver(onTheme)
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    // Размер холстов — за контейнером, а не только за окном: раскладка экрана меняется и без изменения окна
+    const sizer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => {
+      renderer.resize()
+      renderer.refresh()
+    })
+    sizer?.observe(container)
 
     sigma.current = { renderer, graph }
     cameraAt.current = undefined
     return () => {
       scheme?.removeEventListener('change', onTheme)
       observer.disconnect()
+      sizer?.disconnect()
       renderer.kill()
       sigma.current = null
     }
@@ -175,8 +187,16 @@ export function GraphCanvas({ index, selected, hidden, onSelect, onUnsupported }
     const at = known ? renderer.getNodeDisplayData(selected) : undefined
     if (!at) return
     const camera = renderer.getCamera()
-    if (first || scrollBehavior() !== 'smooth') camera.setState({ x: at.x, y: at.y })
-    else void camera.animate({ x: at.x, y: at.y }, { duration: CAMERA_MS })
+    // Низ рисунка закрыт панелью — камера смотрит на точку на половину закрытой части ниже узла (в координатах Sigma:
+    // та точка экрана при камере на узле), и узел встаёт в середину видимой части
+    const { width, height } = renderer.getDimensions()
+    const inset = Math.min(Math.max(handlers.current.bottomInset?.() ?? 0, 0), height)
+    const target =
+      inset > 0
+        ? renderer.viewportToFramedGraph({ x: width / 2, y: height / 2 + inset / 2 }, { cameraState: { ...camera.getState(), x: at.x, y: at.y } })
+        : { x: at.x, y: at.y }
+    if (first || scrollBehavior() !== 'smooth') camera.setState(target)
+    else void camera.animate(target, { duration: CAMERA_MS })
   }, [index, selected, hidden])
 
   return <div ref={box} className="graph-canvas" aria-hidden="true" />
