@@ -80,14 +80,19 @@ export function GraphCanvas({ index, selected, hidden, onSelect, onUnsupported, 
     // Узел скрыт фильтром, если его тип скрыт; выбранный виден всегда — к нему подводит камера
     const isHidden = (node: string) => node !== view.current.selected && view.current.hidden.has(graph.getNodeAttribute(node, 'kind'))
 
+    // Узел под указателем (enterNode/leaveNode): у бледного узла подписи в виде нет, а при наведении она нужна
+    let hovered: string | null = null
+
     // Подпись под указателем и у выбранного — на «бумаге» темы: у Sigma по умолчанию белая плашка, а светлая подпись
-    // тёмной темы на ней не видна
+    // тёмной темы на ней не видна. У бледного узла под указателем подпись берётся из данных — его название видно
+    // без щелчка, который перенёс бы выбор; в сетке подписей бледные узлы по-прежнему не участвуют
     const drawHover: NodeHoverDrawingFunction<NodeAttrs> = (context, data, settings) => {
-      if (!data.label) return
+      const label = data.label ?? (hovered === null ? null : graph.getNodeAttribute(hovered, 'label'))
+      if (!label) return
       const size = settings.labelSize
       context.font = `${settings.labelWeight} ${size}px ${settings.labelFont}`
       const x = data.x + data.size + 3
-      const width = context.measureText(data.label).width
+      const width = context.measureText(label).width
       context.beginPath()
       // roundRect нет в старых браузерах (Firefox до 112) — там плашка прямоугольная
       if (typeof context.roundRect === 'function') context.roundRect(x - 5, data.y - size / 2 - 5, width + 10, size + 10, 6)
@@ -98,7 +103,7 @@ export function GraphCanvas({ index, selected, hidden, onSelect, onUnsupported, 
       context.strokeStyle = palette.faded
       context.stroke()
       context.fillStyle = palette.ink
-      context.fillText(data.label, x, data.y + size / 3)
+      context.fillText(label, x, data.y + size / 3)
     }
 
     // Подпись узла — обводка цветом «бумаги» под текстом (у Sigma по умолчанию текст прямо на узлах и связях)
@@ -159,10 +164,12 @@ export function GraphCanvas({ index, selected, hidden, onSelect, onUnsupported, 
 
     renderer.on('clickNode', ({ node }) => handlers.current.onSelect(node))
     renderer.on('clickStage', () => handlers.current.onSelect(null))
-    renderer.on('enterNode', () => {
+    renderer.on('enterNode', ({ node }) => {
+      hovered = node
       container.style.cursor = 'pointer'
     })
     renderer.on('leaveNode', () => {
+      hovered = null
       container.style.cursor = ''
     })
 

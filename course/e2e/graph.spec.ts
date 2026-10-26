@@ -194,7 +194,11 @@ for (const size of [{ width: 390, height: 844 }, { width: 320, height: 640 }]) {
     await expect(page).toHaveURL(/#\/graph\/sec%3As74$/)
     await pick(page, 'Будущее языков программирования', /^Будущее языков программирования/)
     await expect(card(page)).toBeVisible()
+    // выбор из поиска на телефоне — фокус на названии узла в панели (и объявление для чтения с экрана)
+    await expect(cardTitle(page)).toBeFocused()
+    await expect(page.getByRole('status').filter({ hasText: /^Выбран узел: Будущее языков программирования/ })).toBeAttached()
     // Esc: в поле с текстом — только очищает поле; в пустом — закрывает панель
+    await field(page).focus()
     await page.keyboard.press('Escape')
     await expect(field(page)).toHaveValue('')
     await expect(card(page)).toBeVisible()

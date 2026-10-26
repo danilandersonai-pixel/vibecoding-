@@ -275,6 +275,46 @@ describe('экран графа: телефон', () => {
     expect(side()).toHaveClass('is-open')
   })
 
+  it('выбор из поиска объявляется; на широком экране фокус остаётся в поле, щелчок по рисунку не объявляется', async () => {
+    phone(() => false)
+    const user = userEvent.setup()
+    render(<GraphPage />)
+    await user.type(field(), 'Агент')
+    await user.keyboard('{Enter}')
+    expect(cardTitle()).toHaveTextContent('Агент')
+    const said = screen.getByText('Выбран узел: Агент, термин')
+    expect(said).toHaveAttribute('role', 'status')
+    expect(said).toHaveClass('visually-hidden')
+    expect(field()).toHaveFocus()
+
+    // щелчок по рисунку — без объявления (и прежнее не остаётся)
+    act(() => canvas.props!.onSelect('day:1'))
+    expect(said).toBeEmptyDOMElement()
+
+    // выбор мышью из списка — тоже объявляется
+    await user.clear(field())
+    await user.type(field(), 'Азбука')
+    await user.click(screen.getByRole('option', { name: 'Азбука Глава' }))
+    expect(said).toHaveTextContent('Выбран узел: Азбука, глава')
+    expect(field()).toHaveFocus()
+  })
+
+  it('на узком экране выбор из поиска переводит фокус на название в карточке-панели', async () => {
+    phone(() => true)
+    const user = userEvent.setup()
+    render(<GraphPage />)
+    await user.type(field(), 'Агент')
+    await user.keyboard('{Enter}')
+    expect(cardTitle()).toHaveTextContent('Агент')
+    expect(cardTitle()).toHaveFocus()
+    expect(screen.getByText('Выбран узел: Агент, термин')).toHaveAttribute('role', 'status')
+
+    // тот же узел ещё раз — фокус снова на названии
+    act(() => field().focus())
+    await user.keyboard('{Enter}')
+    expect(cardTitle()).toHaveFocus()
+  })
+
   it('рисунок знает, сколько его закрывает панель снизу', () => {
     render(<GraphPage node="term:1" />)
     const inset = canvas.props!.bottomInset!
@@ -588,6 +628,36 @@ describe('рисунок графа', () => {
     } finally {
       root.removeAttribute('data-theme')
     }
+  })
+
+  it('наведение на бледный узел при выбранном — его название на плашке; в сетке подписей его по-прежнему нет', async () => {
+    const GraphCanvas = await realCanvas()
+    render(<GraphCanvas index={INDEX} selected="term:1" hidden={new Set()} onSelect={() => {}} onUnsupported={() => {}} />)
+    const s = sigma.instances[0]
+    const faded = s.settings.nodeReducer('day:21', s.graph.getNodeAttributes('day:21'))
+    expect(faded.label).toBeNull()
+    const settings = { labelSize: 13, labelWeight: '500', labelFont: 'Onest' }
+    // что рисует подпись под указателем: плашка и текст
+    const drawn = () => {
+      const context = {
+        font: '',
+        fillStyle: '',
+        strokeStyle: '',
+        lineWidth: 0,
+        measureText: () => ({ width: 40 }),
+        beginPath: vi.fn(),
+        roundRect: vi.fn(),
+        fill: vi.fn(),
+        stroke: vi.fn(),
+        fillText: vi.fn(),
+      }
+      s.settings.defaultDrawNodeHover(context as unknown as CanvasRenderingContext2D, { ...faded, x: 10, y: 20, size: 5 }, settings)
+      return { plate: context.roundRect.mock.calls.length, text: context.fillText.mock.calls.map((c) => c[0]) }
+    }
+    s.handlers.enterNode({ node: 'day:21' })
+    expect(drawn()).toEqual({ plate: 1, text: [INDEX.byId.get('day:21')!.label] })
+    s.handlers.leaveNode({ node: 'day:21' })
+    expect(drawn()).toEqual({ plate: 0, text: [] })
   })
 
   it('Sigma не создался (нет WebGL) — onUnsupported, контейнер пуст', async () => {

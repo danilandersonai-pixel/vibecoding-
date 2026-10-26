@@ -4,7 +4,7 @@ import { onNavigation, parseRoute } from '../router'
 import { GraphCanvas } from './GraphCanvas'
 import { GraphBar, GraphStatus } from './GraphStatus'
 import { useGraph } from './load'
-import type { NodeType } from './model'
+import { TYPE_LABEL, type NodeType } from './model'
 import { NodeCard } from './NodeCard'
 import { NodeSearch } from './NodeSearch'
 import { TypeFilters } from './TypeFilters'
@@ -36,6 +36,10 @@ export default function GraphPage({ node }: { node?: string }) {
   const heading = useRef<HTMLHeadingElement>(null)
   const stage = useRef<HTMLDivElement>(null)
   const side = useRef<HTMLDivElement>(null)
+  // Объявление выбора из поиска (живая область); n — номер выбора: тот же узел ещё раз тоже перерисовывает экран
+  const [said, setSaid] = useState({ text: '', n: 0 })
+  // Выбор из поиска на телефоне: после отрисовки фокус — на название узла в карточке-панели
+  const focusCard = useRef(false)
 
   // Переход извне при открытом графе (адрес, «На графе» в окне поиска) выбирает узел из адреса. Слушаем сами переходы,
   // а не node: выбор на экране маршрут не меняет, и переход к узлу, который был в адресе раньше, маршрут бы не заметил
@@ -50,11 +54,13 @@ export default function GraphPage({ node }: { node?: string }) {
     [],
   )
 
-  // Выбор — с рисунка, из поиска, из карточки; null — нажатие на пустое место рисунка
+  // Выбор — с рисунка, из поиска, из карточки; null — нажатие на пустое место рисунка. Прежнее объявление стирается:
+  // объявляется только выбор из поиска
   const select = useCallback((id: string | null) => {
     setSelected(id)
     setPanel(true)
     showInAddress(id)
+    setSaid((cur) => (cur.text === '' ? cur : { text: '', n: cur.n }))
   }, [])
   const toggle = useCallback(
     (type: NodeType) =>
@@ -78,6 +84,24 @@ export default function GraphPage({ node }: { node?: string }) {
   const index = graph.status === 'ready' ? graph.index : undefined
   const current = selected !== null && index?.byId.has(selected) ? selected : null
   const open = panel && current !== null
+
+  // Выбор из поиска: фокус остаётся в поле, и карточка обновилась бы молча — выбранный узел объявляется.
+  // На телефоне карточка — панель далеко по порядку обхода (после фильтров): фокус переходит на название узла в ней,
+  // как при выборе из самой карточки. На компьютере фокус остаётся в поле — можно искать дальше
+  const pick = useCallback(
+    (id: string) => {
+      select(id)
+      const node = index?.byId.get(id)
+      if (node) setSaid((cur) => ({ text: `Выбран узел: ${node.label}, ${TYPE_LABEL[node.type].toLowerCase()}`, n: cur.n + 1 }))
+      focusCard.current = window.matchMedia?.(PHONE).matches ?? false
+    },
+    [index, select],
+  )
+  useEffect(() => {
+    if (!focusCard.current) return
+    focusCard.current = false
+    side.current?.querySelector<HTMLElement>('h2')?.focus()
+  })
 
   // «Закрыть» и Esc скрывают панель, выбор остаётся; фокус — на заголовке экрана, а не в начале страницы
   const close = useCallback(() => {
@@ -103,9 +127,12 @@ export default function GraphPage({ node }: { node?: string }) {
   return (
     <div className="graph-page">
       <GraphBar heading={heading}>
-        <NodeSearch index={index} onSelect={select} />
+        <NodeSearch index={index} onSelect={pick} />
         <TypeFilters counts={index.counts} hidden={hidden} onToggle={toggle} />
       </GraphBar>
+      <p className="visually-hidden" role="status">
+        {said.text}
+      </p>
       <main className="graph-main">
         <div ref={stage} className={unsupported ? 'graph-stage is-note' : 'graph-stage'}>
           {unsupported ? (
