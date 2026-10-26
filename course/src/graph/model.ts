@@ -103,6 +103,9 @@ export type NeighborGroup = { kind: EdgeKind; title: string; items: { node: Grap
 
 const KINDS = Object.keys(GROUP_TITLES) as EdgeKind[]
 
+// Порядок подписей: по-русски, числа как числа («Глава 4» раньше «Глава 12»)
+const LABEL_ORDER = new Intl.Collator('ru', { numeric: true })
+
 // Соседи узла группами для карточки. Группы идут в порядке строк таблицы §3, в строке сначала «откуда» (узел — начало
 // связи, соседи — её концы), потом «куда». Пустых групп нет. Внутри группы соседи стоят в порядке узлов в данных,
 // кроме term-text: там по убыванию числа упоминаний, при равенстве — по подписи.
@@ -133,7 +136,7 @@ export function neighborGroups(index: GraphIndex, id: string): NeighborGroup[] {
       if (!list) continue
       list.sort(
         kind === 'term-text'
-          ? (a, b) => (b.w ?? 0) - (a.w ?? 0) || a.node.label.localeCompare(b.node.label, 'ru') || a.at - b.at
+          ? (a, b) => (b.w ?? 0) - (a.w ?? 0) || LABEL_ORDER.compare(a.node.label, b.node.label) || a.at - b.at
           : (a, b) => a.at - b.at,
       )
       groups.push({ kind, title: GROUP_TITLES[kind][side], items: list.map(({ node, w }) => (w === undefined ? { node } : { node, w })) })

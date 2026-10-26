@@ -22,11 +22,14 @@ export function createGraphStore(load: () => Promise<GraphData>): GraphStore {
   async function start() {
     if (started) return
     started = true
+    // слушатели зовутся после try: их сбой не должен превратить удачную загрузку в failed
+    let next: GraphState
     try {
-      set({ status: 'ready', index: indexGraph(await load()) })
+      next = { status: 'ready', index: indexGraph(await load()) }
     } catch {
-      set({ status: 'failed' })
+      next = { status: 'failed' }
     }
+    set(next)
   }
 
   return {

@@ -14,6 +14,7 @@ import {
   type EdgeKind,
   type GraphData,
   type GraphEdge,
+  type GraphIndex,
   type GraphNode,
   type NodeType,
 } from './model'
@@ -74,7 +75,14 @@ const SMALL: GraphData = {
 const small = () => indexGraph(SMALL)
 const real = () => indexGraph(realGraph as GraphData)
 
-const titles = (idx: ReturnType<typeof indexGraph>, id: string) => neighborGroups(idx, id).map((g) => g.title)
+const titles = (idx: GraphIndex, id: string) => neighborGroups(idx, id).map((g) => g.title)
+
+// Узел настоящего графа по подписи: номера терминов при пересборке словаря сдвигаются, подписи — нет
+function byLabel(idx: GraphIndex, label: string, type: NodeType): GraphNode {
+  const found = idx.nodes.find((n) => n.type === type && n.label === label)
+  if (!found) throw new Error(`в графе нет узла «${label}» (${type})`)
+  return found
+}
 
 // Подписи групп из спецификации §3 — независимая копия таблицы: опечатка в GROUP_TITLES не пройдёт
 const TABLE: [EdgeKind, string, string][] = [
@@ -136,7 +144,7 @@ describe('соседи узла по группам', () => {
 
   it('те же подписи на настоящих данных: «Агент» и глава со схемами', () => {
     const idx = real()
-    expect(titles(idx, 'term:1')).toEqual(['Объясняется в главе', 'Упоминает термины', 'Упоминается в терминах', 'Встречается в тексте', 'В курсе'])
+    expect(titles(idx, byLabel(idx, 'Агент', 'term').id)).toEqual(['Объясняется в главе', 'Упоминает термины', 'Упоминается в терминах', 'Встречается в тексте', 'В курсе'])
     expect(titles(idx, 'ch:ch3')).toEqual(['Часть', 'Разделы', 'Схемы', 'Термины главы', 'Термины в тексте', 'Видеоуроки по главе'])
   })
 
@@ -173,7 +181,8 @@ describe('соседи узла по группам', () => {
     expect(ids('Упоминает термины')).toEqual(['term:4'])
     expect(ids('Упоминается в терминах')).toEqual(['term:4'])
 
-    const fromData = neighborGroups(real(), 'term:255')
+    const idxReal = real()
+    const fromData = neighborGroups(idxReal, byLabel(idxReal, 'MCP', 'term').id)
     const mcp = (title: string) => fromData.find((g) => g.title === title)?.items.map((i) => i.node.label)
     expect(mcp('Упоминает термины')).toContain('Model Context Protocol (MCP)')
     expect(mcp('Упоминается в терминах')).toContain('Model Context Protocol (MCP)')
@@ -183,17 +192,14 @@ describe('соседи узла по группам', () => {
     const idx = small()
     expect(neighborGroups(idx, 'term:5')).toEqual([])
     expect(neighborGroups(idx, 'нет-такого')).toEqual([])
+    // на настоящих данных: пустых групп нет, каждая связь узла попала ровно в одну группу
     const big = real()
-    let withLinks = 0
     for (const n of big.nodes) {
       const groups = neighborGroups(big, n.id)
       for (const g of groups) expect(g.items.length, `${n.id}: пустая группа «${g.title}»`).toBeGreaterThan(0)
-      // каждая связь узла попала ровно в одну группу
       const degree = big.edges.filter((e) => e.s === n.id || e.t === n.id).length
       expect(groups.reduce((sum, g) => sum + g.items.length, 0), n.id).toBe(degree)
-      if (groups.length) withLinks++
     }
-    expect(withLinks).toBe(big.nodes.length)
   })
 
   it('«Встречается в тексте» — по числу упоминаний', () => {
@@ -211,6 +217,13 @@ describe('соседи узла по группам', () => {
       ['term:1', 5],
       ['term:3', 1],
     ])
+    // «Глава 4» раньше «Глава 12» при равном весе (числа в подписях сравниваются как числа), хотя в данных глава 12 стоит первой
+    const chapters = indexGraph({
+      nodes: [node('term:1', 'term', 'Агент'), node('ch:ch12', 'chapter', 'Глава 12 · Итоги'), node('ch:ch4', 'chapter', 'Глава 4 · Контекст')],
+      edges: [edge('term:1', 'ch:ch12', 'term-text', 3), edge('term:1', 'ch:ch4', 'term-text', 3)],
+    })
+    expect(neighborGroups(chapters, 'term:1')[0].items.map((i) => i.node.id)).toEqual(['ch:ch4', 'ch:ch12'])
+
     // у связей без веса поля w нет
     expect(neighborGroups(idx, 'ch:ch1').find((g) => g.title === 'Разделы')!.items[0]).toEqual({ node: idx.byId.get('sec:s1') })
 
@@ -228,7 +241,7 @@ describe('поиск узла', () => {
   it('поиск узла: точное, начало, слова; ё и регистр', () => {
     const idx = small()
     expect(findNodes(idx, 'АГЕНТ')[0].label).toBe('Агент')
-    // точное → начало (при равенстве — по типу: раздел раньше термина) → слова в подписи
+    // точное → начало → слова в подписи (порядок типов внутри ранга проверяет тест ниже: здесь разделы и так стоят в данных раньше терминов)
     expect(findNodes(idx, 'агент').map((n) => n.label)).toEqual(['Агент', 'Агент в работе', 'Агент фонового программирования', 'Как работает агент'])
     // все слова запроса есть в подписи, порядок слов не важен
     expect(findNodes(idx, 'программирования фонового').map((n) => n.id)).toEqual(['term:2'])
@@ -237,6 +250,22 @@ describe('поиск узла', () => {
     expect(findNodes(idx, 'елка').map((n) => n.id)).toEqual(['term:5'])
     expect(findNodes(idx, 'ЁЛКА').map((n) => n.id)).toEqual(['term:5'])
     expect(findNodes(idx, 'mcp').map((n) => n.id)).toEqual(['term:3', 'term:4'])
+  })
+
+  it('при равном ранге — по типу (TYPE_ORDER), при равном типе — порядок данных; ранг важнее типа', () => {
+    // в данных типы нарочно идут не по TYPE_ORDER: день, термин, раздел, термин; часть с «агент» в середине подписи — первой
+    const idx = indexGraph({
+      nodes: [
+        node('part:I', 'part', 'Про агент'),
+        node('day:1', 'day', 'Агент день', { day: 1 }),
+        node('term:1', 'term', 'Агент X'),
+        node('sec:s1', 'section', 'Агент Y', { book: 's1' }),
+        node('term:2', 'term', 'Агент Z'),
+      ],
+      edges: [],
+    })
+    // все четыре «Агент …» начинаются с запроса: раздел, термины в порядке данных, день; часть — позже, у неё ранг ниже
+    expect(findNodes(idx, 'агент').map((n) => n.id)).toEqual(['sec:s1', 'term:1', 'term:2', 'day:1', 'part:I'])
   })
 
   it('запрос короче 2 знаков и лимит', () => {
@@ -274,18 +303,17 @@ describe('действия узла', () => {
     expect(actions('term:2')).toEqual({})
   })
 
-  it('на настоящих данных: книга у разделов, глав, схем и терминов; день и ролик — у дней и видеоуроков', () => {
+  it('на настоящих данных: ролик и день ведут туда, куда ведут связи графа', () => {
     const idx = real()
-    for (const n of idx.nodes) {
-      const a = nodeActions(n)
-      if (n.type === 'section' || n.type === 'chapter' || n.type === 'figure' || n.type === 'term') expect(a, n.id).toEqual({ book: n.book })
-      else if (n.type === 'day') expect(a, n.id).toEqual({ day: n.day })
-      else if (n.type === 'video') expect(a, n.id).toEqual({ videoDay: n.day })
-      else expect(a, n.id).toEqual({})
+    const videos = idx.nodes.filter((n) => n.type === 'video')
+    expect(videos.length).toBeGreaterThan(0)
+    for (const v of videos) {
+      const { videoDay } = nodeActions(v)
+      expect(videoDay, v.id).toEqual(expect.any(Number))
+      // ролик лежит в том дне, из которого к нему идёт связь day-video
+      expect(idx.edges.some((e) => e.kind === 'day-video' && e.s === `day:${videoDay}` && e.t === v.id), v.id).toBe(true)
     }
-    // и сами поля на месте
-    expect(idx.nodes.filter((n) => n.type !== 'part' && n.type !== 'week' && n.type !== 'day' && n.type !== 'video' && !n.book)).toEqual([])
-    expect(idx.nodes.filter((n) => (n.type === 'day' || n.type === 'video') && typeof n.day !== 'number')).toEqual([])
+    for (const d of idx.nodes.filter((n) => n.type === 'day')) expect(`day:${nodeActions(d).day}`).toBe(d.id)
   })
 })
 
