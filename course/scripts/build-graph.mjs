@@ -181,13 +181,20 @@ export function termVariants(term) {
 
 // Совпадение слова варианта со словом текста: латинское (и любое не кириллическое) — только целиком;
 // кириллическое до 2 букв — целиком; из 3 и 4 букв — само слово и окончание до `ENDING` букв
-// («код» → «кодом», не «кодинг»; «тест» → «тестами», не «тестирование»); от 5 букв — по началу длиной max(5, длина − 2).
+// («код» → «кодом», не «кодинг»; «тест» → «тестами», не «тестирование»); из 5 букв с гласной, «ь» или «й»
+// на конце — первые 4 буквы и до 3 букв окончания («ветка» → «веткой», «точка» → «точки», не «копия» → «копирует»);
+// остальные от 5 букв — по началу длиной max(5, длина − 2), окончание любое («агент» → «агентами»).
 const CYRILLIC = /^[\p{Script=Cyrillic}\p{M}]+$/u
 const ENDING = { 3: 2, 4: 3 }
+const VOWEL_END = /[аеёиоуыэюяьй]$/
+
+// Слово текста — основа и окончание не длиннее `ending` букв.
+const withEnding = (stem, ending) => (word) => word.startsWith(stem) && word.length - stem.length <= ending
 
 function wordMatcher(v) {
   if (!CYRILLIC.test(v) || v.length <= 2) return (word) => word === v
-  if (v.length in ENDING) return (word) => word.startsWith(v) && word.length - v.length <= ENDING[v.length]
+  if (v.length in ENDING) return withEnding(v, ENDING[v.length])
+  if (v.length === 5 && VOWEL_END.test(v)) return withEnding(v.slice(0, 4), 3)
   const head = v.slice(0, Math.max(5, v.length - 2))
   return (word) => word.startsWith(head)
 }

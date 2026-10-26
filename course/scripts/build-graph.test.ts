@@ -353,8 +353,26 @@ describe('build-graph: упоминания терминов', () => {
     expect(mentions(['тест'], 'протест')).toBe(false)
   })
 
+  it('слово из 5 букв на гласную, «ь» или «й» — первые 4 буквы и до 3 букв окончания', () => {
+    expect(mentions(['ветка'], 'ветки')).toBe(true)
+    expect(mentions(['ветка'], 'ветку')).toBe(true)
+    expect(mentions(['ветка'], 'веткой')).toBe(true)
+    expect(mentions(['ветка'], 'ветками')).toBe(true)
+    expect(mentions(['точка'], 'точки')).toBe(true)
+    expect(mentions(['копия'], 'копии')).toBe(true)
+    // Так же — на «ь» и «й».
+    expect(mentions(['связь'], 'связи')).toBe(true)
+    expect(mentions(['музей'], 'музеями')).toBe(true)
+    // Окончание длиннее 3 букв — уже другое слово: «копия» не находит «копирует» и «копирование».
+    expect(mentions(['копия'], 'копирует')).toBe(false)
+    expect(mentions(['копия'], 'копирование')).toBe(false)
+  })
+
   it('длинные слова — по началу', () => {
     expect(mentions(['агент'], 'два агентов')).toBe(true)
+    // Пятибуквенное на согласную — по началу из 5 букв, окончание не ограничено.
+    expect(mentions(['агент'], 'с агентами')).toBe(true)
+    expect(mentions(['релиз'], 'между релизами')).toBe(true)
     expect(mentions(['модель'], 'модели')).toBe(true)
     expect(mentions(['политики доступа к строкам'], 'политики доступа к строкам базы')).toBe(true)
     expect(mentions(['политики доступа к строкам'], 'политики доступа и к строкам')).toBe(false)
