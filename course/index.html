@@ -6,7 +6,11 @@
     <title>Вайб-курс</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400..600&family=Onest:wght@400..800&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400..700&family=Martian+Mono:wdth,wght@75..112.5,100..800&display=swap" />
+    <script>
+      // Светлая тема — по выбору ученика (кнопка в боковой панели); ставим до первой отрисовки, чтобы не мигала тёмная
+      try { if (localStorage.getItem('vibe-course-theme') === 'light') document.documentElement.dataset.theme = 'light' } catch {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

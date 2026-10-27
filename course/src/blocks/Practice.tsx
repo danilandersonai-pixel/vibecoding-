@@ -12,7 +12,7 @@ export function Practice({ dayId, steps }: { dayId: string; steps: PracticeStep[
   return (
     <ol className="practice-steps">
       {steps.map((s, i) => (
-        <li key={s.id} className={`practice-step paper${done[s.id] ? ' is-done' : ''}`}>
+        <li key={s.id} className={`practice-step${done[s.id] ? ' is-done' : ''}`}>
           <label className="practice-title">
             <input type="checkbox" checked={Boolean(done[s.id])} onChange={(e) => update((p) => markStep(p, dayId, s.id, e.target.checked))} />
             <span>

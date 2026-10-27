@@ -28,7 +28,8 @@ function useCurrentSection(key: string): string | null {
   return current
 }
 
-// План дня: шесть частей и счёт сделанного. Пункт — кнопка с прокруткой к части (якорь занят маршрутом #/day/N);
+// План дня — колонка справа (до 960 px — полоса над частями): шесть частей и счёт сделанного.
+// Текущая часть — строка-инверсия, сделанная — зелёная ✓, номер — 01–06 моноширинным. Пункт — кнопка с прокруткой к части (якорь занят маршрутом #/day/N);
 // часть без содержания — бледная, с подписью «скоро», не нажимается. У черновика счёта и полосы нет
 // (showProgress=false): засчитать день, пока нет остальных частей, нельзя, и «Сделано 1 из 1» вводило бы в заблуждение.
 export function DayToc({ parts, showProgress = true }: { parts: Part[]; showProgress?: boolean }) {
@@ -46,7 +47,7 @@ export function DayToc({ parts, showProgress = true }: { parts: Part[]; showProg
     list.scrollTo({ left: list.scrollLeft + shift - (list.clientWidth - box.width) / 2, behavior: scrollBehavior() })
   }, [current])
   return (
-    <nav className="paper toc" aria-label="План дня">
+    <nav className="toc" aria-label="План дня">
       <p className="kicker toc-kicker">План дня</p>
       {showProgress && (
         <>
@@ -69,9 +70,9 @@ export function DayToc({ parts, showProgress = true }: { parts: Part[]; showProg
                 onClick={() => scrollToId(`part-${p.id}`)}
               >
                 <span className="toc-num" aria-hidden="true">
-                  {p.done ? '✓' : i + 1}
+                  {p.done ? '✓' : String(i + 1).padStart(2, '0')}
                 </span>
-                {p.title}
+                <span className="toc-title">{p.title}</span>
                 {p.done && <span className="visually-hidden">, сделано</span>}
                 {!p.available && <span className="toc-soon">скоро</span>}
               </button>

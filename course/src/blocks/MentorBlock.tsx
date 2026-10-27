@@ -11,23 +11,21 @@ const AUTO_LABEL: Record<NonNullable<MentorCheck['auto']>, string> = {
   file: 'проверит файл',
 }
 
-// Наставник: синяя карточка с командой для Claude Code в проекте приложения и «бумага» с чек-листом дня
-// и вопросами — рядом, на телефоне столбиком; ниже отметка «принял»
+// Наставник — блок терминала: команда для Claude Code в проекте приложения («$ /mentor N») и под ней,
+// как вывод, что он проверит («[ ]») и о чём спросит («?»); выше — вводная фраза, ниже — отметка «принял»
 export function MentorBlock({ day }: { day: Day }) {
   const { progress, update } = useCourseProgress()
   const command = day.mentor.command || `/mentor ${day.number}`
   const accepted = progress.days[day.id]?.mentorAccepted ?? false
   return (
     <div className="mentor">
-      <div className="mentor-cards">
-        <div className="mentor-run">
-          <p className="mentor-lead">Когда практика сделана, откройте проект приложения в Claude Code и запустите наставника:</p>
-          <div className="mentor-command">
-            <code>{command}</code>
-            <CopyButton text={command} tone="cover" />
-          </div>
+      <p className="mentor-lead">Когда практика сделана, откройте проект приложения в Claude Code и запустите наставника:</p>
+      <div className="mentor-term">
+        <div className="mentor-command">
+          <code>{command}</code>
+          <CopyButton text={command} tone="term" />
         </div>
-        <div className="mentor-checks paper">
+        <div className="mentor-checks">
           <h3>Что он проверит</h3>
           <ul className="mentor-checklist">
             {day.mentor.checklist.map((c) => (
@@ -49,7 +47,7 @@ export function MentorBlock({ day }: { day: Day }) {
           )}
         </div>
       </div>
-      <label className={`mentor-accept paper${accepted ? ' is-on' : ''}`}>
+      <label className={`mentor-accept${accepted ? ' is-on' : ''}`}>
         <input type="checkbox" checked={accepted} onChange={(e) => update((p) => setMentorAccepted(p, day.id, e.target.checked))} />
         Наставник принял день
       </label>

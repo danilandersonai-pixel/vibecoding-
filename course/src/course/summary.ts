@@ -41,14 +41,14 @@ export function dayVideoSummary(day: Day): { count: number; seconds: number } {
   return { count: metas.length, seconds: metas.reduce((sum, m) => sum + m.seconds, 0) }
 }
 
-// «2 видеоурока · 8:42 · тест · 6 шагов практики» — только то, что в дне есть
+// «2 видеоурока (8:42), тест, 6 шагов практики» — только то, что в дне есть
 export function daySummaryLine(day: Day): string {
   const video = dayVideoSummary(day)
   const parts: string[] = []
-  if (video.count > 0) parts.push(`${video.count} ${plural(video.count, 'видеоурок', 'видеоурока', 'видеоуроков')} · ${formatDuration(video.seconds)}`)
+  if (video.count > 0) parts.push(`${video.count} ${plural(video.count, 'видеоурок', 'видеоурока', 'видеоуроков')} (${formatDuration(video.seconds)})`)
   if (day.quiz.length > 0) parts.push('тест')
   if (day.practice.length > 0) parts.push(`${day.practice.length} ${plural(day.practice.length, 'шаг', 'шага', 'шагов')} практики`)
-  return parts.join(' · ')
+  return parts.join(', ')
 }
 
 // Номера дней: подряд идущие сливаются в диапазон через «–», группы — через «, » («1–3, 5»)

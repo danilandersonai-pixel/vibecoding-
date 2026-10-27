@@ -39,7 +39,7 @@ export function Quiz({ day }: { day: Day }) {
           const chosen = answers[q.id]
           const answered = chosen !== undefined
           return (
-            <li key={q.id} className="quiz-question paper" data-testid="quiz-question">
+            <li key={q.id} className="quiz-question" data-testid="quiz-question">
               <p className="quiz-num">
                 Вопрос {n + 1} из {total}
               </p>
@@ -68,7 +68,7 @@ export function Quiz({ day }: { day: Day }) {
         })}
       </ol>
       {finished && (
-        <div className="quiz-result paper" data-testid="quiz-result">
+        <div className="quiz-result" data-testid="quiz-result">
           <p>
             Результат: {score} из {total}
             {score / total >= 0.8 ? ' — тест сдан.' : ' — для зачёта нужно 80 %.'}

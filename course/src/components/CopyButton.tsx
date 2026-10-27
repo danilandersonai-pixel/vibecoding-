@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
 // Копирует текст; если буфер обмена недоступен — показывает поле с выделенным текстом.
-// tone — цвета блока, где стоит кнопка: тёмного блока запроса (term) или синей карточки наставника (cover)
-export function CopyButton({ text, tone = 'term' }: { text: string; tone?: 'term' | 'cover' }) {
+// tone — цвета блока, где стоит кнопка: тёмный блок терминала (запрос, команда наставника)
+export function CopyButton({ text, tone = 'term' }: { text: string; tone?: 'term' }) {
   const [state, setState] = useState<'idle' | 'copied' | 'manual'>('idle')
   const field = useRef<HTMLTextAreaElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -26,7 +26,14 @@ export function CopyButton({ text, tone = 'term' }: { text: string; tone?: 'term
   return (
     <span className={`copy copy-${tone}`}>
       <button type="button" className={`btn copy-btn copy-btn-${tone}`} onClick={() => void copy()}>
-        {state === 'copied' ? 'Скопировано' : 'Скопировать'}
+        {/* key — новая подпись въезжает снизу (blocks.css, .copy-label); первая подпись стоит на месте */}
+        {state === 'copied' ? (
+          <span key="copied" className="copy-label">
+            Скопировано
+          </span>
+        ) : (
+          <span key="idle">Скопировать</span>
+        )}
       </button>
       {state === 'manual' && (
         <span className="copy-manual">

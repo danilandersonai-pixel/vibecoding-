@@ -1,220 +1,244 @@
-/* Блоки дня: теория, схемы, тест, тренажёры, практика, наставник, заметки и карточки, помощник с ИИ */
+/* Блоки дня: теория, схемы, тест, тренажёры, практика, наставник, заметки и карточки, помощник с ИИ.
+   Текст для чтения — Golos Text (--font-body), служебное (подписи, счётчики, кнопки, код) — Martian Mono (--font-ui) */
 .figure{margin:12px 0}
 
-/* Теория: мысль, схема, тренажёры, ситуация и помощник ИИ — карточки «бумаги» (.paper) с кикером типа над заголовком.
-   Содержимое идёт столбиком через 14 px, поэтому своих внешних отступов у детей карточки нет */
-.idea,.diagram,.trainer,.scenario,.ai-helper{display:flex;flex-direction:column;gap:14px;margin:22px 0;padding:28px 32px;font:400 16px/1.5 var(--font-ui)}
+/* Теория: мысль, схема, тренажёры, ситуация и помощник ИИ — панели (.paper) с подписью типа над заголовком.
+   Содержимое идёт столбиком через 12 px, поэтому своих внешних отступов у детей панели нет */
+.idea,.diagram,.trainer,.scenario,.ai-helper{display:flex;flex-direction:column;gap:12px;margin:20px 0;padding:22px 24px;font:400 15px/1.55 var(--font-body)}
 :is(.idea,.diagram,.trainer,.scenario,.ai-helper):last-child{margin-bottom:0}
 :is(.idea,.diagram,.trainer,.scenario,.ai-helper) > *{margin:0}
 :is(.idea,.diagram,.trainer,.scenario,.ai-helper) > .btn{align-self:flex-start}
-.block-kicker{color:var(--accent-ink);letter-spacing:.14em}
-:is(.diagram,.trainer,.scenario,.ai-helper) h3{font:700 24px/1.25 var(--font-ui);letter-spacing:-.015em}
+.block-kicker{color:var(--ink-soft)}
+:is(.idea,.diagram,.trainer,.scenario,.ai-helper) h3{font:600 19px/1.3 var(--font-body);font-stretch:100%;letter-spacing:-.01em}
 
-/* Мысль из книги: заголовок 26 px, текст Literata 18 px не шире 40 em, ссылка в книгу — кнопка на подкраске со значком */
-.idea{padding:32px 36px}
-.idea h3{font:760 26px/1.2 var(--font-ui);letter-spacing:-.02em}
-.idea-text{max-width:40em;font:400 18px/1.7 var(--font-body)}
-.book-link{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 14px;border-radius:var(--radius-m);background:var(--tint);color:var(--accent-ink);font:600 14px/1.3 var(--font-ui);text-decoration:none}
-.book-link:hover{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+/* Мысль из книги: заголовок Golos 19 px, текст 16 px не шире 38 em, ссылка в книгу — подчёркнутая строка со значком */
+.idea-text{max-width:38em;font:400 16px/1.65 var(--font-body)}
+.book-link{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;min-height:44px;color:var(--ink);font:500 13px/1.4 var(--font-ui);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+.book-link:hover{text-decoration-thickness:2px}
 .book-link svg{flex:none}
 
 /* Схема: зоны поверх схемы книги, подпись под ней, пояснение зоны и шаги */
 .diagram-figure{display:flex;flex-direction:column;gap:10px}
 .diagram-stage{position:relative}
 .diagram-stage .figure{margin:0}
-.diagram-figure figcaption{color:var(--ink-soft);font:400 14px/1.45 var(--font-ui)}
+.diagram-figure figcaption{color:var(--ink-soft);font:400 14px/1.45 var(--font-body)}
 .hotspot{position:absolute;padding:0;border:2px dashed transparent;border-radius:var(--radius-s);background:transparent}
-.hotspot:hover{border-color:var(--accent)}
+.hotspot:hover{border-color:var(--ink)}
 /* Фокус с клавиатуры — обводка поверх рамки состояния, чтобы отличался от наведения и от открытой зоны */
 .hotspot:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.hotspot.is-open{border-color:var(--accent);border-style:solid;background:color-mix(in srgb,var(--accent) 10%,transparent)}
-.hotspot-note{padding:14px 16px;border-radius:var(--radius-m);background:var(--tint);font:400 15px/1.5 var(--font-ui)}
+.hotspot.is-open{border-color:var(--ink);border-style:solid;background:var(--tint)}
+.hotspot-note{padding:12px 14px;border-left:2px solid var(--ink);background:var(--tint);font:400 15px/1.5 var(--font-body)}
 .hotspot-note p{margin:4px 0 0}
 /* Подпись шага — над кнопками, чтобы на телефоне не сжиматься в узкий столбец */
-.diagram-steps{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font:400 15px/1.5 var(--font-ui)}
+.diagram-steps{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font:400 15px/1.5 var(--font-body)}
 .diagram-steps p{flex:1 1 100%;order:-1;margin:0}
 .diagram-steps .btn:last-child{margin-left:auto}
 
 /* Тренажёры: задача, главная кнопка «Проверить», итог в рамке — зелёной, если всё верно */
-.trainer-task{color:var(--ink-soft);font:400 15px/1.5 var(--font-ui)}
-.trainer-result{padding:12px 16px;border:1px solid var(--paper-edge);border-radius:var(--radius-m);font:400 15px/1.5 var(--font-ui)}
+.trainer-task{color:var(--ink-soft);font:400 15px/1.5 var(--font-body)}
+.trainer-result{padding:12px 16px;border:1px solid var(--rule);border-radius:var(--radius-m);font:400 15px/1.5 var(--font-body)}
 .trainer-result.is-ok,.trainer-result:has(.is-ok){border-color:var(--fig-ok)}
 .trainer-result p{margin:0}
 .trainer-result p + p{margin-top:6px}
 .is-ok{color:var(--fig-ok);font-weight:600}
 /* «Собери запрос»: варианты части — строки не ниже 44 px с кружком-радио */
-.prompt-part{display:flex;flex-direction:column;min-width:0;padding:8px 16px 10px;border:1px solid var(--paper-edge);border-radius:var(--radius-m);font:400 15px/1.4 var(--font-ui)}
-.prompt-part legend{padding:0 6px;font-weight:600}
+.prompt-part{display:flex;flex-direction:column;min-width:0;padding:8px 16px 10px;border:1px solid var(--rule);border-radius:var(--radius-m);font:400 15px/1.4 var(--font-body)}
+.prompt-part legend{padding:0 6px;font:500 13px/1.4 var(--font-ui)}
 .prompt-part.is-missing{border-color:var(--warn)}
 .prompt-part.is-weak{border-color:var(--fig-risk)}
 .prompt-option{display:flex;gap:10px;align-items:center;min-height:44px;cursor:pointer}
-.prompt-option input{flex:none;width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.prompt-option input{flex:none;width:18px;height:18px;margin:0;accent-color:var(--ink)}
 /* «Найди ошибку»: строки кода — кнопки во всю ширину не ниже 44 px. all:unset снимает и рамку фокуса — она возвращена ниже,
    а поля блока кода оставляют ей место, чтобы прокрутка вбок её не обрезала */
-.code-lines{list-style:none;counter-reset:ln;padding:6px;background:var(--code-bg);border-radius:var(--radius-m);overflow-x:auto}
+.code-lines{list-style:none;counter-reset:ln;padding:6px;background:var(--term-bg);border-radius:var(--radius-m);overflow-x:auto}
 .code-lines li{counter-increment:ln}
-.code-line{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 10px;border-radius:var(--radius-s);cursor:pointer;color:var(--ink);font:400 14px/1.6 var(--font-code);white-space:pre}
-.code-line::before{content:counter(ln);color:var(--ink-soft);min-width:1.5em;text-align:right}
-.code-line:hover,.code-line:focus-visible{background:color-mix(in srgb,var(--accent) 8%,transparent)}
-.code-line:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.code-line.is-picked{background:color-mix(in srgb,var(--accent) 16%,transparent)}
-.code-line.is-found{background:color-mix(in srgb,var(--fig-ok) 18%,transparent)}
-.code-line.is-wrong{background:color-mix(in srgb,var(--fig-risk) 16%,transparent)}
-/* На подсветке второстепенный цвет номера не дотягивает до 4,5 : 1 — номер основным цветом */
-.code-line:is(.is-picked,.is-found,.is-wrong)::before{color:var(--ink)}
-/* Раскладка по корзинам: у каждого утверждения кнопки корзин, выбранная — с акцентной рамкой */
+.code-line{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 10px;border-radius:var(--radius-s);cursor:pointer;color:var(--term-ink);font:400 13px/1.6 var(--font-code);white-space:pre}
+.code-line::before{content:counter(ln);color:var(--term-soft);min-width:1.5em;text-align:right}
+.code-line:hover,.code-line:focus-visible{background:color-mix(in srgb,var(--term-ink) 8%,transparent)}
+.code-line:focus-visible{outline:2px solid var(--term-ink);outline-offset:2px}
+.code-line.is-picked{background:color-mix(in srgb,var(--term-ink) 16%,transparent)}
+.code-line.is-found{background:color-mix(in srgb,var(--term-ok) 22%,transparent)}
+.code-line.is-wrong{background:color-mix(in srgb,var(--term-err) 22%,transparent)}
+.code-line:is(.is-picked,.is-found,.is-wrong)::before{color:var(--term-ink)}
+/* Раскладка по корзинам: у каждого утверждения кнопки корзин, выбранная — с рамкой цветом текста */
 .sort-pool,.sort-bucket ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .sort-buckets{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-.sort-bucket{display:flex;flex-direction:column;gap:8px;min-height:96px;padding:12px;border:1px dashed var(--fig-line);border-radius:var(--radius-l)}
-.sort-bucket h4{margin:0;font:600 15px/1.3 var(--font-ui)}
-.sort-item{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px solid var(--paper-edge);border-radius:var(--radius-m);background:var(--paper);font:400 15px/1.45 var(--font-ui);cursor:grab}
+.sort-bucket{display:flex;flex-direction:column;gap:8px;min-height:96px;padding:12px;border:1px dashed var(--edge);border-radius:var(--radius-l)}
+.sort-bucket h4{margin:0;font:500 13px/1.3 var(--font-ui)}
+.sort-item{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px solid var(--rule);border-radius:var(--radius-m);background:var(--desk);font:400 15px/1.45 var(--font-body);cursor:grab}
 .sort-item.is-found{border-color:var(--fig-ok)}
 .sort-item.is-wrong{border-color:var(--fig-risk)}
 .sort-pick{display:flex;flex-wrap:wrap;gap:6px}
-.sort-pick .btn[aria-pressed="true"]{border-color:var(--accent);background:var(--tint);color:var(--accent-ink)}
+.sort-pick .btn[aria-pressed="true"]{border-color:var(--ink);background:var(--raised)}
 
-/* Ситуация: путь решений, текст Literata, варианты — строки во всю ширину; концовка красит рамку карточки */
-.scenario-path{padding-left:1.2em;color:var(--ink-soft);font:400 14px/1.45 var(--font-ui)}
-.scenario-text{font:400 17px/1.65 var(--font-body)}
-.scenario-choices{display:flex;flex-direction:column;gap:10px}
-.scenario-choice{justify-content:flex-start;min-height:52px;padding:10px 18px;text-align:left;font-size:15px}
+/* Ситуация: путь решений, текст Golos, варианты — строки во всю ширину; концовка красит рамку панели */
+.scenario-path{padding-left:1.2em;color:var(--ink-soft);font:400 13px/1.45 var(--font-ui)}
+.scenario-text{font:400 16px/1.65 var(--font-body)}
+.scenario-choices{display:flex;flex-direction:column;gap:8px}
+.scenario-choice{justify-content:flex-start;min-height:48px;padding:10px 16px;text-align:left;font:400 15px/1.4 var(--font-body)}
 .scenario-end{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .scenario.is-good{border-color:var(--fig-ok)}
 .scenario.is-bad{border-color:var(--fig-risk)}
 
 /* Помощник с ИИ: поле на всю ширину, ответ и разбор запроса — в рамке */
-.ai-helper textarea{width:100%;padding:12px 14px;border:1px solid var(--paper-edge);border-radius:var(--radius-m);background:var(--paper);color:var(--ink);font:400 16px/1.5 var(--font-ui);resize:vertical}
+.ai-helper textarea{width:100%;padding:12px 14px;border:1px solid var(--edge);border-radius:var(--radius-m);background:var(--desk);color:var(--ink);font:400 16px/1.5 var(--font-body);resize:vertical}
 .ai-helper.is-off{border-style:dashed}
-.ai-error{color:var(--fig-risk);font:500 15px/1.4 var(--font-ui)}
-.ai-answer,.ai-review{padding:14px 16px;border:1px solid var(--paper-edge);border-radius:var(--radius-m);font:400 15px/1.55 var(--font-ui)}
+.ai-error{color:var(--fig-risk);font:500 15px/1.4 var(--font-body)}
+.ai-answer,.ai-review{padding:14px 16px;border:1px solid var(--rule);border-radius:var(--radius-m);font:400 15px/1.55 var(--font-body)}
 .ai-answer p,.ai-review p{margin:4px 0}
 .ai-review ul{list-style:none;margin:0;padding:0}
 .ai-review li{margin:4px 0}
 .is-ok-part strong{color:var(--fig-ok)}
 .is-weak-part strong{color:var(--fig-risk)}
 
-/* Проверка понимания: над вопросами «Верно: k» и лучший результат; вопрос — карточка, варианты — строки не ниже 52 px с кружком.
-   После ответа верный вариант — зелёная рамка и ✓, выбранный неверный — красная и ✗, остальные бледнее; пояснение — в плашке.
-   Текст на плашках — основным цветом: зелёный и красный на подкраске не дотягивают до 4,5 : 1 */
-.quiz{display:flex;flex-direction:column;gap:16px;font-family:var(--font-ui)}
-.quiz-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;color:var(--ink-soft);font:600 14px/1.3 var(--font-ui)}
+/* Проверка понимания: над вопросами «Верно: k» и лучший результат; вопрос — номер и текст Golos 17 px, варианты — строки 48 px.
+   После ответа верный вариант — зелёная рамка 2 px и ✓, выбранный неверный — красная и ✗, остальные бледнее; пояснение — строка
+   с полосой слева. Текст на подкраске — основным цветом */
+.quiz{display:flex;flex-direction:column;gap:20px}
+.quiz-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;color:var(--ink-soft);font:500 12px/1.3 var(--font-ui)}
 .quiz-head p{margin:0}
-.quiz-best{color:var(--accent-ink)}
-.quiz-list{display:flex;flex-direction:column;gap:16px;margin:0;padding:0;list-style:none}
-.quiz-question{display:flex;flex-direction:column;gap:16px;padding:28px 32px}
+.quiz-best{color:var(--ink)}
+.quiz-list{display:flex;flex-direction:column;gap:28px;margin:0;padding:0;list-style:none}
+.quiz-question{display:flex;flex-direction:column;gap:10px}
 .quiz-question > *{margin:0}
-.quiz-num{color:var(--ink-soft);font:600 13px/1.3 var(--font-ui)}
-.quiz-q{font:700 21px/1.35 var(--font-ui);letter-spacing:-.01em}
-.quiz-options{display:flex;flex-direction:column;gap:10px}
-.quiz-option{display:flex;align-items:center;gap:14px;width:100%;min-height:52px;padding:10px 18px;border:1px solid var(--paper-edge);border-radius:var(--radius-m);background:var(--paper);color:var(--ink);font:500 16px/1.35 var(--font-ui);text-align:left}
-.quiz-option:not(:disabled):hover{border-color:var(--accent)}
+.quiz-num{color:var(--ink-soft);font:400 12px/1.3 var(--font-ui)}
+.quiz-q{font:500 17px/1.45 var(--font-body)}
+.quiz-options{display:flex;flex-direction:column;gap:6px}
+.quiz-option{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:8px 14px;border:1px solid var(--rule);border-radius:var(--radius-m);background:transparent;color:var(--ink);font:400 15px/1.35 var(--font-body);text-align:left}
+.quiz-option:not(:disabled):hover{border-color:var(--ink);background:var(--raised)}
 .quiz-option:disabled{cursor:default;color:var(--ink-soft)}
-.quiz-dot{flex:none;display:flex;align-items:center;justify-content:center;width:22px;height:22px;border:2px solid var(--fig-line);border-radius:50%;font:700 13px/1 var(--font-ui)}
-.quiz-option.is-correct,.quiz-option.is-wrong{padding-inline:17px;border-width:2px;color:var(--ink)}
-.quiz-option.is-correct{border-color:var(--fig-ok);background:color-mix(in srgb,var(--fig-ok) 8%,var(--paper))}
-.quiz-option.is-wrong{border-color:var(--fig-risk);background:color-mix(in srgb,var(--fig-risk) 8%,var(--paper))}
+.quiz-dot{flex:none;display:flex;align-items:center;justify-content:center;width:20px;height:20px;border:2px solid var(--edge);border-radius:50%;font:600 12px/1 var(--font-ui)}
+.quiz-option.is-correct,.quiz-option.is-wrong{padding-inline:13px;border-width:2px;color:var(--ink);font-weight:500}
+.quiz-option.is-correct{border-color:var(--fig-ok)}
+.quiz-option.is-wrong{border-color:var(--fig-risk)}
 .quiz-option.is-correct .quiz-dot{border-color:var(--fig-ok);background:var(--fig-ok);color:var(--fig-on)}
 .quiz-option.is-wrong .quiz-dot{border-color:var(--fig-risk);background:var(--fig-risk);color:var(--fig-on)}
-.quiz-explain{padding:14px 16px;border-radius:var(--radius-m);font:400 15px/1.5 var(--font-ui)}
-.quiz-explain.is-correct{background:color-mix(in srgb,var(--fig-ok) 10%,var(--paper))}
-.quiz-explain.is-wrong{background:color-mix(in srgb,var(--fig-risk) 10%,var(--paper))}
-.quiz-result{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:20px 24px;font:600 16px/1.4 var(--font-ui)}
+.quiz-explain{padding:2px 0 2px 14px;border-left:2px solid var(--rule);color:var(--ink-soft);font:400 14px/1.55 var(--font-body)}
+.quiz-explain.is-correct{border-left-color:var(--fig-ok)}
+.quiz-explain.is-wrong{border-left-color:var(--fig-risk)}
+.quiz-explain strong{color:var(--ink)}
+.quiz-result{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:16px 20px;border:1px solid var(--edge);border-radius:var(--radius-l);font:500 15px/1.4 var(--font-body)}
 .quiz-result p{margin:0}
 
-/* Кнопка «Скопировать» — не ниже 44 px, в цветах своего блока: тёмного блока запроса (term) или синей карточки наставника (cover) */
+/* Кнопка «Скопировать» — не ниже 44 px, в цветах тёмного блока терминала (запрос, команда наставника) */
 .copy{display:inline-flex;flex-direction:column;align-items:flex-end;gap:6px;max-width:100%}
-.copy-btn{padding:0 14px;border-radius:var(--radius-s);font:600 14px/1.2 var(--font-ui)}
-.copy-btn-term,.copy-btn-term:hover:not(:disabled){border-color:var(--term-edge);background:color-mix(in srgb,var(--term-ink) 8%,var(--term-bg));color:var(--term-ink)}
-.copy-btn-term:hover:not(:disabled){border-color:var(--term-soft)}
-.copy-btn-cover,.copy-btn-cover:hover:not(:disabled){border-color:var(--cover-ink);background:var(--cover-ink);color:var(--cover-bg);font-weight:700}
+.copy-btn{min-height:36px;padding:0 12px;border-radius:var(--radius-m);font:500 12px/1.2 var(--font-ui)}
+.copy-btn-term,.copy-btn-term:hover:not(:disabled){border-color:var(--term-edge);background:transparent;color:var(--term-ink)}
+.copy-btn-term:hover:not(:disabled){border-color:var(--term-soft);background:color-mix(in srgb,var(--term-ink) 8%,transparent)}
 .copy-manual{display:flex;flex-direction:column;gap:4px;width:min(100%,420px)}
-.copy-hint{font:500 13px/1.3 var(--font-ui)}
+.copy-hint{font:500 12px/1.3 var(--font-ui)}
 .copy-term .copy-hint{color:var(--term-soft)}
-.copy-cover .copy-hint{color:var(--cover-soft)}
-.copy-manual textarea{width:100%;padding:8px 10px;border:1px solid var(--paper-edge);border-radius:var(--radius-s);background:var(--paper);color:var(--ink);font:400 13px/1.5 var(--font-code)}
+.copy-manual textarea{width:100%;padding:8px 10px;border:1px solid var(--term-edge);border-radius:var(--radius-s);background:var(--term-bg);color:var(--term-ink);font:400 13px/1.5 var(--font-code)}
 
-/* Практика: шаг — карточка с галочкой 24 px, тёмный блок запроса и строка «Готово, когда»; пройденный шаг — в зелёной рамке.
-   На тёмном блоке рамка фокуса светлая: акцент светлой темы на нём почти не виден */
-.practice-steps{display:flex;flex-direction:column;gap:16px;margin:0;padding:0;list-style:none}
-.practice-step{display:flex;flex-direction:column;gap:16px;padding:24px 28px}
+/* Практика: шаг — флажок и «Шаг N. …», тёмный блок «запрос для Claude Code» (строка ввода «> »), строка «Готово, когда».
+   Сделанный шаг — название зачёркнуто и бледнее */
+.practice-steps{display:flex;flex-direction:column;gap:28px;margin:0;padding:0;list-style:none}
+.practice-step{display:flex;flex-direction:column;gap:12px}
 .practice-step > *{margin:0}
-.practice-step.is-done{border-color:var(--fig-ok)}
-.practice-title{display:flex;align-items:center;gap:14px;min-height:44px;font:700 19px/1.3 var(--font-ui);cursor:pointer}
-.practice-title input{flex:none;width:24px;height:24px;margin:0;accent-color:var(--fig-ok)}
-.prompt-box{border-radius:var(--radius-m);background:var(--term-bg);color:var(--term-ink);overflow:hidden}
+.practice-title{display:flex;align-items:center;gap:12px;min-height:44px;font:600 16px/1.4 var(--font-body);cursor:pointer}
+
+.practice-step.is-done .practice-title{color:var(--ink-soft);font-weight:500}
+.practice-step.is-done .practice-title span{text-decoration:line-through;text-decoration-thickness:1px}
+.prompt-box{border:1px solid var(--term-edge);border-radius:var(--radius-l);background:var(--term-bg);color:var(--term-ink);overflow:hidden}
 .prompt-box :focus-visible{outline-color:var(--term-ink)}
-/* Шапка блока: кикер и «Скопировать»; когда тесно (320 px), кнопка уходит под кикер вправо, а не сжимает его в столбик */
-.prompt-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px 0 18px}
-.prompt-kicker{flex:1 1 10em;color:var(--term-soft);letter-spacing:.14em}
+/* Шапка блока: подпись и «Скопировать»; когда тесно (320 px), кнопка уходит под подпись вправо, а не сжимает её в столбик */
+.prompt-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 12px;min-height:44px;padding:4px 6px 4px 16px;border-bottom:1px solid var(--term-edge)}
+.prompt-kicker{flex:1 1 10em;color:var(--term-soft)}
 .prompt-head .copy{margin-left:auto}
-.prompt-box pre{margin:0;padding:8px 18px 18px;white-space:pre-wrap;overflow-wrap:anywhere;font:400 14px/1.65 var(--font-code)}
-.practice-done{display:flex;align-items:flex-start;gap:10px;color:var(--ink-soft);font:400 15px/1.5 var(--font-ui)}
+.prompt-box pre{margin:0;padding:12px 16px 16px;white-space:pre-wrap;overflow-wrap:anywhere;font:400 13px/1.7 var(--font-code)}
+.prompt-box pre::before{content:"> "/"";color:var(--term-soft)}
+.practice-done{display:flex;align-items:flex-start;gap:10px;color:var(--ink-soft);font:400 14px/1.55 var(--font-body)}
 .practice-done svg{flex:none;margin-top:2px;color:var(--fig-ok)}
-.practice-done strong{color:var(--ink)}
+.practice-done strong{color:var(--ink);font:500 12px/1.9 var(--font-ui)}
 
-/* Наставник: синяя карточка с командой и «бумага» с проверками — рядом, в узкой колонке столбиком; ниже отметка «принял» */
-.mentor{display:flex;flex-direction:column;gap:20px;font-family:var(--font-ui)}
-.mentor-cards{display:flex;flex-wrap:wrap;gap:20px}
-.mentor-run{flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:14px;padding:24px 26px;border-radius:var(--radius-xl);background:var(--cover-bg);color:var(--cover-ink)}
-.mentor-run :focus-visible{outline-color:var(--cover-ink)}
-.mentor-lead{margin:0;color:var(--cover-soft);font:italic 400 16px/1.5 var(--font-body)}
-.mentor-command{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:10px 10px 10px 16px;border-radius:var(--radius-m);background:color-mix(in srgb,var(--term-bg) 35%,transparent)}
-.mentor-command code{min-width:0;font:600 20px/1.3 var(--font-code);overflow-wrap:anywhere}
-.mentor-checks{flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:10px;padding:24px 26px}
-.mentor-checks h3{margin:0;font:700 16px/1.3 var(--font-ui)}
+/* Наставник — блок терминала: «$ /mentor N» и «Скопировать», ниже как вывод — «# проверит» с «[ ]» и «# спросит» с «?».
+   Вводная фраза — над блоком, отметка «Наставник принял день» — под ним */
+.mentor{display:flex;flex-direction:column;gap:14px}
+.mentor-lead{margin:0;color:var(--ink-soft);font:400 15px/1.55 var(--font-body)}
+.mentor-term{border:1px solid var(--term-edge);border-radius:var(--radius-l);background:var(--term-bg);color:var(--term-ink);font:400 13px/1.75 var(--font-ui)}
+.mentor-term :focus-visible{outline-color:var(--term-ink)}
+.mentor-command{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 12px;min-height:52px;padding:6px 6px 6px 16px;border-bottom:1px solid var(--term-edge)}
+.mentor-command code{min-width:0;font:600 16px/1.3 var(--font-code);overflow-wrap:anywhere}
+.mentor-command code::before{content:"$ "/"";color:var(--term-soft)}
+.mentor-checks{display:flex;flex-direction:column;padding:12px 16px 16px}
+.mentor-checks h3{margin:0;color:var(--term-soft);font:400 13px/1.75 var(--font-ui);font-stretch:100%;letter-spacing:0}
+.mentor-checks h3::before{content:"# "/""}
 .mentor-checks h3:not(:first-child){margin-top:10px}
-.mentor-checklist,.mentor-questions{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;font:400 15px/1.45 var(--font-ui)}
-.mentor-checklist li,.mentor-questions li{position:relative;padding-left:26px}
-/* Пункт проверки — пустой кружок, как в макете; вопрос — тире (для чтения с экрана пустое) */
-.mentor-checklist li::before{content:"";position:absolute;left:0;top:.2em;width:16px;height:16px;border:2px solid var(--fig-line);border-radius:50%;box-sizing:border-box}
-.mentor-questions li::before{content:"—"/"";position:absolute;left:0;color:var(--ink-soft)}
-/* Метка-«таблетка»: что наставник проверит сам */
-.badge{display:inline-block;align-self:flex-start;margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--tint);color:var(--ink-soft);font:500 13px/1.5 var(--font-ui)}
-.mentor-accept{display:flex;align-items:center;gap:14px;min-height:56px;padding:12px 20px;border-radius:var(--radius-l);font:600 16px/1.3 var(--font-ui);cursor:pointer}
-.mentor-accept input{flex:none;width:24px;height:24px;margin:0;accent-color:var(--fig-ok)}
-.mentor-accept.is-on{border-color:var(--fig-ok)}
+.mentor-checklist,.mentor-questions{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.mentor-checklist li,.mentor-questions li{position:relative;padding-left:32px}
+.mentor-checklist li::before{content:"[ ]"/"";position:absolute;left:0;color:var(--term-soft)}
+.mentor-questions li::before{content:"?"/"";position:absolute;left:8px;color:var(--term-soft)}
+/* Что наставник проверит сам — в скобках, приглушённо */
+.badge{margin-left:8px;color:var(--term-soft)}
+.badge::before{content:"("}
+.badge::after{content:")"}
+.mentor-accept{display:flex;align-items:center;gap:12px;min-height:44px;font:500 15px/1.3 var(--font-body);cursor:pointer}
 
-/* Итог дня: заметки — поле на «бумаге»; карточки терминов сеткой. Термин — кнопка, по нажатию — определение;
+.mentor-accept.is-on{color:var(--fig-ok)}
+
+/* Итог дня: заметки — поле с рамкой; карточки терминов сеткой. Термин — кнопка, по нажатию — определение;
    внизу «Знаю» / «Повторить» внутри рамки карточки: рядом (поровну, но не уже своего слова), а если не помещаются — друг под другом */
 .notes{display:flex;flex-direction:column;gap:10px;margin:0 0 28px}
-.notes-title{font:700 20px/1.25 var(--font-ui);letter-spacing:-.01em}
-.notes textarea{width:100%;min-height:132px;padding:16px 18px;border:1px solid var(--paper-edge);border-radius:var(--radius-l);background:var(--paper);color:var(--ink);font:400 17px/1.6 var(--font-body);resize:vertical}
+.notes-title{font:500 13px/1.3 var(--font-ui)}
+.notes textarea{width:100%;min-height:132px;padding:14px 16px;border:1px solid var(--edge);border-radius:var(--radius-l);background:var(--desk);color:var(--ink);font:400 16px/1.6 var(--font-body);resize:vertical}
 .notes textarea::placeholder{color:var(--ink-soft)}
 .cards{display:flex;flex-direction:column;gap:12px}
-.cards h3{margin:0;font:700 20px/1.25 var(--font-ui);letter-spacing:-.01em}
+.cards h3{margin:0;font:500 13px/1.3 var(--font-ui);font-stretch:100%;letter-spacing:0}
 .card-list + h3{margin-top:16px}
-.card-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:0;padding:0;list-style:none}
-.card{display:flex;flex-direction:column;gap:12px;min-width:0;padding:16px;border-radius:var(--radius-l)}
+.card-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.card{display:flex;flex-direction:column;gap:10px;min-width:0;padding:14px 16px 16px;border-radius:var(--radius-l)}
 .card.is-know{border-color:var(--fig-ok)}
 .card.is-repeat{border-color:var(--warn)}
-.card-term{display:flex;align-items:center;min-height:44px;padding:0;border:0;background:none;color:var(--ink);font:700 17px/1.25 var(--font-ui);text-align:left;overflow-wrap:anywhere}
-.card-def{margin:0;color:var(--ink-soft);font:400 15px/1.45 var(--font-ui)}
-.card-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
+.card-term{display:flex;align-items:center;min-height:44px;padding:0;border:0;background:none;color:var(--ink);font:600 16px/1.25 var(--font-body);text-align:left;overflow-wrap:anywhere}
+.card-def{margin:0;color:var(--ink-soft);font:400 14px/1.5 var(--font-body)}
+.card-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
 /* flex:1 1 0 делит строку поровну; min-width:min-content не даёт кнопке стать уже своего слова (min-width:44px из .btn
    этот предел отменял). Когда два слова с полями не помещаются в строку, wrap ставит кнопки друг под другом во всю ширину */
-.card-action{flex:1 1 0;min-width:min-content;padding:0 4px;border-radius:var(--radius-s);font:600 14px/1.2 var(--font-ui)}
-/* Нажатая кнопка — рамка 2 px в цвет рамки карточки («Знаю» — зелёная, «Повторить» — цвета предупреждения) и подкраска;
+.card-action{flex:1 1 0;min-width:min-content;padding:0 4px;font-size:12px}
+/* Нажатая кнопка — рамка 2 px в цвет рамки карточки («Знаю» — зелёная, «Повторить» — цвета предупреждения);
    толщина рамки отличает её не только цветом. Поле на 1 px уже — ширина по слову не меняется. Текст основным цветом */
 .card-action[aria-pressed="true"]{padding:0 3px;border-width:2px}
-.card.is-know .card-action[aria-pressed="true"]{border-color:var(--fig-ok);background:color-mix(in srgb,var(--fig-ok) 10%,var(--paper))}
-.card.is-repeat .card-action[aria-pressed="true"]{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--paper))}
+.card.is-know .card-action[aria-pressed="true"]{border-color:var(--fig-ok)}
+.card.is-repeat .card-action[aria-pressed="true"]{border-color:var(--warn)}
 
-/* Телефон: карточки теории, теста, практики и наставника плотнее; схемы книги шире карточки и прокручиваются вбок внутри неё — иначе подписи не прочитать */
+/* Телефон: панели плотнее; схемы книги шире панели и прокручиваются вбок внутри неё */
 @media (max-width: 640px){
-  .idea,.diagram,.trainer,.scenario,.ai-helper{gap:12px;padding:22px 18px}
-  .idea h3{font-size:22px;letter-spacing:-.015em}
-  :is(.diagram,.trainer,.scenario,.ai-helper) h3{font-size:20px}
-  .idea-text{font-size:17px;line-height:1.65}
+  .idea,.diagram,.trainer,.scenario,.ai-helper{gap:10px;padding:18px 16px}
+  :is(.idea,.diagram,.trainer,.scenario,.ai-helper) h3{font-size:18px}
   .idea .figure,.diagram-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .idea .figure svg,.diagram-stage{min-width:600px}
-  .quiz-question{gap:14px;padding:22px 18px}
-  .quiz-option{gap:12px;padding-inline:14px}
-  .quiz-option.is-correct,.quiz-option.is-wrong{padding-inline:13px}
-  .quiz-result{padding:18px}
-  .practice-step{gap:14px;padding:18px}
-  .practice-title{gap:12px;font-size:17px}
-  .prompt-head{padding:8px 8px 0 14px}
-  .prompt-box pre{padding:6px 14px 14px;font-size:13px;line-height:1.6}
-  .mentor-run,.mentor-checks{padding:20px 18px}
-  .mentor-command code{font-size:18px}
+  .quiz-option{padding-inline:12px}
+  .quiz-option.is-correct,.quiz-option.is-wrong{padding-inline:11px}
+  .prompt-head{padding:4px 6px 4px 12px}
+  .prompt-box pre{padding:10px 12px 14px;font-size:12.5px}
+  .mentor-command code{font-size:15px}
 }
+
+/* Флажки практики и «Наставник принял день» — свои: рамка --edge 2 px, отмечен — заливка (практика — --ink,
+   наставник — --fig-ok) и галочка, которая прорисовывается: сначала короткий штрих, потом длинный (--dur-base) */
+.practice-title input,.mentor-accept input{--check:var(--ink);flex:none;display:grid;place-content:center;width:20px;height:20px;margin:0;border:2px solid var(--edge);border-radius:var(--radius-s);background:transparent;appearance:none;cursor:pointer;transition:background-color var(--dur-fast) var(--ease-out),border-color var(--dur-fast) var(--ease-out)}
+.mentor-accept input{--check:var(--fig-ok)}
+.practice-title input:hover,.mentor-accept input:hover{border-color:var(--ink)}
+.practice-title input:checked,.mentor-accept input:checked{border-color:var(--check);background:var(--check)}
+.practice-title input::before,.mentor-accept input::before{content:"";width:6px;height:11px;margin-top:-2px;border:solid var(--desk);border-width:0 2px 2px 0;transform:rotate(45deg);clip-path:inset(0 0 0 0);opacity:0}
+.practice-title input:checked::before,.mentor-accept input:checked::before{opacity:1}
+@media (prefers-reduced-motion:no-preference){
+  .practice-title input:checked::before,.mentor-accept input:checked::before{animation:check-draw var(--dur-base) var(--ease-out) backwards}
+}
+@keyframes check-draw{
+  0%{clip-path:inset(calc(100% - 2px) 100% 0 0)}
+  40%{clip-path:inset(calc(100% - 2px) 0 0 0)}
+  100%{clip-path:inset(0 0 0 0)}
+}
+
+/* Отклик на действие (--dur-base, --ease-out): знак ✓ / ✗ у ответа слегка увеличивается, пояснение, итог теста
+   и определение термина поднимаются на 4 px, «Скопировано» въезжает снизу; рамки карточек и ответов меняют цвет плавно */
+.card{transition:border-color var(--dur-fast) var(--ease-out)}
+@media (prefers-reduced-motion:no-preference){
+  .quiz-option:is(.is-correct,.is-wrong) .quiz-dot{animation:mark-pop var(--dur-base) var(--ease-out) backwards}
+  .quiz-explain,.quiz-result,.card-def{animation:rise-in var(--dur-base) var(--ease-out) backwards}
+  .copy-label{display:inline-block;animation:label-in var(--dur-base) var(--ease-out) backwards}
+}
+@keyframes mark-pop{from{transform:scale(.55)}}
+@keyframes rise-in{from{opacity:0;transform:translateY(-4px)}}
+@keyframes label-in{from{opacity:0;transform:translateY(6px)}}

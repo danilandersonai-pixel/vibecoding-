@@ -45,7 +45,9 @@ describe('части дня', () => {
     const quiz = part('quiz')
     const questions = quiz.getAllByTestId('quiz-question')
     expect(questions).toHaveLength(6)
-    expect(questions[0]).toHaveClass('paper')
+    // вопрос — строка на фоне страницы, без «бумаги»
+    expect(questions[0]).toHaveClass('quiz-question')
+    expect(questions[0]).not.toHaveClass('paper')
     expect(within(questions[0]).getByText('Вопрос 1 из 6')).toBeInTheDocument()
     expect(within(questions[5]).getByText('Вопрос 6 из 6')).toBeInTheDocument()
     expect(quiz.getByText('Верно: 0')).toBeInTheDocument()
@@ -81,6 +83,8 @@ describe('части дня', () => {
     for (const [i, q] of day.quiz.entries()) await user.click(within(questions[i]).getAllByRole('button')[q.correct])
     expect(quiz.getByText('Верно: 6')).toBeInTheDocument()
     expect(quiz.getByTestId('quiz-result')).toHaveTextContent('Результат: 6 из 6')
+    expect(quiz.getByTestId('quiz-result')).toHaveClass('quiz-result')
+    expect(quiz.getByTestId('quiz-result')).not.toHaveClass('paper')
 
     await user.click(quiz.getByRole('button', { name: 'Пройти заново' }))
     expect(quiz.getByText('Верно: 0')).toBeInTheDocument()
@@ -95,34 +99,57 @@ describe('части дня', () => {
     const practice = part('practice')
     const withPrompt = day.practice.filter((s) => s.prompt).length
     // Счёт шагов — один, справа в заголовке части
-    expect(practice.getAllByText(/^Сделано \d+ из \d+/)).toHaveLength(1)
-    expect(practice.getByText('Сделано 0 из 6 шагов').closest('.part-head')).not.toBeNull()
+    expect(practice.getAllByText(/^сделано \d+ из \d+/i)).toHaveLength(1)
+    expect(practice.getByText('сделано 0 из 6 шагов')).toHaveClass('part-extra')
+    expect(practice.getByText('сделано 0 из 6 шагов').closest('.part-head')).not.toBeNull()
     expect(practice.getAllByText('Запрос для Claude Code')).toHaveLength(withPrompt)
     expect(practice.getAllByRole('button', { name: 'Скопировать' })).toHaveLength(withPrompt)
     expect(practice.getAllByText('Готово, когда:')).toHaveLength(day.practice.length)
 
     const step = practice.getByRole('checkbox', { name: `Шаг 1. ${day.practice[0].title}` })
     const card = step.closest('li')!
-    expect(card).toHaveClass('paper')
+    expect(card).toHaveClass('practice-step')
+    expect(card).not.toHaveClass('paper')
     expect(card).not.toHaveClass('is-done')
     await user.click(step)
     expect(step).toBeChecked()
     expect(card).toHaveClass('is-done')
-    expect(practice.getByText('Сделано 1 из 6 шагов')).toBeInTheDocument()
+    expect(practice.getByText('сделано 1 из 6 шагов')).toBeInTheDocument()
     expect(practice.getByRole('checkbox', { name: `Шаг 6. ${day.practice[5].title}` })).not.toBeChecked()
   })
 
-  it('наставник: команда /mentor 1 с кнопкой «Скопировать»', () => {
+  it('наставник: вводная фраза над блоком терминала, в нём команда /mentor 1 с «Скопировать» и вывод проверок', () => {
     renderDay()
     const mentor = part('mentor')
-    const run = mentor.getByText('/mentor 1').closest('.mentor-run') as HTMLElement
-    expect(run).not.toBeNull()
-    expect(within(run).getByRole('button', { name: 'Скопировать' })).toHaveClass('copy-btn-cover')
+    const lead = mentor.getByText('Когда практика сделана, откройте проект приложения в Claude Code и запустите наставника:')
+    expect(lead).toHaveClass('mentor-lead')
+    const term = lead.nextElementSibling as HTMLElement
+    expect(term).toHaveClass('mentor-term')
+
+    // команда — в code, «$ » перед ней ставит CSS (для чтения с экрана — пусто)
+    const code = mentor.getByText('/mentor 1')
+    expect(code.tagName).toBe('CODE')
+    expect(code.textContent).toBe('/mentor 1')
+    expect(cssDecls('.mentor-command code::before').content).toBe('"$ "/""')
+    const command = code.closest('.mentor-command') as HTMLElement
+    expect(term.contains(command)).toBe(true)
+    const copy = within(command).getByRole('button', { name: 'Скопировать' })
+    expect(copy).toHaveClass('copy-btn', 'copy-btn-term')
+    expect(copy).not.toHaveClass('copy-btn-cover')
+
     const checks = mentor.getByRole('heading', { level: 3, name: 'Что он проверит' }).closest('.mentor-checks') as HTMLElement
-    expect(checks).toHaveClass('paper')
+    expect(term.contains(checks)).toBe(true)
+    expect(checks).not.toHaveClass('paper')
     for (const c of day.mentor.checklist) expect(within(checks).getByText(c.text)).toBeInTheDocument()
     expect(within(checks).getByRole('heading', { level: 3, name: 'О чём спросит' })).toBeInTheDocument()
-    expect(mentor.getByRole('checkbox', { name: 'Наставник принял день' })).not.toBeChecked()
+
+    // отметка «принял» — под блоком терминала, без «бумаги»
+    const accept = mentor.getByRole('checkbox', { name: 'Наставник принял день' })
+    expect(accept).not.toBeChecked()
+    const label = accept.closest('label')!
+    expect(label).toHaveClass('mentor-accept')
+    expect(label).not.toHaveClass('paper')
+    expect(term.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('карточки терминов: кнопки «Знаю» и «Повторить» внутри своей карточки', async () => {

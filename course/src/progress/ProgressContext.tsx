@@ -1,6 +1,7 @@
 import { useCallback, useMemo, type ReactNode } from 'react'
+import { getDays } from '../content/load'
 import { CourseProgressContext } from './courseProgress'
-import { touchStreak, type Progress } from './model'
+import { stampCompleted, touchStreak, type Progress } from './model'
 import { useProgress } from './useProgress'
 
 function today(): string {
@@ -9,14 +10,14 @@ function today(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-// Любое действие в курсе продлевает серию дней подряд.
+// Любое действие в курсе продлевает серию дней подряд и ставит время зачёта дню, который стал пройден.
 export function ProgressProvider({ children }: { children: ReactNode }) {
   const { progress, update, storeKind } = useProgress()
   const act = useCallback(
     (fn: (p: Progress) => Progress) =>
       update((p) => {
         const next = fn(p)
-        return next === p ? p : touchStreak(next, today())
+        return next === p ? p : touchStreak(stampCompleted(next, getDays(), new Date().toISOString()), today())
       }),
     [update],
   )

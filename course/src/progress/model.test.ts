@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DaySchema } from '../content/schema'
 import fixture from '../content/fixtures/valid-day.json'
-import { dayStatus, emptyProgress, markStep, mergeProgress, parseProgress, recordQuiz, setMentorAccepted, touchStreak } from './model'
+import { dayStatus, emptyProgress, markStep, mergeProgress, parseProgress, recordQuiz, setMentorAccepted, stampCompleted, touchStreak } from './model'
 
 const day = DaySchema.parse(fixture)
 
@@ -45,6 +45,33 @@ describe('состояние дня', () => {
   it('тест ниже 80 % — ещё в процессе', () => {
     const p = setMentorAccepted(recordQuiz(allSteps(), day.id, {}, 3, 5), day.id, true)
     expect(dayStatus(p, day)).toBe('in-progress')
+  })
+})
+
+describe('время зачёта дня', () => {
+  const done = () => setMentorAccepted(recordQuiz(day.practice.reduce((acc, s) => markStep(acc, day.id, s.id, true), emptyProgress()), day.id, {}, 5, 5), day.id, true)
+  const T1 = '2026-10-20T19:00:00.000Z'
+  const T2 = '2026-10-21T08:00:00.000Z'
+
+  it('пройденный день получает время зачёта', () => {
+    expect(stampCompleted(done(), [day], T1).days[day.id].completedAt).toBe(T1)
+  })
+  it('уже стоящее время не меняется', () => {
+    const p = stampCompleted(done(), [day], T1)
+    expect(stampCompleted(p, [day], T2).days[day.id].completedAt).toBe(T1)
+  })
+  it('день в процессе времени не получает', () => {
+    const p = markStep(emptyProgress(), day.id, day.practice[0].id, true)
+    expect(stampCompleted(p, [day], T1).days[day.id].completedAt).toBeUndefined()
+  })
+  it('снятая отметка убирает время, повторный зачёт ставит новое', () => {
+    const undone = stampCompleted(setMentorAccepted(stampCompleted(done(), [day], T1), day.id, false), [day], T2)
+    expect(undone.days[day.id].completedAt).toBeUndefined()
+    expect(stampCompleted(setMentorAccepted(undone, day.id, true), [day], T2).days[day.id].completedAt).toBe(T2)
+  })
+  it('без изменений возвращает тот же объект', () => {
+    const p = markStep(emptyProgress(), day.id, day.practice[0].id, true)
+    expect(stampCompleted(p, [day], T1)).toBe(p)
   })
 })
 

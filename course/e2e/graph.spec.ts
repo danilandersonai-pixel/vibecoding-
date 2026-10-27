@@ -239,52 +239,74 @@ for (const width of [390, 320]) {
   })
 }
 
-// Телефон: у «Графа» в верхней строке главной и в шапке дня только значок — нажатие 44 × 44, имя «Граф»
+// Телефон: у «Графа» в боковой панели (на главной и в дне она — строка сверху) только значок — нажатие 44 × 44, имя «Граф»
 test('на 390 px «Граф» — значок, нажатие 44 × 44', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  for (const [url, where] of [['/', 'navigation'], ['/#/day/1', 'banner']] as const) {
+  for (const [url, where, title] of [['/', 'navigation', 'Своё приложение с ИИ за 21 день'], ['/#/day/1', 'banner', 'Азбука и знакомство с моделями']] as const) {
     await page.goto(url)
+    // смена экрана идёт переходом браузера — мерить, когда страница уже открыта
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
     const scope = where === 'navigation' ? page.getByRole('navigation', { name: 'Разделы' }) : page.getByRole('banner')
     const box = (await scope.getByRole('button', { name: 'Граф' }).boundingBox())!
     expect([box.width >= 44 && box.width < 60, box.height >= 44]).toEqual([true, true])
   }
 })
 
-// Верхняя строка главной со знаком, «Поиском», «Графом», «Картой» и «Книгой» — в один ряд на всех телефонах:
-// до 420 px название курса скрыто визуально (знак «В» остаётся, название читается с экрана)
-for (const width of [320, 360, 375, 390, 414]) {
+// До 960 px боковая панель — строка сверху: название и разделы в один ряд, без прокрутки вбок.
+// Видны «Карта», значки «Поиск» и «Граф», «Книга» и значок темы; «Сегодня» скрыто до 960 px, переключатель темы — до 420 px.
+// Скрытые пункты в проверку ряда не входят (у них нет рамки), но проверяется, что скрыты именно они
+for (const width of [320, 360, 375, 390, 414, 640, 768, 960]) {
   test(`на ${width} px верхняя строка главной — в один ряд, без прокрутки вбок`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 })
     await page.goto('/')
-    const center = async (name: string) => {
-      const box = (await page.locator(name).boundingBox())!
-      return box.y + box.height / 2
-    }
-    const brand = await center('.sitebar-brand')
+    const brand = (await page.locator('.sitebar-brand').boundingBox())!
+    const middle = brand.y + brand.height / 2
     const links = page.getByRole('navigation', { name: 'Разделы' })
+    const shown: string[] = []
+    const hidden: string[] = []
     for (const item of await links.locator(':scope > *').all()) {
+      const name = (await item.textContent())!.replace(/\s+/g, ' ').trim()
+      if (!(await item.isVisible())) {
+        hidden.push(name)
+        continue
+      }
+      shown.push(name)
       const box = (await item.boundingBox())!
-      expect(Math.abs(box.y + box.height / 2 - brand)).toBeLessThan(4)
+      expect(Math.abs(box.y + box.height / 2 - middle), name).toBeLessThan(4)
+      expect(box.height, name).toBeGreaterThanOrEqual(44)
     }
+    expect(shown).toEqual(['Карта курса', 'Поиск', 'Граф', 'Книга', ...(width > 420 ? ['Светлая тема'] : [])])
+    expect(hidden).toEqual(['Сегодня день 01', ...(width > 420 ? [] : ['Светлая тема'])])
+    // у «Поиска», «Графа» и темы — только значки; подпись «курса» и подписи значков остаются для чтения с экрана
+    for (const name of ['Поиск', 'Граф', ...(width > 420 ? ['Светлая тема'] : [])]) {
+      const box = (await links.getByRole('button', { name }).boundingBox())!
+      expect(box.width, name).toBeGreaterThanOrEqual(44)
+      expect(box.width, name).toBeLessThan(60)
+    }
+    await expect(links.getByRole('link', { name: 'Карта курса' })).toBeVisible()
+    // прогресс в строке скрыт
+    await expect(page.getByRole('region', { name: 'Прогресс' })).toBeHidden()
     expect(await overflows(page)).toBe(false)
-    await expect(page.getByText('Вайб-курс', { exact: true })).toBeAttached()
+    await expect(page.getByText('Вайб-курс', { exact: true })).toBeVisible()
   })
 }
 
-test('тёмная тема: экран открывается без ошибок, смена темы при открытом графе — тоже', async ({ page }) => {
+test('тема: по умолчанию тёмная и от системы не зависит; светлая — по data-theme, смена при открытом графе без ошибок', async ({ page }) => {
   const errors = problems(page)
-  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.emulateMedia({ colorScheme: 'light' })
   await page.goto('/#/graph/term%3A1')
   await expect(cardTitle(page)).toHaveText('Агент')
   // цвет частей и глав на рисунке — переменная темы (сборка пишет цвета строчными)
   const ink = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--graph-book').trim().toUpperCase())
-  expect(await ink()).toBe('#E5B54A')
-  await page.emulateMedia({ colorScheme: 'light' })
-  expect(await ink()).toBe('#A86B00')
-  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'))
-  expect(await ink()).toBe('#E5B54A')
+  expect(await ink()).toBe('#8AA9F0')
+  await page.emulateMedia({ colorScheme: 'dark' })
+  expect(await ink()).toBe('#8AA9F0')
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'))
+  expect(await ink()).toBe('#3555B8')
   await pick(page, 'Код', /^Код Термин$/)
   await expect(cardTitle(page)).toHaveText('Код')
+  await page.evaluate(() => document.documentElement.removeAttribute('data-theme'))
+  expect(await ink()).toBe('#8AA9F0')
   expect(errors).toEqual([])
 })
 

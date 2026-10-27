@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
+import { transitionsAvailable, withViewTransition, type TransitionKind } from './motion'
 
 export type Route = { name: 'map' } | { name: 'day'; n: number } | { name: 'graph'; node?: string }
 
@@ -50,15 +52,42 @@ export function onNavigation(listener: (hash: string) => void): () => void {
   }
 }
 
+const sameRoute = (a: Route, b: Route) => JSON.stringify(a) === JSON.stringify(b)
+
+// Какой переход показать между экранами: листание дня — вперёд или назад, смена раздела — page.
+// Смена узла внутри графа и тот же экран — без перехода (null)
+export function transitionKind(from: Route, to: Route): TransitionKind | null {
+  if (from.name === 'day' && to.name === 'day') return to.n === from.n ? null : to.n > from.n ? 'forward' : 'back'
+  return from.name === to.name ? null : 'page'
+}
+
+// Текущий маршрут. Смена экрана идёт внутри перехода браузера (withViewTransition): прокрутка в начало
+// и новая страница — уже под снимком старой. Повторное событие о том же адресе (navigate шлёт своё,
+// затем приходит hashchange) только сбрасывает прокрутку, как раньше
 export function useRoute(): Route {
   const [route, setRoute] = useState(() => parseRoute(window.location.hash))
+  // Последний запрошенный маршрут: переход браузера применяет его не сразу, а события могут прийти раньше
+  const wanted = useRef(route)
   useEffect(
     () =>
       onNavigation((hash) => {
-        setRoute((cur) => {
-          const next = parseRoute(hash)
-          return JSON.stringify(next) === JSON.stringify(cur) ? cur : next
-        })
+        const next = parseRoute(hash)
+        const from = wanted.current
+        if (sameRoute(next, from)) {
+          window.scrollTo(0, 0)
+          return
+        }
+        wanted.current = next
+        const kind = transitionKind(from, next)
+        // flushSync — только внутри перехода (его обработчик идёт отдельной задачей): navigate бывает и из эффектов
+        if (kind && transitionsAvailable()) {
+          withViewTransition(kind, () => {
+            window.scrollTo(0, 0)
+            flushSync(() => setRoute(next))
+          })
+          return
+        }
+        setRoute(next)
         window.scrollTo(0, 0)
       }),
     [],

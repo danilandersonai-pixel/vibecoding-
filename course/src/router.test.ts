@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { navigate, parseRoute, useRoute } from './router'
+import { navigate, parseRoute, transitionKind, useRoute } from './router'
 
 describe('parseRoute', () => {
   it('открывает день по номеру', () => {
@@ -47,6 +47,43 @@ describe('navigate', () => {
     act(() => navigate('#/graph/term%3A3', { replace: true }))
     await waitFor(() => expect(result.current).toEqual({ name: 'graph', node: 'term:3' }))
     replace.mockRestore()
+    window.location.hash = ''
+  })
+})
+
+describe('transitionKind', () => {
+  it('листание дней: дальше — вперёд, раньше — назад, тот же день — без перехода', () => {
+    expect(transitionKind({ name: 'day', n: 3 }, { name: 'day', n: 4 })).toBe('forward')
+    expect(transitionKind({ name: 'day', n: 4 }, { name: 'day', n: 1 })).toBe('back')
+    expect(transitionKind({ name: 'day', n: 4 }, { name: 'day', n: 4 })).toBeNull()
+  })
+  it('смена раздела — page; смена узла внутри графа — без перехода', () => {
+    expect(transitionKind({ name: 'map' }, { name: 'day', n: 1 })).toBe('page')
+    expect(transitionKind({ name: 'day', n: 1 }, { name: 'graph' })).toBe('page')
+    expect(transitionKind({ name: 'graph', node: 'a' }, { name: 'graph', node: 'b' })).toBeNull()
+  })
+})
+
+describe('useRoute и переход браузера', () => {
+  it('листание дней идёт внутри перехода с нужным видом; повтор того же адреса перехода не запускает', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: false, media: q, addEventListener() {}, removeEventListener() {} }))
+    const kinds: (string | undefined)[] = []
+    const start = vi.fn((update: () => void) => {
+      kinds.push(document.documentElement.dataset.transition)
+      update()
+      return { finished: Promise.resolve() }
+    })
+    ;(document as unknown as { startViewTransition?: unknown }).startViewTransition = start
+    const { result } = renderHook(() => useRoute())
+    act(() => navigate('#/day/2'))
+    expect(result.current).toEqual({ name: 'day', n: 2 })
+    act(() => navigate('#/day/5'))
+    act(() => navigate('#/day/3'))
+    act(() => navigate('#/day/3'))
+    expect(result.current).toEqual({ name: 'day', n: 3 })
+    expect(kinds).toEqual(['page', 'forward', 'back'])
+    Reflect.deleteProperty(document, 'startViewTransition')
+    vi.unstubAllGlobals()
     window.location.hash = ''
   })
 })

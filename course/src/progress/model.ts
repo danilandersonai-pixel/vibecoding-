@@ -96,6 +96,26 @@ export function dayStatus(p: Progress, day: Day): DayStatus {
   return touched ? 'in-progress' : 'not-started'
 }
 
+// Время зачёта: день, который стал «пройден», получает completedAt; день, с которого сняли отметку, теряет его,
+// чтобы повторное прохождение дало новый хеш на карте. Уже стоящее время не меняется.
+export function stampCompleted(p: Progress, days: Day[], at: string): Progress {
+  let out = p
+  for (const day of days) {
+    const d = out.days[day.id]
+    if (!d) continue
+    const done = dayStatus(out, day) === 'done'
+    if (done && !d.completedAt) out = withDay(out, day.id, (x) => ({ ...x, completedAt: at }))
+    else if (!done && d.completedAt) {
+      out = withDay(out, day.id, (x) => {
+        const { completedAt: _drop, ...rest } = x
+        void _drop
+        return rest
+      })
+    }
+  }
+  return out
+}
+
 function orFlags(a: Record<string, boolean>, b: Record<string, boolean>): Record<string, boolean> {
   const out = { ...a }
   for (const [k, v] of Object.entries(b)) out[k] = Boolean(out[k]) || v

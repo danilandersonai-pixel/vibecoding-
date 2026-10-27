@@ -1,9 +1,11 @@
-import { IconVideo } from '../components/icons'
+import type { CSSProperties } from 'react'
 import { RouteLink } from '../components/RouteLink'
 import { getDays, getWeeks } from '../content/load'
 import type { Day } from '../content/schema'
+import { commitHash } from '../course/commitHash'
 import { currentDay } from '../course/currentDay'
 import { dayVideoSummary, plural, readinessLine } from '../course/summary'
+import { useReveal } from '../motion'
 import { dayStatus, type Progress } from '../progress/model'
 
 type Mark = 'done' | 'now' | 'ahead'
@@ -11,10 +13,15 @@ type Mark = 'done' | 'now' | 'ahead'
 const MARKS: Mark[] = ['done', 'now', 'ahead']
 const LABEL: Record<Mark, string> = { done: 'пройден', now: 'сейчас', ahead: 'впереди' }
 
-// Карта «Путь от идеи до запуска»: три недели, в каждой семь дней на линии пути.
-// «Сейчас» — текущий день (первый непройденный), остальные непройденные — «впереди».
+// Карта «Путь от идеи до запуска» — как git log: линия ветки слева, недели — отметки на ней, дни — коммиты.
+// Пройденный день — точка, короткий хеш и зелёная ✓; «сейчас» — строка-инверсия с HEAD (первый непройденный день);
+// впереди — пустой кружок. Строка дня — ссылка в день.
+// При первом показе линия ветки прорисовывается сверху вниз, дни появляются по очереди (--i), строка HEAD заливается
+// инверсией, когда линия до неё доходит (useReveal, home.css)
 export function RouteMap({ progress }: { progress: Progress }) {
+  const log = useReveal<HTMLDivElement>()
   const days = getDays()
+  const order = (day: Day) => ({ '--i': days.indexOf(day) }) as CSSProperties
   const state = currentDay(progress, days)
   const markOf = (day: Day): Mark =>
     dayStatus(progress, day) === 'done' ? 'done' : !state.allDone && day.number === state.n ? 'now' : 'ahead'
@@ -22,16 +29,12 @@ export function RouteMap({ progress }: { progress: Progress }) {
   return (
     <section id="map" className="route" aria-labelledby="map-title">
       <div className="route-head">
-        <div className="route-heading">
-          <p className="kicker route-kicker">Карта курса</p>
-          <h2 id="map-title" className="route-title">
-            Путь от идеи до запуска
-          </h2>
-        </div>
+        <h2 id="map-title" className="route-title">
+          Путь от идеи до запуска
+        </h2>
         <ul className="route-legend" aria-label="Обозначения">
           {MARKS.map((m) => (
-            <li key={m}>
-              <span className={`route-dot is-${m}`} aria-hidden="true" />
+            <li key={m} className={`route-legend-${m}`}>
               {LABEL[m]}
             </li>
           ))}
@@ -39,15 +42,14 @@ export function RouteMap({ progress }: { progress: Progress }) {
       </div>
       <p className="route-ready">{readinessLine(days)}</p>
 
-      <div className="route-weeks">
+      <div ref={log} className="route-log">
         {getWeeks().map((week) => (
-          <section key={week.number} className="paper route-week">
-            <div className="route-week-info">
-              <p className="route-week-num" aria-hidden="true">
-                {String(week.number).padStart(2, '0')}
-              </p>
-              <p className="kicker">Неделя {week.number}</p>
-              <h3 className="route-week-title">{week.title}</h3>
+          <section key={week.number} className="route-week" aria-labelledby={`week-${week.number}`}>
+            <div className="route-week-head" style={order(days.find((d) => d.week === week.number) ?? days[0])}>
+              <p className="route-week-num">{`неделя ${week.number}`}</p>
+              <h3 id={`week-${week.number}`} className="route-week-title">
+                {week.title}
+              </h3>
               <p className="route-week-result">{week.result}</p>
             </div>
             <ol className="route-days">
@@ -56,19 +58,20 @@ export function RouteMap({ progress }: { progress: Progress }) {
                 .map((day) => {
                   const m = markOf(day)
                   const videos = dayVideoSummary(day).count
+                  const hash = m === 'done' ? commitHash(day.id, progress.days[day.id]?.completedAt) : m === 'now' ? 'HEAD' : ''
                   return (
-                    <li key={day.number} className={`route-day is-${m}`}>
-                      <span className={`route-dot is-${m}`} aria-hidden="true" />
+                    <li key={day.number} className={`route-day is-${m}`} style={order(day)}>
                       <RouteLink to={`#/day/${day.number}`} className="route-row" testId="day-card">
-                        <span className="route-row-num">День {day.number}</span>
+                        <span className="route-hash" aria-hidden="true">
+                          {hash}
+                        </span>
+                        <span className="route-row-num">{`день ${String(day.number).padStart(2, '0')}`}</span>
                         <span className="route-row-title">{day.title}</span>
-                        {videos > 0 && (
-                          <span className="route-row-video">
-                            <IconVideo size={16} />
-                            {`${videos} ${plural(videos, 'ролик', 'ролика', 'роликов')}`}
-                          </span>
-                        )}
-                        {m !== 'ahead' && <span className={`route-mark is-${m}`}>{LABEL[m]}</span>}
+                        <span className="route-row-video">{videos > 0 ? `${videos} ${plural(videos, 'ролик', 'ролика', 'роликов')}` : ''}</span>
+                        <span className={`route-mark is-${m}`}>
+                          {m === 'done' && <span aria-hidden="true">✓ </span>}
+                          {m === 'ahead' ? '' : LABEL[m]}
+                        </span>
                       </RouteLink>
                     </li>
                   )

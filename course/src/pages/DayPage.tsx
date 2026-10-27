@@ -5,11 +5,12 @@ import { Practice } from '../blocks/Practice'
 import { Quiz } from '../blocks/Quiz'
 import { BlockView } from '../components/BlockView'
 import { RouteLink } from '../components/RouteLink'
+import { Shell } from '../components/Shell'
 import { getDay } from '../content/load'
 import type { Block, Day } from '../content/schema'
 import { dayParts, type PartId } from '../course/dayParts'
 import { plural } from '../course/summary'
-import { DayHeader } from '../day/DayHeader'
+import { DayBar, DayHeader } from '../day/DayHeader'
 import { DayToc } from '../day/DayToc'
 import { DraftNotice } from '../day/DraftNotice'
 import { NextDayCard } from '../day/NextDayCard'
@@ -74,11 +75,11 @@ function stepsLine(day: Day, progress: Progress): string {
   const steps = progress.days[day.id]?.steps ?? {}
   const done = day.practice.filter((s) => steps[s.id]).length
   const total = day.practice.length
-  return `Сделано ${done} из ${total} ${plural(total, 'шага', 'шагов', 'шагов')}`
+  return `сделано ${done} из ${total} ${plural(total, 'шага', 'шагов', 'шагов')}`
 }
 
-// Страница дня: синяя шапка во всю ширину, под ней план дня и части — только те, где есть содержание;
-// вместо пустых частей одна карточка «Остальное готовится», в конце — «Следующий день».
+// Страница дня в оболочке курса: строка пути и стрелок, справа — план дня, слева — шапка дня («Зачем сегодня»)
+// и части — только те, где есть содержание; вместо пустых частей одна строка «Остальное готовится», в конце — «Следующий день».
 // Пришли из поиска — после отрисовки страница прокручивается к найденному месту
 export function DayPage({ n }: { n: number }) {
   const { progress } = useCourseProgress()
@@ -86,26 +87,29 @@ export function DayPage({ n }: { n: number }) {
   const day = getDay(n)
   if (!day) {
     return (
-      <main className="day-cover">
-        <div className="day-wrap day-cover-inner">
+      <Shell current="day">
+        <main className="page day-missing">
           <h1 className="day-title">День не найден</h1>
           <p>
-            <RouteLink to="#/" className="btn btn-cover next-day-btn">
+            <RouteLink to="#/" className="btn btn-primary next-day-btn">
               К карте
             </RouteLink>
           </p>
-        </div>
-      </main>
+        </main>
+      </Shell>
     )
   }
   const parts = dayParts(day, progress)
   const missing = parts.filter((p) => !p.available).map((p) => p.id)
   return (
-    <>
-      <DayHeader day={day} />
-      <div className="day-wrap day-layout">
-        <DayToc parts={parts} showProgress={day.status !== 'draft'} />
+    <Shell current="day">
+      <DayBar day={day} />
+      <div className="day-layout">
+        <aside className="day-aside">
+          <DayToc parts={parts} showProgress={day.status !== 'draft'} />
+        </aside>
         <main className="day-main">
+          <DayHeader day={day} />
           {parts.map(
             (p, i) =>
               p.available &&
@@ -120,6 +124,6 @@ export function DayPage({ n }: { n: number }) {
           <NextDayCard day={day} />
         </main>
       </div>
-    </>
+    </Shell>
   )
 }

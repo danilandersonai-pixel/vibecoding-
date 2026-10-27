@@ -40,11 +40,15 @@ describe('summary', () => {
   })
 
   it('состав дня 1', () => {
-    expect(daySummaryLine(days[0])).toBe('2 видеоурока · 8:42 · тест · 6 шагов практики')
+    expect(daySummaryLine(days[0])).toBe('2 видеоурока (8:42), тест, 6 шагов практики')
   })
 
   it('состав чернового дня 4', () => {
-    expect(daySummaryLine(days[3])).toBe('1 видеоурок · 3:23')
+    expect(daySummaryLine(days[3])).toBe('1 видеоурок (3:23)')
+  })
+
+  it('состав дня без роликов — без скобок, части через запятую', () => {
+    expect(daySummaryLine(makeDay(4, 'draft', false))).toBe('тест, 1 шаг практики')
   })
 
   it('строка готовности: готов день 1, черновики 2–21 с роликами', () => {
