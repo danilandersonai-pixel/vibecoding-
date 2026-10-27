@@ -1,41 +1,35 @@
-/* Цветовые токены и шрифты книги «Вайб-кодинг на практике». От книги отличаются: светлый фон страницы, цвета обложки и блока кода во всех темах, скругления и ширина содержимого.
-   --scrim — затемнение под окном поиска: темнит страницу в обеих темах (в тёмной --ink светлый, а --term-bg светлее фона и бумаги) */
+/* Токены курса «Вайб-курс»: курс — репозиторий вашего приложения, дни — коммиты. Монохром: цвет есть только у состояний,
+   как в диффе (--fig-ok — сделано и верно, --fig-risk — ошибка, --warn — готовится и «повторить»). Главная тема — тёмная (:root),
+   светлая включается переключателем: data-theme="light" на <html>. Системная настройка тему не меняет.
+   --accent — это цвет текста: главное действие, текущее место и рамка фокуса — инверсией, без отдельного цвета.
+   Тёмный блок запроса (--term-*) одинаков в обеих темах: терминал всегда тёмный.
+   --graph-book — единственный «лишний» цвет: части и главы на графе знаний, чтобы отличались от видеоуроков (--warn).
+   --scrim — затемнение под окном поиска, --shadow-raised — только у всплывающего (окно поиска, списки, панель графа) */
 :root{
-  --desk:#F4F2EC; --desk-ink:#24272D; --desk-soft:#5D626B;
-  --paper:#FBFAF6; --paper-edge:#DEDBD2; --ink:#1C1E22; --ink-soft:#5B606A; --rule:#DAD7CE;
-  --accent:#2B3FBF; --accent-ink:#2B3FBF; --tint:rgba(43,63,191,.075); --code-bg:#EFEEE8; --warn:#AE3F1C;
-  --cover-bg:#1D2B8F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E; --cover-accent:#8D9CFF;
-  --term-bg:#1F2228; --term-ink:#E8E5DD; --term-soft:#A4A8B0; --term-edge:#3A3E46;
-  --fig-ink:#1C1E22; --fig-soft:#5B606A; --fig-line:#A3A196; --fig-grid:#D4D1C7; --fig-zone:rgba(28,30,34,.035); --fig-risk:#C4432C;
-  --fig-ok:#2E7D5B; --fig-on:#FFFFFF; --graph-book:#A86B00;
-  --shadow-raised:0 26px 50px -28px rgba(18,22,40,.55),0 6px 14px -8px rgba(18,22,40,.25);
-  --scrim:rgba(28,30,34,.4);
-  --radius-xl:20px; --radius-l:16px; --radius-m:14px; --radius-s:10px; --content:1200px;
-  --font-body:'Literata',Georgia,'Times New Roman',serif;
-  --font-ui:'Onest','Segoe UI',Roboto,Arial,sans-serif;
-  --font-code:'JetBrains Mono',Menlo,Consolas,'Courier New',monospace;
+  --desk:#141619; --desk-ink:#E9EBEE; --desk-soft:#A3A9B1;
+  --paper:#1A1D21; --paper-edge:#2B3036; --raised:#22262B; --ink:#E9EBEE; --ink-soft:#A3A9B1; --ink-faint:#868D96;
+  --rule:#2B3036; --edge:#69707A;
+  --accent:#E9EBEE; --accent-ink:#E9EBEE; --tint:rgba(233,235,238,.07); --code-bg:#22262B; --warn:#E3B45C;
+  --term-bg:#0F1113; --term-ink:#E9EBEE; --term-soft:#A3A9B1; --term-edge:#33383F; --term-ok:#5BC78F; --term-err:#F07C70;
+  --fig-ink:#E9EBEE; --fig-soft:#A3A9B1; --fig-line:#7A818A; --fig-grid:#3A4048; --fig-zone:rgba(255,255,255,.035); --fig-risk:#F07C70;
+  --fig-ok:#5BC78F; --fig-on:#141619; --graph-book:#8AA9F0;
+  --shadow-raised:0 24px 48px -20px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.05);
+  --scrim:rgba(0,0,0,.6);
+  --radius-xl:8px; --radius-l:6px; --radius-m:4px; --radius-s:3px; --content:1200px; --sidebar:248px;
+  --font-body:'Golos Text',system-ui,'Segoe UI',Roboto,Arial,sans-serif;
+  --font-ui:'Martian Mono',ui-monospace,Menlo,Consolas,'Courier New',monospace;
+  --font-code:'Martian Mono',ui-monospace,Menlo,Consolas,'Courier New',monospace;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --desk:#111317; --desk-ink:#DCDDE1; --desk-soft:#9A9EA7;
-  --paper:#1F2228; --paper-edge:#30343B; --ink:#E8E5DD; --ink-soft:#A4A8B0; --rule:#3A3E46;
-  --accent:#8D9CFF; --accent-ink:#A8B3FF; --tint:rgba(141,156,255,.12); --code-bg:#2A2D34; --warn:#F18D6B;
-  --cover-bg:#18236F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E; --cover-accent:#8D9CFF;
-  --term-bg:#2A2D34; --term-ink:#E8E5DD; --term-soft:#A4A8B0; --term-edge:#3A3E46;
-  --fig-ink:#E8E5DD; --fig-soft:#A4A8B0; --fig-line:#767A83; --fig-grid:#3C4048; --fig-zone:rgba(255,255,255,.035); --fig-risk:#F2765E;
-  --fig-ok:#5CC49A; --fig-on:#1B1D24; --graph-book:#E5B54A;
-  --shadow-raised:0 26px 50px -24px rgba(0,0,0,.85),0 6px 14px -8px rgba(0,0,0,.6);
-  --scrim:rgba(0,0,0,.55);
-  color-scheme:dark;
-}}
-:root[data-theme="dark"]{
-  --desk:#111317; --desk-ink:#DCDDE1; --desk-soft:#9A9EA7;
-  --paper:#1F2228; --paper-edge:#30343B; --ink:#E8E5DD; --ink-soft:#A4A8B0; --rule:#3A3E46;
-  --accent:#8D9CFF; --accent-ink:#A8B3FF; --tint:rgba(141,156,255,.12); --code-bg:#2A2D34; --warn:#F18D6B;
-  --cover-bg:#18236F; --cover-ink:#F4F5FF; --cover-soft:#B2BAF0; --cover-add:#90E4BE; --cover-del:#FFAD9E; --cover-accent:#8D9CFF;
-  --term-bg:#2A2D34; --term-ink:#E8E5DD; --term-soft:#A4A8B0; --term-edge:#3A3E46;
-  --fig-ink:#E8E5DD; --fig-soft:#A4A8B0; --fig-line:#767A83; --fig-grid:#3C4048; --fig-zone:rgba(255,255,255,.035); --fig-risk:#F2765E;
-  --fig-ok:#5CC49A; --fig-on:#1B1D24; --graph-book:#E5B54A;
-  --shadow-raised:0 26px 50px -24px rgba(0,0,0,.85),0 6px 14px -8px rgba(0,0,0,.6);
-  --scrim:rgba(0,0,0,.55);
-  color-scheme:dark;
+:root[data-theme="light"]{
+  --desk:#F6F6F4; --desk-ink:#16181B; --desk-soft:#565B62;
+  --paper:#FFFFFF; --paper-edge:#E1E2DE; --raised:#ECECE9; --ink:#16181B; --ink-soft:#565B62; --ink-faint:#646970;
+  --rule:#E1E2DE; --edge:#80858C;
+  --accent:#16181B; --accent-ink:#16181B; --tint:rgba(22,24,27,.06); --code-bg:#ECECE9; --warn:#875800;
+  --term-bg:#17191C; --term-ink:#E9EBEE; --term-soft:#A3A9B1; --term-edge:#3A4048; --term-ok:#5BC78F; --term-err:#F07C70;
+  --fig-ink:#16181B; --fig-soft:#565B62; --fig-line:#A3A6A0; --fig-grid:#D9DAD6; --fig-zone:rgba(22,24,27,.035); --fig-risk:#B63A2B;
+  --fig-ok:#1D7A4C; --fig-on:#FFFFFF; --graph-book:#3555B8;
+  --shadow-raised:0 24px 48px -24px rgba(22,24,27,.35),0 0 0 1px rgba(22,24,27,.06);
+  --scrim:rgba(22,24,27,.45);
+  color-scheme:light;
 }

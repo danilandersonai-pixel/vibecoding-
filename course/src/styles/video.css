@@ -1,10 +1,10 @@
 /* Плеер роликов: кадр, под ним панель, название и строка «м:сс · N пояснений по нажатию» */
 .video{display:flex;flex-direction:column;gap:10px;margin:22px 0;font-family:var(--font-ui)}
 .video-screen{display:flex;flex-direction:column;gap:4px}
-/* Кадр — «приподнятая» обложка. Фон — бумага самих роликов: они всегда в светлой теме книги */
-.video-stage{position:relative;border:1px solid var(--paper-edge);border-radius:var(--radius-l);overflow:hidden;background:#FBFAF6;box-shadow:var(--shadow-raised)}
-.video-title{margin:4px 0 0;font:700 18px/1.3 var(--font-ui);letter-spacing:-.01em;overflow-wrap:break-word}
-.video-meta{margin:-4px 0 0;color:var(--ink-soft);font:400 14px/1.4 var(--font-ui)}
+/* Кадр — рамка 1 px без тени. Фон — бумага самих роликов: они всегда в светлой теме книги */
+.video-stage{position:relative;border:1px solid var(--paper-edge);border-radius:var(--radius-l);overflow:hidden;background:#FBFAF6}
+.video-title{margin:4px 0 0;font:600 16px/1.35 var(--font-body);overflow-wrap:break-word}
+.video-meta{margin:-4px 0 0;color:var(--ink-soft);font:400 12px/1.5 var(--font-ui)}
 
 /* Сетка роликов теории: два в ряд, одинокий ролик — во всю ширину */
 .video-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 20px;margin:22px 0}
@@ -15,30 +15,30 @@
 
 /* Обложка до первого запуска: затемнение снизу, круглая ▶ по центру, номер ролика и длительность внизу.
    Затемнение лёгкое, как в макете, — схема видна до низа кадра; субтитров на обложке нет (SubtitlesShown в VideoBlock).
-   Метки — на синих плашках: на светлом кадре под затемнением 55 % светлому тексту не хватило бы контраста.
+   Метки — на тёмных ярлычках цвета терминала: на светлом кадре светлому тексту без подложки не хватило бы контраста.
    Рамка фокуса — у круга: светлая на тёмной подложке, видна и на светлом кадре, и на затемнении */
-.video-cover{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;border-radius:0;background:linear-gradient(180deg,transparent 40%,color-mix(in srgb,var(--cover-bg) 55%,transparent) 100%);color:var(--cover-ink);font-family:var(--font-ui)}
+.video-cover{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;border-radius:0;background:linear-gradient(180deg,transparent 45%,color-mix(in srgb,var(--term-bg) 40%,transparent) 100%);color:var(--term-ink);font-family:var(--font-ui)}
 .video-cover:focus-visible{outline:none}
-.video-cover-play{position:absolute;left:50%;top:50%;display:flex;align-items:center;justify-content:center;width:76px;height:76px;margin:-38px 0 0 -38px;border-radius:50%;background:var(--cover-ink);color:var(--cover-bg);box-shadow:var(--shadow-raised);transition:transform .2s ease-out}
+.video-cover-play{position:absolute;left:50%;top:50%;display:flex;align-items:center;justify-content:center;width:68px;height:68px;margin:-34px 0 0 -34px;border-radius:50%;background:var(--term-bg);color:var(--term-ink);transition:transform .2s ease-out}
 .video-cover:hover .video-cover-play{transform:scale(1.06)}
-.video-cover:focus-visible .video-cover-play{outline:3px solid var(--cover-ink);outline-offset:3px;box-shadow:0 0 0 3px var(--cover-bg),0 0 0 9px color-mix(in srgb,var(--cover-bg) 45%,transparent)}
-.video-cover-label,.video-cover-time{position:absolute;bottom:12px;padding:6px 10px;border-radius:999px;background:color-mix(in srgb,var(--cover-bg) 75%,transparent);color:var(--cover-ink);font:600 13px/1 var(--font-ui)}
+.video-cover:focus-visible .video-cover-play{outline:3px solid var(--term-bg);outline-offset:3px;box-shadow:0 0 0 3px #FBFAF6}
+.video-cover-label,.video-cover-time{position:absolute;bottom:12px;padding:6px 8px;border-radius:var(--radius-s);background:color-mix(in srgb,var(--term-bg) 88%,transparent);color:var(--term-ink);font:500 12px/1 var(--font-ui)}
 .video-cover-label{left:12px}
 .video-cover-time{right:12px;font-family:var(--font-code)}
 
 /* Конец ролика: поверх последнего кадра — «Смотреть ещё раз» и «Дальше» */
-.video-end{position:absolute;inset:0;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:12px;padding:16px;background:color-mix(in srgb,var(--cover-bg) 72%,transparent)}
-.video-end .btn{min-height:48px;padding:0 20px;font:700 15px/1.2 var(--font-ui)}
-.video-end-next,.video-end-next:hover:not(:disabled){border-color:var(--cover-ink);background:var(--cover-bg);color:var(--cover-ink)}
-.video-end :focus-visible{outline:3px solid var(--cover-ink);outline-offset:2px;box-shadow:0 0 0 2px var(--cover-bg)}
+.video-end{position:absolute;inset:0;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:12px;padding:16px;background:color-mix(in srgb,var(--term-bg) 80%,transparent)}
+.video-end .btn{min-height:48px;padding:0 20px;border-color:var(--term-soft);color:var(--term-ink);font:500 14px/1.2 var(--font-ui)}
+.video-end-next,.video-end-next:hover:not(:disabled){border-color:var(--term-ink);background:var(--term-ink);color:var(--term-bg)}
+.video-end :focus-visible{outline:3px solid var(--term-ink);outline-offset:2px;box-shadow:0 0 0 2px var(--term-bg)}
 
-/* Зоны кадра на паузе: рамки мягко пульсируют */
+/* Зоны кадра на паузе: рамки мягко пульсируют. Кадр всегда светлый — рамка тёмная в обеих темах */
 .hotspot-layer{position:absolute;inset:0}
-.video-hotspot{position:absolute;padding:0;border:3px solid var(--accent);border-radius:var(--radius-s);background:color-mix(in srgb,var(--accent) 10%,transparent);animation:hs-pulse 1.6s ease-in-out infinite}
-.video-hotspot.is-open{animation:none;background:color-mix(in srgb,var(--accent) 18%,transparent)}
-@keyframes hs-pulse{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 25%,transparent)}}
+.video-hotspot{position:absolute;padding:0;border:3px solid #16181B;border-radius:var(--radius-s);background:rgba(22,24,27,.08);animation:hs-pulse 1.6s ease-in-out infinite}
+.video-hotspot.is-open{animation:none;background:rgba(22,24,27,.16)}
+@keyframes hs-pulse{50%{box-shadow:0 0 0 6px rgba(22,24,27,.22)}}
 @media (prefers-reduced-motion: reduce){.video-hotspot{animation:none}}
-.video-hotspot-note{position:absolute;left:12px;right:12px;bottom:12px;padding:10px 14px;border-radius:var(--radius-s);background:var(--paper);color:var(--ink);border:1px solid var(--rule);box-shadow:var(--shadow-raised);font:400 .9rem/1.45 var(--font-ui)}
+.video-hotspot-note{position:absolute;left:12px;right:12px;bottom:12px;padding:10px 14px;border-radius:var(--radius-s);background:var(--paper);color:var(--ink);border:1px solid var(--rule);box-shadow:var(--shadow-raised);font:400 .9rem/1.45 var(--font-body)}
 .video-hotspot-note p{margin:4px 0 0}
 
 /* Панель: перемотка во всю ширину, под ней кнопки 44 px, время, «Голос» и «Во весь экран» справа.
@@ -46,14 +46,14 @@
 .video-controls{display:flex;flex-wrap:wrap;align-items:center;gap:0 10px}
 .video-seek{flex:1 1 100%;min-width:0;height:44px;margin:0;accent-color:var(--accent)}
 .video-toggle,.video-fullscreen{width:44px;padding:0}
-.video-toggle,.video-toggle:hover:not(:disabled){border-color:var(--accent);background:var(--accent);color:var(--fig-on)}
-.video-time{color:var(--ink-soft);font:500 13px/1 var(--font-code);white-space:nowrap}
-.video-voice{display:flex;align-items:center;gap:8px;min-height:44px;margin-left:auto;font:500 14px/1 var(--font-ui);cursor:pointer}
-.video-voice input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.video-toggle,.video-toggle:hover:not(:disabled){border-color:var(--ink);background:var(--ink);color:var(--desk)}
+.video-time{color:var(--ink-soft);font:500 12px/1 var(--font-code);font-variant-numeric:tabular-nums;white-space:nowrap}
+.video-voice{display:flex;align-items:center;gap:8px;min-height:44px;margin-left:auto;font:500 12px/1 var(--font-ui);cursor:pointer}
+.video-voice input{width:18px;height:18px;margin:0;accent-color:var(--ink)}
 .video-time + .video-fullscreen{margin-left:auto}
-.video-hint{margin:6px 0 0;color:var(--ink-soft);font:400 14px/1.4 var(--font-ui)}
+.video-hint{margin:6px 0 0;color:var(--ink-soft);font:400 14px/1.4 var(--font-body)}
 .video-download{margin:0}
-.video-download-btn{padding:0 14px;border-radius:var(--radius-s);font:600 14px/1.2 var(--font-ui)}
+.video-download-btn{padding:0 14px;font:500 12px/1.2 var(--font-ui)}
 
 /* Во весь экран: кадр вписан в экран, панель под ним той же ширины */
 .video-screen:fullscreen{justify-content:center;align-items:center;padding:24px;background:var(--desk)}
@@ -62,7 +62,7 @@
 
 /* Сообщение лежит внутри кадра 1280×720 и сжимается вместе с ним, поэтому шрифт крупный.
    Кадра нет — фон бумаги темы, чтобы текст читался и в тёмной теме */
-.video-failed{margin:0;padding:0 120px;text-align:center;font:600 56px/1.3 var(--font-ui);color:var(--ink-soft)}
+.video-failed{margin:0;padding:0 120px;text-align:center;font:500 52px/1.3 var(--font-body);color:var(--ink-soft)}
 .video-stage:has(.video-failed){background:var(--paper)}
 
 @media (max-width:960px){
@@ -70,13 +70,13 @@
   :is(.day-part,.video-grid) > *{scroll-margin-top:80px}
 }
 @media (max-width:640px){
-  .video-cover-play{width:64px;height:64px;margin:-32px 0 0 -32px}
+  .video-cover-play{width:60px;height:60px;margin:-30px 0 0 -30px}
   .video-cover-play svg{width:26px;height:26px}
   .video-cover-label,.video-cover-time{bottom:10px;padding:5px 8px}
   .video-cover-label{left:10px}
   .video-cover-time{right:10px}
   .video-end{gap:8px;padding:10px}
   .video-end .btn{min-height:44px;padding:0 14px;font-size:14px}
-  .video-title{font-size:17px}
+  .video-title{font-size:15px}
   .video-hotspot-note{left:6px;right:6px;bottom:6px;padding:6px 10px;font-size:.78rem;line-height:1.35}
 }

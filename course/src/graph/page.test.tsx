@@ -415,7 +415,7 @@ function fakeMediaQuery() {
 }
 
 describe('рисунок графа', () => {
-  // Переменные темы — из настоящего tokens.css; тёмная тема сайта — атрибут data-theme у <html>
+  // Переменные темы — из настоящего tokens.css: тёмная — по умолчанию (:root), светлая — атрибут data-theme="light" у <html>
   const tokens = document.createElement('style')
   tokens.textContent = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../styles/tokens.css'), 'utf8')
   beforeEach(() => {
@@ -434,26 +434,39 @@ describe('рисунок графа', () => {
       const { unmount } = render(<GraphCanvas index={INDEX} selected={null} hidden={new Set()} onSelect={() => {}} onUnsupported={() => {}} />)
       const s = sigma.instances[0]
       const color = (id: string) => s.settings.nodeReducer(id, s.graph.getNodeAttributes(id)).color
+      // тёмная тема по умолчанию: части и главы — --graph-book, разделы — --ink-soft, схемы — --fig-line,
+      // термины — --accent (цвет текста), недели и дни — --fig-ok, ролики — --warn
       expect([color('ch:abc'), color('part:I'), color('sec:s1'), color('fig:abc_restaurant'), color('term:1'), color('day:1'), color('video:ch-01')]).toEqual([
-        '#A86B00',
-        '#A86B00',
-        '#5B606A',
-        '#A3A196',
-        '#2B3FBF',
-        '#2E7D5B',
-        '#AE3F1C',
+        '#8AA9F0',
+        '#8AA9F0',
+        '#A3A9B1',
+        '#7A818A',
+        '#E9EBEE',
+        '#5BC78F',
+        '#E3B45C',
       ])
-      expect(s.settings.labelColor).toEqual({ color: '#1C1E22' })
+      expect(s.settings.labelColor).toEqual({ color: '#E9EBEE' })
 
-      // тема сайта: цвета заново и перерисовка
+      // переключатель темы сайта (data-theme="light"): цвета заново и перерисовка
       s.refresh.mockClear()
-      root.setAttribute('data-theme', 'dark')
-      await waitFor(() => expect(color('ch:abc')).toBe('#E5B54A'))
-      expect([color('term:1'), color('day:1'), color('video:ch-01')]).toEqual(['#8D9CFF', '#5CC49A', '#F18D6B'])
-      expect(s.setSetting).toHaveBeenCalledWith('labelColor', { color: '#E8E5DD' })
+      root.setAttribute('data-theme', 'light')
+      await waitFor(() => expect(color('ch:abc')).toBe('#3555B8'))
+      expect([color('sec:s1'), color('fig:abc_restaurant'), color('term:1'), color('day:1'), color('video:ch-01')]).toEqual([
+        '#565B62',
+        '#A3A6A0',
+        '#16181B',
+        '#1D7A4C',
+        '#875800',
+      ])
+      expect(s.setSetting).toHaveBeenCalledWith('labelColor', { color: '#16181B' })
       expect(s.refresh).toHaveBeenCalled()
 
-      // тема системы: prefers-color-scheme
+      // обратно в тёмную — атрибут снят
+      root.removeAttribute('data-theme')
+      await waitFor(() => expect(color('ch:abc')).toBe('#8AA9F0'))
+      expect(s.setSetting).toHaveBeenLastCalledWith('labelColor', { color: '#E9EBEE' })
+
+      // смена темы системы (prefers-color-scheme) тоже перечитывает переменные
       expect(window.matchMedia).toHaveBeenCalledWith('(prefers-color-scheme: dark)')
       root.style.setProperty('--accent', '#123456')
       act(() => scheme.change())
@@ -495,7 +508,7 @@ describe('рисунок графа', () => {
     expect(onSelect).toHaveBeenLastCalledWith(null)
 
     const view = (id: string) => s.settings.nodeReducer(id, s.graph.getNodeAttributes(id))
-    expect(view('day:21').color).toBe('#2E7D5B')
+    expect(view('day:21').color).toBe('#5BC78F')
     expect(view('term:1').highlighted).toBeFalsy()
 
     rerender(<GraphCanvas {...props} selected="term:1" hidden={new Set<NodeType>(['section'])} />)
@@ -504,8 +517,10 @@ describe('рисунок графа', () => {
     expect(s.refresh).toHaveBeenCalled()
     expect(view('term:1')).toMatchObject({ highlighted: true, forceLabel: true })
     // сосед — в своём цвете, остальное бледнеет и без подписи
-    expect(view('ch:abc').color).toBe('#A86B00')
-    expect(view('day:21').color).not.toBe('#2E7D5B')
+    expect(view('ch:abc').color).toBe('#8AA9F0')
+    expect(view('day:21').color).not.toBe('#5BC78F')
+    // бледный — цвет линейки --rule
+    expect(view('day:21').color).toBe('#2B3036')
     expect(view('day:21').label).toBeNull()
     expect(view('ch:abc').label).toBe('Азбука')
     // скрытый тип
@@ -632,12 +647,13 @@ describe('рисунок графа', () => {
         draw(context as unknown as CanvasRenderingContext2D, { x: 10, y: 20, size: 5, label }, settings)
         return steps
       }
-      expect(drawn('Агент')).toEqual(['обводка #FBFAF6 4 Агент 18', 'текст #1C1E22 Агент 18'])
+      // тёмная тема по умолчанию: обводка — --paper, текст — --ink
+      expect(drawn('Агент')).toEqual(['обводка #1A1D21 4 Агент 18', 'текст #E9EBEE Агент 18'])
       expect(drawn(null)).toEqual([])
 
-      root.setAttribute('data-theme', 'dark')
-      await waitFor(() => expect(s.setSetting).toHaveBeenCalledWith('labelColor', { color: '#E8E5DD' }))
-      expect(drawn('Агент')).toEqual(['обводка #1F2228 4 Агент 18', 'текст #E8E5DD Агент 18'])
+      root.setAttribute('data-theme', 'light')
+      await waitFor(() => expect(s.setSetting).toHaveBeenCalledWith('labelColor', { color: '#16181B' }))
+      expect(drawn('Агент')).toEqual(['обводка #FFFFFF 4 Агент 18', 'текст #16181B Агент 18'])
     } finally {
       root.removeAttribute('data-theme')
     }

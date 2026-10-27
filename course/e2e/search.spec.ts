@@ -134,11 +134,14 @@ test('кусок книги не загрузился: «Поиск по кни�
   expect(errors).toEqual([])
 })
 
-// Затемнение под окном темнит страницу в обеих темах: цвет слоя поверх фона страницы темнее самого фона
-for (const colorScheme of ['light', 'dark'] as const) {
-  test(`затемнение под окном темнее страницы (${colorScheme === 'light' ? 'светлая' : 'тёмная'} тема)`, async ({ page }) => {
-    await page.emulateMedia({ colorScheme })
+// Затемнение под окном темнит страницу в обеих темах: цвет слоя поверх фона страницы темнее самого фона.
+// Тема — выбор ученика (запись в браузере, её читает скрипт index.html); системная настройка — нарочно противоположная
+for (const theme of ['dark', 'light'] as const) {
+  test(`затемнение под окном темнее страницы (${theme === 'light' ? 'светлая' : 'тёмная'} тема)`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: theme === 'light' ? 'dark' : 'light' })
+    if (theme === 'light') await page.addInitScript(() => localStorage.setItem('vibe-course-theme', 'light'))
     await page.goto('/')
+    expect(await page.evaluate(() => document.documentElement.dataset.theme ?? 'dark')).toBe(theme)
     await page.getByRole('button', { name: 'Поиск' }).click()
     const [desk, dimmed] = await dialog(page).evaluate((d) => {
       // rgb(…) / rgba(…) или color(srgb 0…1 / a) → [r, g, b, a] в 0…255
@@ -157,8 +160,8 @@ for (const colorScheme of ['light', 'dark'] as const) {
   })
 }
 
-// Телефон: в верхней строке главной и в шапке дня у «Поиска» только лупа — нажатие 44 × 44, имя «Поиск»;
-// на 390 px строка главной — в один ряд
+// Телефон: боковая панель — строка сверху (и на главной, и в дне); у «Поиска» только лупа — нажатие 44 × 44, имя «Поиск»;
+// на 390 px строка — в один ряд
 test('на 390 px «Поиск» — значок лупы, верхняя строка главной в один ряд', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')

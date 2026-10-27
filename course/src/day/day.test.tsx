@@ -55,23 +55,63 @@ afterEach(() => {
 })
 
 describe('страница дня', () => {
-  it('шапка дня 1: тема, цель, метки и результат', () => {
+  it('шапка дня 1 («Зачем сегодня»): день и неделя, тема, цель, состав и результат', () => {
     renderDay(1)
     const day = getDay(1)!
-    const header = within(screen.getByRole('banner'))
-    expect(header.getByRole('heading', { level: 1, name: 'Азбука и знакомство с моделями' })).toBeInTheDocument()
-    expect(header.getByText('День 01 · Неделя 1 · Вся книга и первая работающая версия')).toBeInTheDocument()
-    expect(header.getByText(day.goal)).toBeInTheDocument()
-    expect(header.getAllByRole('listitem').map((li) => li.textContent)).toEqual([
-      '2 видеоурока · 8:42',
-      'Теория ≈ 40 мин',
-      'Практика ≈ 80 мин',
-      'Тест · 6 вопросов',
+    const section = screen.getByRole('region', { name: 'Зачем сегодня' })
+    expect(section).toHaveAttribute('id', 'part-why')
+    expect(section).toHaveClass('day-hero')
+    expect(screen.getByRole('main').contains(section)).toBe(true)
+    const hero = within(section)
+    expect(hero.getByRole('heading', { level: 1, name: 'Азбука и знакомство с моделями' })).toBeInTheDocument()
+    expect(Array.from(section.querySelector('.day-kicker')!.children, (el) => el.textContent)).toEqual([
+      'день 01',
+      'неделя 1',
+      'Вся книга и первая работающая версия',
     ])
-    expect(header.getByText('Результат дня')).toBeInTheDocument()
-    expect(header.getByText(day.result)).toBeInTheDocument()
-    expect(header.getByRole('link', { name: 'Карта курса' })).toHaveAttribute('href', '#/')
-    expect(header.getByText('День 1 из 21')).toBeInTheDocument()
+    expect(hero.getByText(day.goal)).toBeInTheDocument()
+    // Состав дня — пары «подпись — значение» (dl), только то, что в дне есть
+    expect(hero.getAllByRole('term').map((dt) => dt.textContent)).toEqual(['видеоуроки', 'теория', 'практика', 'тест'])
+    expect(hero.getAllByRole('definition').map((dd) => dd.textContent)).toEqual(['2 (8:42)', '≈ 40 мин', '≈ 80 мин', '6 вопросов'])
+    for (const dt of hero.getAllByRole('term')) expect(dt.nextElementSibling?.tagName).toBe('DD')
+    // «Результат дня» — строка диффа: «+ » только для глаз
+    expect(hero.getByText('Результат дня')).toBeInTheDocument()
+    const result = hero.getByText(day.result)
+    expect(result).toHaveTextContent(`+ ${day.result}`)
+    expect(within(result).getByText('+', { exact: false })).toHaveAttribute('aria-hidden', 'true')
+    // ни героев, ни значков в шапке дня
+    expect(section.querySelectorAll('svg')).toHaveLength(0)
+  })
+
+  it('строка «Дни курса»: путь, стрелки и счёт «День 1 из 21»; «Карта курса» — одна, в боковой панели', () => {
+    renderDay(1)
+    const bar = screen.getByRole('navigation', { name: 'Дни курса' })
+    expect(bar).toHaveClass('topbar', 'day-bar')
+    const crumbs = bar.querySelector('.crumbs')!
+    expect(crumbs).toHaveTextContent(/^вайб-курс \/ неделя 1 \/ день 01$/)
+    expect(within(bar).getByText('день 01')).toHaveClass('crumbs-here')
+    // счёт: для чтения с экрана — «День 1 из 21», для глаз — «01 / 21»
+    expect(within(bar).getByText('День 1 из 21')).toHaveClass('visually-hidden')
+    expect(within(bar).getByText('01 / 21')).toHaveAttribute('aria-hidden', 'true')
+    expect(within(bar).getByRole('link', { name: 'Следующий день' })).toHaveAttribute('href', '#/day/2')
+    expect(within(bar).queryByRole('link', { name: /Карта/ })).toBeNull()
+
+    const banner = within(screen.getByRole('banner'))
+    const home = screen.getAllByRole('link').filter((a) => a.getAttribute('href') === '#/')
+    expect(home).toHaveLength(1)
+    expect(home[0]).toHaveTextContent(/^Карта курса$/)
+    expect(banner.getAllByRole('link')).toContain(home[0])
+    expect(home[0]).not.toHaveAttribute('aria-current')
+    // поиск и граф — в боковой панели
+    expect(banner.getByRole('button', { name: 'Поиск' })).toBeInTheDocument()
+    expect(banner.getByRole('button', { name: 'Граф' })).toBeInTheDocument()
+    cleanup()
+
+    renderDay(12)
+    const bar12 = screen.getByRole('navigation', { name: 'Дни курса' })
+    expect(bar12.querySelector('.crumbs')).toHaveTextContent(/^вайб-курс \/ неделя 2 \/ день 12$/)
+    expect(within(bar12).getByText('День 12 из 21')).toBeInTheDocument()
+    expect(within(bar12).getByText('12 / 21')).toBeInTheDocument()
   })
 
   it('у дня 1 нет «Предыдущего дня», у дня 21 нет «Следующего»', () => {
@@ -97,6 +137,12 @@ describe('страница дня', () => {
       expect(plan().getByRole('button', { name: title })).toBeEnabled()
     }
     expect(plan().getByText('Сделано 0 из 5 частей')).toBeInTheDocument()
+    // номера 01–06 только для глаз, название — своим куском; план — колонка без «бумаги»
+    const items = plan().getAllByRole('button')
+    expect(items.map((b) => b.querySelector('.toc-num')!.textContent)).toEqual(['01', '02', '03', '04', '05', '06'])
+    for (const b of items) expect(b.querySelector('.toc-num')).toHaveAttribute('aria-hidden', 'true')
+    expect(items.map((b) => b.querySelector('.toc-title')!.textContent)).toEqual(['Зачем сегодня', 'Теория', 'Проверка понимания', 'Практика', 'Наставник', 'Итог дня'])
+    expect(screen.getByRole('navigation', { name: 'План дня' })).not.toHaveClass('paper')
     expect(partIds()).toEqual(['part-why', 'part-theory', 'part-quiz', 'part-practice', 'part-mentor', 'part-summary'])
     // У полностью готового дня нет карточки «Остальное готовится»
     expect(screen.queryByText(/Остальное готовится/)).toBeNull()
@@ -128,8 +174,12 @@ describe('страница дня', () => {
     expect(plan().getByText('Сделано 3 из 5 частей')).toBeInTheDocument()
     expect(plan().getByRole('button', { name: 'Практика, сделано' })).toBeEnabled()
     expect(plan().getByRole('button', { name: 'Теория' })).toBeEnabled()
-    expect(within(document.getElementById('part-practice')!).getByText('✓')).toBeInTheDocument()
+    expect(within(document.getElementById('part-practice')!).getByText('✓')).toHaveClass('part-num', 'is-done')
     expect(within(document.getElementById('part-theory')!).queryByText('✓')).toBeNull()
+    // непройденная часть — номер 01–06, как в плане
+    expect(within(document.getElementById('part-theory')!).getByText('02')).toHaveClass('part-num')
+    expect(within(document.getElementById('part-theory')!).getByText('02')).not.toHaveClass('is-done')
+    expect(plan().getAllByRole('button').map((b) => b.querySelector('.toc-num')!.textContent)).toEqual(['01', '02', '✓', '✓', '✓', '06'])
   })
 
   it('черновой день 10: одна карточка «Остальное готовится», без «Скоро»', () => {
@@ -145,7 +195,14 @@ describe('страница дня', () => {
     for (const title of ['Зачем сегодня', 'Теория', 'Итог дня']) expect(plan().getByRole('button', { name: title })).toBeEnabled()
     expect(partIds()).toEqual(['part-why', 'part-theory', 'part-summary'])
     expect(screen.queryByText('Результат дня')).toBeNull()
-    expect(within(screen.getByRole('banner')).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['1 видеоурок · 2:44'])
+    const hero = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
+    expect(hero.getAllByRole('term').map((dt) => dt.textContent)).toEqual(['видеоуроки'])
+    expect(hero.getAllByRole('definition').map((dd) => dd.textContent)).toEqual(['1 (2:44)'])
+    // строка в пунктирной рамке, без «бумаги» и без героя
+    const notice = screen.getByText(/Остальное готовится/).closest('.draft-notice')!
+    expect(notice).not.toBeNull()
+    expect(notice).not.toHaveClass('paper')
+    expect(notice.querySelectorAll('svg')).toHaveLength(0)
   })
 
   it('у чернового дня в плане нет счёта «Сделано» и полосы — день ещё нельзя засчитать', () => {
@@ -174,11 +231,14 @@ describe('страница дня', () => {
       expect(item.tagName).toBe('BUTTON')
       expect(item).not.toHaveAttribute('tabindex', '-1')
     }
-    // В шапке четыре остановки («Карта курса», «Поиск», «Граф» и «Следующий день»), пятый Tab — первый пункт плана
-    await user.tab()
-    await user.tab()
-    await user.tab()
-    await user.tab()
+    // До плана: шесть остановок боковой панели и «Следующий день» в строке дней («Предыдущего» у дня 1 нет — не в фокусе)
+    const stops: string[] = []
+    for (let i = 0; i < 7; i++) {
+      await user.tab()
+      const el = document.activeElement!
+      stops.push(el.getAttribute('aria-label') ?? el.textContent!)
+    }
+    expect(stops).toEqual(['Карта курса', 'Сегодня день 01', 'Поиск', 'Граф', 'Книга', 'Светлая тема', 'Следующий день'])
     await user.tab()
     expect(document.activeElement).toBe(plan().getByRole('button', { name: 'Зачем сегодня' }))
     await user.tab()
@@ -252,9 +312,12 @@ describe('страница дня', () => {
   it('следующий день и конец курса', () => {
     renderDay(1)
     const next = within(screen.getByText('Следующий день').closest('section')!)
-    expect(next.getByText('День 2 · Эталоны и спецификация')).toBeInTheDocument()
-    expect(next.getByText(daySummaryLine(getDay(2)!))).toBeInTheDocument()
-    expect(next.getByRole('link', { name: 'Перейти' })).toHaveAttribute('href', '#/day/2')
+    expect(next.getByRole('heading', { level: 2, name: 'День 2. Эталоны и спецификация' })).toBeInTheDocument()
+    expect(next.getByText(daySummaryLine(getDay(2)!))).toHaveClass('next-day-meta')
+    const go = next.getByRole('link', { name: 'Перейти' })
+    expect(go).toHaveAttribute('href', '#/day/2')
+    expect(go).toHaveClass('btn', 'btn-primary')
+    expect(go.querySelector('svg')).toBeNull()
     cleanup()
 
     renderDay(21)
@@ -265,8 +328,12 @@ describe('страница дня', () => {
 
   it('несуществующий день — «День не найден» и «К карте»', () => {
     renderDay(99)
-    expect(screen.getByRole('heading', { level: 1, name: 'День не найден' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'К карте' })).toHaveAttribute('href', '#/')
+    // в той же оболочке: боковая панель и один main
+    expect(screen.getByRole('banner')).toHaveClass('sitebar')
+    const main = within(screen.getByRole('main'))
+    expect(main.getByRole('heading', { level: 1, name: 'День не найден' })).toBeInTheDocument()
+    expect(main.getByRole('link', { name: 'К карте' })).toHaveAttribute('href', '#/')
+    expect(main.getByRole('link', { name: 'К карте' })).toHaveClass('btn-primary')
   })
 })
 

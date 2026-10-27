@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
 // Копирует текст; если буфер обмена недоступен — показывает поле с выделенным текстом.
-// tone — цвета блока, где стоит кнопка: тёмного блока запроса (term) или синей карточки наставника (cover)
-export function CopyButton({ text, tone = 'term' }: { text: string; tone?: 'term' | 'cover' }) {
+// tone — цвета блока, где стоит кнопка: тёмный блок терминала (запрос, команда наставника)
+export function CopyButton({ text, tone = 'term' }: { text: string; tone?: 'term' }) {
   const [state, setState] = useState<'idle' | 'copied' | 'manual'>('idle')
   const field = useRef<HTMLTextAreaElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)

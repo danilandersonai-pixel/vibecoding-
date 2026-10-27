@@ -55,6 +55,11 @@ test('прохождение дня 1: день пройден, серия = 1',
   await page.getByRole('checkbox', { name: 'Наставник принял день' }).check()
 
   await page.getByRole('link', { name: 'Карта курса' }).click()
-  await expect(page.getByTestId('day-card').first()).toContainText('пройден')
-  await expect(page.getByRole('region', { name: 'Продолжить обучение' })).toContainText('1 день подряд')
+  await expect(page.getByTestId('day-card').first()).toContainText('✓ пройден')
+  await expect(page.getByTestId('day-card').nth(1)).toContainText('HEAD')
+  await expect(page.getByRole('region', { name: 'Продолжить обучение' })).toContainText('Вы остановились здесь')
+  // счёт и серия — в боковой панели
+  const stats = page.getByRole('banner').getByRole('region', { name: 'Прогресс' })
+  await expect(stats).toContainText('Пройдено 1 из 21')
+  await expect(stats).toContainText('Серия: 1 день подряд')
 })

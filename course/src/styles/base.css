@@ -1,24 +1,28 @@
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--desk);color:var(--ink);font:400 17px/1.6 var(--font-body)}
-h1,h2,h3{font-family:var(--font-ui);line-height:1.2;color:var(--ink)}
+body{margin:0;background:var(--desk);color:var(--ink);font:400 16px/1.6 var(--font-body)}
+/* Заголовки — моноширинный Martian Mono, суженный до 87,5 %: голос инструмента. Длинный текст — Golos Text */
+h1,h2,h3{font-family:var(--font-ui);font-stretch:87.5%;font-weight:600;line-height:1.2;letter-spacing:-.02em;color:var(--ink)}
 button{font:inherit;cursor:pointer}
-code,pre{font-family:var(--font-code)}
-a{color:var(--accent-ink)}
+code,pre,kbd{font-family:var(--font-code)}
+a{color:var(--accent-ink);text-decoration-thickness:1px;text-underline-offset:.2em}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 /* Текст только для чтения с экрана: «сделано» у пунктов плана дня */
 .visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
-/* Кнопки и ссылки-кнопки: всё нажимаемое не меньше 44 × 44 px; варианты меняют только цвета */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:6px 16px;border:1px solid var(--rule);border-radius:var(--radius-m);background:var(--paper);color:var(--ink);font:500 .9rem/1.3 var(--font-ui);text-decoration:none}
-.btn:hover:not(:disabled){border-color:var(--accent)}
+/* Кнопки и ссылки-кнопки: всё нажимаемое не меньше 44 × 44 px. Обычная — контур --edge, главная — инверсия (цвет текста на фоне).
+   Цветом кнопки не красятся: цвет в курсе только у состояний */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:6px 16px;border:1px solid var(--edge);border-radius:var(--radius-m);background:transparent;color:var(--ink);font:500 13px/1.3 var(--font-ui);text-decoration:none}
+.btn:hover:not(:disabled){border-color:var(--ink);background:var(--raised)}
 .btn:disabled{opacity:.5;cursor:default}
-/* Текст на акценте — --fig-on: белый в светлой теме, тёмный в тёмной (белый на светлом акценте тёмной темы даёт 2,5 : 1) */
-.btn-primary,.btn-primary:hover:not(:disabled){background:var(--accent);border-color:var(--accent);color:var(--fig-on)}
-.btn-cover,.btn-cover:hover:not(:disabled){background:var(--cover-ink);border-color:var(--cover-ink);color:var(--cover-bg)}
-.btn-ghost{background:transparent;border-color:currentColor;color:inherit}
+.btn-primary,.btn-primary:hover:not(:disabled){background:var(--ink);border-color:var(--ink);color:var(--desk);font-weight:600}
+.btn-primary:hover:not(:disabled){background:color-mix(in srgb,var(--ink) 86%,var(--desk))}
+.btn-ghost{background:transparent;border-color:var(--edge);color:inherit}
 
-/* Кикер над заголовком и «бумага» — карточка раздела */
-.kicker{margin:0;font:600 13px/1.4 var(--font-ui);text-transform:uppercase;letter-spacing:.16em;color:var(--ink-soft)}
-.paper{background:var(--paper);border:1px solid var(--paper-edge);border-radius:var(--radius-xl)}
+/* Подпись над заголовком — мелкий моноширинный текст обычным регистром: «мысль 1 из 6», «день 01».
+   «Бумага» — панель: фон --paper, рамка 1 px, почти прямые углы, без тени */
+.kicker{margin:0;font:500 12px/1.4 var(--font-ui);color:var(--ink-soft)}
+.paper{background:var(--paper);border:1px solid var(--paper-edge);border-radius:var(--radius-l)}
+/* HEAD — текущее место: инверсия, как выделение в терминале */
+.head-chip{display:inline-block;padding:3px 6px;border-radius:var(--radius-s);background:var(--ink);color:var(--desk);font:600 11px/1.2 var(--font-ui);letter-spacing:.02em}

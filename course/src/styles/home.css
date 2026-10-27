@@ -1,141 +1,143 @@
-/* Контейнер главной: ширина содержимого и поля страницы; под обложкой это <main> с отступом снизу */
-.home-wrap{max-width:var(--content);margin:0 auto;padding-inline:32px}
-.home-main{padding-bottom:96px}
+/* Оболочка главной и страницы дня: боковая панель слева во всю высоту окна, справа — рабочая область */
+.shell{display:grid;grid-template-columns:var(--sidebar) minmax(0,1fr);min-height:100vh}
+.shell-body{min-width:0;display:flex;flex-direction:column}
 
-/* Обложка — синий лист книги во всю ширину; рамка фокуса светлая: акцент на синем почти не виден */
-.cover{background:var(--cover-bg);color:var(--cover-ink);font-family:var(--font-ui);overflow:hidden}
-.cover :focus-visible{outline-color:var(--cover-ink)}
-.cover-inner{display:flex;flex-direction:column;gap:48px;padding-top:40px;padding-bottom:56px}
+/* Боковая панель — шапка сайта: название и ветка, разделы, прогресс. Ссылки — строки 40 px, текущая — подложка --raised */
+.sitebar{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:28px;padding:20px 16px 24px;border-right:1px solid var(--rule);background:var(--paper)}
+.sitebar-brand{display:flex;flex-direction:column;gap:2px;padding:0 8px}
+.sitebar-name{color:var(--ink);font:600 15px/1.3 var(--font-ui);font-stretch:87.5%;letter-spacing:-.01em}
+.sitebar-branch{color:var(--ink-soft);font:400 12px/1.5 var(--font-ui)}
+.sitebar-links{display:flex;flex-direction:column;gap:2px}
+.sitebar-link{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:0 8px;border:0;border-radius:var(--radius-m);background:none;color:var(--ink-soft);font:500 13px/1.2 var(--font-ui);text-align:left;text-decoration:none}
+.sitebar-link:hover,.sitebar-link[aria-current="page"]{background:var(--raised);color:var(--ink)}
+.sitebar-link svg{display:none;flex:none}
+.sitebar-today-day{margin-left:auto;color:var(--ink)}
+/* Подсказки справа в строке — только для глаз (alt-текст содержимого пустой): горячая клавиша, внешняя ссылка, состояние темы */
+.sitebar-search::after{content:"⌘K"/"";margin-left:auto;padding:3px 5px;border:1px solid var(--rule);border-radius:var(--radius-s);color:var(--ink-soft);font:500 11px/1 var(--font-ui)}
+.sitebar-book::after{content:"↗"/"";margin-left:auto}
+.theme-toggle::after{content:"выкл"/"";margin-left:auto;color:var(--ink-soft);font-size:12px}
+.theme-toggle[aria-pressed="true"]::after{content:"вкл"/"";color:var(--ink)}
 
-.sitebar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
-.sitebar-brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:16px;letter-spacing:.01em}
-.sitebar-mark{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:var(--radius-s);background:var(--cover-ink);color:var(--cover-bg);font:800 18px/1 var(--font-ui)}
-.sitebar-links{display:flex;gap:8px;flex-wrap:wrap}
-.sitebar-link{display:inline-flex;align-items:center;min-height:44px;padding:10px 14px;border:1px solid transparent;border-radius:var(--radius-s);background:none;color:var(--cover-ink);font:500 15px/1 var(--font-ui);text-decoration:none}
-.sitebar-book{border-color:color-mix(in srgb,var(--cover-ink) 28%,transparent)}
-.sitebar-link:hover{border-color:var(--cover-ink)}
+/* Прогресс: «Пройдено N из 21», 21 клетка (пройденный день залит, текущий — в рамке), серия */
+.sitebar-progress{display:flex;flex-direction:column;gap:10px;padding:0 8px}
+.sitebar-count,.sitebar-streak{margin:0;color:var(--ink-soft);font:500 12px/1.4 var(--font-ui)}
+.sitebar-count-num{color:var(--ink)}
+.sitebar-cells{display:grid;grid-template-columns:repeat(7,14px);gap:4px;margin:0;padding:0;list-style:none}
+.sitebar-cells li{width:14px;height:14px;border-radius:2px;background:var(--rule)}
+.sitebar-cells li.is-done{background:var(--ink)}
+.sitebar-cells li.is-now{background:transparent;box-shadow:inset 0 0 0 2px var(--ink)}
 
-.cover-main{display:flex;flex-wrap:wrap;gap:48px;align-items:flex-end}
-.cover-text{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:22px}
-.cover-kicker{color:var(--cover-soft);letter-spacing:.18em}
-.cover-title{margin:0;color:var(--cover-ink);font:800 76px/.98 var(--font-ui);letter-spacing:-.035em;text-wrap:balance;overflow-wrap:break-word}
-.cover-lead{margin:0;max-width:34em;color:var(--cover-soft);font:italic 400 21px/1.45 var(--font-body)}
-.cover-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
-.cover-btn{min-height:52px;padding:0 24px;gap:10px;font:700 17px/1.2 var(--font-ui)}
-.cover-how{padding:0 22px;border-color:color-mix(in srgb,var(--cover-ink) 35%,transparent);font:600 16px/1.2 var(--font-ui)}
-.cover-how:hover:not(:disabled){border-color:var(--cover-ink)}
+/* Строка над рабочей областью: путь («вайб-курс / карта курса»), на странице дня ещё стрелки к соседним дням */
+.topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;min-height:56px;padding:0 32px;border-bottom:1px solid var(--rule)}
+.crumbs{margin:0;color:var(--ink-soft);font:500 13px/1.3 var(--font-ui)}
+.crumbs-sep{color:var(--ink-faint)}
+.crumbs-here{color:var(--ink)}
 
-/* Герои и диф «было / стало» */
-.cover-art{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:18px}
-.cover-heroes{display:flex;gap:14px;align-items:flex-end;justify-content:flex-end}
-.cover-heroes svg{flex:none}
-.cover-diff{margin:0;padding-top:18px;border-top:1px solid color-mix(in srgb,var(--cover-ink) 18%,transparent);white-space:pre-wrap;overflow-wrap:break-word;color:var(--cover-ink);font:400 15px/1.8 var(--font-code)}
-.diff-head{color:var(--cover-soft)}
-.diff-del{color:var(--cover-del)}
-.diff-add{color:var(--cover-add)}
+/* Рабочая область главной: вводный блок, карточка HEAD и карта-лог через 48 px */
+.page{width:100%;max-width:1120px;padding:40px 32px 96px}
+.home-main{display:flex;flex-direction:column;gap:48px}
 
-.cover-facts{display:flex;flex-wrap:wrap;gap:12px;margin:0;padding:24px 0 0;list-style:none;border-top:1px solid color-mix(in srgb,var(--cover-ink) 14%,transparent);color:var(--cover-soft);font:500 15px/1.3 var(--font-ui)}
-.cover-facts li{padding:8px 14px;border-radius:999px;background:color-mix(in srgb,var(--cover-ink) 8%,transparent)}
+/* Вводный блок: заголовок Martian Mono 46 px (суженный), лид Golos, две кнопки; справа — «Как проходит день» */
+.intro{display:flex;flex-wrap:wrap;gap:32px 48px;align-items:flex-start}
+.intro-text{flex:999 1 460px;min-width:0;display:flex;flex-direction:column;gap:18px}
+.intro-title{margin:0;font:600 46px/1.06 var(--font-ui);font-stretch:87.5%;letter-spacing:-.035em;text-wrap:balance}
+.intro-lead{margin:0;max-width:34em;color:var(--ink-soft);font:400 17px/1.55 var(--font-body)}
+.intro-actions{display:flex;flex-wrap:wrap;gap:8px}
+.intro-btn{padding:0 18px;font-size:14px}
 
-/* «Продолжить» — приподнятая карточка, заходит на нижний край обложки */
-.continue{position:relative;margin-top:-28px;padding:24px 28px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;box-shadow:var(--shadow-raised);font-family:var(--font-ui)}
-.continue-ring{flex:none;display:flex;align-items:center;justify-content:center;width:76px;height:76px;border-radius:50%;background:conic-gradient(var(--accent) var(--ring,0deg),var(--rule) 0)}
-.continue-percent{display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:var(--paper);color:var(--accent-ink);font:800 18px/1 var(--font-ui)}
-.continue-body{flex:999 1 360px;min-width:0;display:flex;flex-direction:column;gap:6px}
-.continue-title{margin:0;font:760 26px/1.2 var(--font-ui);letter-spacing:-.015em;overflow-wrap:break-word}
-.continue-meta{margin:0;display:flex;flex-wrap:wrap;gap:4px 8px;color:var(--ink-soft);font:400 15px/1.4 var(--font-ui)}
-.continue-streak{font-weight:600}
-.continue-btn{flex:none;min-height:52px;padding:0 24px;gap:10px;font:700 16px/1.2 var(--font-ui)}
+/* «Как проходит день» — блок терминала: заголовок комментарием «# …», шаги по порядку с номерами */
+.how{flex:1 1 360px;min-width:0;margin:0;padding:16px 18px 18px;border:1px solid var(--term-edge);border-radius:var(--radius-l);background:var(--term-bg);color:var(--term-ink);font:400 13px/1.7 var(--font-ui);scroll-margin-top:24px}
+.how :focus-visible{outline-color:var(--term-ink)}
+.how-title{margin:0 0 8px;color:var(--term-soft);font:400 13px/1.7 var(--font-ui);font-stretch:100%;letter-spacing:0}
+.how-title::before{content:"# "/""}
+.how-steps{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none;counter-reset:step}
+.how-step{counter-increment:step;display:grid;grid-template-columns:22px minmax(0,1fr);column-gap:8px}
+.how-step::before{content:counter(step);grid-row:1 / span 2;color:var(--term-soft)}
+.how-step-title{margin:0;color:var(--term-ink);font:500 13px/1.6 var(--font-ui);font-stretch:100%;letter-spacing:0}
+.how-step-text{margin:0;color:var(--term-soft);font:400 13px/1.55 var(--font-ui)}
 
-/* «Как проходит день» — четыре шага; на узком экране сетка сама встаёт столбиком */
-.how{margin-top:72px;font-family:var(--font-ui)}
-.how-title{margin:0 0 24px;font:800 44px/1.05 var(--font-ui);letter-spacing:-.03em}
-.how-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:0;padding:0;list-style:none}
-.how-step{display:flex;flex-direction:column;gap:8px;padding:24px;background:var(--paper);border:1px solid var(--paper-edge);border-radius:var(--radius-xl)}
-.how-icon{display:flex;align-items:center;justify-content:center;width:44px;height:44px;margin-bottom:8px;border-radius:50%;background:var(--tint);color:var(--accent-ink)}
-.how-step-title{margin:0;font:700 19px/1.25 var(--font-ui);letter-spacing:-.01em}
-.how-step-text{margin:0;color:var(--ink-soft);font:400 15px/1.5 var(--font-ui)}
+/* HEAD — где вы сейчас: метка-инверсия, подпись, тема дня Golos 22 px, цель, состав и кнопка в день */
+.continue{display:flex;flex-wrap:wrap;align-items:center;gap:16px 32px;padding:20px 24px;border-color:var(--edge)}
+.continue-body{flex:999 1 420px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.continue-kicker{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;color:var(--ink-soft);font:500 12px/1.3 var(--font-ui)}
+.continue-title{margin:0;font:600 22px/1.3 var(--font-body);font-stretch:100%;letter-spacing:-.01em;overflow-wrap:break-word}
+.continue-goal{margin:0;max-width:46em;color:var(--ink-soft);font:400 15px/1.55 var(--font-body)}
+.continue-meta{margin:2px 0 0;color:var(--ink-soft);font:400 12px/1.5 var(--font-ui)}
+.continue-btn{flex:none;padding:0 18px;font-size:14px}
 
-/* Карта «Путь от идеи до запуска»: заголовок с легендой, строка готовности, три недели */
-.route{margin-top:72px;font-family:var(--font-ui)}
-.route-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px}
-.route-heading{display:flex;flex-direction:column;gap:8px}
-.route-kicker{color:var(--accent-ink);letter-spacing:.18em}
-.route-title{margin:0;font:800 44px/1.05 var(--font-ui);letter-spacing:-.03em}
-.route-legend{display:flex;flex-wrap:wrap;gap:18px;margin:0;padding:0;list-style:none;color:var(--ink-soft);font:500 14px/1 var(--font-ui)}
-.route-legend li{display:inline-flex;align-items:center;gap:8px}
-.route-legend .route-dot{width:14px;height:14px}
-.route-legend .route-dot.is-now{border-width:3px}
-.route-ready{margin:16px 0 28px;max-width:56em;color:var(--ink-soft);font:italic 400 17px/1.55 var(--font-body)}
-.route-weeks{display:flex;flex-direction:column;gap:28px}
+/* Карта «Путь от идеи до запуска» — как git log: линия ветки слева, недели — заголовки на линии, дни — строки-коммиты.
+   Пройденный: залитая точка, хеш, ✓ «пройден» зелёным; сейчас — строка-инверсия и HEAD; впереди — пустой кружок и бледный текст */
+.route{display:flex;flex-direction:column;gap:6px;scroll-margin-top:24px}
+.route-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.route-title{margin:0;font:600 22px/1.2 var(--font-ui);font-stretch:87.5%;letter-spacing:-.02em}
+.route-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0;padding:0;list-style:none;color:var(--ink-soft);font:400 12px/1.4 var(--font-ui)}
+.route-legend-done::before{content:"✓ "/"";color:var(--fig-ok)}
+.route-legend-now::before{content:"HEAD"/"";margin-right:6px;padding:1px 4px;border-radius:2px;background:var(--ink);color:var(--desk);font-size:10px;font-weight:600}
+.route-legend-ahead::before{content:"○ "/""}
+.route-ready{margin:4px 0 6px;max-width:52em;color:var(--ink-soft);font:400 14px/1.5 var(--font-body)}
+.route-log{position:relative;padding-left:28px}
+.route-log::before{content:"";position:absolute;left:13px;top:12px;bottom:20px;width:2px;background:var(--rule)}
+.route-week{margin:0}
+.route-week-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;padding:18px 0 8px 8px}
+.route-week-num{margin:0;color:var(--ink-soft);font:500 12px/1.4 var(--font-ui)}
+.route-week-title{margin:0;font:600 15px/1.4 var(--font-body);font-stretch:100%;letter-spacing:0}
+.route-week-result{margin:0;color:var(--ink-soft);font:400 14px/1.4 var(--font-body)}
+.route-days{margin:0;padding:0;list-style:none}
+.route-day{position:relative}
+.route-day::before{content:"";position:absolute;left:-20px;top:50%;width:12px;height:12px;margin-top:-6px;border:2px solid var(--edge);border-radius:50%;background:var(--desk)}
+.route-day:is(.is-done,.is-now)::before{border-color:var(--ink);background:var(--ink)}
+.route-row{display:grid;grid-template-columns:72px 64px minmax(0,1fr) 84px 92px;align-items:center;column-gap:12px;min-height:40px;padding:0 12px 0 8px;border-radius:var(--radius-m);color:var(--ink-soft);text-decoration:none}
+.route-row:hover{background:var(--raised);color:var(--ink)}
+.route-day.is-done .route-row{color:var(--ink)}
+.route-day.is-now .route-row{background:var(--ink);color:var(--desk)}
+.route-hash,.route-row-num,.route-row-video,.route-mark{font:400 12px/1 var(--font-ui)}
+.route-hash,.route-row-num,.route-row-video{color:var(--ink-soft)}
+.route-row-num{font-weight:500}
+.route-day.is-now :is(.route-hash,.route-row-num,.route-row-video){color:inherit}
+.route-day.is-now .route-hash{font-weight:600}
+.route-row-title{min-width:0;padding:9px 0;font:400 15px/1.35 var(--font-body);overflow-wrap:break-word}
+.route-day.is-now .route-row-title{font-weight:600}
+.route-row-video,.route-mark{text-align:right}
+.route-mark{font-weight:500}
+.route-mark.is-done{color:var(--fig-ok)}
 
-/* Неделя — «бумага»: слева номер, название и итог, справа дни; когда тесно, название встаёт над днями */
-.route-week{display:flex;flex-wrap:wrap;gap:32px;padding:32px}
-.route-week-info{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:12px}
-.route-week-num{margin:0;color:var(--accent);font:800 64px/.9 var(--font-ui);letter-spacing:-.04em}
-.route-week-title{margin:0;font:760 24px/1.15 var(--font-ui);letter-spacing:-.02em;overflow-wrap:break-word}
-.route-week-result{margin:0;color:var(--ink-soft);font:italic 400 16px/1.5 var(--font-body)}
-
-/* День на линии пути: точка 22 px (--dot-top — её отступ сверху), от её центра линия 2 px к следующей точке; цвет линии — по этому дню.
-   Рамка пустой точки «впереди» — --ink-soft: точка показывает состояние, ей нужно ≥ 3 : 1 к бумаге (у --fig-line 2,5 : 1) */
-.route-days{flex:999 1 560px;min-width:0;margin:0;padding:0;list-style:none}
-.route-day{--dot-top:15px;position:relative;display:flex;align-items:flex-start;gap:18px}
-.route-day:not(:last-child)::before{content:'';position:absolute;left:10px;top:calc(var(--dot-top) + 11px);bottom:calc(-11px - var(--dot-top));width:2px;background:var(--rule)}
-.route-day.is-done:not(:last-child)::before{background:var(--accent)}
-.route-dot{position:relative;flex:none;display:block;width:22px;height:22px;margin-top:var(--dot-top,0);border:2px solid var(--ink-soft);border-radius:50%;background:var(--paper)}
-.route-dot.is-done{border-color:var(--accent);background:var(--accent)}
-.route-dot.is-now{border:5px solid var(--accent)}
-
-/* Строка дня — ссылка; текущий день подсвечен. Метки — цветом текста: зелёный --fig-ok на подложке не добирает 4,5 : 1 */
-.route-row{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;min-height:52px;margin:0 0 4px;padding:8px 14px;border-radius:var(--radius-m);color:var(--ink);text-decoration:none}
-.route-row:hover{background:var(--tint)}
-.route-day.is-now .route-row{background:var(--tint);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent)}
-.route-row-num{flex:none;min-width:64px;color:var(--ink-soft);font:600 13px/1.2 var(--font-ui);letter-spacing:.06em;text-transform:uppercase}
-.route-row-title{flex:1 1 180px;min-width:0;font:600 17px/1.3 var(--font-ui);overflow-wrap:break-word}
-.route-row-video{flex:none;display:inline-flex;align-items:center;gap:6px;color:var(--ink-soft);font:500 14px/1 var(--font-ui)}
-.route-mark{flex:none;padding:6px 10px;border-radius:999px;font:600 13px/1 var(--font-ui)}
-.route-mark.is-done{background:color-mix(in srgb,var(--fig-ok) 12%,transparent);color:var(--ink)}
-.route-mark.is-now{background:var(--accent);color:var(--fig-on)}
-
-/* Движение: кольцо «Продолжить» заполняется за 400 мс, карточка и строки дня при наведении поднимаются на 2 px.
-   При «уменьшить движение» анимацию и переходы гасит правило в base.css, а подъёма нет вовсе */
-@property --ring{syntax:'<angle>';inherits:false;initial-value:0deg}
-@keyframes ring-fill{from{--ring:0deg}}
-.continue-ring{animation:ring-fill .4s ease-out;transition:--ring .4s ease-out}
-.continue,.route-row{transition:transform .2s ease,background-color .2s ease}
-@media (hover:hover) and (prefers-reduced-motion:no-preference){
-  .continue:hover,.route-row:hover{transform:translateY(-2px)}
+/* Планшет и телефон: боковая панель — строка сверху. Название и разделы в один ряд; ветка, «Сегодня» и прогресс скрыты,
+   у «Поиска», «Графа» и темы — значки. Подписи, которые видно только на широком экране, остаются для чтения с экрана */
+@media (max-width:960px){
+  .shell{display:block}
+  .sitebar{position:static;height:auto;overflow:visible;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:6px 32px;border-right:0;border-bottom:1px solid var(--rule)}
+  .sitebar-brand{padding:0}
+  .sitebar-branch,.sitebar-progress,.sitebar-today{display:none}
+  .sitebar-links{flex-direction:row;flex-wrap:wrap;gap:2px}
+  .sitebar-link{width:auto;min-height:44px;min-width:44px;justify-content:center;padding:0 10px}
+  .sitebar-link svg{display:block}
+  .sitebar-search::after,.sitebar-book::after,.theme-toggle::after{display:none}
+  .sitebar-map-tail,.theme-toggle-label,.search-open-label,.graph-open-label{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .intro-title{font-size:38px}
 }
-
-/* Телефон: заголовок меньше, диф под текстом, герои мельче, кнопки во всю ширину */
 @media (max-width:640px){
-  .home-wrap{padding-inline:16px}
-  .sitebar{gap:8px}
-  .sitebar-links{gap:4px}
-  .sitebar-link{padding:10px 12px}
-  .cover-inner{gap:32px;padding-top:20px;padding-bottom:52px}
-  .cover-main{gap:32px}
-  .cover-title{font-size:40px;line-height:1.02}
-  .cover-lead{font-size:18px}
-  .cover-btn,.continue-btn{width:100%}
-  .cover-heroes{justify-content:flex-start}
-  .cover-heroes svg{width:auto;height:72px}
-  .continue{padding:20px;gap:16px}
-  .continue-title{font-size:21px}
-  .how{margin-top:48px}
-  .how-title{font-size:30px}
-  .home-main{padding-bottom:64px}
-  .route{margin-top:48px}
-  .route-title{font-size:30px}
-  .route-week{gap:20px;padding:20px 16px}
-  .route-week-title{font-size:21px}
-  /* Строка дня переносится: номер и тема по первой базовой линии, точка — напротив первой строки */
-  .route-day{--dot-top:8px;gap:12px}
-  .route-row{align-items:baseline;gap:6px 12px;padding:8px 10px}
+  .sitebar{padding:4px 16px}
+  .topbar{padding:0 16px}
+  .page{padding:28px 16px 72px}
+  .home-main{gap:40px}
+  .intro-title{font-size:32px;line-height:1.1}
+  .intro-lead{font-size:16px}
+  .intro-btn{flex:1 1 100%}
+  .continue{padding:18px 16px}
+  .continue-btn{width:100%}
+  /* Строка дня переносится: «день NN» и отметка сверху, тема под ними; хеш и ролики уходят */
+  .route-log{padding-left:24px}
+  .route-log::before{left:9px}
+  .route-day::before{left:-20px}
+  .route-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"num mark" "title title";row-gap:2px;padding:8px 10px}
+  .route-hash,.route-row-video{display:none}
+  .route-row-num{grid-area:num}
+  .route-mark{grid-area:mark}
+  .route-row-title{grid-area:title;padding:0}
 }
-
-/* Узкий телефон (до 420 px): название курса скрыто визуально (как .visually-hidden), знак «В» остаётся — строка
-   обложки (знак, «Поиск», «Граф», «Карта», «Книга») стоит в один ряд и на 320 px; название читается с экрана */
+/* Узкий телефон (до 420 px): разделы плотнее, переключатель темы — только на широком экране */
 @media (max-width:420px){
-  .sitebar-name{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .sitebar-link{padding:0 6px}
+  .sitebar-name{font-size:14px}
+  .theme-toggle{display:none}
 }
