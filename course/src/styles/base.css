@@ -11,6 +11,29 @@ a{color:var(--accent-ink);text-decoration-thickness:1px;text-underline-offset:.2
 .visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
+/* Движение: коротко и только в ответ на действие. Наведение и смена состояния у строк и кнопок — плавно (--dur-fast) */
+.btn,.sitebar-link,.route-row,.toc-item,.quiz-option,.card-action,.card-term,.search-link,.graph-filter,.day-step{transition:background-color var(--dur-fast) var(--ease-out),border-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--ease-out)}
+.btn:active:not(:disabled),a.day-step:active{transform:scale(.97)}
+
+/* Смена экрана (View Transitions, motion.ts): боковая панель — свой слой и стоит на месте, меняется остальное.
+   page — новый экран поднимается на 8 px, листание дня — сдвиг на 16 px в сторону листания, theme — перетекание цветов */
+.sitebar{view-transition-name:sitebar}
+::view-transition-old(root){animation:vt-fade-out var(--dur-fast) var(--ease-in) both}
+::view-transition-new(root){animation:vt-rise var(--dur-page) var(--ease-out) both}
+html[data-transition="forward"]::view-transition-old(root){animation-name:vt-out-left}
+html[data-transition="forward"]::view-transition-new(root){animation-name:vt-in-right}
+html[data-transition="back"]::view-transition-old(root){animation-name:vt-out-right}
+html[data-transition="back"]::view-transition-new(root){animation-name:vt-in-left}
+html[data-transition="theme"]::view-transition-old(*){animation:vt-fade-out var(--dur-page) var(--ease-out) both}
+html[data-transition="theme"]::view-transition-new(*){animation:vt-fade-in var(--dur-page) var(--ease-out) both}
+@keyframes vt-fade-out{to{opacity:0}}
+@keyframes vt-fade-in{from{opacity:0}}
+@keyframes vt-rise{from{opacity:0;transform:translateY(8px)}}
+@keyframes vt-out-left{to{opacity:0;transform:translateX(-16px)}}
+@keyframes vt-in-right{from{opacity:0;transform:translateX(16px)}}
+@keyframes vt-out-right{to{opacity:0;transform:translateX(16px)}}
+@keyframes vt-in-left{from{opacity:0;transform:translateX(-16px)}}
+
 /* Кнопки и ссылки-кнопки: всё нажимаемое не меньше 44 × 44 px. Обычная — контур --edge, главная — инверсия (цвет текста на фоне).
    Цветом кнопки не красятся: цвет в курсе только у состояний */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:6px 16px;border:1px solid var(--edge);border-radius:var(--radius-m);background:transparent;color:var(--ink);font:500 13px/1.3 var(--font-ui);text-decoration:none}
@@ -26,3 +49,14 @@ a{color:var(--accent-ink);text-decoration-thickness:1px;text-underline-offset:.2
 .paper{background:var(--paper);border:1px solid var(--paper-edge);border-radius:var(--radius-l)}
 /* HEAD — текущее место: инверсия, как выделение в терминале */
 .head-chip{display:inline-block;padding:3px 6px;border-radius:var(--radius-s);background:var(--ink);color:var(--desk);font:600 11px/1.2 var(--font-ui);letter-spacing:.02em}
+
+/* Печать строк терминала (useReveal, typeLine): при первом показе блока строки открываются слева направо по знакам,
+   по очереди (--i × --stagger); в конце курсор ▍ мигает трижды и остаётся. Текст в разметке сразу — для дикторов и поиска */
+.term-cursor{display:inline-block;width:.6em;height:1.15em;margin-left:.2em;vertical-align:-.22em;background:currentColor}
+@media screen and (prefers-reduced-motion:no-preference){
+  [data-reveal="wait"] .type-line{clip-path:inset(0 100% 0 0)}
+  [data-reveal="go"] .type-line{animation:type-line var(--dur-type) steps(var(--steps,24),end) backwards;animation-delay:calc(var(--i,0) * var(--stagger))}
+  [data-reveal="go"] .term-cursor{animation:term-blink 1s steps(1,end) 3;animation-delay:calc(var(--i,0) * var(--stagger) + var(--dur-type))}
+}
+@keyframes type-line{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes term-blink{50%{opacity:0}}

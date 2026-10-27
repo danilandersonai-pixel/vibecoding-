@@ -4,7 +4,11 @@
    --accent — это цвет текста: главное действие, текущее место и рамка фокуса — инверсией, без отдельного цвета.
    Тёмный блок запроса (--term-*) одинаков в обеих темах: терминал всегда тёмный.
    --graph-book — единственный «лишний» цвет: части и главы на графе знаний, чтобы отличались от видеоуроков (--warn).
-   --scrim — затемнение под окном поиска, --shadow-raised — только у всплывающего (окно поиска, списки, панель графа) */
+   --scrim — затемнение под окном поиска, --shadow-raised — только у всплывающего (окно поиска, списки, панель графа).
+   Движение — только в ответ на действие: --dur-fast — наведение и нажатие, --dur-base — отклик (✓, «Скопировано», пояснение),
+   --dur-page — смена экрана, --dur-type — печать строки терминала, --dur-draw — прорисовка линии карты; --stagger — шаг очереди строк терминала,
+   --stagger-log — дней на карте.
+   --ease-out — появление и всё по умолчанию, --ease-in — уход старого экрана */
 :root{
   --desk:#141619; --desk-ink:#E9EBEE; --desk-soft:#A3A9B1;
   --paper:#1A1D21; --paper-edge:#2B3036; --raised:#22262B; --ink:#E9EBEE; --ink-soft:#A3A9B1; --ink-faint:#868D96;
@@ -16,6 +20,8 @@
   --shadow-raised:0 24px 48px -20px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.05);
   --scrim:rgba(0,0,0,.6);
   --radius-xl:8px; --radius-l:6px; --radius-m:4px; --radius-s:3px; --content:1200px; --sidebar:248px;
+  --dur-fast:120ms; --dur-base:200ms; --dur-page:280ms; --dur-type:260ms; --dur-draw:640ms; --stagger:70ms; --stagger-log:24ms;
+  --ease-out:cubic-bezier(.16,1,.3,1); --ease-in:cubic-bezier(.5,0,.75,0);
   --font-body:'Golos Text',system-ui,'Segoe UI',Roboto,Arial,sans-serif;
   --font-ui:'Martian Mono',ui-monospace,Menlo,Consolas,'Courier New',monospace;
   --font-code:'Martian Mono',ui-monospace,Menlo,Consolas,'Courier New',monospace;

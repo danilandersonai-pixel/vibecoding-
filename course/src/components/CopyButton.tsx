@@ -26,7 +26,14 @@ export function CopyButton({ text, tone = 'term' }: { text: string; tone?: 'term
   return (
     <span className={`copy copy-${tone}`}>
       <button type="button" className={`btn copy-btn copy-btn-${tone}`} onClick={() => void copy()}>
-        {state === 'copied' ? 'Скопировано' : 'Скопировать'}
+        {/* key — новая подпись въезжает снизу (blocks.css, .copy-label); первая подпись стоит на месте */}
+        {state === 'copied' ? (
+          <span key="copied" className="copy-label">
+            Скопировано
+          </span>
+        ) : (
+          <span key="idle">Скопировать</span>
+        )}
       </button>
       {state === 'manual' && (
         <span className="copy-manual">

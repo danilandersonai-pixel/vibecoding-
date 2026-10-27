@@ -242,8 +242,10 @@ for (const width of [390, 320]) {
 // Телефон: у «Графа» в боковой панели (на главной и в дне она — строка сверху) только значок — нажатие 44 × 44, имя «Граф»
 test('на 390 px «Граф» — значок, нажатие 44 × 44', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  for (const [url, where] of [['/', 'navigation'], ['/#/day/1', 'banner']] as const) {
+  for (const [url, where, title] of [['/', 'navigation', 'Своё приложение с ИИ за 21 день'], ['/#/day/1', 'banner', 'Азбука и знакомство с моделями']] as const) {
     await page.goto(url)
+    // смена экрана идёт переходом браузера — мерить, когда страница уже открыта
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
     const scope = where === 'navigation' ? page.getByRole('navigation', { name: 'Разделы' }) : page.getByRole('banner')
     const box = (await scope.getByRole('button', { name: 'Граф' }).boundingBox())!
     expect([box.width >= 44 && box.width < 60, box.height >= 44]).toEqual([true, true])

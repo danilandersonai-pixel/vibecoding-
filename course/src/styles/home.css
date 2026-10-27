@@ -23,7 +23,7 @@
 .sitebar-count,.sitebar-streak{margin:0;color:var(--ink-soft);font:500 12px/1.4 var(--font-ui)}
 .sitebar-count-num{color:var(--ink)}
 .sitebar-cells{display:grid;grid-template-columns:repeat(7,14px);gap:4px;margin:0;padding:0;list-style:none}
-.sitebar-cells li{width:14px;height:14px;border-radius:2px;background:var(--rule)}
+.sitebar-cells li{width:14px;height:14px;border-radius:2px;background:var(--rule);transition:background-color var(--dur-base) var(--ease-out),box-shadow var(--dur-base) var(--ease-out)}
 .sitebar-cells li.is-done{background:var(--ink)}
 .sitebar-cells li.is-now{background:transparent;box-shadow:inset 0 0 0 2px var(--ink)}
 
@@ -100,6 +100,21 @@
 .route-row-video,.route-mark{text-align:right}
 .route-mark{font-weight:500}
 .route-mark.is-done{color:var(--fig-ok)}
+/* Первый показ карты (useReveal): линия ветки прорисовывается сверху вниз за --dur-draw, недели и дни появляются
+   по очереди (--i × --stagger-log), точка дня загорается, строка HEAD заливается инверсией слева направо */
+@media screen and (prefers-reduced-motion:no-preference){
+  .route-log::before{transform-origin:top}
+  .route-log[data-reveal="wait"]::before{transform:scaleY(0)}
+  .route-log[data-reveal="wait"] :is(.route-week-head,.route-day){opacity:0}
+  .route-log[data-reveal="go"]::before{animation:route-draw var(--dur-draw) var(--ease-out) backwards}
+  .route-log[data-reveal="go"] :is(.route-week-head,.route-day){animation:route-row-in var(--dur-base) var(--ease-out) backwards;animation-delay:calc(var(--i,0) * var(--stagger-log))}
+  .route-log[data-reveal="go"] .route-day::before{animation:route-dot-in var(--dur-base) var(--ease-out) backwards;animation-delay:calc(var(--i,0) * var(--stagger-log) + 60ms)}
+  .route-log[data-reveal="go"] .route-day.is-now .route-row{background:linear-gradient(var(--ink),var(--ink)) 0 0/100% 100% no-repeat;animation:route-head-fill var(--dur-page) var(--ease-out) backwards;animation-delay:calc(var(--i,0) * var(--stagger-log) + 120ms)}
+}
+@keyframes route-draw{from{transform:scaleY(0)}}
+@keyframes route-row-in{from{opacity:0;transform:translateX(-6px)}}
+@keyframes route-dot-in{from{transform:scale(0)}}
+@keyframes route-head-fill{from{background-size:0 100%;color:var(--ink)}}
 
 /* Планшет и телефон: боковая панель — строка сверху. Название и разделы в один ряд; ветка, «Сегодня» и прогресс скрыты,
    у «Поиска», «Графа» и темы — значки. Подписи, которые видно только на широком экране, остаются для чтения с экрана */

@@ -79,7 +79,9 @@ function flatten(layers: [string, number][]): string {
 }
 
 // Не зависят от темы — только в :root, светлый блок их не трогает
-const SHARED = ['--radius-xl', '--radius-l', '--radius-m', '--radius-s', '--content', '--sidebar', '--font-body', '--font-ui', '--font-code']
+// Движение (--dur-*, --ease-*, --stagger*) — общее для обеих тем
+const MOTION = ['--dur-fast', '--dur-base', '--dur-page', '--dur-type', '--dur-draw', '--stagger', '--stagger-log', '--ease-out', '--ease-in']
+const SHARED = ['--radius-xl', '--radius-l', '--radius-m', '--radius-s', '--content', '--sidebar', '--font-body', '--font-ui', '--font-code', ...MOTION]
 // Цвета и тени, которые должны быть в обеих темах (новые --raised, --edge, --ink-faint, --term-ok, --term-err — тоже)
 const THEMED = [
   '--desk', '--desk-ink', '--desk-soft', '--paper', '--paper-edge', '--raised', '--ink', '--ink-soft', '--ink-faint',
@@ -113,6 +115,25 @@ describe('tokens.css', () => {
     expect(Object.keys(lightOwn).sort()).toEqual(Object.keys(dark).filter((k) => !SHARED.includes(k)).sort())
     // токенов обложки больше нет
     expect(css).not.toMatch(/--cover-/)
+  })
+
+  it('движение короткое: длительности 120–640 мс, шаг очереди до 70 мс, кривые — cubic-bezier', () => {
+    const ms = (v: string) => Number(v.replace('ms', ''))
+    for (const name of ['--dur-fast', '--dur-base', '--dur-page', '--dur-type', '--dur-draw']) {
+      expect(dark[name], name).toMatch(/^\d+ms$/)
+      expect(ms(dark[name]), name).toBeGreaterThanOrEqual(120)
+      expect(ms(dark[name]), name).toBeLessThanOrEqual(640)
+    }
+    expect(ms(dark['--dur-fast'])).toBeLessThan(ms(dark['--dur-base']))
+    expect(ms(dark['--dur-base'])).toBeLessThan(ms(dark['--dur-page']))
+    for (const name of ['--stagger', '--stagger-log']) expect(ms(dark[name]), name).toBeLessThanOrEqual(70)
+    for (const name of ['--ease-out', '--ease-in']) expect(dark[name], name).toMatch(/^cubic-bezier\(/)
+  })
+
+  it('при «уменьшить движение» анимации и переходы выключены везде', () => {
+    expect(read(resolve(here, 'base.css')).replace(/\s+/g, '')).toContain(
+      '@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}',
+    )
   })
 
   it('на каждую var(--…) в стилях и компонентах есть переменная', () => {

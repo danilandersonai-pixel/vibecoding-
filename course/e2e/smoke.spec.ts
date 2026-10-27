@@ -45,6 +45,8 @@ test('на 1440 px боковая панель — колонка слева в�
 
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/#/day/1')
+  // смена экрана идёт переходом браузера — мерить, когда день уже открыт
+  await expect(page.getByRole('heading', { level: 1, name: 'Азбука и знакомство с моделями' })).toBeVisible()
   const row = (await bar.boundingBox())!
   expect([row.x, row.width].map(Math.round)).toEqual([0, 390])
   expect(row.height).toBeLessThan(64)

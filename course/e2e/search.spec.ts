@@ -174,6 +174,8 @@ test('на 390 px «Поиск» — значок лупы, верхняя ст�
   expect(Math.abs(brand.y + brand.height / 2 - (box.y + box.height / 2))).toBeLessThan(4)
 
   await page.goto('/#/day/1')
+  // смена экрана идёт переходом браузера — мерить, когда день уже открыт
+  await expect(page.getByRole('heading', { level: 1, name: 'Азбука и знакомство с моделями' })).toBeVisible()
   const day = (await page.getByRole('banner').getByRole('button', { name: 'Поиск' }).boundingBox())!
   expect([day.width >= 44 && day.width < 60, day.height >= 44]).toEqual([true, true])
 })

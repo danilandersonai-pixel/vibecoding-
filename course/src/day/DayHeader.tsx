@@ -2,6 +2,7 @@ import { RouteLink } from '../components/RouteLink'
 import { getWeeks } from '../content/load'
 import type { Day } from '../content/schema'
 import { dayVideoSummary, formatDuration, plural } from '../course/summary'
+import { typeLine, useReveal } from '../motion'
 import { DAY_COUNT } from '../router'
 
 // Стрелка к соседнему дню; у первого и последнего дня — неактивная, без адреса
@@ -57,6 +58,7 @@ function dayFacts(day: Day): [string, string][] {
 // Шапка дня — часть «Зачем сегодня»: день и неделя, тема, цель, состав и «Результат дня» строкой диффа.
 // К ней ведёт первый пункт плана дня
 export function DayHeader({ day }: { day: Day }) {
+  const result = useReveal<HTMLDivElement>()
   const week = getWeeks().find((w) => w.number === day.week)
   const facts = dayFacts(day)
   return (
@@ -79,11 +81,14 @@ export function DayHeader({ day }: { day: Day }) {
         </dl>
       )}
       {day.result && (
-        <div className="day-result">
-          <p className="day-result-kicker">Результат дня</p>
-          <p className="day-result-text">
+        <div ref={result} className="day-result">
+          <p className="day-result-kicker type-line" style={typeLine(0, 15)}>
+            Результат дня
+          </p>
+          <p className="day-result-text type-line" style={typeLine(1, day.result.length + 2)}>
             <span aria-hidden="true">+ </span>
             {day.result}
+            <span className="term-cursor" aria-hidden="true" />
           </p>
         </div>
       )}
