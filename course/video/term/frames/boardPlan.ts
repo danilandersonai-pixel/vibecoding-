@@ -17,9 +17,11 @@ import { beatProblem } from './source'
  * cards — карточки рядом (до трёх в ряд, четыре — два ряда по два): рамка edge 2 px на paper, заголовок 32 px 600, текст 28 px soft;
  *   tone красит рамку и заголовок. Карточки одного ряда одной высоты. Каждая появляется на своей реплике at.
  * scale — горизонтальная линия 2 px line между подписями краёв (28 px soft); пункты — точки на линии (pos 0…1) и подписи 32 px ink по очереди
- *   над и под линией, появляются на реплике at; marker — треугольник ink под линией: появляется на первой реплике и переезжает
- *   к pos следующей за MOTION.move.
- * Части: 'frame', 'title', 'row:<k>', 'card:<k>', 'item:<k>' (только подпись пункта), 'marker' (в конце сцены, у последнего положения).
+ *   над и под линией (side — сторона подписи пункта явно), появляются на реплике at; marker — треугольник ink под линией: появляется
+ *   на первой реплике и переезжает к pos следующей за MOTION.move; markerLabel — что значит маркер: подпись 28 px soft под ним, едет
+ *   вместе с ним (подписи пунктов тогда только над линией).
+ * Части: 'frame', 'title', 'row:<k>', 'card:<k>', 'item:<k>' (только подпись пункта), 'marker' и 'marker-label' (в конце сцены,
+ * у последнего положения).
  */
 export type Tone = 'ok' | 'err' | 'warn'
 export type BoardSpec = {
@@ -27,7 +29,13 @@ export type BoardSpec = {
   title?: string
   table?: { head: string[]; rows: string[][]; at: number[]; mark?: { at: number; row: number; tone?: Tone }[] }
   cards?: { title: string; text: string[]; at: number; tone?: Tone }[]
-  scale?: { left: string; right: string; items: { label: string; pos: number; at: number }[]; marker?: { at: number; pos: number }[] }
+  scale?: {
+    left: string
+    right: string
+    items: { label: string; pos: number; at: number; side?: 'above' | 'below' }[]
+    marker?: { at: number; pos: number }[]
+    markerLabel?: string
+  }
 }
 
 export const TONES: Record<Tone, string> = { ok: T.ok, err: T.err, warn: T.warn }
@@ -45,7 +53,7 @@ export const SCALE = {
   labelGap: 12, // между подписями одной стороны
   above: 32, // от линии до низа подписи над ней
   below: 66, // от линии до верха подписи под ней
-  marker: { w: 32, h: 28, top: 20 }, // треугольник: ширина, высота, отступ его вершины от линии
+  marker: { w: 32, h: 28, top: 20, labelGap: 8 }, // треугольник: ширина, высота, отступ его вершины от линии; от его низа до подписи
   minLine: 600,
 }
 
@@ -65,6 +73,8 @@ export type ScalePlan = {
   edges: { left: Rect; right: Rect }
   items: ItemBox[]
   markers: { at: number; cx: number }[]
+  /** Подпись маркера: текст и ширина по оценке Golos Text 28 px. */
+  markerLabel: { text: string; w: number } | null
   h: number
 }
 type Plan = {
@@ -268,7 +278,7 @@ function planScale(s: NonNullable<BoardSpec['scale']>, problems: string[]): Scal
     // подпись центрирована на точке, но не выходит за SAFE
     const cx = xOf(it.pos)
     const left = Math.min(Math.max(cx - w / 2, SAFE.x), SAFE.x + SAFE.w - w)
-    return { cx, side: k % 2 === 0 ? 'above' : 'below', lines, box: { x: left, y: 0, w, h: lines.length * SCALE.label.line }, at: it.at, rect: { x: 0, y: 0, w: 0, h: 0 } }
+    return { cx, side: it.side ?? (k % 2 === 0 ? 'above' : 'below'), lines, box: { x: left, y: 0, w, h: lines.length * SCALE.label.line }, at: it.at, rect: { x: 0, y: 0, w: 0, h: 0 } }
   })
   // Подписи одной стороны не налезают друг на друга
   items.forEach((a, i) => {
@@ -281,9 +291,16 @@ function planScale(s: NonNullable<BoardSpec['scale']>, problems: string[]): Scal
 
   const aboveLines = Math.max(0, ...items.filter((i) => i.side === 'above').map((i) => i.lines.length))
   const belowLines = Math.max(0, ...items.filter((i) => i.side === 'below').map((i) => i.lines.length))
+  let markerLabel: ScalePlan['markerLabel'] = null
+  if (s.markerLabel !== undefined) {
+    if (marker.length === 0) problems.push('scale.markerLabel: подпись маркера без маркера — задайте scale.marker')
+    if (belowLines > 0) problems.push(`scale.markerLabel: подпись маркера стоит под линией, а там подписи пунктов — поставьте им side: 'above'`)
+    markerLabel = { text: s.markerLabel, w: fitWidth(s.markerLabel, TEXT.size) }
+  }
   // от верха блока до линии, от линии до низа блока
   const up = aboveLines > 0 ? SCALE.above + aboveLines * SCALE.label.line : SCALE.dot
-  const down = belowLines > 0 ? SCALE.below + belowLines * SCALE.label.line : SCALE.line + SCALE.marker.top + SCALE.marker.h
+  const markerDown = SCALE.line + SCALE.marker.top + SCALE.marker.h + (markerLabel ? SCALE.marker.labelGap + TEXT.line : 0)
+  const down = belowLines > 0 ? SCALE.below + belowLines * SCALE.label.line : markerDown
   const edge = (x: number, w: number): Rect => ({ x, y: up + SCALE.line / 2 - TEXT.line / 2, w, h: TEXT.line })
   return {
     y: up,
@@ -294,6 +311,7 @@ function planScale(s: NonNullable<BoardSpec['scale']>, problems: string[]): Scal
     edges: { left: edge(SAFE.x, leftW), right: edge(SAFE.x + SAFE.w - rightW, rightW) },
     items,
     markers: marker.map((m) => ({ at: m.at, cx: xOf(m.pos) })),
+    markerLabel,
     h: up + down,
   }
 }
@@ -311,6 +329,14 @@ function shiftScale(s: ScalePlan, y: number): void {
 
 /** Прямоугольник маркера с центром в cx. */
 export const markerRect = (s: ScalePlan, cx: number): Rect => ({ x: cx - SCALE.marker.w / 2, y: s.y + SCALE.line + SCALE.marker.top, w: SCALE.marker.w, h: SCALE.marker.h })
+
+/** Прямоугольник подписи маркера под маркером с центром в cx: по центру, но не за краями SAFE. */
+export function markerLabelRect(s: ScalePlan, cx: number): Rect | null {
+  if (!s.markerLabel) return null
+  const w = s.markerLabel.w
+  const m = markerRect(s, cx)
+  return { x: Math.min(Math.max(cx - w / 2, SAFE.x), SAFE.x + SAFE.w - w), y: m.y + m.h + SCALE.marker.labelGap, w, h: TEXT.line }
+}
 
 /** Центр маркера на кадре frame: нет до первой реплики; первое положение — на месте, дальше — переезд за MOTION.move кадров (ease-out). */
 export function markerAt(s: ScalePlan, clock: Clock, frame: number): { cx: number; opacity: number } | null {
@@ -335,6 +361,8 @@ export function boardLayout(spec: BoardSpec): Record<string, Rect> {
     p.scale.items.forEach((it, k) => (parts[`item:${k}`] = { ...it.rect }))
     const last = p.scale.markers[p.scale.markers.length - 1]
     if (last) parts.marker = markerRect(p.scale, last.cx)
+    const label = last ? markerLabelRect(p.scale, last.cx) : null
+    if (label) parts['marker-label'] = label
   }
   return parts
 }

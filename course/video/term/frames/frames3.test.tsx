@@ -890,6 +890,57 @@ describe('Board', () => {
     })
   })
 
+  describe('шкала: сторона подписей и подпись маркера', () => {
+    const ONE_SIDE: BoardSpec = {
+      type: 'board',
+      scale: {
+        left: 'дёшево',
+        right: 'дорого',
+        items: [
+          { label: 'Разработка', pos: 0, at: 0, side: 'above' },
+          { label: 'Staging', pos: 0.5, at: 1, side: 'above' },
+          { label: 'Продакшен', pos: 1, at: 0, side: 'above' },
+        ],
+        marker: [{ at: 0, pos: 1 }, { at: 1, pos: 0.5 }],
+        markerLabel: 'здесь нашли ошибку',
+      },
+    }
+
+    it('side задаёт сторону подписи пункта: все над линией; без side — по очереди, как раньше', () => {
+      const s = boardPlan(ONE_SIDE).scale!
+      expect(s.items.map((i) => i.side)).toEqual(['above', 'above', 'above'])
+      const layout = def.layout(ONE_SIDE, ctx)
+      for (const k of [0, 1, 2]) expect(layout[`item:${k}`].y + layout[`item:${k}`].h, `item:${k}`).toBeLessThanOrEqual(s.y)
+      expect(boardPlan(SCALE).scale!.items.map((i) => i.side)).toEqual(['above', 'below', 'above', 'below'])
+      expect(problems(ONE_SIDE)).toEqual([])
+    })
+
+    it('подпись маркера — 28 px soft под треугольником, едет вместе с ним; часть marker-label — в SAFE под маркером', () => {
+      const layout = def.layout(ONE_SIDE, ctx)
+      expect(layout['marker-label']).toBeDefined()
+      expect(inside(layout['marker-label'])).toBe(true)
+      expect(below(layout['marker-label'], layout.marker)).toBe(true)
+      // в конце сцены маркер и подпись — у Staging
+      const cx = (r: Rect) => r.x + r.w / 2
+      expect(cx(layout['marker-label'])).toBeCloseTo(cx(layout.marker), 0)
+      const html = view(ONE_SIDE, beat(1) + MOTION.move + 5)
+      const g = part(html, 'marker')!
+      const label = /<text [^>]*>здесь нашли ошибку<\/text>/.exec(g)![0]
+      expect(label).toContain('font-size:28px')
+      expect(label).toContain(`fill="${T.soft}"`)
+      expect(label).toContain('text-anchor="middle"')
+      // подпись в той же группе, что и треугольник: сдвиг группы двигает обе
+      expect(partTag(html, 'marker')).toMatch(/translate\(/)
+    })
+
+    it('подпись маркера с подписями пунктов под линией или без маркера — проблема', () => {
+      const below: BoardSpec = { ...ONE_SIDE, scale: { ...ONE_SIDE.scale!, items: ONE_SIDE.scale!.items.map((i, k) => ({ ...i, side: k === 1 ? 'below' : 'above' })) } }
+      expect(problems(below).join('\n')).toMatch(/markerLabel/)
+      const none: BoardSpec = { ...ONE_SIDE, scale: { ...ONE_SIDE.scale!, marker: undefined } }
+      expect(problems(none).join('\n')).toMatch(/markerLabel/)
+    })
+  })
+
   describe('размещение', () => {
     const titleBottom = (layout: Record<string, Rect>) => layout.title.y + layout.title.h
 

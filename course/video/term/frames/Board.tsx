@@ -3,7 +3,7 @@ import { useCurrentFrame } from 'remotion'
 import type { Clock, FrameCtx } from '../frame'
 import { appear } from '../motion'
 import { SAFE, T, alpha } from '../theme'
-import { CARD, SCALE, TABLE, TEXT, TITLE, TONES, headAt, markerAt, markerRect, plan, scaleAt } from './boardPlan'
+import { CARD, SCALE, TABLE, TEXT, TITLE, TONES, headAt, markerAt, markerLabelRect, markerRect, plan, scaleAt } from './boardPlan'
 import type { BoardSpec } from './boardPlan'
 import { golos, n } from './style'
 
@@ -123,9 +123,16 @@ export function Board({ spec, clock }: Props): JSX.Element {
             const m = markerAt(scale, clock, frame)
             if (!m) return null
             const r = markerRect(scale, 0)
+            // Подпись едет вместе с маркером; у края SAFE она прижимается к нему (сдвиг относительно маркера)
+            const label = markerLabelRect(scale, m.cx)
             return (
               <g data-part="marker" transform={`translate(${n(m.cx)} 0)`} opacity={m.opacity}>
                 <path d={`M0 ${n(r.y)}L${-r.w / 2} ${n(r.y + r.h)}L${r.w / 2} ${n(r.y + r.h)}Z`} fill={T.ink} />
+                {label && scale.markerLabel && (
+                  <text x={n(label.x + label.w / 2 - m.cx)} y={n(label.y + TEXT.base)} textAnchor="middle" fill={T.soft} style={golos(TEXT.size)}>
+                    {scale.markerLabel.text}
+                  </text>
+                )}
               </g>
             )
           })()}
