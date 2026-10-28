@@ -578,6 +578,16 @@ describe('VideoBlock: главы ролика', () => {
     expect(old.container.querySelector('.hotspot-layer')).not.toHaveClass('is-dark')
   })
 
+  it('сцена до загрузки тёмного ролика (1920 × 1080) помечена is-dark, у старого 1280 × 720 — нет', async () => {
+    const wide = render(<VideoBlock videoId="chaptered" title="Новый" />)
+    // кадр ещё не нарисован — фон сцены уже тёмный, без белой вспышки
+    expect(wide.container.querySelector('.video-stage')).toHaveClass('is-dark')
+    wide.unmount()
+    const old = render(<VideoBlock videoId="a" title="Старый" />)
+    expect(old.container.querySelector('.video-stage')).not.toHaveClass('is-dark')
+    await act(async () => {})
+  })
+
   it('у ролика без глав (и с пустым списком глав) панель и блок прежние', async () => {
     for (const id of ['a', 'unchaptered']) {
       const { container, unmount } = render(<VideoBlock videoId={id} title="Ролик" />)

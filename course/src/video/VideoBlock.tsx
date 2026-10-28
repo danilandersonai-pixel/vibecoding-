@@ -10,6 +10,7 @@ import { chapterIndexAt, clock } from './chapters'
 import { saveVideo } from './download'
 import { HotspotLayer } from './HotspotLayer'
 import { videos } from './registry'
+import { isTermScript } from './termScript'
 import { useNarration, useRussianVoice } from './useNarration'
 import { VideoControls } from './VideoControls'
 import { VideoCover } from './VideoCover'
@@ -20,8 +21,8 @@ type PlayDetail = { videoId: string; instance: string }
 
 // Показывается внутри кадра (масштабируется вместе с ним), поэтому крупный шрифт задан в .video-failed;
 // кадр 1920 × 1080 сжимается сильнее 1280 × 720, ему шрифт ещё крупнее (.video-failed-wide).
-const loadFailed = (width: number) => (
-  <p className={width > 1280 ? 'video-failed video-failed-wide' : 'video-failed'} role="alert">
+const loadFailed = (dark: boolean) => (
+  <p className={dark ? 'video-failed video-failed-wide' : 'video-failed'} role="alert">
     Ролик не загрузился
   </p>
 )
@@ -185,6 +186,7 @@ function VideoBlockBody({ videoId, title, index }: Props) {
   }
 
   const { script, load, mp4Url } = entry
+  const dark = isTermScript(script)
   const frames = totalFrames(script)
   const duration = formatDuration(meta.seconds)
   const shownFrame = started ? frame : 0
@@ -196,7 +198,7 @@ function VideoBlockBody({ videoId, title, index }: Props) {
   return (
     <figure ref={figureRef} className="block video" aria-labelledby={titleId}>
       <div ref={screenRef} className="video-screen">
-        <div className="video-stage">
+        <div className={dark ? 'video-stage is-dark' : 'video-stage'}>
           {/* Пока ролик стоит на обложке, субтитры кадра обложки не рисуются: под нижним затемнением они только шумят */}
           <SubtitlesShown.Provider value={started}>
             {/* Класс video-frame стилей не имеет — это крючок e2e (кадр ролика нарисован), не удалять */}
@@ -204,7 +206,7 @@ function VideoBlockBody({ videoId, title, index }: Props) {
               ref={playerRef}
               className="video-frame"
               lazyComponent={load}
-              errorFallback={() => loadFailed(script.width)}
+              errorFallback={() => loadFailed(dark)}
               durationInFrames={frames}
               compositionWidth={script.width}
               compositionHeight={script.height}

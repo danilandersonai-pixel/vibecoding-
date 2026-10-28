@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { VideoHotspot } from '../../video/types'
+import { isTermScript } from './termScript'
 
 // Зоны кадра на паузе: нажатие на объект показывает пояснение. Координаты зон — в пикселях кадра ролика,
 // width × height — его размер (1280 × 720 у старых роликов, 1920 × 1080 у новых): положение и размер считаются в процентах от него.
@@ -11,7 +12,7 @@ export function HotspotLayer({ hotspots, width, height, frame }: { hotspots: Vid
   const active = hotspots.filter((h) => frame >= h.from && frame < h.to)
   const shown = active.find((h) => h.title === open)
   return (
-    <div className={width === 1920 ? 'hotspot-layer is-dark' : 'hotspot-layer'}>
+    <div className={isTermScript({ width }) ? 'hotspot-layer is-dark' : 'hotspot-layer'}>
       {active.map((h) => (
         <button
           key={h.title}

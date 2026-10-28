@@ -1,8 +1,11 @@
 /* Плеер роликов: кадр, под ним панель, название, строка «м:сс · N пояснений по нажатию» и список глав */
 .video{display:flex;flex-direction:column;gap:10px;margin:22px 0;font-family:var(--font-ui)}
 .video-screen{display:flex;flex-direction:column;gap:4px}
-/* Кадр — рамка 1 px без тени. Фон — бумага самих роликов: они всегда в светлой теме книги */
+/* Кадр — рамка 1 px без тени. Фон — бумага самих роликов, пока кадр не нарисован: старые ролики светлые (бумага книги),
+   новые (1920×1080, is-dark) тёмные — #141619, --desk тёмной темы курса, от темы страницы не зависит.
+   Правило is-dark стоит выше .video-stage:has(.video-failed): при равной специфичности побеждает более позднее */
 .video-stage{position:relative;border:1px solid var(--paper-edge);border-radius:var(--radius-l);overflow:hidden;background:#FBFAF6}
+.video-stage.is-dark{background:#141619}
 .video-title{margin:4px 0 0;font:600 16px/1.35 var(--font-body);overflow-wrap:break-word}
 .video-meta{margin:-4px 0 0;color:var(--ink-soft);font:400 12px/1.5 var(--font-ui)}
 
@@ -41,6 +44,7 @@
 @keyframes hs-pulse{50%{box-shadow:0 0 0 6px rgba(22,24,27,.22)}}
 .hotspot-layer.is-dark .video-hotspot{border-color:#E9EBEE;background:rgba(233,235,238,.08);animation-name:hs-pulse-dark}
 .hotspot-layer.is-dark .video-hotspot.is-open{animation:none;background:rgba(233,235,238,.16)}
+.hotspot-layer.is-dark .video-hotspot:focus-visible{outline-color:#E9EBEE}
 @keyframes hs-pulse-dark{50%{box-shadow:0 0 0 6px rgba(233,235,238,.22)}}
 @media (prefers-reduced-motion: reduce){.video-hotspot,.hotspot-layer.is-dark .video-hotspot{animation:none}}
 .video-hotspot-note{position:absolute;left:12px;right:12px;bottom:12px;padding:10px 14px;border-radius:var(--radius-s);background:var(--paper);color:var(--ink);border:1px solid var(--rule);box-shadow:var(--shadow-raised);font:400 .9rem/1.45 var(--font-body)}
@@ -68,8 +72,10 @@
 .video-voice{display:flex;align-items:center;gap:8px;min-height:44px;margin-left:auto;font:500 12px/1 var(--font-ui);cursor:pointer}
 .video-voice input{width:18px;height:18px;margin:0;accent-color:var(--ink)}
 .video-time + .video-fullscreen,.video-chapter + .video-fullscreen{margin-left:auto}
-/* Текущая глава после времени: занимает остаток строки и обрезается «…»; на телефоне — отдельной строкой панели */
-.video-chapter{flex:1 1 0;min-width:0;margin-left:6px;overflow:hidden;color:var(--ink-soft);font:400 12px/1.4 var(--font-ui);text-overflow:ellipsis;white-space:nowrap}
+/* Текущая глава после времени: занимает остаток строки и обрезается «…»; basis 9em — если места меньше, она уходит на свою строку,
+   а не сжимается до «2/…»; на телефоне — всегда отдельной строкой панели. Отступ от времени — у времени, чтобы на своей строке подпись стояла вровень с кнопкой */
+.video-time:has(+ .video-chapter){margin-right:6px}
+.video-chapter{flex:1 1 9em;min-width:0;overflow:hidden;color:var(--ink-soft);font:400 12px/1.4 var(--font-ui);text-overflow:ellipsis;white-space:nowrap}
 .video-hint{margin:6px 0 0;color:var(--ink-soft);font:400 14px/1.4 var(--font-body)}
 /* Список глав под строкой «м:сс · N пояснений»: время начала и название, нажатие — к началу главы и воспроизведение.
    Кнопка на всю ширину, не ниже 44 px; длинное название переносится, текущая глава — ink и черта слева (не только цвет) */
@@ -101,7 +107,7 @@
   :is(.day-part,.video-grid) > *{scroll-margin-top:80px}
 }
 @media (max-width:600px){
-  .video-chapter{order:1;flex:1 1 100%;margin-left:0;padding-bottom:4px}
+  .video-chapter{order:1;flex:1 1 100%;padding-bottom:4px}
 }
 @media (max-width:640px){
   .video-cover-play{width:60px;height:60px;margin:-30px 0 0 -30px}
