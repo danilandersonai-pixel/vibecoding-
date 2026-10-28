@@ -13,6 +13,8 @@ const IDLE_MS = 500 // тишина в сети, после которой ст�
 const IDLE_LIMIT_MS = 15_000
 const SERVER_TAIL_MS = 300 // сколько ждать вывод сервера после ответа
 const STOP_MS = 5_000 // сколько ждать остановки процесса, потом SIGKILL
+const CLICK_WAIT_MS = 200 // сколько минимум ждать после нажатия: запрос из обработчика уходит не мгновенно
+export const RUN_LIMIT_MS = 15 * 60_000 // потолок для обычной команды (без until)
 
 const KINDS = ['run', 'write', 'edit', 'read', 'commit', 'agent', 'browser']
 const DATE = /^\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d(\.\d+)?)?(Z|[+-]\d\d:\d\d)$/
@@ -30,11 +32,21 @@ async function within(promise, ms) {
 }
 
 // Окружение команд без чужих настроек: ~ — это home/, переменные GIT_* родителя (хуки git) не наследуются.
+// Язык и пояс заданы, чтобы вывод (сообщения git и npm, даты, русский текст в UTF-8) не зависел от машины.
 function baseEnv(home) {
-  const vars = { ...process.env, HOME: home, XDG_CONFIG_HOME: join(home, '.config') } // настройки create-next-app и git пользователя не просачиваются
+  const vars = { ...process.env, HOME: home, XDG_CONFIG_HOME: join(home, '.config'), LC_ALL: 'C.UTF-8', TZ: 'UTC' } // настройки create-next-app и git пользователя не просачиваются
   for (const name of Object.keys(vars)) if (name.startsWith('GIT_')) delete vars[name]
   delete vars.NO_COLOR // вместе с FORCE_COLOR заставляет node печатать предупреждение
+  delete vars.LANGUAGE // gettext берёт его раньше LC_ALL
   return vars
+}
+
+// «15 минут», «2 с»: для сообщения о потолке.
+export function limitText(ms) {
+  if (ms % 60_000 !== 0) return `${ms / 1000} с`.replace('.', ',')
+  const m = ms / 60_000
+  const word = m % 10 === 1 && m % 100 !== 11 ? 'минуту' : [2, 3, 4].includes(m % 10) && ![12, 13, 14].includes(m % 100) ? 'минуты' : 'минут'
+  return `${m} ${word}`
 }
 
 // Управляющие последовательности терминала: цвет и движение курсора (CSI), заголовок окна (OSC), прочие двухзнаковые.
@@ -57,7 +69,7 @@ function gitLines(text) {
   return rows
 }
 
-// Процессы с `until` живут в своей группе. Если рекордер упал или его прервали, добиваем группы при выходе.
+// Команды `run` живут каждая в своей группе процессов. Если рекордер упал или его прервали, добиваем группы при выходе.
 const orphans = new Set()
 let exitHook = false
 function trackGroup(pid) {
@@ -121,7 +133,7 @@ function checkSteps(def, steps, seen, inAgent) {
       case 'browser': {
         const { url, fill, click } = step.browser ?? {}
         check(typeof url === 'string' && url.startsWith('/'), `${here}: browser.url — путь, который начинается с «/»`)
-        check(fill === undefined || (typeof fill === 'object' && Object.values(fill).every((v) => typeof v === 'string')), `${here}: browser.fill — подпись → значение`)
+        check(fill === undefined || (fill !== null && typeof fill === 'object' && !Array.isArray(fill) && Object.values(fill).every((v) => typeof v === 'string')), `${here}: browser.fill — объект «подпись поля → значение»`)
         check(click === undefined || typeof click === 'string' || (Array.isArray(click) && click.every((c) => typeof c === 'string')), `${here}: browser.click — текст кнопки или список`)
         break
       }
@@ -168,7 +180,7 @@ function launch(cmd, { cwd, env, group }) {
   return proc
 }
 
-// Остановить процесс с `until` вместе со всей группой.
+// Остановить команду вместе со всей группой процессов.
 async function stop(proc) {
   if (proc.exited) return
   const kill = (signal) => {
@@ -227,7 +239,8 @@ async function diffOf(path, before, after, opts) {
   }
 }
 
-// Пока страница не затихнет: ни одного запроса в полёте и тишина IDLE_MS. Канал событий (EventSource) не считаем.
+// Ожидание затишья: ни одного запроса в полёте и тишина IDLE_MS, отсчитанная от вызова (не от последнего события до него),
+// и не меньше minMs. Канал событий (EventSource) не считаем.
 // Встроенный networkidle здесь не годится: после загрузки он уже наступил и на нажатие больше не ждёт.
 function watchNetwork(page) {
   const inflight = new Set()
@@ -243,9 +256,10 @@ function watchNetwork(page) {
   }
   page.on('requestfinished', end)
   page.on('requestfailed', end)
-  return async () => {
+  return async (minMs = 0) => {
     const started = Date.now()
-    while (inflight.size > 0 || Date.now() - last < IDLE_MS) {
+    last = started
+    while (inflight.size > 0 || Date.now() - last < IDLE_MS || Date.now() - started < minMs) {
       if (Date.now() - started > IDLE_LIMIT_MS) return
       await sleep(50)
     }
@@ -258,9 +272,15 @@ async function pageText(page) {
   return text.split('\n').map((line) => line.trim()).filter(Boolean)
 }
 
+// Тексты всех видимых кнопок страницы по порядку: без пробелов по краям и без пустых.
+async function pageButtons(page) {
+  return (await page.getByRole('button').allInnerTexts()).map((text) => text.trim()).filter(Boolean)
+}
+
 // Записывает цепочку сессий: defs по порядку, workdir — пустая папка. Внутри: home/ (это ~) и проект home/trainer-app.
 // npmCache — папка кэша npm (ускоряет перезапись, на вывод влияет только временем).
-export async function recordChain(defs, { workdir, npmCache } = {}) {
+// runLimitMs — потолок для обычной команды (по умолчанию 15 минут; параметр нужен только тестам).
+export async function recordChain(defs, { workdir, npmCache, runLimitMs = RUN_LIMIT_MS } = {}) {
   checkChain(defs)
   check(typeof workdir === 'string' && workdir !== '', 'Не указана папка записи (workdir)')
   mkdirSync(workdir, { recursive: true })
@@ -271,12 +291,12 @@ export async function recordChain(defs, { workdir, npmCache } = {}) {
   mkdirSync(project, { recursive: true })
 
   const records = []
-  for (const def of defs) records.push(await playSession({ home, project, npmCache }, def))
+  for (const def of defs) records.push(await playSession({ home, project, npmCache, runLimitMs }, def))
   return { records, project }
 }
 
 // Одна сессия: шаги по порядку, затем остановка серверов (и при ошибке тоже).
-async function playSession({ home, project, npmCache }, def) {
+async function playSession({ home, project, npmCache, runLimitMs }, def) {
   const start = Math.floor(Date.parse(def.date) / 1000)
   const events = []
   const procs = [] // процессы с until
@@ -327,11 +347,14 @@ async function playSession({ home, project, npmCache }, def) {
     const { id } = step
     if (step.run !== undefined) {
       const long = step.until !== undefined
-      const proc = launch(step.run, { cwd: step.cwd === '~' ? home : project, env: env(), group: long })
+      const proc = launch(step.run, { cwd: step.cwd === '~' ? home : project, env: env(), group: true })
       const cwd = step.cwd === '~' ? '~' : '~/trainer-app'
       if (!long) {
-        const code = await proc.closed
-        push({ id, kind: 'run', cwd, cmd: step.run, out: lines(proc.text), code }, by)
+        if (!(await within(proc.closed, runLimitMs))) {
+          await stop(proc) // вместе со всей группой, иначе потомки останутся работать
+          throw new Error(`команда не завершилась за ${limitText(runLimitMs)}\n${lines(proc.text).slice(-20).join('\n')}`)
+        }
+        push({ id, kind: 'run', cwd, cmd: step.run, out: lines(proc.text), code: proc.code }, by)
         return
       }
       procs.push(proc)
@@ -401,7 +424,7 @@ async function playSession({ home, project, npmCache }, def) {
     const server = procs.findLast((p) => !p.exited)
     check(server, 'browser нужен работающий шаг с until (dev-сервер)')
     const { url, fill = {}, click = [] } = step.browser
-    const buttons = Array.isArray(click) ? click : [click]
+    const clicks = Array.isArray(click) ? click : [click]
     const mark = server.text.length // вывод сервера считаем с начала шага
     const { chromium } = await import('@playwright/test')
     const browser = await chromium.launch()
@@ -418,16 +441,18 @@ async function playSession({ home, project, npmCache }, def) {
       await page.goto(BASE + url)
       await idle()
       const title = await page.title()
-      const before = await pageText(page)
       const fields = []
       for (const [label, value] of Object.entries(fill)) {
         const field = page.getByLabel(label)
         await field.fill(value)
         fields.push({ label, value: await field.inputValue() })
       }
-      for (const name of buttons) {
+      // страница прямо перед нажатием: текст и все видимые кнопки (кадр рисует страницу целиком)
+      const before = await pageText(page)
+      const buttons = await pageButtons(page)
+      for (const name of clicks) {
         await page.getByRole('button', { name }).click()
-        await idle()
+        await idle(CLICK_WAIT_MS)
       }
       await page.waitForLoadState('load')
       const after = await pageText(page)
