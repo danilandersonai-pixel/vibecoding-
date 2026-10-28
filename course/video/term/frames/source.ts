@@ -79,3 +79,9 @@ export function addedLines(diff: string[]): Set<number> {
   }
   return added
 }
+
+/** Как сообщение показывает DevTools: «%c» убирается вместе с хвостом-стилем (в записи аргументы склеены через пробел). */
+export function consoleText(text: string): string {
+  if (!text.includes('%c')) return text
+  return text.replaceAll('%c', '').replace(/\s+(?:[a-z-]+:[^\s:/;]+;?\s*)+$/i, '')
+}

@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Печатает событие записи сессии с номерами строк — в тех же единицах, что спеки кадров записей:
 //   run, commit — вывод: номера для Terminal.lines;
-//   browser — строки server: номера для Terminal.lines;
+//   browser — строки server: номера для Terminal.lines; сообщения консоли (как в DevTools): номера для Browser.consoleLines;
+//     текстовые строки страницы: их можно красить в Browser.marks;
+//   agent — шаги по порядку: по реплике на каждый в Agent.at.steps; команды можно спрашивать в Agent.ask;
 //   file — дифф от первой «@@»: номера для Diff.lines и Diff.highlight; файл после правки: номера для Editor.lines и Editor.highlight;
 //   read — текст файла: номера для Editor.lines и Editor.highlight.
 // Номера идут с 1, диапазоны включают оба конца. Использование (из course/):
@@ -11,7 +13,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { addedLines, diffBody, diffCounts, fileLines } from '../video/term/frames/source.ts'
+import { addedLines, consoleText, diffBody, diffCounts, fileLines } from '../video/term/frames/source.ts'
 
 const SESSIONS = join(dirname(fileURLToPath(import.meta.url)), '..', 'video', 'sessions')
 
@@ -49,7 +51,7 @@ export function listEvents(record) {
 }
 
 /** Событие записи: заголовок и строки с номерами. */
-export function formatEvent(event) {
+export function formatEvent(event, record) {
   const head = (text) => `# ${event.id}  ${event.kind}  ${text}`
   if (event.kind === 'run') {
     const code = event.code === null ? 'работает' : `код ${event.code}`
@@ -57,7 +59,15 @@ export function formatEvent(event) {
   }
   if (event.kind === 'commit') return [head(event.cmd), 'вывод — номера для Terminal.lines:', ...numbered(event.out)]
   if (event.kind === 'browser') {
-    return [head(`${event.url} «${event.title}»`), 'вывод dev-сервера (server) — номера для Terminal.lines:', ...numbered(event.server)]
+    // Строки, которые можно красить: не заголовок (первая строка), не подписи полей и не кнопки
+    const skip = new Set([...event.fields.map((f) => f.label), ...event.buttons])
+    const texts = [...new Set([...event.before.slice(1), ...event.after.slice(1)])].filter((t) => !skip.has(t))
+    return [
+      head(`${event.url} «${event.title}»`),
+      ...(event.server.length > 0 ? ['вывод dev-сервера (server) — номера для Terminal.lines:', ...numbered(event.server)] : []),
+      ...(event.console.length > 0 ? ['сообщения консоли (как в DevTools) — номера для Browser.consoleLines:', ...numbered(event.console.map((m) => `${m.type.padEnd(7)} ${consoleText(m.text)}`))] : []),
+      ...(texts.length > 0 ? ['текстовые строки страницы — их можно красить в Browser.marks (текст строки — точно такой):', ...texts.map((t) => `  ${t}`)] : []),
+    ]
   }
   if (event.kind === 'read') {
     return [head(event.path), 'файл — номера строк для Editor.lines и Editor.highlight:', ...numbered(fileLines(event.text))]
@@ -75,7 +85,23 @@ export function formatEvent(event) {
       ...numbered(file, (i) => (added.has(i + 1) ? '+' : ' ')),
     ]
   }
-  return [head(event.prompt.slice(0, 60)), 'У agent нет строк для кадров записей: его запрос и ответ — авторский текст сцены.']
+  // agent: шаги по порядку; сами строки шагов кадр берёт из их событий, запрос и ответ — авторский текст сцены
+  const byId = new Map((record?.events ?? []).map((e) => [e.id, e]))
+  const what = (e) => {
+    if (!e) return ''
+    if (e.kind === 'read') return `  ${e.path}`
+    if (e.kind === 'file') return `  ${e.path}  +${diffCounts(diffBody(e.diff)).add} ${MINUS}${diffCounts(diffBody(e.diff)).del}`
+    return `  ${e.cmd}  (в Agent.ask — вопрос [y / n])`
+  }
+  const steps = event.steps.map((id, i) => {
+    const e = byId.get(id)
+    return `${i + 1} ${id}${e ? `  ${e.kind}${what(e)}` : ''}`
+  })
+  return [
+    head(event.prompt.slice(0, 60)),
+    'запрос и ответ — авторский текст сцены; код у chat — из первого шага file',
+    ...(steps.length > 0 ? ['шаги — по реплике на каждый в Agent.at.steps:', ...steps] : ['шагов нет']),
+  ]
 }
 
 function main(args) {
@@ -85,7 +111,7 @@ function main(args) {
   if (!id) return [`События ${session}:`, ...listEvents(record).map((l) => `  ${l}`)]
   const event = record.events.find((e) => e.id === id)
   if (!event) throw new Error(`В записи «${session}» нет события «${id}». Есть: ${record.events.map((e) => e.id).join(', ')}`)
-  return formatEvent(event)
+  return formatEvent(event, record)
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

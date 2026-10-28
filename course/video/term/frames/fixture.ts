@@ -3,7 +3,7 @@ import type { SessionEvent, SessionRecord } from '../../sessions/types'
 import type { Clock, FrameCtx } from '../frame'
 
 // Фикстура тестов кадров: маленькая своя запись сессии (не настоящая) и всё, что кадру нужно из урока.
-// Задачи 6–7 дописывают сюда события для Agent, GitLog, Browser.
+// Задача 6 дописала агента (ag), коммиты в двух ветках (c2–c4) и страницы браузера (form, form-long); Задача 7 допишет своё.
 
 const CWD = '~/trainer-app'
 
@@ -68,6 +68,11 @@ const WIDE_DIFF = [
 const PACKAGE = ['{', '  "name": "trainer-app",', '  "version": "0.1.0",', '  "private": true', '}']
 const BIG = Array.from({ length: 30 }, (_, i) => `// строка ${i + 1}`)
 
+// Короткая запись коммита для тестов графа: файлов нет, вывод — одна строка.
+function commit(id: string, hash: string, message: string, branch: string, parents: string[]): SessionEvent {
+  return { id, kind: 'commit', cmd: `git commit -m "${message}"`, hash, message, branch, parents, out: [`[${branch} ${hash}] ${message}`], files: [] }
+}
+
 const events: SessionEvent[] = [
   { id: 'ls', kind: 'run', cwd: CWD, cmd: 'ls', out: ['app', 'package.json', 'README.md'], code: 0 },
   { id: 'fail', kind: 'run', cwd: CWD, cmd: 'npm test', out: ['> trainer-app@0.1.0 test', '✗ 1 тест не прошёл', 'Ошибка: вес должен быть числом'], code: 1 },
@@ -105,6 +110,53 @@ const events: SessionEvent[] = [
     server: ['', ' GET / 200 in 120ms', ' POST /api/sets 400 in 10ms', ' GET /api/sets 200 in 5ms'],
   },
   { id: 'ask', kind: 'agent', prompt: 'Добавь проверку веса', reply: 'Готово', steps: ['page'] },
+  { id: 'rd-page', kind: 'read', path: 'app/page.tsx', text: PAGE_BEFORE.join('\n') + '\n', blob: 'k3' },
+  // Коммиты в двух ветках: c2 на main, c3 на sets-form, c4 снова на main (после слияния fast-forward родитель — c3).
+  commit('c2', 'bcd2345', 'Проверка веса', 'main', ['abc1234']),
+  commit('c3', 'cde3456', 'Форма подхода', 'sets-form', ['bcd2345']),
+  commit('c4', 'def4567', 'Мини-набор задач', 'main', ['cde3456']),
+  commit('c-long', 'efa5678', 'Очень длинное сообщение коммита, которое не помещается рядом с графом и метками веток в одну строку окна', 'main', ['def4567']),
+  {
+    id: 'ag',
+    kind: 'agent',
+    prompt: 'Добавь проверку веса в форму подхода',
+    reply: 'Готово: вес проверяется, ошибка видна под формой. Один тест не прошёл, я записал это в коммит.',
+    steps: ['rd-page', 'route', 'page', 'fail', 'c2'],
+  },
+  {
+    id: 'form',
+    kind: 'browser',
+    url: 'http://localhost:3000/',
+    title: 'Тренировка',
+    fields: [
+      { label: 'Вес, кг', value: '60 кг' },
+      { label: 'Повторы', value: '8' },
+    ],
+    buttons: ['Сохранить подход'],
+    before: ['Тренировка', 'Вес, кг', 'Повторы', 'Сохранить подход', 'Сохранённые подходы', 'Подходов пока нет'],
+    after: ['Тренировка', 'Вес, кг', 'Повторы', 'Сохранить подход', 'Вес должен быть числом, например 60', 'Сохранённые подходы', 'Подходов пока нет'],
+    console: [
+      { type: 'info', text: '%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold' },
+      { type: 'log', text: '[HMR] connected' },
+      { type: 'warning', text: 'Slow network is detected.' },
+      { type: 'error', text: 'Failed to load resource: the server responded with a status of 400 (Bad Request)' },
+    ],
+    network: [{ method: 'POST', url: 'http://localhost:3000/api/sets', status: 400 }],
+    server: [],
+  },
+  {
+    id: 'form-long',
+    kind: 'browser',
+    url: 'http://localhost:3000/sets?day=1',
+    title: 'Длинная страница',
+    fields: [],
+    buttons: [],
+    before: Array.from({ length: 20 }, (_, i) => `Строка страницы ${i + 1}`),
+    after: [],
+    console: [],
+    network: [],
+    server: [],
+  },
 ]
 
 export const FIXTURE: SessionRecord = { id: 'fixture', from: null, recorded: '2026-10-28', events }

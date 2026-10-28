@@ -50,3 +50,37 @@ export function outsideSafe(layout: Record<string, Rect>): string[] {
     .filter(([, r]) => r.x < SAFE.x - eps || r.y < SAFE.y - eps || r.x + r.w > SAFE.x + SAFE.w + eps || r.y + r.h > SAFE.y + SAFE.h + eps)
     .map(([name]) => `часть «${name}» выходит за безопасную область`)
 }
+
+export type Wrapped = { text: string; /** Номер первого знака строки в исходном тексте. */ from: number }
+
+/**
+ * Перенос по словам в строки не длиннее cols знаков (как в терминале): слово длиннее строки режется по знакам,
+ * пробел на месте переноса не показывается. Перевод строки считается пробелом. Знаки — Unicode.
+ */
+export function wrapWords(text: string, cols: number): Wrapped[] {
+  const chars = [...text.replace(/\n/g, ' ')]
+  const width = Math.max(1, Math.floor(cols))
+  const rows: Wrapped[] = []
+  let i = 0
+  while (i < chars.length) {
+    if (chars.length - i <= width) {
+      rows.push({ text: chars.slice(i).join(''), from: i })
+      break
+    }
+    let cut = -1
+    for (let j = i + width; j > i; j--) {
+      if (chars[j] === ' ') {
+        cut = j
+        break
+      }
+    }
+    if (cut < 0) {
+      rows.push({ text: chars.slice(i, i + width).join(''), from: i })
+      i += width
+    } else {
+      rows.push({ text: chars.slice(i, cut).join(''), from: i })
+      i = cut + 1
+    }
+  }
+  return rows.length > 0 ? rows : [{ text: '', from: 0 }]
+}

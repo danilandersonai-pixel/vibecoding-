@@ -14,9 +14,12 @@ import { CANVAS, FIGURE_VARS, MONO, SAFE, T } from './theme'
 
 // Временная композиция «term-check»: проверка набора на экране. На ней смотрят кадры задач 5–7; задача 8 её удалит.
 // Кадры 0–59 — основа: шапка, субтитр, строка Martian Mono, схема книги.
-// Дальше идут сцены кадров на настоящих записях s02-sets, по SCENE_FRAMES кадров каждая (три реплики — на кадрах 30, 120, 210 сцены):
+// Дальше идут сцены кадров на настоящих записях, у каждой своё число реплик lines (по умолчанию три — на кадрах 30, 120, 210 сцены;
+// сцена длится 60 + 90 · lines кадров). Начала сцен:
 //   60 Terminal (dev и server-строки save-bad), 390 Terminal (start-dev: код выхода 1), 720 Editor (route, дерево, подсветка),
-//   1050 Editor (fix, набор), 1380 Editor (fix, подсказка ghost), 1710 Editor (read package.json, без дерева), 2040 Diff (route и fix, подсветка).
+//   1050 Editor (fix, набор), 1380 Editor (fix, подсказка ghost), 1710 Editor (read package.json, без дерева), 2040 Diff (route и fix, подсветка),
+//   2370 Agent (idea: ask c-idea, Manual), 2970 Agent (ask-fix, Accept edits), 3660 Agent (chat, ask-form), 4170 GitLog (пять коммитов, heads, dirty),
+//   4770 Browser (save-bad, консоль: только ошибка), 5100 Browser (save-hint, marks err, без консоли), 5430 Browser (save-ok, консоль, marks ok).
 // Снимок сцены: npx remotion still video/index.ts term-check out.png --frame=N --browser-executable=…/headless_shell
 // Метки ошибки: … --frame=50 --props='{"mistake":true}'. Части кадров рамками: … --props='{"parts":true}' (положение частей из layout — проверить, что они лежат на том, что видно).
 export type TermCheckProps = { mistake: boolean; parts: boolean }
@@ -59,14 +62,16 @@ function Base({ mistake }: Pick<TermCheckProps, 'mistake'>) {
   )
 }
 
+const S1 = 's01-start'
 const S2 = 's02-sets'
 const TREE = { session: S2, commit: 'c-form' }
 const BASE_FRAMES = 60
-/** Сцена из трёх реплик: 30 + 3 · 90 + 30 кадров. */
+/** Сцена по умолчанию — из трёх реплик. */
 const SCENE_LINES = 3
-const SCENE_FRAMES = 30 + SCENE_LINES * 90 + 30
+/** Сцена из n реплик: 30 + n · 90 + 30 кадров. */
+const sceneFrames = (lines: number) => 30 + lines * 90 + 30
 
-const SCENES: { spec: FrameSpec; cue: string }[] = [
+const SCENES: { spec: FrameSpec; cue: string; lines?: number }[] = [
   {
     spec: {
       type: 'terminal',
@@ -114,14 +119,64 @@ const SCENES: { spec: FrameSpec; cue: string }[] = [
     },
     cue: 'Дифф: убранное красным, новое зелёным.',
   },
+  {
+    spec: { type: 'agent', session: S1, event: 'idea', mode: 'Manual', ask: ['c-idea'], diffLines: 3, at: { prompt: 0, steps: [3, 4], reply: 5 } },
+    cue: 'Агент записал идею и спрашивает разрешения на коммит: ответ «y».',
+    lines: 6,
+  },
+  {
+    spec: { type: 'agent', session: S2, event: 'ask-fix', mode: 'Accept edits', diffLines: 8, at: { prompt: 0, steps: [4, 5], reply: 6 } },
+    cue: 'Агент прочитал маршрут и поправил страницу: правки под «Edited».',
+    lines: 7,
+  },
+  {
+    spec: { type: 'agent', session: S2, event: 'ask-form', chat: true, diffLines: 8, at: { prompt: 0, steps: [], reply: 3 } },
+    cue: 'Чат только отвечает и показывает код, файлы не трогает.',
+    lines: 5,
+  },
+  {
+    spec: {
+      type: 'gitlog',
+      rows: [
+        { session: S1, event: 'c-start', at: 0 },
+        { session: S1, event: 'c-idea', at: 1 },
+        { session: S1, event: 'c-claude', at: 2 },
+        { session: S2, event: 'c-form', at: 3 },
+        { session: S2, event: 'c-mini', at: 5 },
+      ],
+      heads: [
+        { at: 0, branch: 'main', commit: 'c-start' },
+        { at: 1, branch: 'main', commit: 'c-idea' },
+        { at: 2, branch: 'main', commit: 'c-claude' },
+        { at: 3, branch: 'sets-form', commit: 'c-form' },
+        { at: 4, branch: 'main', commit: 'c-form' },
+        { at: 5, branch: 'main', commit: 'c-mini' },
+      ],
+      dirty: { at: 2, until: 3, text: 'app/api/sets/route.ts, app/page.tsx, app/layout.tsx' },
+    },
+    cue: 'Ветка уходит вправо, после слияния main переезжает к её коммиту.',
+    lines: 6,
+  },
+  {
+    spec: { type: 'browser', session: S2, event: 'save-bad', console: true, consoleLines: [5, 5], at: { page: 0, console: 1 } },
+    cue: 'Нажали «Сохранить подход» — на странице тихо, а в консоли красная строка.',
+  },
+  {
+    spec: { type: 'browser', session: S2, event: 'save-hint', marks: [{ line: 'Вес должен быть числом, например 60', tone: 'err' }], at: { page: 0, action: 1 } },
+    cue: 'После правки под формой появляется подсказка красным.',
+  },
+  {
+    spec: { type: 'browser', session: S2, event: 'save-ok', console: true, marks: [{ line: '60 кг × 8', tone: 'ok' }], at: { page: 0, action: 1, console: 2 } },
+    cue: 'Вес «60» — подход попадает в список.',
+  },
 ]
 
 const CTX: FrameCtx = { find, lesson: { id: 'term-check', title: 'Проверка кадров', chapters: ['Терминал', 'Редактор', 'Дифф'], book: [] } }
 
 const clockOf = (lines: number): Clock => ({ beat: (i) => 30 + i * 90, duration: 30 + lines * 90 + 30, lines })
 
-function Scene({ spec, cue, parts }: { spec: FrameSpec; cue: string; parts: boolean }) {
-  const clock = clockOf(SCENE_LINES)
+function Scene({ spec, cue, parts, lines = SCENE_LINES }: { spec: FrameSpec; cue: string; parts: boolean; lines?: number }) {
+  const clock = clockOf(lines)
   const { Component } = frameDef(spec)
   return (
     <AbsoluteFill style={{ background: T.desk }}>
@@ -138,13 +193,17 @@ function Scene({ spec, cue, parts }: { spec: FrameSpec; cue: string; parts: bool
             </g>
           ))}
       </svg>
-      <TermSubtitles cues={[{ from: 0, to: SCENE_FRAMES, text: cue }]} />
+      <TermSubtitles cues={[{ from: 0, to: sceneFrames(lines), text: cue }]} />
     </AbsoluteFill>
   )
 }
 
+// Длина сцены и её начало: основа и сцены перед ней
+const lengthOf = (scene: { lines?: number }) => sceneFrames(scene.lines ?? SCENE_LINES)
+const STARTS = SCENES.map((_, i) => BASE_FRAMES + SCENES.slice(0, i).reduce((sum, scene) => sum + lengthOf(scene), 0))
+
 /** Длина композиции term-check: основа и сцены кадров. */
-export const TERM_CHECK_FRAMES = BASE_FRAMES + SCENES.length * SCENE_FRAMES
+export const TERM_CHECK_FRAMES = BASE_FRAMES + SCENES.reduce((sum, scene) => sum + lengthOf(scene), 0)
 
 export function TermCheck({ mistake, parts }: TermCheckProps) {
   return (
@@ -153,7 +212,7 @@ export function TermCheck({ mistake, parts }: TermCheckProps) {
         <Base mistake={mistake} />
       </Sequence>
       {SCENES.map((scene, i) => (
-        <Sequence key={i} from={BASE_FRAMES + i * SCENE_FRAMES} durationInFrames={SCENE_FRAMES}>
+        <Sequence key={i} from={STARTS[i]} durationInFrames={lengthOf(scene)}>
           <Scene {...scene} parts={parts} />
         </Sequence>
       ))}

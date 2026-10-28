@@ -124,8 +124,8 @@ describe('исходники кадров', () => {
     }
   })
 
-  it('набор FRAMES: terminal, editor, diff с полным контрактом', () => {
-    expect(Object.keys(FRAMES).sort()).toEqual(['diff', 'editor', 'terminal'])
+  it('набор FRAMES: кадры записей с полным контрактом', () => {
+    expect(Object.keys(FRAMES).sort()).toEqual(['agent', 'browser', 'diff', 'editor', 'gitlog', 'terminal'])
     for (const def of Object.values(FRAMES)) {
       expect(typeof def.layout).toBe('function')
       expect(typeof def.moments).toBe('function')

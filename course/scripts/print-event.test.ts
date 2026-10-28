@@ -50,8 +50,53 @@ describe('formatEvent', () => {
     expect(lines.join('\n')).not.toContain('+')
   })
 
-  it('agent: нечего нумеровать — говорит об этом', () => {
-    expect(formatEvent(event('ask')).join('\n')).toMatch(/нет строк/)
+  it('browser: сообщения консоли с номерами для Browser.consoleLines — как в DevTools, без %c', () => {
+    const text: string = formatEvent(event('form')).join('\n')
+    expect(text).toContain('Browser.consoleLines')
+    expect(text).toMatch(/^1 +info +Download the React DevTools for a better development experience: https:\/\/react\.dev\/link\/react-devtools$/m)
+    expect(text).toMatch(/^4 +error +Failed to load resource/m)
+    expect(text).not.toContain('%c')
+    expect(text).not.toContain('font-weight')
+  })
+
+  it('browser: текстовые строки страницы — их можно красить в Browser.marks; заголовок, подписи полей и кнопки — нет', () => {
+    const text: string = formatEvent(event('form')).join('\n')
+    const from = text.indexOf('Browser.marks')
+    expect(from).toBeGreaterThan(-1)
+    const marks = text.slice(from)
+    expect(marks).toContain('Вес должен быть числом, например 60') // есть только в after
+    expect(marks).toContain('Подходов пока нет')
+    expect(marks).not.toContain('Вес, кг')
+    expect(marks).not.toContain('Сохранить подход')
+    expect(marks).not.toMatch(/Тренировка/)
+  })
+
+  it('browser без сообщений консоли и строк сервера — без пустых разделов', () => {
+    const text: string = formatEvent(FIXTURE.events.find((e) => e.id === 'form-long')!).join('\n')
+    expect(text).not.toContain('Browser.consoleLines')
+    expect(text).not.toContain('Terminal.lines')
+  })
+
+  it('agent: шаги по порядку — по реплике на каждый в Agent.at.steps; у команд сказано, что их можно спрашивать в Agent.ask', () => {
+    const text: string = formatEvent(event('ag'), FIXTURE).join('\n')
+    expect(text).toContain('Agent.at.steps')
+    expect(text).toMatch(/^1 +rd-page +read +app\/page\.tsx$/m)
+    expect(text).toMatch(/^2 +route +file +app\/api\/sets\/route\.ts +\+4 −0$/m)
+    expect(text).toMatch(/^4 +fail +run +npm test.*Agent\.ask/m)
+    expect(text).toMatch(/^5 +c2 +commit +git commit.*Agent\.ask/m)
+    expect(text).not.toMatch(/rd-page.*Agent\.ask/)
+    expect(text).not.toMatch(/route .*Agent\.ask/)
+  })
+
+  it('agent без записи сессии: только id шагов, запрос и ответ — авторский текст', () => {
+    const text: string = formatEvent(event('ag')).join('\n')
+    expect(text).toMatch(/^1 +rd-page$/m)
+    expect(text).toMatch(/авторск/)
+  })
+
+  it('agent без шагов: так и сказано', () => {
+    const empty = { id: 'e', kind: 'agent', prompt: 'Вопрос', reply: 'Ответ', steps: [] }
+    expect(formatEvent(empty).join('\n')).toMatch(/шагов нет/)
   })
 })
 
@@ -85,6 +130,25 @@ describe('номера из печати совпадают с теми, по к
     expect(n).toBe(6)
     const spec = { type: 'editor' as const, session: 'fixture', event: 'page', lines: [n, n] as [number, number] }
     expect(Object.keys(FRAMES.editor.layout(spec, ctx))).toContain('line:6')
+  })
+})
+
+describe('номера консоли и шагов совпадают с теми, по которым кадры их выбирают', () => {
+  it('Browser.consoleLines: номер сообщения — то же сообщение в кадре', () => {
+    const printed: string[] = formatEvent(event('form'))
+    const row = printed.find((r) => r.includes('Failed to load resource'))!
+    const n = Number(/^\s*(\d+)/.exec(row)![1])
+    expect(n).toBe(4)
+    const spec = { type: 'browser' as const, session: 'fixture', event: 'form', console: true, consoleLines: [n, n] as [number, number], at: { page: 0 } }
+    const clock = { beat: (i: number) => 30 + i * 90, duration: 300, lines: 2 }
+    expect(FRAMES.browser.problems(spec, ctx, clock)).toEqual([])
+    expect(Object.keys(FRAMES.browser.layout(spec, ctx))).toContain('console:0')
+  })
+
+  it('Agent.at.steps: номер шага — его порядок в at.steps', () => {
+    const printed: string[] = formatEvent(event('ag'), FIXTURE)
+    const steps = (event('ag') as { steps: string[] }).steps
+    steps.forEach((id, i) => expect(printed.some((r) => new RegExp(`^${i + 1} +${id}\\b`).test(r)), id).toBe(true))
   })
 })
 
