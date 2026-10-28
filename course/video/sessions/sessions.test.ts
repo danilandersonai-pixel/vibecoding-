@@ -36,6 +36,15 @@ test('ошибка 400 видна в консоли, подсказка и со�
   expect(ok.console.filter((m) => m.type === 'error')).toEqual([])
 })
 
+test('страница по-русски: агент правит layout, вкладка называется «Тренировка»', () => {
+  expect(find('s02-sets', 'ask-form', 'agent').steps).toEqual(['read-page', 'route', 'page', 'layout'])
+  const layout = find('s02-sets', 'layout', 'file')
+  expect(layout).toMatchObject({ path: 'app/layout.tsx', by: 'agent' })
+  expect(layout.after).toContain('lang="ru"')
+  expect(layout.after).toContain('title: "Тренировка"')
+  for (const id of ['save-bad', 'save-hint', 'save-ok']) expect(find('s02-sets', id, 'browser').title).toBe('Тренировка')
+})
+
 test('git: слияние, выдуманная команда, ключ вне коммитов', () => {
   expect(find('s02-sets', 'merge', 'run').out.join('\n')).toContain('Fast-forward')
   expect(find('s02-sets', 'start-dev', 'run').code).not.toBe(0)

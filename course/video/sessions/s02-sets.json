@@ -16,12 +16,13 @@
   {
    "id": "ask-form",
    "kind": "agent",
-   "prompt": "Сделай на главной странице форму «Сохранить подход»: вес и повторы. API app/api/sets/route.ts проверяет, что вес — число, а повторы — целое больше нуля. Сохранённые подходы — списком под формой.",
-   "reply": "Сделал форму на главной и API app/api/sets/route.ts: он проверяет вес и повторы и пока хранит подходы в памяти сервера. Запусти npm run dev и открой localhost:3000.",
+   "prompt": "Сделай на главной странице форму «Сохранить подход»: вес и повторы. Пусть API app/api/sets/route.ts проверяет, что вес — число, а повторы — целое больше нуля. Сохранённые подходы покажи списком под формой.",
+   "reply": "Сделал форму на главной и API app/api/sets/route.ts с проверкой веса и повторов. Подходы пока хранятся в памяти сервера, а вкладка теперь называется «Тренировка». Запусти npm run dev и открой localhost:3000.",
    "steps": [
     "read-page",
     "route",
-    "page"
+    "page",
+    "layout"
    ]
   },
   {
@@ -37,14 +38,14 @@
    "kind": "file",
    "path": "app/api/sets/route.ts",
    "before": null,
-   "after": "// Подходы пока живут в памяти сервера: после перезапуска npm run dev список снова пустой.\ntype WorkoutSet = { weight: number; reps: number };\n\nconst sets: WorkoutSet[] = [];\n\n// GET /api/sets — все сохранённые подходы\nexport async function GET() {\n  return Response.json({ sets });\n}\n\n// POST /api/sets — сохранить подход { weight, reps }\nexport async function POST(request: Request) {\n  const { weight, reps } = await request.json();\n\n  // «62,5» — тоже вес: запятую меняем на точку\n  const kg = Number(String(weight).replace(\",\", \".\"));\n  if (!Number.isFinite(kg)) {\n    return Response.json({ error: \"Вес должен быть числом, например 60\" }, { status: 400 });\n  }\n\n  const count = Number(reps);\n  if (!Number.isInteger(count) || count <= 0) {\n    return Response.json({ error: \"Повторы — целое число больше нуля\" }, { status: 400 });\n  }\n\n  const set = { weight: kg, reps: count };\n  sets.push(set);\n  return Response.json({ set, volume: kg * count }, { status: 201 });\n}\n",
+   "after": "// Подходы пока живут в памяти сервера: после перезапуска npm run dev список снова пустой.\ntype WorkoutSet = { weight: number; reps: number };\n\nconst sets: WorkoutSet[] = [];\n\n// GET /api/sets — все сохранённые подходы\nexport async function GET() {\n  return Response.json({ sets });\n}\n\n// Число из поля формы: «62,5» — тоже число (запятую меняем на точку),\n// а пустое поле — нет, хотя Number(\"\") === 0\nfunction toNumber(value: unknown): number {\n  const text = String(value ?? \"\").trim().replace(\",\", \".\");\n  return text === \"\" ? NaN : Number(text);\n}\n\n// POST /api/sets — сохранить подход { weight, reps }\nexport async function POST(request: Request) {\n  // не JSON в теле — ответ 400, а не падение сервера с 500\n  const body = await request.json().catch(() => null);\n  if (body === null || typeof body !== \"object\") {\n    return Response.json({ error: \"Нужен JSON: { weight, reps }\" }, { status: 400 });\n  }\n  const { weight, reps } = body;\n\n  const kg = toNumber(weight);\n  if (!Number.isFinite(kg)) {\n    return Response.json({ error: \"Вес должен быть числом, например 60\" }, { status: 400 });\n  }\n\n  const count = toNumber(reps);\n  if (!Number.isInteger(count) || count <= 0) {\n    return Response.json({ error: \"Повторы — целое число больше нуля\" }, { status: 400 });\n  }\n\n  const set = { weight: kg, reps: count };\n  sets.push(set);\n  return Response.json({ set, volume: kg * count }, { status: 201 });\n}\n",
    "diff": [
     "diff --git a/app/api/sets/route.ts b/app/api/sets/route.ts",
     "new file mode 100644",
-    "index 0000000..4673f2a",
+    "index 0000000..c65d556",
     "--- /dev/null",
     "+++ b/app/api/sets/route.ts",
-    "@@ -0,0 +1,29 @@",
+    "@@ -0,0 +1,40 @@",
     "+// Подходы пока живут в памяти сервера: после перезапуска npm run dev список снова пустой.",
     "+type WorkoutSet = { weight: number; reps: number };",
     "+",
@@ -55,17 +56,28 @@
     "+  return Response.json({ sets });",
     "+}",
     "+",
+    "+// Число из поля формы: «62,5» — тоже число (запятую меняем на точку),",
+    "+// а пустое поле — нет, хотя Number(\"\") === 0",
+    "+function toNumber(value: unknown): number {",
+    "+  const text = String(value ?? \"\").trim().replace(\",\", \".\");",
+    "+  return text === \"\" ? NaN : Number(text);",
+    "+}",
+    "+",
     "+// POST /api/sets — сохранить подход { weight, reps }",
     "+export async function POST(request: Request) {",
-    "+  const { weight, reps } = await request.json();",
+    "+  // не JSON в теле — ответ 400, а не падение сервера с 500",
+    "+  const body = await request.json().catch(() => null);",
+    "+  if (body === null || typeof body !== \"object\") {",
+    "+    return Response.json({ error: \"Нужен JSON: { weight, reps }\" }, { status: 400 });",
+    "+  }",
+    "+  const { weight, reps } = body;",
     "+",
-    "+  // «62,5» — тоже вес: запятую меняем на точку",
-    "+  const kg = Number(String(weight).replace(\",\", \".\"));",
+    "+  const kg = toNumber(weight);",
     "+  if (!Number.isFinite(kg)) {",
     "+    return Response.json({ error: \"Вес должен быть числом, например 60\" }, { status: 400 });",
     "+  }",
     "+",
-    "+  const count = Number(reps);",
+    "+  const count = toNumber(reps);",
     "+  if (!Number.isInteger(count) || count <= 0) {",
     "+    return Response.json({ error: \"Повторы — целое число больше нуля\" }, { status: 400 });",
     "+  }",
@@ -75,7 +87,7 @@
     "+  return Response.json({ set, volume: kg * count }, { status: 201 });",
     "+}"
    ],
-   "blob": "4673f2ab84e44a8c480c9cf4294a7c24730b5e02",
+   "blob": "c65d5569d19c0de84c818a2729a4aca71c1c475c",
    "by": "agent"
   },
   {
@@ -234,6 +246,38 @@
    "by": "agent"
   },
   {
+   "id": "layout",
+   "kind": "file",
+   "path": "app/layout.tsx",
+   "before": "import type { Metadata } from \"next\";\nimport { Geist, Geist_Mono } from \"next/font/google\";\nimport \"./globals.css\";\n\nconst geistSans = Geist({\n  variable: \"--font-geist-sans\",\n  subsets: [\"latin\"],\n});\n\nconst geistMono = Geist_Mono({\n  variable: \"--font-geist-mono\",\n  subsets: [\"latin\"],\n});\n\nexport const metadata: Metadata = {\n  title: \"Create Next App\",\n  description: \"Generated by create next app\",\n};\n\nexport default function RootLayout({ children }: LayoutProps<\"/\">) {\n  return (\n    <html\n      lang=\"en\"\n      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}\n    >\n      <body className=\"min-h-full flex flex-col\">{children}</body>\n    </html>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport { Geist, Geist_Mono } from \"next/font/google\";\nimport \"./globals.css\";\n\nconst geistSans = Geist({\n  variable: \"--font-geist-sans\",\n  subsets: [\"latin\"],\n});\n\nconst geistMono = Geist_Mono({\n  variable: \"--font-geist-mono\",\n  subsets: [\"latin\"],\n});\n\nexport const metadata: Metadata = {\n  title: \"Тренировка\",\n  description: \"Generated by create next app\",\n};\n\nexport default function RootLayout({ children }: LayoutProps<\"/\">) {\n  return (\n    <html\n      lang=\"ru\"\n      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}\n    >\n      <body className=\"min-h-full flex flex-col\">{children}</body>\n    </html>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/layout.tsx b/app/layout.tsx",
+    "index 9852c15..c98953b 100644",
+    "--- a/app/layout.tsx",
+    "+++ b/app/layout.tsx",
+    "@@ -13,14 +13,14 @@ const geistMono = Geist_Mono({",
+    " });",
+    " ",
+    " export const metadata: Metadata = {",
+    "-  title: \"Create Next App\",",
+    "+  title: \"Тренировка\",",
+    "   description: \"Generated by create next app\",",
+    " };",
+    " ",
+    " export default function RootLayout({ children }: LayoutProps<\"/\">) {",
+    "   return (",
+    "     <html",
+    "-      lang=\"en\"",
+    "+      lang=\"ru\"",
+    "       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}",
+    "     >",
+    "       <body className=\"min-h-full flex flex-col\">{children}</body>"
+   ],
+   "blob": "c98953bbd57ffffe632aa6f3cec330c8db38f7b9",
+   "by": "agent"
+  },
+  {
    "id": "dev",
    "kind": "run",
    "cwd": "~/trainer-app",
@@ -246,7 +290,7 @@
     "▲ Next.js 16.4.3 (Turbopack)",
     "- Local:         http://localhost:3000",
     "- Network:       http://192.0.2.2:3000",
-    "✓ Ready in 512ms"
+    "✓ Ready in 493ms"
    ],
    "code": null
   },
@@ -254,7 +298,7 @@
    "id": "save-bad",
    "kind": "browser",
    "url": "http://localhost:3000/",
-   "title": "Create Next App",
+   "title": "Тренировка",
    "fields": [
     {
      "label": "Вес, кг",
@@ -299,7 +343,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 288ms"
+     "text": "[Fast Refresh] done in 318ms"
     },
     {
      "type": "error",
@@ -363,7 +407,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET / 200 in 481ms (next.js: 258ms, application-code: 223ms)",
+    " GET / 200 in 419ms (next.js: 211ms, application-code: 208ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -456,7 +500,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET /api/sets 200 in 81ms (next.js: 64ms, application-code: 17ms)",
+    " GET /api/sets 200 in 104ms (next.js: 84ms, application-code: 20ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -503,7 +547,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET /api/sets 200 in 10ms (next.js: 4ms, application-code: 6ms)",
+    " GET /api/sets 200 in 16ms (next.js: 3ms, application-code: 12ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -550,7 +594,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " POST /api/sets 400 in 10ms (next.js: 3ms, application-code: 7ms)"
+    " POST /api/sets 400 in 17ms (next.js: 7ms, application-code: 10ms)"
    ]
   },
   {
@@ -567,8 +611,8 @@
    "id": "read-route",
    "kind": "read",
    "path": "app/api/sets/route.ts",
-   "text": "// Подходы пока живут в памяти сервера: после перезапуска npm run dev список снова пустой.\ntype WorkoutSet = { weight: number; reps: number };\n\nconst sets: WorkoutSet[] = [];\n\n// GET /api/sets — все сохранённые подходы\nexport async function GET() {\n  return Response.json({ sets });\n}\n\n// POST /api/sets — сохранить подход { weight, reps }\nexport async function POST(request: Request) {\n  const { weight, reps } = await request.json();\n\n  // «62,5» — тоже вес: запятую меняем на точку\n  const kg = Number(String(weight).replace(\",\", \".\"));\n  if (!Number.isFinite(kg)) {\n    return Response.json({ error: \"Вес должен быть числом, например 60\" }, { status: 400 });\n  }\n\n  const count = Number(reps);\n  if (!Number.isInteger(count) || count <= 0) {\n    return Response.json({ error: \"Повторы — целое число больше нуля\" }, { status: 400 });\n  }\n\n  const set = { weight: kg, reps: count };\n  sets.push(set);\n  return Response.json({ set, volume: kg * count }, { status: 201 });\n}\n",
-   "blob": "4673f2ab84e44a8c480c9cf4294a7c24730b5e02",
+   "text": "// Подходы пока живут в памяти сервера: после перезапуска npm run dev список снова пустой.\ntype WorkoutSet = { weight: number; reps: number };\n\nconst sets: WorkoutSet[] = [];\n\n// GET /api/sets — все сохранённые подходы\nexport async function GET() {\n  return Response.json({ sets });\n}\n\n// Число из поля формы: «62,5» — тоже число (запятую меняем на точку),\n// а пустое поле — нет, хотя Number(\"\") === 0\nfunction toNumber(value: unknown): number {\n  const text = String(value ?? \"\").trim().replace(\",\", \".\");\n  return text === \"\" ? NaN : Number(text);\n}\n\n// POST /api/sets — сохранить подход { weight, reps }\nexport async function POST(request: Request) {\n  // не JSON в теле — ответ 400, а не падение сервера с 500\n  const body = await request.json().catch(() => null);\n  if (body === null || typeof body !== \"object\") {\n    return Response.json({ error: \"Нужен JSON: { weight, reps }\" }, { status: 400 });\n  }\n  const { weight, reps } = body;\n\n  const kg = toNumber(weight);\n  if (!Number.isFinite(kg)) {\n    return Response.json({ error: \"Вес должен быть числом, например 60\" }, { status: 400 });\n  }\n\n  const count = toNumber(reps);\n  if (!Number.isInteger(count) || count <= 0) {\n    return Response.json({ error: \"Повторы — целое число больше нуля\" }, { status: 400 });\n  }\n\n  const set = { weight: kg, reps: count };\n  sets.push(set);\n  return Response.json({ set, volume: kg * count }, { status: 201 });\n}\n",
+   "blob": "c65d5569d19c0de84c818a2729a4aca71c1c475c",
    "by": "agent"
   },
   {
@@ -625,7 +669,7 @@
    "id": "save-hint",
    "kind": "browser",
    "url": "http://localhost:3000/",
-   "title": "Create Next App",
+   "title": "Тренировка",
    "fields": [
     {
      "label": "Вес, кг",
@@ -724,7 +768,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET / 200 in 43ms (next.js: 3ms, application-code: 40ms)",
+    " GET / 200 in 48ms (next.js: 4ms, application-code: 44ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -817,7 +861,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET /api/sets 200 in 7ms (next.js: 2ms, application-code: 5ms)",
+    " GET /api/sets 200 in 9ms (next.js: 4ms, application-code: 5ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -864,7 +908,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET /api/sets 200 in 8ms (next.js: 3ms, application-code: 5ms)",
+    " GET /api/sets 200 in 9ms (next.js: 3ms, application-code: 6ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -911,14 +955,14 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " POST /api/sets 400 in 10ms (next.js: 3ms, application-code: 7ms)"
+    " POST /api/sets 400 in 14ms (next.js: 8ms, application-code: 6ms)"
    ]
   },
   {
    "id": "save-ok",
    "kind": "browser",
    "url": "http://localhost:3000/",
-   "title": "Create Next App",
+   "title": "Тренировка",
    "fields": [
     {
      "label": "Вес, кг",
@@ -1006,7 +1050,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET / 200 in 59ms (next.js: 4ms, application-code: 55ms)",
+    " GET / 200 in 55ms (next.js: 4ms, application-code: 51ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -1146,7 +1190,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET /api/sets 200 in 5ms (next.js: 2ms, application-code: 3ms)",
+    " GET /api/sets 200 in 7ms (next.js: 1.9ms, application-code: 5ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -1193,7 +1237,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " POST /api/sets 201 in 11ms (next.js: 2ms, application-code: 9ms)"
+    " POST /api/sets 201 in 12ms (next.js: 3ms, application-code: 9ms)"
    ]
   },
   {
@@ -1202,8 +1246,9 @@
    "cwd": "~/trainer-app",
    "cmd": "git diff --stat",
    "out": [
-    " app/page.tsx | 143 +++++++++++++++++++++++++++++++++--------------------------",
-    " 1 file changed, 81 insertions(+), 62 deletions(-)"
+    " app/layout.tsx |   4 +-",
+    " app/page.tsx   | 143 ++++++++++++++++++++++++++++++++-------------------------",
+    " 2 files changed, 83 insertions(+), 64 deletions(-)"
    ],
    "code": 0
   },
@@ -1211,15 +1256,15 @@
    "id": "c-form",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"Форма «Сохранить подход» с проверкой веса\"",
-   "hash": "b1f5e59",
+   "hash": "806dd88",
    "message": "Форма «Сохранить подход» с проверкой веса",
    "branch": "sets-form",
    "parents": [
     "e994198"
    ],
    "out": [
-    "[sets-form b1f5e59] Форма «Сохранить подход» с проверкой веса",
-    " 2 files changed, 110 insertions(+), 62 deletions(-)",
+    "[sets-form 806dd88] Форма «Сохранить подход» с проверкой веса",
+    " 3 files changed, 123 insertions(+), 64 deletions(-)",
     " create mode 100644 app/api/sets/route.ts"
    ],
    "files": [
@@ -1237,7 +1282,7 @@
     },
     {
      "path": "app/api/sets/route.ts",
-     "blob": "4673f2ab84e44a8c480c9cf4294a7c24730b5e02"
+     "blob": "c65d5569d19c0de84c818a2729a4aca71c1c475c"
     },
     {
      "path": "app/favicon.ico",
@@ -1249,7 +1294,7 @@
     },
     {
      "path": "app/layout.tsx",
-     "blob": "9852c15349db239dd8a0712ffa70eccb731c9c88"
+     "blob": "c98953bbd57ffffe632aa6f3cec330c8db38f7b9"
     },
     {
      "path": "app/page.tsx",
@@ -1431,11 +1476,12 @@
    "cwd": "~/trainer-app",
    "cmd": "git merge sets-form",
    "out": [
-    "Updating e994198..b1f5e59",
+    "Updating e994198..806dd88",
     "Fast-forward",
-    " app/api/sets/route.ts |  29 ++++++++++",
+    " app/api/sets/route.ts |  40 ++++++++++++++",
+    " app/layout.tsx        |   4 +-",
     " app/page.tsx          | 143 ++++++++++++++++++++++++++++----------------------",
-    " 2 files changed, 110 insertions(+), 62 deletions(-)",
+    " 3 files changed, 123 insertions(+), 64 deletions(-)",
     " create mode 100644 app/api/sets/route.ts"
    ],
    "code": 0
@@ -1450,7 +1496,7 @@
     "npm error",
     "npm error To see a list of scripts, run:",
     "npm error   npm run",
-    "npm error A complete log of this run can be found in: ~/.npm/_logs/2026-10-28T12_12_19_899Z-debug-0.log"
+    "npm error A complete log of this run can be found in: ~/.npm/_logs/2026-10-28T12_30_04_096Z-debug-0.log"
    ],
    "code": 1
   },
@@ -1523,11 +1569,11 @@
    "kind": "file",
    "path": "docs/mini-set.md",
    "before": null,
-   "after": "# Мини-набор задач для выбора модели\n\nПять задач этого проекта. Каждую даём разным моделям одними и теми же словами и сравниваем: дошла ли модель до «готово» и сколько правок понадобилось.\n\n## 1. Подходы в базе\n\nПодходы хранятся в Supabase, а не в памяти сервера.\nГотово: после перезапуска npm run dev сохранённые подходы на месте.\n\n## 2. Вход тренера\n\nТренер входит по почте и паролю (Supabase Auth).\nГотово: без входа страница /clients открывает форму входа, после входа видно имя тренера.\n\n## 3. Список подопечных\n\nСтраница /clients: подопечные тренера и кнопка «Добавить подопечного».\nГотово: новый подопечный виден в списке и после перезагрузки страницы.\n\n## 4. Прогресс подопечного\n\nНа странице подопечного — лучший вес за каждую неделю.\nГотово: для трёх недель с подходами 50, 55 и 60 кг видно три строки по порядку.\n\n## 5. Тест проверки веса\n\nТест на Vitest для app/api/sets/route.ts.\nГотово: «60 кг» даёт 400, «60» и 8 — 201; если убрать проверку веса, тест падает.\n",
+   "after": "# Мини-набор задач для выбора модели\n\nПять задач этого проекта. Каждую даём разным моделям одними и теми же словами и сравниваем: дошла ли модель до «готово» и сколько правок понадобилось.\n\n## 1. Подходы в базе\n\nПодходы хранятся в Supabase, а не в памяти сервера.\nГотово: после перезапуска npm run dev сохранённые подходы на месте.\n\n## 2. Вход тренера\n\nТренер входит по почте и паролю (Supabase Auth).\nГотово: без входа страница /clients открывает форму входа, после входа видно имя тренера.\n\n## 3. Список подопечных\n\nСтраница /clients: подопечные тренера и кнопка «Добавить подопечного».\nГотово: новый подопечный виден в списке и после перезагрузки страницы.\n\n## 4. Прогресс подопечного\n\nНа странице подопечного — лучший вес за каждую неделю.\nГотово: для трёх недель с подходами 50, 55 и 60 кг видно три строки по порядку.\n\n## 5. Тест проверки веса\n\nТест на Vitest для app/api/sets/route.ts.\nГотово: вес «60 кг» даёт ответ 400, а вес «60» и повторы 8 сохраняются — ответ 201; если убрать проверку веса, тест падает.\n",
    "diff": [
     "diff --git a/docs/mini-set.md b/docs/mini-set.md",
     "new file mode 100644",
-    "index 0000000..b934f8e",
+    "index 0000000..423696f",
     "--- /dev/null",
     "+++ b/docs/mini-set.md",
     "@@ -0,0 +1,28 @@",
@@ -1558,23 +1604,23 @@
     "+## 5. Тест проверки веса",
     "+",
     "+Тест на Vitest для app/api/sets/route.ts.",
-    "+Готово: «60 кг» даёт 400, «60» и 8 — 201; если убрать проверку веса, тест падает."
+    "+Готово: вес «60 кг» даёт ответ 400, а вес «60» и повторы 8 сохраняются — ответ 201; если убрать проверку веса, тест падает."
    ],
-   "blob": "b934f8e63308a98bcc058527808bc875572c66ce",
+   "blob": "423696ff8c914a7cd24f5e11a3c0d1855c251c6a",
    "by": "agent"
   },
   {
    "id": "c-mini",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"Мини-набор задач для выбора модели\"",
-   "hash": "ce89b64",
+   "hash": "dde434a",
    "message": "Мини-набор задач для выбора модели",
    "branch": "main",
    "parents": [
-    "b1f5e59"
+    "806dd88"
    ],
    "out": [
-    "[main ce89b64] Мини-набор задач для выбора модели",
+    "[main dde434a] Мини-набор задач для выбора модели",
     " 1 file changed, 28 insertions(+)",
     " create mode 100644 docs/mini-set.md"
    ],
@@ -1593,7 +1639,7 @@
     },
     {
      "path": "app/api/sets/route.ts",
-     "blob": "4673f2ab84e44a8c480c9cf4294a7c24730b5e02"
+     "blob": "c65d5569d19c0de84c818a2729a4aca71c1c475c"
     },
     {
      "path": "app/favicon.ico",
@@ -1605,7 +1651,7 @@
     },
     {
      "path": "app/layout.tsx",
-     "blob": "9852c15349db239dd8a0712ffa70eccb731c9c88"
+     "blob": "c98953bbd57ffffe632aa6f3cec330c8db38f7b9"
     },
     {
      "path": "app/page.tsx",
@@ -1617,7 +1663,7 @@
     },
     {
      "path": "docs/mini-set.md",
-     "blob": "b934f8e63308a98bcc058527808bc875572c66ce"
+     "blob": "423696ff8c914a7cd24f5e11a3c0d1855c251c6a"
     },
     {
      "path": "eslint.config.mjs",
@@ -1668,8 +1714,8 @@
    "cwd": "~/trainer-app",
    "cmd": "git log --oneline",
    "out": [
-    "ce89b64 Мини-набор задач для выбора модели",
-    "b1f5e59 Форма «Сохранить подход» с проверкой веса",
+    "dde434a Мини-набор задач для выбора модели",
+    "806dd88 Форма «Сохранить подход» с проверкой веса",
     "e994198 CLAUDE.md: цель, стек и запреты",
     "99400a8 Идея приложения в docs/idea.md",
     "25ffd84 Заготовка Next.js"

@@ -8,17 +8,28 @@ export async function GET() {
   return Response.json({ sets });
 }
 
+// Число из поля формы: «62,5» — тоже число (запятую меняем на точку),
+// а пустое поле — нет, хотя Number("") === 0
+function toNumber(value: unknown): number {
+  const text = String(value ?? "").trim().replace(",", ".");
+  return text === "" ? NaN : Number(text);
+}
+
 // POST /api/sets — сохранить подход { weight, reps }
 export async function POST(request: Request) {
-  const { weight, reps } = await request.json();
+  // не JSON в теле — ответ 400, а не падение сервера с 500
+  const body = await request.json().catch(() => null);
+  if (body === null || typeof body !== "object") {
+    return Response.json({ error: "Нужен JSON: { weight, reps }" }, { status: 400 });
+  }
+  const { weight, reps } = body;
 
-  // «62,5» — тоже вес: запятую меняем на точку
-  const kg = Number(String(weight).replace(",", "."));
+  const kg = toNumber(weight);
   if (!Number.isFinite(kg)) {
     return Response.json({ error: "Вес должен быть числом, например 60" }, { status: 400 });
   }
 
-  const count = Number(reps);
+  const count = toNumber(reps);
   if (!Number.isInteger(count) || count <= 0) {
     return Response.json({ error: "Повторы — целое число больше нуля" }, { status: 400 });
   }
