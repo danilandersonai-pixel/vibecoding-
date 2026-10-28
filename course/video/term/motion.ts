@@ -47,8 +47,13 @@ export function appear(frame: number, at: number, len: number = MOTION.appear): 
   return easeOut((frame - at) / len)
 }
 
-/** Сколько знаков text набрано к кадру frame, если набор начался на кадре at: MOTION.typeCps знаков в секунду. */
+/** Сколько знаков text набрано к кадру frame, если набор начался на кадре at: MOTION.typeCps знаков в секунду. Знаки — Unicode, а не кодовые единицы. */
 export function typedCount(text: string, frame: number, at: number): number {
   const n = Math.floor(((frame - at) * MOTION.typeCps) / FPS)
-  return Math.min(text.length, Math.max(0, n))
+  return Math.min([...text].length, Math.max(0, n))
+}
+
+/** За сколько кадров набирается text: к кадру at + typedFrames(text) набрано всё. */
+export function typedFrames(text: string): number {
+  return Math.ceil(([...text].length * FPS) / MOTION.typeCps)
 }

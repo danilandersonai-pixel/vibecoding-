@@ -1,4 +1,3 @@
-import type { JSX } from 'react'
 import { AbsoluteFill, Sequence, useCurrentFrame } from 'remotion'
 import defs from '../../content/figures/_defs.svg?raw'
 import restaurant from '../../content/figures/abc_restaurant.svg?raw'
@@ -8,7 +7,7 @@ import { Header } from './chrome/Header'
 import { TermSubtitles } from './chrome/Subtitles'
 import { Verdict } from './chrome/Verdict'
 import type { Clock, FrameCtx } from './frame'
-import { FRAMES } from './frames'
+import { frameDef } from './frames'
 import type { FrameSpec } from './frames'
 import { appear } from './motion'
 import { CANVAS, FIGURE_VARS, MONO, SAFE, T } from './theme'
@@ -19,8 +18,8 @@ import { CANVAS, FIGURE_VARS, MONO, SAFE, T } from './theme'
 //   60 Terminal (dev и server-строки save-bad), 390 Terminal (start-dev: код выхода 1), 720 Editor (route, дерево, подсветка),
 //   1050 Editor (fix, набор), 1380 Editor (fix, подсказка ghost), 1710 Editor (read package.json, без дерева), 2040 Diff (route и fix, подсветка).
 // Снимок сцены: npx remotion still video/index.ts term-check out.png --frame=N --browser-executable=…/headless_shell
-// Метки ошибки: … --frame=50 --props='{"mistake":true}'.
-export type TermCheckProps = { mistake: boolean }
+// Метки ошибки: … --frame=50 --props='{"mistake":true}'. Части кадров рамками: … --props='{"parts":true}' (положение частей из layout — проверить, что они лежат на том, что видно).
+export type TermCheckProps = { mistake: boolean; parts: boolean }
 
 const CUES = [{ from: 10, to: 60, text: 'Телефон Анны — зал, его зовут фронтендом: всё, что видно и нажимается.' }]
 const VERDICT: { at: number; kind: 'wrong' | 'right' }[] = [
@@ -31,7 +30,7 @@ const VERDICT: { at: number; kind: 'wrong' | 'right' }[] = [
 const FIGURE = { w: 1590 } // схема 760 px шириной → 1590: самый мелкий текст (11,5 px) становится 24 px
 const CELL = MONO.size * MONO.advance
 
-function Base({ mistake }: TermCheckProps) {
+function Base({ mistake }: Pick<TermCheckProps, 'mistake'>) {
   const frame = useCurrentFrame()
   const zeros = 40
   return (
@@ -121,15 +120,23 @@ const CTX: FrameCtx = { find, lesson: { id: 'term-check', title: 'Проверк
 
 const clockOf = (lines: number): Clock => ({ beat: (i) => 30 + i * 90, duration: 30 + lines * 90 + 30, lines })
 
-function Scene({ spec, cue }: { spec: FrameSpec; cue: string }) {
+function Scene({ spec, cue, parts }: { spec: FrameSpec; cue: string; parts: boolean }) {
   const clock = clockOf(SCENE_LINES)
-  // FRAMES[spec.type] выбирается по типу, поэтому компонент и спека парой не проверяются — для проверочной композиции хватает
-  const Component = FRAMES[spec.type].Component as (props: { spec: FrameSpec; clock: Clock; ctx: FrameCtx }) => JSX.Element
+  const { Component } = frameDef(spec)
   return (
     <AbsoluteFill style={{ background: T.desk }}>
       <svg viewBox={`0 0 ${CANVAS.w} ${CANVAS.h}`} width={CANVAS.w} height={CANVAS.h} style={{ position: 'absolute', inset: 0 }}>
         <Header lessonId="term-check" chapter={{ n: 2, total: 3, title: 'Кадры записей' }} book="" at={-100} />
         <Component spec={spec} clock={clock} ctx={CTX} />
+        {parts &&
+          Object.entries(frameDef(spec).layout(spec, CTX)).map(([name, r]) => (
+            <g key={name}>
+              <rect x={r.x} y={r.y} width={r.w} height={r.h} fill="none" stroke={T.warn} strokeWidth={2} />
+              <text x={r.x + r.w + 6} y={r.y + 20} fill={T.warn} style={{ font: `500 24px ${T.mono}` }}>
+                {name}
+              </text>
+            </g>
+          ))}
       </svg>
       <TermSubtitles cues={[{ from: 0, to: SCENE_FRAMES, text: cue }]} />
     </AbsoluteFill>
@@ -139,7 +146,7 @@ function Scene({ spec, cue }: { spec: FrameSpec; cue: string }) {
 /** Длина композиции term-check: основа и сцены кадров. */
 export const TERM_CHECK_FRAMES = BASE_FRAMES + SCENES.length * SCENE_FRAMES
 
-export function TermCheck({ mistake }: TermCheckProps) {
+export function TermCheck({ mistake, parts }: TermCheckProps) {
   return (
     <>
       <Sequence from={0} durationInFrames={BASE_FRAMES}>
@@ -147,7 +154,7 @@ export function TermCheck({ mistake }: TermCheckProps) {
       </Sequence>
       {SCENES.map((scene, i) => (
         <Sequence key={i} from={BASE_FRAMES + i * SCENE_FRAMES} durationInFrames={SCENE_FRAMES}>
-          <Scene {...scene} />
+          <Scene {...scene} parts={parts} />
         </Sequence>
       ))}
     </>

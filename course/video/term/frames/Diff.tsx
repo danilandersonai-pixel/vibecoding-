@@ -60,7 +60,7 @@ export function Diff({ spec, clock, ctx }: Props): JSX.Element {
                         const signed = SIGNED.includes(l.kind)
                         return (
                           <Row key={r} x={TEXT_X} row={l.row + r} fill={TEXT[l.kind]} chars={[...text].length + (signed ? 1 : 0)}>
-                            {signed && <tspan fill={SIGN[l.kind]}>{r === 0 ? l.raw[0] : ' '}</tspan>}
+                            {signed && <tspan fill={SIGN[l.kind]}>{r === 0 ? (l.raw[0] ?? ' ') : ' '}</tspan>}
                             {text}
                           </Row>
                         )

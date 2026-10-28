@@ -3,15 +3,12 @@ import { useCurrentFrame } from 'remotion'
 import type { Clock, FrameCtx } from '../frame'
 import { typedCount } from '../motion'
 import { MOTION, T } from '../theme'
-import { COLS, TEXT_X, cells } from './geometry'
+import { COLS, TEXT_X, cells, take } from './geometry'
 import { lastRow, plan, scrollAt, timeline } from './terminalPlan'
 import type { TerminalSpec } from './terminalPlan'
 import { Cursor, Row, Window } from './Window'
 
 type Props = { spec: TerminalSpec; clock: Clock; ctx: FrameCtx }
-
-// Первые n знаков строки (по знакам, а не по кодовым единицам).
-const take = (text: string, n: number) => [...text].slice(0, Math.max(0, n)).join('')
 
 /** Терминал: чистая функция номера кадра. */
 export function Terminal({ spec, clock, ctx }: Props): JSX.Element {

@@ -37,6 +37,12 @@ export const MONO_STYLE: CSSProperties = { fontFamily: T.mono, fontSize: MONO.si
 /** Ширина n знаков, px. */
 export const cells = (n: number) => n * CELL
 
+/** Ширина самой длинной из строк в px (не меньше одного знака), плюс extra знаков. */
+export const widest = (rows: string[], extra = 0) => cells(Math.max(1, ...rows.map((r) => [...r].length)) + extra)
+
+/** Первые n знаков строки — по знакам Unicode, а не по кодовым единицам. */
+export const take = (text: string, n: number) => [...text].slice(0, Math.max(0, n)).join('')
+
 /** Части кадра, вышедшие за SAFE, — для problems. */
 export function outsideSafe(layout: Record<string, Rect>): string[] {
   const eps = 0.01

@@ -4,14 +4,12 @@ import type { Clock, FrameCtx } from '../frame'
 import { appear, typedCount } from '../motion'
 import { fitText, monoChars } from '../text'
 import { MOTION, SAFE, T } from '../theme'
-import { BODY, LH, MONO_STYLE, WIN, baseline, cells, rowTop } from './geometry'
+import { BODY, LH, MONO_STYLE, WIN, baseline, cells, rowTop, take } from './geometry'
 import { DIVIDER, PANEL_PAD, plan, span, timeline } from './editorPlan'
 import type { CodeLine, EditorSpec, Geo, TreeRow } from './editorPlan'
 import { Band, Cursor, Row, Window } from './Window'
 
 type Props = { spec: EditorSpec; clock: Clock; ctx: FrameCtx }
-
-const take = (text: string, n: number) => [...text].slice(0, Math.max(0, n)).join('')
 
 // Размер значка папки в дереве
 const ARROW = 10
@@ -47,12 +45,9 @@ export function Editor({ spec, clock, ctx }: Props): JSX.Element {
   const t = timeline(spec, p, clock)
   const { geo } = p
 
-  const present = (l: CodeLine) => {
-    if (!l.isNew) return true
-    if (t.ghost) return frame >= (t.ghost.lineAt.get(l.n) ?? 0)
-    if (t.typing) return frame >= (t.typing.lineStart.get(l.n) ?? 0)
-    return true
-  }
+  // Строка подсказки ghost до своего кадра не существует — вместе с номером; строка typing существует сразу, пока без текста
+  const hidden = (l: CodeLine) => l.isNew && !!t.ghost && frame < (t.ghost.lineAt.get(l.n) ?? 0)
+  const started = (l: CodeLine) => !(l.isNew && t.typing) || frame >= (t.typing.lineStart.get(l.n) ?? 0)
   const typed = (l: CodeLine) => (t.typing && l.isNew ? typedCount(l.text, frame, t.typing.lineStart.get(l.n) ?? 0) : [...l.text].length)
   const fillOf = (l: CodeLine) => {
     if (t.ghost && l.isNew && frame < t.ghost.accept) return T.faint
@@ -62,8 +57,8 @@ export function Editor({ spec, clock, ctx }: Props): JSX.Element {
   // Курсор: на строке, которая набирается сейчас; при наборе горит, потом мигает
   let cursor: JSX.Element | null = null
   if (t.typing && frame >= t.typing.start) {
-    const started = p.lines.filter((l) => l.isNew && present(l))
-    const l = started[started.length - 1]
+    const begun = p.lines.filter((l) => l.isNew && started(l))
+    const l = begun[begun.length - 1]
     if (l && (frame < t.typing.end || Math.floor((frame - t.typing.end) / MOTION.blink) % 2 === 0)) {
       const n = typed(l)
       const r = Math.min(Math.floor(n / geo.cols), l.rows.length - 1)
@@ -86,13 +81,13 @@ export function Editor({ spec, clock, ctx }: Props): JSX.Element {
       })}
       {p.lines.map(
         (l) =>
-          present(l) && (
+          !hidden(l) && (
             <g key={l.n} data-part={`line:${l.n}`}>
               <text x={geo.numRight} y={baseline(1 + l.row)} textAnchor="end" fill={T.faint} style={MONO_STYLE}>
                 {l.n}
               </text>
               {l.rows.map((text, r) => {
-                const shown = take(text, typed(l) - r * geo.cols)
+                const shown = started(l) ? take(text, typed(l) - r * geo.cols) : ''
                 return (
                   shown !== '' && (
                     <Row key={r} role="code" x={geo.textX} row={1 + l.row + r} fill={fillOf(l)} chars={[...shown].length}>

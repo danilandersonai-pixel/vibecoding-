@@ -1,7 +1,7 @@
 import type { Clock, FrameCtx, Rect } from '../frame'
 import { wrapMono } from '../text'
 import { MOTION, SAFE, T, alpha } from '../theme'
-import { COLS, LH, TEXT_X, WIN, cells, outsideSafe, rowTop } from './geometry'
+import { COLS, LH, TEXT_X, WIN, outsideSafe, rowTop, widest } from './geometry'
 import { beatProblem, diffBody, diffCounts, lookup, pick, rangeProblem } from './source'
 import type { DiffKind, Range } from './source'
 
@@ -81,8 +81,6 @@ export function span(item: Item, [a, b]: Range): { row: number; rows: number } |
   const to = item.lines[b - item.first]
   return from && to ? { row: from.row, rows: to.row + to.rows.length - from.row } : null
 }
-
-const widest = (rows: string[], extra: number) => cells(Math.max(1, ...rows.map((r) => [...r].length)) + extra)
 
 export function diffLayout(spec: DiffSpec, ctx: FrameCtx): Record<string, Rect> {
   const parts: Record<string, Rect> = { frame: { ...SAFE } }

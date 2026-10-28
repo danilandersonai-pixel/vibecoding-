@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { appear, cubicBezier, easeIn, easeOut, typedCount } from './motion'
+import { appear, cubicBezier, easeIn, easeOut, typedCount, typedFrames } from './motion'
+import { MOTION } from './theme'
 
 describe('кривые движения', () => {
   it('ease-out: 0 → 0, 1 → 1, к середине уже почти всё', () => {
@@ -68,5 +69,38 @@ describe('typedCount', () => {
     expect(typedCount('abcdef', 10 + 6, 10)).toBe(6)
     expect(typedCount('abcdef', 1000, 10)).toBe(6)
     expect(typedCount('', 20, 10)).toBe(0)
+  })
+})
+
+describe('typedCount и знаки Unicode', () => {
+  it('считает знаки, а не кодовые единицы: «😀😀» — два знака', () => {
+    expect(typedCount('😀😀', 1000, 0)).toBe(2)
+    expect(typedCount('a😀', 1, 0)).toBe(1)
+  })
+})
+
+describe('typedFrames', () => {
+  it('сколько кадров набирается строка: при 30 знаках в секунду — кадр на знак', () => {
+    expect(typedFrames('abcdef')).toBe(6)
+    expect(typedFrames('')).toBe(0)
+    expect(typedFrames('😀😀')).toBe(2)
+  })
+
+  it('к кадру at + typedFrames набрано ровно всё, на кадр раньше — ещё нет, при любой скорости набора', () => {
+    const was = MOTION.typeCps
+    try {
+      for (const cps of [30, 15, 20, 7]) {
+        MOTION.typeCps = cps
+        for (const text of ['a', 'abcde', 'abcdefghijklmnopqrstuvwxyz0123']) {
+          const n = typedFrames(text)
+          expect(typedCount(text, 5 + n, 5), `${cps} знаков/с, «${text}»`).toBe(text.length)
+          expect(typedCount(text, 5 + n - 1, 5), `${cps} знаков/с, «${text}»`).toBeLessThan(text.length)
+        }
+      }
+      MOTION.typeCps = 15
+      expect(typedFrames('abcdef')).toBe(12)
+    } finally {
+      MOTION.typeCps = was
+    }
   })
 })

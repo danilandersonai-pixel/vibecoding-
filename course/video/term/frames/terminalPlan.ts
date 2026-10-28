@@ -1,7 +1,8 @@
 import type { Clock, FrameCtx, Rect } from '../frame'
 import { wrapMono } from '../text'
+import { typedFrames } from '../motion'
 import { MOTION, SAFE } from '../theme'
-import { CELL, COLS, LH, TEXT_X, WIN, cells, outsideSafe, rowTop } from './geometry'
+import { CELL, COLS, LH, TEXT_X, WIN, outsideSafe, rowTop, widest } from './geometry'
 import { beatProblem, lookup, pick, rangeProblem } from './source'
 import type { Range } from './source'
 
@@ -11,6 +12,9 @@ import type { Range } from './source'
  * продолжением вывода, без команды и набора. at — реплика сцены, на которой начинается элемент.
  * lines — показанные строки вывода: с 1, включительно; без него — весь вывод.
  * Части: 'frame', 'cmd:<event>', 'out:<event>', 'line:<event>:<k>' (k — номер показанной строки вывода с 0).
+ * layout не зависит от времени, поэтому все части — по одному снимку: окно в конце сцены, когда всё появилось и прокручено.
+ * Часть, целиком ушедшая за верх окна, в layout нет; видная частично — прямоугольник, обрезанный окном.
+ * Камера, наведённая на часть, видит её там, где она стоит в конце сцены.
  */
 export type TerminalSpec = {
   type: 'terminal'
@@ -31,7 +35,7 @@ type Entry = {
   cmdRow: number
   lines: Line[]
 }
-type Plan = { entries: Entry[]; problems: string[] }
+type Plan = { entries: Entry[]; /** Сколько строк окна занимает всё вместе (до прокрутки). */ rows: number; problems: string[] }
 
 // Что показать: строки терминала по порядку. Каждая строка вывода после переноса занимает одну и более строк окна (row — первая).
 export function plan(spec: TerminalSpec, ctx: FrameCtx): Plan {
@@ -68,7 +72,7 @@ export function plan(spec: TerminalSpec, ctx: FrameCtx): Plan {
     })
     entries.push({ event: ev.id, at: item.at, prompt, cmd, cmdRows, cmdRow, lines })
   })
-  return { entries, problems }
+  return { entries, rows: row, problems }
 }
 
 type Timing = {
@@ -89,7 +93,7 @@ export function timeline(p: Plan, clock: Clock): Timing[] {
     const typed = e.cmdRows.length > 0
     const promptAt = free
     const start = Math.max(clock.beat(e.at), free)
-    const typedEnd = typed ? start + [...e.cmd].length : start
+    const typedEnd = typed ? start + typedFrames(e.cmd) : start
     const first = typed ? typedEnd + MOTION.stagger : start
     const lineAt = e.lines.map((_, k) => first + k * MOTION.stagger)
     free = lineAt.length > 0 ? lineAt[lineAt.length - 1] + MOTION.stagger : typed ? typedEnd + MOTION.stagger : start
@@ -112,25 +116,27 @@ export function lastRow(p: Plan, tl: Timing[], frame: number): number {
 /** На сколько строк прокручено окно, когда последняя появившаяся строка — last. */
 export const scrollAt = (last: number) => Math.max(0, last + 1 - WIN.rows)
 
-// Прямоугольник строк first…last окна в тот миг, когда появилась строка last (так видит её камера); что ушло выше окна — отрезано.
-function place(first: number, last: number, w: number): Rect {
-  const s = scrollAt(last)
-  const top = Math.max(first - s, 0)
-  return { x: TEXT_X, y: rowTop(top), w: Math.max(w, CELL), h: (last - s - top + 1) * LH }
+// Прямоугольник строк first…last на снимке «конец сцены» (окно прокручено на scroll строк); целиком выше окна — нет, частично — обрезан.
+function place(first: number, last: number, w: number, scroll: number): Rect | null {
+  const bottom = last - scroll
+  if (bottom < 0) return null
+  const top = Math.max(first - scroll, 0)
+  return { x: TEXT_X, y: rowTop(top), w: Math.max(w, CELL), h: (bottom - top + 1) * LH }
 }
 
-const widest = (rows: string[]) => cells(Math.max(1, ...rows.map((r) => [...r].length)))
-
 export function terminalLayout(spec: TerminalSpec, ctx: FrameCtx): Record<string, Rect> {
+  const p = plan(spec, ctx)
+  const scroll = scrollAt(p.rows - 1)
   const parts: Record<string, Rect> = { frame: { ...SAFE } }
-  for (const e of plan(spec, ctx).entries) {
-    if (e.cmdRows.length > 0) parts[`cmd:${e.event}`] = place(e.cmdRow, e.cmdRow + e.cmdRows.length - 1, widest(e.cmdRows))
+  const put = (name: string, rect: Rect | null) => {
+    if (rect) parts[name] = rect
+  }
+  for (const e of p.entries) {
+    if (e.cmdRows.length > 0) put(`cmd:${e.event}`, place(e.cmdRow, e.cmdRow + e.cmdRows.length - 1, widest(e.cmdRows), scroll))
     if (e.lines.length === 0) continue
     const lastLine = e.lines[e.lines.length - 1]
-    parts[`out:${e.event}`] = place(e.lines[0].row, lastLine.row + lastLine.rows.length - 1, widest(e.lines.flatMap((l) => l.rows)))
-    e.lines.forEach((l, k) => {
-      parts[`line:${e.event}:${k}`] = place(l.row, l.row + l.rows.length - 1, widest(l.rows))
-    })
+    put(`out:${e.event}`, place(e.lines[0].row, lastLine.row + lastLine.rows.length - 1, widest(e.lines.flatMap((l) => l.rows)), scroll))
+    e.lines.forEach((l, k) => put(`line:${e.event}:${k}`, place(l.row, l.row + l.rows.length - 1, widest(l.rows), scroll)))
   }
   return parts
 }

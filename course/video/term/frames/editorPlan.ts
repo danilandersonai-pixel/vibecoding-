@@ -1,7 +1,8 @@
 import type { Clock, FrameCtx, Rect } from '../frame'
+import { typedFrames } from '../motion'
 import { monoChars, wrapMono } from '../text'
 import { MOTION, SAFE } from '../theme'
-import { BODY, CELL, LH, WIN, cells, outsideSafe, rowTop } from './geometry'
+import { BODY, CELL, LH, WIN, cells, outsideSafe, rowTop, widest } from './geometry'
 import { addedLines, beatProblem, fileLines, lookup, pick, rangeProblem } from './source'
 import type { Range } from './source'
 
@@ -136,13 +137,13 @@ export function timeline(spec: EditorSpec, p: Plan, clock: Clock): Timing {
   const fresh = p.lines.filter((l) => l.isNew)
   let typing: Timing['typing'] = null
   if (spec.typing) {
-    // Новые строки набираются по очереди, знак за кадр; между строками — кадр на перевод строки
+    // Новые строки набираются по очереди со скоростью MOTION.typeCps; между строками — кадр на перевод строки
     const start = clock.beat(spec.typing.at)
     const lineStart = new Map<number, number>()
     let offset = 0
     for (const l of fresh) {
       lineStart.set(l.n, start + offset)
-      offset += [...l.text].length + 1
+      offset += typedFrames(l.text) + 1
     }
     typing = { start, lineStart, end: start + Math.max(0, offset - 1) }
   }
@@ -161,8 +162,6 @@ export function span(p: Plan, [a, b]: Range): { y: number; h: number } | null {
   if (!from || !to) return null
   return { y: rowTop(1 + from.row), h: (to.row + to.rows.length - from.row) * LH }
 }
-
-const widest = (rows: string[]) => cells(Math.max(1, ...rows.map((r) => [...r].length)))
 
 export function editorLayout(spec: EditorSpec, ctx: FrameCtx): Record<string, Rect> {
   const p = plan(spec, ctx)
@@ -202,10 +201,18 @@ export function editorProblems(spec: EditorSpec, ctx: FrameCtx, clock: Clock): s
     const why = beatProblem(at, clock.lines)
     if (why) bad.push(`${name}: ${why}`)
   }
+  const beatsOk = bad.length === 0
+  const t = beatsOk ? timeline(spec, p, clock) : null
   ;(spec.highlight ?? []).forEach((h, i) => {
     const why = rangeProblem(h.lines, p.total)
-    if (why) bad.push(`highlight[${i}]: ${why}`)
-    else if (!span(p, h.lines)) bad.push(`highlight[${i}]: строки ${h.lines[0]}–${h.lines[1]} не показаны в окне`)
+    if (why) return void bad.push(`highlight[${i}]: ${why}`)
+    if (!span(p, h.lines)) return void bad.push(`highlight[${i}]: строки ${h.lines[0]}–${h.lines[1]} не показаны в окне`)
+    // Полоса над строкой, которой на этой реплике ещё нет (её набирают или показывают подсказкой позже), повисает в пустоте
+    for (const l of p.lines) {
+      if (l.n < h.lines[0] || l.n > h.lines[1] || !l.isNew || !t) continue
+      const born = t.typing?.lineStart.get(l.n) ?? t.ghost?.lineAt.get(l.n) ?? 0
+      if (born > t.highlight[i]) return void bad.push(`highlight[${i}]: подсветка на реплике ${h.at} (кадр ${t.highlight[i]}) над строкой ${l.n}, которая появится только на кадре ${born}`)
+    }
   })
   if (p.codeRows > CODE_ROWS) bad.push(`не помещается: показано ${p.codeRows} строк с переносом, в окне помещается ${CODE_ROWS} строк`)
   if (p.tree && p.tree.length > WIN.rows) bad.push(`дерево не помещается: ${p.tree.length} строк, в окне помещается ${WIN.rows}`)
