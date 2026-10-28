@@ -16,6 +16,7 @@ import type { Clock, FrameCtx, Rect } from '../frame'
 import { monoChars } from '../text'
 import { alpha, MIN_TEXT, MONO, MOTION, SAFE, T } from '../theme'
 import { CLOCK, ctx, FIXTURE, makeClock } from './fixture'
+import { COLS as AGENT_COLS, plan as agentPlan } from './agentPlan'
 import { plan as diffPlan } from './diffPlan'
 import { plan as editorPlan } from './editorPlan'
 import { cells, COLS, outsideSafe, rowTop, take, widest, WIN, wrapWords } from './geometry'
@@ -806,7 +807,7 @@ describe('размер текста', () => {
 })
 
 // Код переносится по словам, как в редакторе (не «stat / us»); слово длиннее строки — по знакам. Терминал — по знакам, как терминал.
-describe('перенос кода по словам: Editor и Diff', () => {
+describe('перенос кода по словам: Editor, Diff и дифф в Agent', () => {
   const real: FrameCtx = { find, lesson: ctx.lesson }
   const RS = 's02-sets'
   // строка 23 маршрута: «    return Response.json({ error: "Нужен JSON: { weight, reps }" }, { status: 400 });»
@@ -856,6 +857,25 @@ describe('перенос кода по словам: Editor и Diff', () => {
     expect(page.rows.join(' ')).toBe(page.raw.slice(1))
     for (const r of page.rows) expect([...r].length).toBeLessThanOrEqual(COLS - 1)
     expect(page.rows.every((r, i) => i === page.rows.length - 1 || page.raw.slice(1).includes(r + ' '))).toBe(true)
+  })
+
+  it('Agent: строка диффа под Edited переносится на пробеле, как в Diff', () => {
+    // шаг page агента ask-form: строка 37 диффа — 142 знака className
+    const p = agentPlan({ type: 'agent', session: RS, event: 'ask-form', diffLines: 40, at: { prompt: 0, steps: [1, 2, 3, 4], reply: 5 } }, real)
+    const page = p.steps.find((s) => s.id === 'page')!
+    const long = page.lines.filter((l) => l.role === 'diff' && l.rows.length > 1)
+    expect(long.length).toBeGreaterThan(0)
+    const raw = (l: (typeof long)[number]) => {
+      const body = l.rows.join(' ')
+      return l.diff!.sign === '' ? body : l.diff!.sign + body
+    }
+    const diff = find(RS, 'page', 'file').diff
+    for (const l of long) {
+      expect(diff).toContain(raw(l))
+      for (const r of l.rows) expect([...r].length).toBeLessThanOrEqual(AGENT_COLS - 3)
+      // ни одна строка окна не начинается с обрывка слова: перенос — на пробеле
+      l.rows.forEach((r, i) => i < l.rows.length - 1 && expect(raw(l)).toContain(r + ' '))
+    }
   })
 
   it('Terminal переносит по знакам, как терминал', () => {

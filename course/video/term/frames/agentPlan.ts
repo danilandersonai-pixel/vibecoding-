@@ -12,7 +12,7 @@ import type { DiffKind } from './source'
 /**
  * Агент: сессия Claude Code в тёмном окне «Claude Code». Запрос `> …` в рамке ввода набирается, шаги записи —
  * строки как на схеме книги ch1_agent_session: `read` → «Reading <путь>», `file` → «Edited <путь> (+N −M)» и первые
- * diffLines строк диффа под ней (по умолчанию 6, с «@@», как в Diff), `run` и `commit` → `Run "<команда>"? [y / n]`
+ * diffLines строк диффа под ней (по умолчанию 6, с «@@», как в Diff; длинная строка кода переносится по словам, как в Diff), `run` и `commit` → `Run "<команда>"? [y / n]`
  * (если в команде есть «"» — `Run «<команда>»? [y / n]`) и «y», если id шага в ask, иначе просто `$ <команда>`; дальше вывод команды. Затем ответ агента абзацем soft
  * (Golos Text 28 px). mode — имя режима в нижней строке окна.
  * event — agent; at — реплики сцены: prompt — где начинает набираться запрос, steps — по реплике на каждый шаг записи
@@ -110,7 +110,8 @@ function buildStep(id: string, ev: Extract<SessionEvent, { kind: 'read' | 'file'
     push({ role: 'head', col: 0, fill: T.ok, delay: 0 }, wrapMono(`Edited ${ev.path} (+${add} −${del})`, COLS))
     body.slice(0, diffLines).forEach(({ raw, kind }, k) => {
       const signed = SIGNED.includes(kind)
-      const rows = wrapMono(signed ? raw.slice(1) : raw, COLS - 2 - (signed ? 1 : 0))
+      // Код — по словам, как в Diff (слово длиннее строки — по знакам); вывод команд ниже — по знакам, как в терминале
+      const rows = wrapWords(signed ? raw.slice(1) : raw, COLS - 2 - (signed ? 1 : 0)).map((w) => w.text)
       push({ role: 'diff', col: 2, fill: TEXT[kind], diff: { kind, sign: signed ? (raw[0] ?? ' ') : '' }, delay: (k + 1) * MOTION.stagger }, rows)
     })
   } else {
