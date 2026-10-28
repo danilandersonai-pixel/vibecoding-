@@ -179,8 +179,8 @@ test('хеш как у git', () => {
 | `dev` | `run 'npm run dev'`, `until: 'Ready'` |
 | `save-bad` | `browser`: `url '/'`, `fill { 'Вес, кг': '60 кг', 'Повторы': '8' }`, `click 'Сохранить подход'` |
 | `ask-fix` | агент: запрос содержит дословно текст первой ошибки консоли из `save-bad` и «что делала / что ждала / что вышло»; шаги `read-route` (read `app/api/sets/route.ts`), `fix` (edit `app/page.tsx`: ответ сервера с ошибкой показывается под формой в `<p role="alert">`) |
-| `save-hint` | `browser`: тот же ввод |
-| `save-ok` | `browser`: `fill { 'Вес, кг': '60', 'Повторы': '8' }` |
+| `save-hint` | `browser`: тот же ввод и `click 'Сохранить подход'` |
+| `save-ok` | `browser`: `fill { 'Вес, кг': '60', 'Повторы': '8' }`, `click 'Сохранить подход'` |
 | `diff` | `run 'git diff --stat'` |
 | `c-form` | `commit 'Форма «Сохранить подход» с проверкой веса'` |
 | `restyle` | агент: «сделай страницу посимпатичнее»; шаг `css` (write `app/globals.css` — крупная непрошеная переделка) |
