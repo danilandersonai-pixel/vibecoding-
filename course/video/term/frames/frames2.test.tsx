@@ -74,8 +74,8 @@ afterEach(() => {
 })
 
 describe('набор кадров', () => {
-  it('в FRAMES шесть кадров записей с полным контрактом', () => {
-    expect(Object.keys(FRAMES).sort()).toEqual(['agent', 'browser', 'diff', 'editor', 'gitlog', 'terminal'])
+  it('в FRAMES кадры записей (шесть) и кадры без записей (четыре) с полным контрактом', () => {
+    expect(Object.keys(FRAMES).sort()).toEqual(['agenda', 'agent', 'board', 'browser', 'diff', 'editor', 'figure', 'gitlog', 'recap', 'terminal'])
     for (const type of ['agent', 'gitlog', 'browser'] as const) {
       const def = FRAMES[type]
       expect(typeof def.layout).toBe('function')

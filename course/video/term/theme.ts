@@ -28,10 +28,28 @@ export function alpha(hex: string, a: number): string {
 }
 
 /**
- * Шрифты схем книги: figures.css берёт их из токенов курса (--font-body 'Golos Text', --font-ui), а в роликах
- * шрифты зовутся «… Variable». Этот стиль ставят на обёртку схемы (div.figure), чтобы текст схемы был Golos Text.
+ * Переменные схем книги: figures.css красит схемы токенами курса (--fig-*, --accent, --ink-soft) и берёт шрифты из --font-body,
+ * а в роликах шрифты зовутся «… Variable», и тема всегда тёмная, как бы ни стояла тема страницы. Этот стиль ставят на обёртку схемы
+ * (div.figure или <g> кадра Figure): тёмные значения из T и Golos Text. Тест Figure сверяет набор с src/styles/figures.css.
  */
-export const FIGURE_VARS = { '--font-body': T.font, '--font-ui': T.mono, '--font-code': T.mono } as CSSProperties
+export const FIGURE_VARS = {
+  '--font-body': T.font,
+  '--font-ui': T.mono,
+  '--font-code': T.mono,
+  '--ink': T.ink,
+  '--ink-soft': T.soft,
+  '--paper': T.paper,
+  '--accent': T.ink, // главное и текущее — инверсией, без отдельного цвета
+  '--accent-ink': T.ink,
+  '--fig-ink': T.ink,
+  '--fig-soft': T.soft,
+  '--fig-line': T.line,
+  '--fig-grid': T.grid,
+  '--fig-zone': alpha(T.ink, 0.035),
+  '--fig-risk': T.err,
+  '--fig-ok': T.ok,
+  '--fig-on': T.desk,
+} as CSSProperties
 
 export const CANVAS = { w: 1920, h: 1080 }
 export const FPS = 30
