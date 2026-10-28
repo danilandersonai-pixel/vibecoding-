@@ -45,13 +45,13 @@ describe('summary', () => {
   })
 
   it('dayVideoSummary: ролики дня и их длительность; неизвестные ролики не считаются', () => {
-    expect(dayVideoSummary(days[0])).toEqual({ count: 2, seconds: 531 })
+    expect(dayVideoSummary(days[0])).toEqual({ count: 2, seconds: 536 })
     const unknown = DaySchema.parse({ ...structuredClone(fixture), blocks: [{ type: 'video', videoId: 'нет', title: 'Нет такого' }] })
     expect(dayVideoSummary(unknown)).toEqual({ count: 0, seconds: 0 })
   })
 
   it('состав дня 1', () => {
-    expect(daySummaryLine(days[0])).toBe('2 видеоурока (8:51), тест, 6 шагов практики')
+    expect(daySummaryLine(days[0])).toBe('2 видеоурока (8:56), тест, 6 шагов практики')
   })
 
   it('состав чернового дня 4', () => {

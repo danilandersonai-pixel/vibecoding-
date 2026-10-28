@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react'
-import { ch01Script } from './ch-01/script'
 import { ch02Script } from './ch-02/script'
 import { ch03Script } from './ch-03/script'
 import { ch04Script } from './ch-04/script'
@@ -24,6 +23,7 @@ import { day18Script } from './day-18/script'
 import { day19Script } from './day-19/script'
 import { day20Script } from './day-20/script'
 import { day21Script } from './day-21/script'
+import { ch01Script } from './lessons/ch-01/script'
 import { chAbcScript } from './lessons/ch-abc/script'
 import { pilotRlsScript } from './pilot-rls/script'
 import type { VideoScript } from './types'
@@ -54,7 +54,7 @@ export const catalog: Record<string, CatalogEntry> = {
     title: 'Вайб-кодинг: шкала, а не выключатель',
     kind: 'chapter',
     script: ch01Script,
-    load: () => import('./ch-01/Video'),
+    load: () => import('./lessons/ch-01/Video'),
   },
   'ch-02': {
     title: 'Как говорить с ИИ, чтобы он понял',

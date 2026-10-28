@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ch01Script } from '../ch-01/script'
+import { ch01Script } from '../lessons/ch-01/script'
 import { chAbcScript } from '../lessons/ch-abc/script'
 import { balanceText, fitText, monoChars, textWidth, wrapMono, wrapText } from './text'
 import { GOLOS, MEASURED_ADVANCE, MEASURED_GOLOS, MONO, SUBS } from './theme'
@@ -80,7 +80,7 @@ describe('textWidth и wrapText', () => {
     expect(wrapText('', 40, 400)).toEqual([''])
   })
 
-  it('все реплики роликов ch-abc (урок «Репозиторий») и ch-01 при 40 px помещаются в две строки по 1500 px', () => {
+  it('все реплики роликов ch-abc и ch-01 (уроки «Репозиторий») при 40 px помещаются в две строки по 1500 px', () => {
     const cues = [...chAbcScript.cues, ...ch01Script.cues]
     expect(cues.length).toBeGreaterThan(80)
     const long = cues.filter((c) => wrapText(c.text, SUBS.size, SUBS.maxWidth).length > SUBS.maxLines)
