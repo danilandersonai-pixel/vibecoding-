@@ -249,6 +249,40 @@ describe('recordChain: вывод команд', () => {
     const { records } = await recordChain([one([{ id: 'a', run: 'echo $npm_config_cache' }])], { workdir: dir, npmCache: '/cache/npm' })
     expect(records[0].events[0]).toMatchObject({ out: ['/cache/npm'] })
   })
+
+  it('с npmCache журнал npm всё равно в ~/.npm/_logs, как у человека, а не в папке кэша', async () => {
+    const cache = fresh()
+    const { records } = await recordChain(
+      [
+        one([
+          { id: 'pkg', write: 'package.json', content: '{ "name": "x", "version": "1.0.0", "scripts": { "dev": "echo dev" } }\n' },
+          { id: 'nope', run: 'npm run start-dev' },
+        ]),
+      ],
+      { workdir: fresh(), npmCache: cache },
+    )
+    const run = records[0].events[1]
+    expect(run).toMatchObject({ kind: 'run', code: 1 })
+    const out = run.kind === 'run' ? run.out.join('\n') : ''
+    expect(out).toMatch(/A complete log of this run can be found in: ~\/\.npm\/_logs\/\S+-debug-0\.log/)
+    expect(out).not.toContain(cache)
+  })
+
+  it('метки ИИ-агента, из которого запущен рекордер, в команды не попадают', async () => {
+    // по таким меткам `next dev` понимает, что его запустил агент, и дописывает в проект AGENTS.md
+    const marks = { CLAUDECODE: '1', CLAUDE_CODE_ENTRYPOINT: 'cli', AI_AGENT: 'claude-code', CURSOR_AGENT: '1', CODEX_SANDBOX: 'seatbelt', GEMINI_CLI: '1' }
+    const saved = Object.fromEntries(Object.keys(marks).map((name) => [name, process.env[name]]))
+    Object.assign(process.env, marks)
+    try {
+      const [e] = await outOf([{ id: 'env', run: 'env | cut -d= -f1 | grep -E "^(AI_AGENT|CLAUDE|CURSOR|CODEX|GEMINI)" | sort; echo конец' }])
+      expect(e).toMatchObject({ out: ['конец'] })
+    } finally {
+      for (const [name, value] of Object.entries(saved)) {
+        if (value === undefined) delete process.env[name]
+        else process.env[name] = value
+      }
+    }
+  })
 })
 
 describe('recordChain: браузер', () => {

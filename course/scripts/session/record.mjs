@@ -31,11 +31,15 @@ async function within(promise, ms) {
   }
 }
 
-// Окружение команд без чужих настроек: ~ — это home/, переменные GIT_* родителя (хуки git) не наследуются.
+// Метки ИИ-агента, из которого запущен рекордер (Claude Code, Cursor, Codex…). По ним инструменты понимают, что работают
+// «под агентом», и ведут себя иначе: `next dev` дописывает в проект AGENTS.md. Команды сессии идут как в терминале человека.
+const AGENT_ENV = /^(AI_AGENT|CLAUDECODE|CLAUDE_.*|CODEX_.*|CURSOR_.*|COPILOT_.*|GEMINI_CLI|OPENCODE_.*|AUGMENT_AGENT|ANTIGRAVITY_AGENT|REPL_ID)$/
+
+// Окружение команд без чужих настроек: ~ — это home/, переменные GIT_* родителя (хуки git) и метки агента не наследуются.
 // Язык и пояс заданы, чтобы вывод (сообщения git и npm, даты, русский текст в UTF-8) не зависел от машины.
 function baseEnv(home) {
   const vars = { ...process.env, HOME: home, XDG_CONFIG_HOME: join(home, '.config'), LC_ALL: 'C.UTF-8', TZ: 'UTC' } // настройки create-next-app и git пользователя не просачиваются
-  for (const name of Object.keys(vars)) if (name.startsWith('GIT_')) delete vars[name]
+  for (const name of Object.keys(vars)) if (name.startsWith('GIT_') || AGENT_ENV.test(name)) delete vars[name]
   delete vars.NO_COLOR // вместе с FORCE_COLOR заставляет node печатать предупреждение
   delete vars.LANGUAGE // gettext берёт его раньше LC_ALL
   return vars
@@ -319,7 +323,10 @@ async function playSession({ home, project, npmCache, runLimitMs }, def) {
       PORT: String(PORT),
       FORCE_COLOR: '0',
     }
-    if (npmCache) vars.npm_config_cache = npmCache
+    if (npmCache) {
+      vars.npm_config_cache = npmCache
+      vars.npm_config_logs_dir = join(home, '.npm', '_logs') // журнал npm там же, где без общего кэша: путь в выводе — ~/.npm/_logs
+    }
     return vars
   }
   const gitHere = (args, extra = {}) => git(args, { cwd: project, env: env(), ...extra })
