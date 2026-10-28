@@ -19,6 +19,8 @@ import type { DiffKind } from './source'
  * (шаг ждёт конца набора и конца предыдущего шага), reply — где появляется ответ.
  * chat: true — окно «Чат с ИИ», без шагов: запрос, ответ и код нового файла (добавленные строки диффа первого шага file, не больше diffLines;
  * если строк больше — последней строкой «…» faint) блоком. Если первый file правит существующий файл — problems.
+ * diffLines — число строк диффа у всех шагов file или по шагам: { id шага: строк } (не указанный шаг — по умолчанию 6); так у одного
+ * шага видна сама правка, а у других — только «Edited …».
  * Всё должно помещаться в окно: 19 строк, а с режимом — 18; иначе problems. Если дифф не лезет — уменьшайте diffLines.
  * Части: 'frame', 'prompt' (рамка ввода), 'step:<id>', 'reply', 'code' (только chat), 'mode'.
  * Части — один снимок, как у Terminal: окно в конце сцены, когда всё появилось.
@@ -30,7 +32,7 @@ export type AgentSpec = {
   mode?: 'Plan' | 'Manual' | 'Accept edits'
   chat?: boolean
   ask?: string[]
-  diffLines?: number
+  diffLines?: number | Record<string, number>
   at: { prompt: number; steps: number[]; reply: number }
 }
 
@@ -144,10 +146,21 @@ export function plan(spec: AgentSpec, ctx: FrameCtx): Plan {
   const ev = found.event
   const problems: string[] = []
   const asked = new Set(spec.ask ?? [])
+  // Строк диффа у шага: общее число или своё по id шага; неверное число — проблема, а шаг рисуется без диффа
+  const okLines = (n: number) => Number.isInteger(n) && n >= 0
   const dl = spec.diffLines ?? DIFF_LINES
-  const diffOk = Number.isInteger(dl) && dl >= 0
-  if (!diffOk) problems.push(`diffLines: ${dl} — нужно целое число от нуля`)
-  const diffLines = diffOk ? dl : 0
+  if (typeof dl === 'number') {
+    if (!okLines(dl)) problems.push(`diffLines: ${dl} — нужно целое число от нуля`)
+  } else {
+    for (const [id, n] of Object.entries(dl)) {
+      if (!ev.steps.includes(id)) problems.push(`diffLines: шага «${id}» нет среди шагов записи (${ev.steps.join(', ')})`)
+      else if (!okLines(n)) problems.push(`diffLines «${id}»: ${n} — нужно целое число от нуля`)
+    }
+  }
+  const linesOf = (id: string) => {
+    const n = typeof dl === 'number' ? dl : (dl[id] ?? DIFF_LINES)
+    return okLines(n) ? n : 0
+  }
 
   for (const id of asked) {
     if (!ev.steps.includes(id)) problems.push(`ask: шага «${id}» нет среди шагов записи (${ev.steps.join(', ')})`)
@@ -165,7 +178,7 @@ export function plan(spec: AgentSpec, ctx: FrameCtx): Plan {
       const s = lookup(ctx, spec.session, id, ['read', 'file', 'run', 'commit'] as const)
       if (s.error !== undefined) return void problems.push(`шаг ${i + 1} «${id}»: ${s.error}`)
       if (asked.has(id) && !isCommand(s.event.kind)) problems.push(`ask: «${id}» — это ${s.event.kind}, вопрос [y / n] бывает только перед командой`)
-      const { step, end } = buildStep(id, s.event, row, asked.has(id) && isCommand(s.event.kind), diffLines)
+      const { step, end } = buildStep(id, s.event, row, asked.has(id) && isCommand(s.event.kind), linesOf(id))
       steps.push(step)
       row = end
     })
@@ -178,9 +191,10 @@ export function plan(spec: AgentSpec, ctx: FrameCtx): Plan {
       const adds = diffBody(first.found.event.diff)
         .filter((l) => l.kind === 'add')
         .map((l) => l.raw.slice(1))
-      const shown = adds.slice(0, diffLines).map((text): CodeLine => ({ text, rows: wrapMono(text, COLS - 1), row: 0 }))
+      const limit = linesOf(first.id)
+      const shown = adds.slice(0, limit).map((text): CodeLine => ({ text, rows: wrapMono(text, COLS - 1), row: 0 }))
       // Обрезан — последней строкой «…», чтобы не казалось, что файл кончился
-      if (adds.length > diffLines) shown.push({ text: '…', rows: ['…'], row: 0, more: true })
+      if (adds.length > limit) shown.push({ text: '…', rows: ['…'], row: 0, more: true })
       code = { lines: shown, row: 0, rows: 0 }
     }
   }

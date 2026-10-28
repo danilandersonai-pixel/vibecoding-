@@ -231,6 +231,19 @@ describe('Agent', () => {
       expect(problems({ ...AG, diffLines: 0 })).toEqual([])
     })
 
+    it('diffLines по шагам: { id шага: строк } — у каждого шага своё число, у остальных по умолчанию 6; неверные — проблема', () => {
+      const own: AgentSpec = { ...AG, diffLines: { route: 0, page: 3, 'rd-page': 0, fail: 0, c2: 0 } }
+      expect(problems(own)).toEqual([])
+      const layout = def.layout(own, ctx)
+      expect(layout['step:route'].h).toBeCloseTo(36) // только «Edited …»
+      expect(layout['step:page'].h).toBeCloseTo(4 * 36) // «Edited …» и три строки диффа
+      // шаг, которого нет в записи, и неверное число — проблема
+      expect(problems({ ...AG, diffLines: { nope: 1 } }).join('\n')).toMatch(/diffLines.*nope/)
+      expect(problems({ ...AG, diffLines: { route: -2 } }).join('\n')).toMatch(/diffLines.*route/)
+      // не указанный шаг — по умолчанию шесть строк: page целиком (10) не помещается вместе с остальными
+      expect(problems({ ...AG, diffLines: { route: 0 } }).join('\n')).toMatch(/помещается/)
+    })
+
     it('ловит текст, который не помещается в окно: по умолчанию шесть строк диффа у каждого файла — слишком много', () => {
       expect(problems({ ...AG, diffLines: undefined }).join('\n')).toMatch(/помещается/)
       expect(problems({ ...AG, mode: undefined, diffLines: 3 })).toEqual([])
