@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { catalog } from '../../video/catalog'
 import { scriptProblems } from '../../video/kit/checks'
+import { totalFrames, validateScript } from '../../video/lib/timeline'
+import { LENGTH } from '../../video/term/problems'
 import { videos } from './registry'
 
 describe('реестр роликов', () => {
@@ -16,10 +18,20 @@ describe('реестр роликов', () => {
     }
   })
 
+  // Старый ролик (1280 × 720) проверяет kit/checks: сцена на раздел книги, 5–7 сцен. Ролик набора «Репозиторий» (1920 × 1080) —
+  // урок как данные: все его проверки (каркас, длина, реплики, кадры) — lessonProblems в lessons/<id>/lesson.test.ts, сцен в нём
+  // много, по одной на мысль; здесь — что сценарий собран верно и длина в рамках своего вида.
   it('сценарий каждого ролика каталога проходит проверки своего вида', () => {
     for (const [id, entry] of Object.entries(catalog)) {
       expect(entry.title.length, id).toBeGreaterThan(0)
-      expect(scriptProblems(entry.script, entry.kind), id).toEqual([])
+      if (entry.script.width === 1920) {
+        expect(validateScript(entry.script), id).toEqual([])
+        const [lo, hi] = LENGTH[entry.kind]
+        expect(totalFrames(entry.script), id).toBeGreaterThanOrEqual(lo)
+        expect(totalFrames(entry.script), id).toBeLessThanOrEqual(hi)
+      } else {
+        expect(scriptProblems(entry.script, entry.kind), id).toEqual([])
+      }
     }
   })
 

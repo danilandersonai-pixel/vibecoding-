@@ -2,7 +2,7 @@
 // Числа, округлённые вверх до 0,01 em, идут в MONO.advance и GOLOS.avg (course/video/term/theme.ts).
 // Запуск: node scripts/measure-fonts.mjs
 // Браузер — из PLAYWRIGHT_BROWSERS_PATH (/opt/pw-browsers); playwright install не запускать.
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from '@playwright/test'
@@ -24,8 +24,11 @@ function faces(family, pkg, name, weights) {
     .join('\n')
 }
 
-// Реплики прежних роликов ch-abc и ch-01: строки в одинарных кавычках внутри const SCENES (отступ 6 пробелов).
+// Реплики роликов ch-abc и ch-01. Урок набора «Репозиторий» — из снимка сценария video/lessons/<id>/script.gen.json;
+// прежний ролик — строки в одинарных кавычках внутри const SCENES его script.ts (отступ 6 пробелов).
 function cues(id) {
+  const gen = join(ROOT, 'video', 'lessons', id, 'script.gen.json')
+  if (existsSync(gen)) return JSON.parse(readFileSync(gen, 'utf8')).cues.map((c) => c.text)
   const src = readFileSync(join(ROOT, 'video', id, 'script.ts'), 'utf8')
   const scenes = src.slice(src.indexOf('const SCENES'))
   const block = scenes.slice(0, scenes.search(/^\]/m))

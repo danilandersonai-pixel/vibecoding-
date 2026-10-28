@@ -10,7 +10,6 @@ import { ch09Script } from './ch-09/script'
 import { ch10Script } from './ch-10/script'
 import { ch11Script } from './ch-11/script'
 import { ch12Script } from './ch-12/script'
-import { chAbcScript } from './ch-abc/script'
 import { day08Script } from './day-08/script'
 import { day09Script } from './day-09/script'
 import { day10Script } from './day-10/script'
@@ -25,6 +24,7 @@ import { day18Script } from './day-18/script'
 import { day19Script } from './day-19/script'
 import { day20Script } from './day-20/script'
 import { day21Script } from './day-21/script'
+import { chAbcScript } from './lessons/ch-abc/script'
 import { pilotRlsScript } from './pilot-rls/script'
 import type { VideoScript } from './types'
 
@@ -48,7 +48,7 @@ export const catalog: Record<string, CatalogEntry> = {
     title: 'Как устроено приложение',
     kind: 'chapter',
     script: chAbcScript,
-    load: () => import('./ch-abc/Video'),
+    load: () => import('./lessons/ch-abc/Video'),
   },
   'ch-01': {
     title: 'Вайб-кодинг: шкала, а не выключатель',
