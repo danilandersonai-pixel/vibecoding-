@@ -210,21 +210,13 @@ function sceneProblems(lesson: Lesson, b: BuiltScene, ctx: FrameCtx): string[] {
     }
   })
 
-  // Вердикты: только у сцены mistake, сначала wrong, потом right
+  // Вердикты: только у сцены mistake (полноту и порядок проверяет verdictProblems — на всю серию сцен mistake подряд)
   const verdict = scene.verdict ?? []
   verdict.forEach((v, i) => {
     const why = beatProblem(v.at, clock.lines)
     if (why) out.push(`${S}: verdict[${i}]: ${why}`)
   })
   if (scene.role !== 'mistake' && verdict.length > 0) out.push(`${S}: вердикты бывают только у сцены mistake — у остальных справа в шапке ссылка на книгу`)
-  if (scene.role === 'mistake') {
-    const first = (kind: 'wrong' | 'right') => Math.min(...verdict.filter((v) => v.kind === kind).map((v) => v.at))
-    if (!verdict.some((v) => v.kind === 'wrong') || !verdict.some((v) => v.kind === 'right')) {
-      out.push(`${S}: у сцены mistake нужен вердикт wrong («Неверно») и вердикт right («Верно»), а есть: ${verdict.map((v) => v.kind).join(', ') || 'ничего'}`)
-    } else if (first('wrong') >= first('right')) {
-      out.push(`${S}: вердикт wrong («Неверно») должен идти раньше right («Верно»): сначала неверный вариант, потом верный`)
-    }
-  }
 
   // Шапка: название главы целиком — рядом со ссылкой на книгу, а в сцене mistake — рядом с метками ошибки
   const title = lesson.chapters[b.chapter].title
@@ -260,13 +252,42 @@ function sceneProblems(lesson: Lesson, b: BuiltScene, ctx: FrameCtx): string[] {
 }
 
 /**
+ * Вердикты сцен mistake: у серии сцен mistake подряд в главе (одна сцена — тоже серия) есть wrong («Неверно») и right («Верно»),
+ * и первый wrong — раньше первого right (по порядку сцен, в сцене — по репликам). Так неверный вариант можно показать в одном кадре
+ * (доска), а верный — в следующих (редактор, терминал); сцена серии может быть без вердиктов — в шапке тогда только «Типичная ошибка».
+ */
+function verdictProblems(lesson: Lesson): string[] {
+  const out: string[] = []
+  for (const c of lesson.chapters) {
+    const runs: LessonScene[][] = []
+    c.scenes.forEach((s, i) => {
+      if (s.role !== 'mistake') return
+      if (i > 0 && c.scenes[i - 1].role === 'mistake') runs[runs.length - 1].push(s)
+      else runs.push([s])
+    })
+    for (const run of runs) {
+      const S = `сцена «${run[0].id}»`
+      const of = run.length > 1 ? ` — на всю серию сцен mistake подряд: ${run.map((s) => `«${s.id}»`).join(', ')}` : ''
+      const all = run.flatMap((s, k) => [...(s.verdict ?? [])].sort((a, b) => a.at - b.at).map((v) => ({ kind: v.kind, order: k * 1e6 + v.at })))
+      const first = (kind: 'wrong' | 'right') => Math.min(...all.filter((v) => v.kind === kind).map((v) => v.order))
+      if (!all.some((v) => v.kind === 'wrong') || !all.some((v) => v.kind === 'right')) {
+        out.push(`${S}: у сцены mistake нужен вердикт wrong («Неверно») и вердикт right («Верно»)${of}, а есть: ${all.map((v) => v.kind).join(', ') || 'ничего'}`)
+      } else if (first('wrong') >= first('right')) {
+        out.push(`${S}: вердикт wrong («Неверно») должен идти раньше right («Верно»): сначала неверный вариант, потом верный${of}`)
+      }
+    }
+  }
+  return out
+}
+
+/**
  * Проблемы урока: каркас (§6.2), разделы книги, длина (если checkLength не false; не короче minFrames), реплики и субтитры,
  * проблемы кадров, камера и пояснения, вердикты, шапка, шум песочницы, промежутки без изменений, сценарий (validateScript).
  */
 export function lessonProblems(lesson: Lesson, opts: { minFrames?: number; checkLength?: boolean; ctx?: FrameCtx } = {}): string[] {
   const ctx = opts.ctx ?? lessonCtx(lesson)
   const L = `урок «${lesson.id}»`
-  const out = [...structureProblems(lesson), ...bookProblems(lesson)]
+  const out = [...structureProblems(lesson), ...bookProblems(lesson), ...verdictProblems(lesson)]
 
   const ids = new Set<string>()
   for (const s of lesson.chapters.flatMap((c) => c.scenes)) {

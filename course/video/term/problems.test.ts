@@ -49,6 +49,26 @@ describe('lessonProblems: поломки по одной', () => {
     has(p, /сцена «parts-key»: .*wrong.*раньше/)
   })
 
+  // Серия сцен mistake подряд в главе (например, «Неверно» на доске, «Верно» — в редакторе и терминале): вердикты — на всю серию
+  const series = (first: LessonScene['verdict'], second: LessonScene['verdict'], third?: LessonScene['verdict']) =>
+    broken((l, s) => {
+      const key = s('parts-key')
+      key.verdict = first
+      const extra = [second, ...(third === undefined ? [] : [third])].map((v, i): LessonScene => ({ ...structuredClone(key), id: `parts-key-${i + 2}`, verdict: v }))
+      l.chapters[1].scenes.push(...extra)
+    })
+
+  it('серия сцен mistake: «Неверно» в первой, «Верно» во второй, третья без вердиктов — без проблем', () => {
+    expect(series([{ at: 0, kind: 'wrong' }], [{ at: 0, kind: 'right' }], [])).toEqual([])
+    expect(series([{ at: 0, kind: 'wrong' }], [{ at: 0, kind: 'right' }], undefined)).toEqual([])
+  })
+
+  it('серия сцен mistake: «Верно» раньше «Неверно» или одного из них нет на всю серию', () => {
+    has(series([{ at: 0, kind: 'right' }], [{ at: 0, kind: 'wrong' }]), /сцена «parts-key»: .*wrong.*раньше.*parts-key-2/)
+    has(series([{ at: 0, kind: 'wrong' }], []), /сцена «parts-key»: .*вердикт.*right.*parts-key-2/)
+    has(series([], []), /сцена «parts-key»: .*вердикт wrong/)
+  })
+
   it('вердикт вне сцены mistake', () => {
     const p = broken((_, s) => (s('site-dev').verdict = [{ at: 0, kind: 'wrong' }]))
     has(p, /сцена «site-dev»: вердикты бывают только у сцены mistake/)
