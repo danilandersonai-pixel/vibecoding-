@@ -560,6 +560,24 @@ describe('VideoBlock: главы ролика', () => {
     expect(screen.getByRole('button', { name: 'git log' })).toHaveStyle({ left: '50%', top: '50%', width: '10%', height: '10%' })
   })
 
+  it('слой пояснений тёмного ролика (кадр 1920 × 1080) помечен is-dark, у старого 1280 × 720 — нет', async () => {
+    const { container, unmount } = render(<VideoBlock videoId="chaptered" title="Новый" />)
+    await act(async () => {})
+    playTo(fake.players[0], 2100)
+    act(() => fake.players[0].emit('pause'))
+    expect(container.querySelector('.hotspot-layer')).toHaveClass('is-dark')
+    unmount()
+    fake.players.length = 0
+
+    const old = render(<VideoBlock videoId="a" title="Старый" />)
+    await act(async () => {})
+    const zone = pilotRlsScript.hotspots.find((h) => h.title === 'client/18')!
+    playTo(fake.players[0], zone.from + 5)
+    act(() => fake.players[0].emit('pause'))
+    expect(old.container.querySelector('.hotspot-layer')).not.toBeNull()
+    expect(old.container.querySelector('.hotspot-layer')).not.toHaveClass('is-dark')
+  })
+
   it('у ролика без глав (и с пустым списком глав) панель и блок прежние', async () => {
     for (const id of ['a', 'unchaptered']) {
       const { container, unmount } = render(<VideoBlock videoId={id} title="Ролик" />)

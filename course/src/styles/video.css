@@ -32,12 +32,17 @@
 .video-end-next,.video-end-next:hover:not(:disabled){border-color:var(--term-ink);background:var(--term-ink);color:var(--term-bg)}
 .video-end :focus-visible{outline:3px solid var(--term-ink);outline-offset:2px;box-shadow:0 0 0 2px var(--term-bg)}
 
-/* Зоны кадра на паузе: рамки мягко пульсируют. Кадр всегда светлый — рамка тёмная в обеих темах */
+/* Зоны кадра на паузе: рамки мягко пульсируют. Кадр старых роликов светлый — рамка тёмная в обеих темах;
+   кадр новых (1920×1080, слой с is-dark) всегда тёмный — рамка светлая, цвет ink тёмной темы курса: не переменная темы страницы,
+   потому что кадр от темы не зависит */
 .hotspot-layer{position:absolute;inset:0}
 .video-hotspot{position:absolute;padding:0;border:3px solid #16181B;border-radius:var(--radius-s);background:rgba(22,24,27,.08);animation:hs-pulse 1.6s ease-in-out infinite}
 .video-hotspot.is-open{animation:none;background:rgba(22,24,27,.16)}
 @keyframes hs-pulse{50%{box-shadow:0 0 0 6px rgba(22,24,27,.22)}}
-@media (prefers-reduced-motion: reduce){.video-hotspot{animation:none}}
+.hotspot-layer.is-dark .video-hotspot{border-color:#E9EBEE;background:rgba(233,235,238,.08);animation-name:hs-pulse-dark}
+.hotspot-layer.is-dark .video-hotspot.is-open{animation:none;background:rgba(233,235,238,.16)}
+@keyframes hs-pulse-dark{50%{box-shadow:0 0 0 6px rgba(233,235,238,.22)}}
+@media (prefers-reduced-motion: reduce){.video-hotspot,.hotspot-layer.is-dark .video-hotspot{animation:none}}
 .video-hotspot-note{position:absolute;left:12px;right:12px;bottom:12px;padding:10px 14px;border-radius:var(--radius-s);background:var(--paper);color:var(--ink);border:1px solid var(--rule);box-shadow:var(--shadow-raised);font:400 .9rem/1.45 var(--font-body)}
 .video-hotspot-note p{margin:4px 0 0}
 
@@ -47,11 +52,11 @@
 .video-seek{flex:1 1 100%;min-width:0;height:44px;margin:0;accent-color:var(--accent)}
 /* Ролики с главами: под ползунком лежит полоса сегментов, а родная дорожка ползунка прозрачна — виден один кружок.
    Сегмент занимает ширину по длине главы (flex-grow в кадрах, задан в разметке), между сегментами 2 px; --fill — пройденная доля главы:
-   пройденное — ink, остальное — rule. Полоса и дорожка одной высоты --seek-h. Края полосы отступают на полкружка,
+   пройденное — ink, остальное — edge (3 : 1 к фону страницы). Полоса и дорожка одной высоты --seek-h. Края полосы отступают на полкружка,
    чтобы кружок стоял точно на границе пройденного. Полоса не принимает нажатий — перематывает сам ползунок */
 .video-seek-wrap{--seek-h:4px;--seek-thumb:14px;position:relative;flex:1 1 100%;min-width:0;height:44px}
 .video-seek-chapters{position:absolute;left:calc(var(--seek-thumb) / 2);right:calc(var(--seek-thumb) / 2);top:50%;display:flex;gap:2px;height:var(--seek-h);margin-top:calc(var(--seek-h) / -2);pointer-events:none}
-.video-seek-chapter{flex:1 1 0;min-width:0;background:linear-gradient(90deg,var(--ink) var(--fill,0%),var(--rule) var(--fill,0%))}
+.video-seek-chapter{flex:1 1 0;min-width:0;background:linear-gradient(90deg,var(--ink) var(--fill,0%),var(--edge) var(--fill,0%))}
 .video-seek-wrap .video-seek{position:relative;display:block;width:100%;appearance:none;background:transparent}
 .video-seek-wrap .video-seek::-webkit-slider-runnable-track{height:var(--seek-h);background:transparent}
 .video-seek-wrap .video-seek::-moz-range-track{height:var(--seek-h);background:transparent}

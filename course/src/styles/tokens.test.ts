@@ -202,6 +202,8 @@ describe('tokens.css', () => {
       ['--fig-ok', '--desk'],
       // Рамка «Смотреть ещё раз» в конце ролика поверх белого кадра
       ['--term-soft', ['#FBFAF6', ['--term-bg', 0.8]]],
+      // Рамка пояснения на тёмном кадре ролика (кадр всегда тёмный, значения не зависят от темы страницы)
+      ['#E9EBEE', '#141619'],
     ])
   })
 
@@ -214,6 +216,11 @@ describe('tokens.css', () => {
     expect(cssDecls('home.css', '.sitebar').background).toBe('var(--paper)')
     expect(cssDecls('home.css', '.sitebar-cells li.is-now')['box-shadow']).toBe('inset 0 0 0 2px var(--ink)')
     expect(cssDecls('video.css', '.video-end .btn')['border-color']).toBe('var(--term-soft)')
+    // Полоса глав под перемоткой: непройденная часть — --edge (3 : 1 к фону страницы), пройденная — --ink
+    expect(cssDecls('video.css', '.video-seek-chapter').background).toBe('linear-gradient(90deg,var(--ink) var(--fill,0%),var(--edge) var(--fill,0%))')
+    // Рамка пояснения: на светлом кадре старых роликов тёмная, на тёмном кадре новых — светлая
+    expect(cssDecls('video.css', '.video-hotspot')['border']).toBe('3px solid #16181B')
+    expect(cssDecls('video.css', '.hotspot-layer.is-dark .video-hotspot')['border-color']).toBe('#E9EBEE')
     expect(cssDecls('video.css', '.video-end').background).toBe('color-mix(in srgb,var(--term-bg) 80%,transparent)')
     expect(cssDecls('base.css', '.btn-primary:hover:not(:disabled)').background).toBe('color-mix(in srgb,var(--ink) 86%,var(--desk))')
   })

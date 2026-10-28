@@ -30,7 +30,13 @@ describe('реестр роликов', () => {
     expect(typeof mod.default).toBe('function')
   }, 20_000)
 
-  it.each(Object.keys(catalog))('у %s есть адрес MP4 в хранилище страницы', (id) => {
+  // MP4 есть только у старых роликов 1280 × 720; новые (1920 × 1080, набор «Репозиторий») смотрят в плеере, адреса и кнопки «Скачать MP4» у них нет
+  it.each(Object.keys(catalog).filter((id) => catalog[id].script.width === 1280))('у старого ролика %s есть адрес MP4 в хранилище страницы', (id) => {
     expect(videos[id].mp4Url).toMatch(/^\/_blob\/[0-9a-f]{32}$/)
+  })
+
+  it('у роликов 1920 × 1080 адреса MP4 нет', () => {
+    const wide = Object.keys(catalog).filter((id) => catalog[id].script.width === 1920)
+    for (const id of wide) expect(videos[id].mp4Url, id).toBeUndefined()
   })
 })
