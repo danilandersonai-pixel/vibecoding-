@@ -471,6 +471,28 @@ describe('Agent', () => {
       expect(def.problems({ ...CHAT, diffLines: 2 }, ctx, CLOCK)).toEqual([])
     })
 
+    it('chat: code — строки нового файла с a по b, а выше и ниже, если файл шире, — «…» faint', () => {
+      const rows = (spec: AgentSpec) => [...view(spec, END).matchAll(/<text[^>]*data-role="(code|more)"[^>]*>(.*?)<\/text>/g)].map((m) => [m[1], plain(m[2])])
+      expect(rows({ ...CHAT, code: [2, 3] })).toEqual([
+        ['more', '…'],
+        ['code', '  return Response.json({ sets: [] })'],
+        ['code', '}'],
+        ['more', '…'],
+      ])
+      // весь файл — без «…»; diffLines при code не обрезает
+      expect(rows({ ...CHAT, code: [1, 4], diffLines: 1 }).map(([role]) => role)).toEqual(['code', 'code', 'code', 'code'])
+      expect(rows({ ...CHAT, code: [1, 2] }).map(([role]) => role)).toEqual(['code', 'code', 'more'])
+      expect(def.problems({ ...CHAT, code: [2, 3] }, ctx, CLOCK)).toEqual([])
+      // место под обе «…» посчитано: блок выше, чем у двух строк без них
+      expect(def.layout({ ...CHAT, code: [2, 3] }, ctx).code.h).toBeGreaterThan(def.layout({ ...CHAT, code: [1, 4] }, ctx).code.h - 0.01)
+    })
+
+    it('chat: code вне файла или без chat — проблема', () => {
+      expect(problems({ ...CHAT, code: [3, 9] }).join('\n')).toMatch(/code/)
+      expect(problems({ ...CHAT, code: [0, 2] }).join('\n')).toMatch(/code/)
+      expect(problems({ ...AG, code: [1, 2] }).join('\n')).toMatch(/code.*chat/)
+    })
+
     it('chat: «…» ждёт своей очереди после строк кода', () => {
       const spec = { ...CHAT, diffLines: 2 }
       // последний момент сцены — появление «…»: кадром раньше строки кода уже есть, а её ещё нет

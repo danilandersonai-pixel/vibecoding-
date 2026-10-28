@@ -6,8 +6,8 @@ import { MOTION, SAFE, T } from '../theme'
 import { SIGNED, TEXT } from './diffPlan'
 import { CELL, LH, WIN, outsideSafe, rowTop, widest, wrapWords } from './geometry'
 import type { Wrapped } from './geometry'
-import { beatProblem, diffBody, diffCounts, lookup } from './source'
-import type { DiffKind } from './source'
+import { beatProblem, diffBody, diffCounts, lookup, rangeProblem } from './source'
+import type { DiffKind, Range } from './source'
 
 /**
  * Агент: сессия Claude Code в тёмном окне «Claude Code». Запрос `> …` в рамке ввода набирается, шаги записи —
@@ -19,6 +19,8 @@ import type { DiffKind } from './source'
  * (шаг ждёт конца набора и конца предыдущего шага), reply — где появляется ответ.
  * chat: true — окно «Чат с ИИ», без шагов: запрос, ответ и код нового файла (добавленные строки диффа первого шага file, не больше diffLines;
  * если строк больше — последней строкой «…» faint) блоком. Если первый file правит существующий файл — problems.
+ * code — только у chat: какие строки нового файла показать (с 1, включительно; diffLines тогда код не обрезает) — так в блок попадает
+ * нужное место файла, а не его начало; выше и ниже, если файл шире, — строка «…» faint.
  * diffLines — число строк диффа у всех шагов file или по шагам: { id шага: строк } (не указанный шаг — по умолчанию 6); так у одного
  * шага видна сама правка, а у других — только «Edited …».
  * Всё должно помещаться в окно: 19 строк, а с режимом — 18; иначе problems. Если дифф не лезет — уменьшайте diffLines.
@@ -33,6 +35,7 @@ export type AgentSpec = {
   chat?: boolean
   ask?: string[]
   diffLines?: number | Record<string, number>
+  code?: Range
   at: { prompt: number; steps: number[]; reply: number }
 }
 
@@ -165,6 +168,7 @@ export function plan(spec: AgentSpec, ctx: FrameCtx): Plan {
   for (const id of asked) {
     if (!ev.steps.includes(id)) problems.push(`ask: шага «${id}» нет среди шагов записи (${ev.steps.join(', ')})`)
   }
+  if (spec.code && !spec.chat) problems.push('code: строки кода выбирают только у chat — в сессии агента код виден под «Edited …»')
 
   const prompt = wrapWords(ev.prompt, PROMPT_COLS)
   let row = prompt.length
@@ -191,11 +195,21 @@ export function plan(spec: AgentSpec, ctx: FrameCtx): Plan {
       const adds = diffBody(first.found.event.diff)
         .filter((l) => l.kind === 'add')
         .map((l) => l.raw.slice(1))
-      const limit = linesOf(first.id)
-      const shown = adds.slice(0, limit).map((text): CodeLine => ({ text, rows: wrapMono(text, COLS - 1), row: 0 }))
-      // Обрезан — последней строкой «…», чтобы не казалось, что файл кончился
-      if (adds.length > limit) shown.push({ text: '…', rows: ['…'], row: 0, more: true })
-      code = { lines: shown, row: 0, rows: 0 }
+      const line = (text: string): CodeLine => ({ text, rows: wrapMono(text, COLS - 1), row: 0 })
+      const more: CodeLine = { text: '…', rows: ['…'], row: 0, more: true }
+      const bad = spec.code ? rangeProblem(spec.code, adds.length) : null
+      if (bad) problems.push(`code: ${bad}`)
+      if (spec.code && !bad) {
+        // Выбранные строки файла; выше и ниже — «…», если файл шире
+        const [a, b] = spec.code
+        code = { lines: [...(a > 1 ? [more] : []), ...adds.slice(a - 1, b).map(line), ...(b < adds.length ? [{ ...more }] : [])], row: 0, rows: 0 }
+      } else {
+        const limit = linesOf(first.id)
+        const shown = adds.slice(0, limit).map(line)
+        // Обрезан — последней строкой «…», чтобы не казалось, что файл кончился
+        if (adds.length > limit) shown.push(more)
+        code = { lines: shown, row: 0, rows: 0 }
+      }
     }
   }
 
