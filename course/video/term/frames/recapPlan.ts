@@ -10,7 +10,9 @@ import { beatProblem } from './source'
  * с галочкой цвета ok (линия 3 px, не глиф шрифта; текст Golos 32 px ink) — каждый появляется на своей реплике at.
  * Заголовок и пункты — одна группа: она стоит по центру высоты SAFE, а если над блоком книги тесно — поднимается (но не выше SAFE.y).
  * Внизу, у нижнего края SAFE, «Книга:» (faint) и разделы книги из ctx.lesson.book по bookSection: «Азбука · Код, языки и чужие детали»,
- * по строке, 28 px soft; блок появляется, когда последний пункт на месте. Разделов нет — блока нет.
+ * по строке, 28 px soft; если так пункты не помещаются над блоком — разделы одной главы подряд одним абзацем: глава строкой, под ней
+ * названия разделов через « · » (так у ролика главы 1: одиннадцать разделов). Блок появляется, когда последний пункт на месте.
+ * Разделов нет — блока нет.
  * Части: 'frame', 'item:<k>', 'book'.
  */
 export type RecapSpec = { type: 'recap'; items: { text: string; at: number }[] }
@@ -59,23 +61,36 @@ export function plan(spec: RecapSpec, ctx: FrameCtx, clock: Clock): Plan {
   })
   const height = laid.length > 0 ? y - RECAP.item.gap : header
 
-  // Разделы книги: «Азбука · Код, языки и чужие детали»; неизвестный якорь — проблема
+  // Разделы книги: «Азбука · Код, языки и чужие детали» по строке; неизвестный якорь — проблема. Если так пункты не помещаются
+  // над блоком книги — разделы одной главы подряд одним абзацем: глава строкой, под ней названия разделов через « · »
   let book: RecapBook | null = null
-  const texts: string[] = []
+  const found: { chapter: string; title: string }[] = []
   for (const id of ctx.lesson.book) {
     const s = bookSection(id)
     if (!s) problems.push(`book: раздела «${id}» нет в книге (book-sections.json)`)
-    else texts.push(`${s.chapter} · ${s.title}`)
+    else found.push(s)
   }
-  let floor = SAFE.y + SAFE.h // до куда может дойти группа
-  if (texts.length > 0) {
-    const sections = texts.map((t) => fitWrap(t, RECAP.book.size, SAFE.w - (BOOK_X - SAFE.x)))
+  const width = SAFE.w - (BOOK_X - SAFE.x)
+  const wrap = (t: string) => fitWrap(t, RECAP.book.size, width)
+  const blockOf = (sections: string[][]): RecapBook => {
     const h = Math.max(RECAP.book.line, sections.reduce((sum, s) => sum + s.length * RECAP.book.line, 0))
     const top = SAFE.y + SAFE.h - h
     const w = BOOK_X - SAFE.x + Math.max(...sections.flat().map((l) => fitWidth(l, RECAP.book.size)))
-    book = { sections, y: top, h, rect: { x: SAFE.x, y: top, w: Math.min(w, SAFE.w), h } }
-    floor = top - RECAP.book.gapAbove
+    return { sections, y: top, h, rect: { x: SAFE.x, y: top, w: Math.min(w, SAFE.w), h } }
   }
+  if (found.length > 0) {
+    book = blockOf(found.map((s) => wrap(`${s.chapter} · ${s.title}`)))
+    if (book.y - RECAP.book.gapAbove - SAFE.y < height) {
+      const runs: { chapter: string; titles: string[] }[] = []
+      for (const s of found) {
+        const last = runs[runs.length - 1]
+        if (last && last.chapter === s.chapter) last.titles.push(s.title)
+        else runs.push({ chapter: s.chapter, titles: [s.title] })
+      }
+      book = blockOf(runs.flatMap((r) => (r.titles.length === 1 ? [wrap(`${r.chapter} · ${r.titles[0]}`)] : [[r.chapter], wrap(r.titles.join(' · '))])))
+    }
+  }
+  const floor = book ? book.y - RECAP.book.gapAbove : SAFE.y + SAFE.h // до куда может дойти группа
 
   // Группа по центру SAFE; если над книгой тесно — выше, но не выше SAFE.y (тогда problems)
   const centered = SAFE.y + Math.floor((SAFE.h - height) / 2)

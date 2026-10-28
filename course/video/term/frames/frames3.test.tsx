@@ -1218,6 +1218,25 @@ describe('Recap', () => {
     expect(def.problems({ type: 'recap', items }, many, CLOCK)).toEqual([])
   })
 
+  it('разделы, которым по строке тесно над пунктами, — одним абзацем на главу: глава строкой, названия через « · »', () => {
+    const ids = ['s5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's77', 's78', 's79']
+    const ch1: FrameCtx = { ...two, lesson: { ...two.lesson, book: ids } }
+    const items = Array.from({ length: 6 }, (_, i) => ({ text: `Пункт итога номер ${i}, одной строкой`, at: Math.min(i, 2) }))
+    const spec: RecapSpec = { type: 'recap', items }
+    const p = recapPlan(spec, ch1, CLOCK)
+    expect(def.problems(spec, ch1, CLOCK)).toEqual([])
+    const lines = p.book!.sections.flat()
+    expect(lines[0]).toBe('Глава 1 · Введение')
+    // названия разделов целиком, по порядку, через « · », и глава не повторяется
+    expect(lines.slice(1).join(' ')).toBe(ids.map((id) => bookSection(id)!.title).join(' · '))
+    expect(lines.filter((l) => l.includes('Глава 1'))).toHaveLength(1)
+    expect(p.group.y + p.group.h).toBeLessThanOrEqual(p.book!.y - 24 + 0.01)
+    const html = view(spec, beat(2) + 60, CLOCK, ch1)
+    expect(plain(part(html, 'book')!)).toBe(`Книга:${lines.join('')}`)
+    // помещается по строке — по строке, как раньше (две главы — тоже)
+    expect(recapPlan(SPEC, two, CLOCK).book!.sections.flat()).toEqual([`Азбука · ${bookSection('sa1')!.title}`, `Азбука · ${bookSection('sa2')!.title}`])
+  })
+
   it('заголовок — последняя глава урока: у ролика дня «Проверьте у себя»', () => {
     const day: FrameCtx = { ...two, lesson: { ...two.lesson, chapters: ['Что строим сегодня', 'Пример', 'Проверьте у себя'] } }
     expect(plain(view(SPEC, beat(2) + 60, CLOCK, day))).toContain('Проверьте у себя')
