@@ -6,12 +6,12 @@ import { appear } from '../motion'
 import { FIGURE_VARS, MOTION, T } from '../theme'
 import { FOCUS, fit, focusLayers, parse, starts, toCanvas, viewOf } from './figurePlan'
 import type { FigureSpec } from './figurePlan'
+import { n } from './style'
 import { defsOf, drawn, isDrawable, rootFontSize } from './svg'
 
 type Props = { spec: FigureSpec; clock: Clock; ctx: FrameCtx }
 
 const MARKERS = defsOf(defs)
-const n = (v: number) => +v.toFixed(2)
 
 // Контур прямоугольника со скруглёнными углами: дырка в подложке focus
 const roundedRect = ({ x, y, w, h }: Rect, r: number) =>

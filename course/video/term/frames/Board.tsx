@@ -1,15 +1,13 @@
-import type { CSSProperties, JSX } from 'react'
+import type { JSX } from 'react'
 import { useCurrentFrame } from 'remotion'
 import type { Clock, FrameCtx } from '../frame'
 import { appear } from '../motion'
 import { SAFE, T, alpha } from '../theme'
 import { CARD, SCALE, TABLE, TEXT, TITLE, TONES, headAt, markerAt, markerRect, plan, scaleAt } from './boardPlan'
 import type { BoardSpec } from './boardPlan'
+import { golos, n } from './style'
 
 type Props = { spec: BoardSpec; clock: Clock; ctx: FrameCtx }
-
-const golos = (size: number, weight = 500): CSSProperties => ({ fontFamily: T.font, fontSize: size, fontWeight: weight })
-const n = (v: number) => +v.toFixed(2)
 
 /** Доска: заголовок, таблица, карточки и шкала — чистая функция номера кадра. */
 export function Board({ spec, clock }: Props): JSX.Element {

@@ -6,7 +6,8 @@ import { outsideSafe } from './geometry'
 import { beatProblem } from './source'
 
 /**
- * Доска для понятий без записи: заголовок, таблица, карточки, шкала — блоками сверху вниз (по центру высоты под заголовком).
+ * Доска для понятий без записи: заголовок, таблица, карточки, шкала — блоками сверху вниз. Заголовок и блоки — одна группа: она стоит по центру
+ * высоты SAFE (отступ заголовка от первого блока — TITLE.gap); группа выше SAFE — от верха.
  * Весь текст — Golos Text не мельче 28 px; длинный текст переносится по словам с запасом на ширину знаков (fit.ts).
  * title — Golos 48 px 600, у левого края. Появляется вместе с кадром.
  * table — как в книге: линия сверху 2 px ink, под шапкой и снизу soft, между строками edge. Шапка 600 soft, строки ink, 28 px.
@@ -18,7 +19,7 @@ import { beatProblem } from './source'
  * scale — горизонтальная линия 2 px line между подписями краёв (28 px soft); пункты — точки на линии (pos 0…1) и подписи 32 px ink по очереди
  *   над и под линией, появляются на реплике at; marker — треугольник ink под линией: появляется на первой реплике и переезжает
  *   к pos следующей за MOTION.move.
- * Части: 'frame', 'title', 'row:<k>', 'card:<k>', 'item:<k>', 'marker' (в конце сцены, у последнего положения).
+ * Части: 'frame', 'title', 'row:<k>', 'card:<k>', 'item:<k>' (только подпись пункта), 'marker' (в конце сцены, у последнего положения).
  */
 export type Tone = 'ok' | 'err' | 'warn'
 export type BoardSpec = {
@@ -31,7 +32,7 @@ export type BoardSpec = {
 
 export const TONES: Record<Tone, string> = { ok: T.ok, err: T.err, warn: T.warn }
 export const TEXT = { size: 28, line: 40, base: 30 } // кегль, высота строки и базовая линия от верха строки
-export const TITLE = { size: 48, line: 60, base: 46, gap: 40, maxLines: 2, lift: 56 } // lift: на сколько блоки могут уйти вниз от заголовка при центровке
+export const TITLE = { size: 48, line: 60, base: 46, gap: 40, maxLines: 2 }
 const GAP = 48 // между блоками
 export const TABLE = { padX: 24, padY: 12, rule: 2, bar: 4, perCol: SAFE.w / 3 } // perCol: таблица не уже трети окна на столбец: три столбца — на всю ширину
 export const CARD = { padX: 24, padY: 20, titleSize: 32, titleLine: 44, titleBase: 33, para: 8, gap: 36, max: 840 }
@@ -54,7 +55,18 @@ export type TableRow = { y: number; h: number; cells: Para[]; at: number }
 export type TablePlan = { x: number; y: number; w: number; h: number; cols: TableCol[]; head: { y: number; h: number; cells: Para[] }; rows: TableRow[] }
 export type CardBox = { x: number; y: number; w: number; h: number; title: string[]; text: Para[]; at: number; tone?: Tone }
 export type ItemBox = { cx: number; side: 'above' | 'below'; lines: string[]; box: Rect; at: number; rect: Rect }
-export type ScalePlan = { y: number; x0: number; x1: number; left: string; right: string; items: ItemBox[]; markers: { at: number; cx: number }[]; h: number }
+export type ScalePlan = {
+  y: number
+  x0: number
+  x1: number
+  left: string
+  right: string
+  /** Подписи краёв: рамки текста на уровне линии. */
+  edges: { left: Rect; right: Rect }
+  items: ItemBox[]
+  markers: { at: number; cx: number }[]
+  h: number
+}
 type Plan = {
   title: { lines: string[]; rect: Rect } | null
   table: TablePlan | null
@@ -131,14 +143,14 @@ export function plan(spec: BoardSpec): Plan {
 
   if (blocks.length === 0 && !title && problems.length === 0) problems.push('доска пуста: нужен title, table, cards или scale')
 
-  // Вертикально: заголовок вверху, блоки по центру под ним
-  const top = SAFE.y + (title ? title.rect.h + TITLE.gap : 0)
-  const room = SAFE.y + SAFE.h - top
+  // Вертикально: заголовок и блоки — одна группа по центру SAFE; выше SAFE — от верха
+  const head = title ? title.rect.h + TITLE.gap : 0
   const total = blocks.reduce((sum, b) => sum + b.h, 0) + GAP * Math.max(0, blocks.length - 1)
-  if (total > room) problems.push(`не помещается: блоки доски занимают ${Math.round(total)} px, а в окне ниже заголовка помещается ${Math.round(room)}`)
-  // без заголовка блоки по центру окна, под заголовком — не дальше TITLE.lift от него: заголовок и то, что он называет, остаются рядом
-  const lift = Math.max(0, Math.floor((room - total) / 2))
-  let y = top + (title ? Math.min(lift, TITLE.lift) : lift)
+  const group = head + total
+  if (group > SAFE.h) problems.push(`не помещается: заголовок и блоки доски занимают ${Math.round(group)} px, а в окне помещается ${SAFE.h}`)
+  const top = SAFE.y + Math.max(0, Math.floor((SAFE.h - group) / 2))
+  if (title) title.rect.y = top
+  let y = top + head
   for (const b of blocks) {
     b.place(y)
     y += b.h + GAP
@@ -272,19 +284,28 @@ function planScale(s: NonNullable<BoardSpec['scale']>, problems: string[]): Scal
   // от верха блока до линии, от линии до низа блока
   const up = aboveLines > 0 ? SCALE.above + aboveLines * SCALE.label.line : SCALE.dot
   const down = belowLines > 0 ? SCALE.below + belowLines * SCALE.label.line : SCALE.line + SCALE.marker.top + SCALE.marker.h
-  return { y: up, x0, x1, left: s.left, right: s.right, items, markers: marker.map((m) => ({ at: m.at, cx: xOf(m.pos) })), h: up + down }
+  const edge = (x: number, w: number): Rect => ({ x, y: up + SCALE.line / 2 - TEXT.line / 2, w, h: TEXT.line })
+  return {
+    y: up,
+    x0,
+    x1,
+    left: s.left,
+    right: s.right,
+    edges: { left: edge(SAFE.x, leftW), right: edge(SAFE.x + SAFE.w - rightW, rightW) },
+    items,
+    markers: marker.map((m) => ({ at: m.at, cx: xOf(m.pos) })),
+    h: up + down,
+  }
 }
 
 function shiftScale(s: ScalePlan, y: number): void {
   s.y += y
+  s.edges.left.y += y
+  s.edges.right.y += y
   for (const it of s.items) {
-    const top = it.side === 'above' ? s.y - SCALE.above - it.lines.length * SCALE.label.line : s.y + SCALE.below
-    it.box.y = top
-    const labelTop = Math.min(top, s.y - SCALE.dot)
-    const labelBottom = Math.max(top + it.box.h, s.y + SCALE.dot + SCALE.line)
-    const x = Math.min(it.box.x, it.cx - SCALE.dot)
-    const right = Math.max(it.box.x + it.box.w, it.cx + SCALE.dot)
-    it.rect = { x, y: labelTop, w: right - x, h: labelBottom - labelTop }
+    it.box.y = it.side === 'above' ? s.y - SCALE.above - it.lines.length * SCALE.label.line : s.y + SCALE.below
+    // Часть item — только подпись: точка на линии и маркер к ней не относятся
+    it.rect = { ...it.box }
   }
 }
 

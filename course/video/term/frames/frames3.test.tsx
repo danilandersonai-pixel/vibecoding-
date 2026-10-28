@@ -9,6 +9,7 @@ import envs from '../../../content/figures/abc_envs.svg?raw'
 import restaurant from '../../../content/figures/abc_restaurant.svg?raw'
 import modelcard from '../../../content/figures/ch1_modelcard.svg?raw'
 import models from '../../../content/figures/ch1_models.svg?raw'
+import terminal from '../../../content/figures/abc_terminal.svg?raw'
 import trust from '../../../content/figures/ch1_trust.svg?raw'
 
 // Кадр, который «видят» компоненты кадров, задаёт тест (приём из frames.test.tsx).
@@ -20,12 +21,15 @@ import type { Clock, FrameCtx, Rect } from '../frame'
 import { appear, easeOut } from '../motion'
 import { textWidth, wrapText } from '../text'
 import { alpha, MIN_TEXT, MOTION, SAFE, T } from '../theme'
-import { TITLE } from './boardPlan'
+import { plan as agendaPlan } from './agendaPlan'
+import { plan as boardPlan, TITLE } from './boardPlan'
+import { plan as recapPlan } from './recapPlan'
+import { golos, n as round } from './style'
 import { CLOCK, ctx } from './fixture'
 import { FIT, fitWidth, fitWrap } from './fit'
 import { FRAMES, frameDef } from './index'
 import type { AgendaSpec, BoardSpec, FigureSpec, FrameSpec, RecapSpec } from './index'
-import { splitSvg } from './svg'
+import { HARD_COLORS, splitSvg } from './svg'
 
 const START = CLOCK.beat(0) // 30
 const beat = (i: number) => CLOCK.beat(i)
@@ -115,6 +119,16 @@ describe('набор кадров', () => {
     // компоненты и планы новых кадров (в fixture.ts «useState» — текст файла страницы в записи)
     const code = [...files, 'svg.ts', 'figurePlan.ts', 'boardPlan.ts', 'agendaPlan.ts', 'recapPlan.ts']
     for (const f of code) expect(readFileSync(resolve(dir, f), 'utf8'), f).not.toMatch(/useState|useEffect/)
+  })
+})
+
+describe('style: общие помощники кадров', () => {
+  it('golos — Golos Text нужного кегля и веса (500 по умолчанию); n — число для разметки с двумя знаками', () => {
+    expect(golos(28)).toEqual({ fontFamily: T.font, fontSize: 28, fontWeight: 500 })
+    expect(golos(48, 600)).toEqual({ fontFamily: T.font, fontSize: 48, fontWeight: 600 })
+    expect(round(1.005)).toBe(1)
+    expect(round(12.3456)).toBe(12.35)
+    expect(round(7)).toBe(7)
   })
 })
 
@@ -233,6 +247,20 @@ describe('Figure', () => {
       expect(problems({ type: 'figure', svg: modelcard, crop: [0, 40, 760, 360] }).join('\n')).toMatch(/мелк/)
     })
 
+    it('схема с классами figures.css, где цвет зашит (#hex), — проблема: в кадре такие цвета не из T', () => {
+      const bad = problems({ type: 'figure', svg: terminal })
+      expect(bad.join('\n')).toMatch(/зашитые цвета/)
+      expect(bad.join('\n')).toMatch(/fg-term/)
+      expect(bad.join('\n')).toMatch(/fg-tt/)
+      // схемы пилота без таких классов — чистые
+      for (const svg of [restaurant, envs, aiwords, trust]) expect(problems({ type: 'figure', svg }).join('\n')).not.toMatch(/зашитые цвета/)
+      // зашитые цвета не мешают другим проверкам: мелкий текст схемы 1.1 виден и рядом с ними
+      const withHard = vibe.replace('class="fg-t"', 'class="fg-t fg-tp"')
+      const both = problems({ type: 'figure', svg: withHard }).join('\n')
+      expect(both).toMatch(/зашитые цвета/)
+      expect(both).toMatch(/мелк/)
+    })
+
     it('верные reveal и focus — без проблем', () => {
       expect(problems({ ...WHOLE, reveal: { from: 0, to: 2 }, focus: [{ at: 3, name: 'Бэкенд', rect: BACK }, { at: 4, name: 'API', rect: [310, 76, 139.2, 114] }] })).toEqual([])
     })
@@ -262,6 +290,21 @@ describe('Figure', () => {
       expect(vars['--fig-on']).toBe(T.desk)
       expect(vars['--accent']).toBe(T.ink)
       expect(vars['--font-body']).toBe(T.font)
+      // и те, что figures.css сейчас не читает, но схемы и обёртки курса ждут: тема, бумага, шрифты
+      expect(vars['--ink']).toBe(T.ink)
+      expect(vars['--paper']).toBe(T.paper)
+      expect(vars['--ink-soft']).toBe(T.soft)
+      expect(vars['--accent-ink']).toBe(T.ink)
+      expect(vars['--font-ui']).toBe(T.mono)
+      expect(vars['--font-code']).toBe(T.mono)
+      expect(vars['--fig-zone']).toBe(alpha(T.ink, 0.035))
+    })
+
+    it('правила figures.css с зашитым #hex вместо var(--…) — ровно те классы, что знает svg.ts (HARD_COLORS)', () => {
+      const css = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../../src/styles/figures.css'), 'utf8')
+      const hard = [...css.matchAll(/\.([\w-]+)\{([^}]*)\}/g)].filter((m) => /#[0-9A-Fa-f]{3,8}\b/.test(m[2])).map((m) => m[1])
+      expect([...new Set(hard)].sort()).toEqual([...HARD_COLORS].sort())
+      expect(HARD_COLORS.length).toBeGreaterThan(5)
     })
 
     it('маркеры стрелок _defs.svg лежат в видимом <defs> внутри обёртки, а не в скрытом блоке', () => {
@@ -518,6 +561,45 @@ describe('Board', () => {
       expect(cx(layout['item:3'])).toBeGreaterThan(cx(layout['item:2']))
       // последний маркер стоит на pos 0,6 — там же, где пункт 2
       expect(cx(layout.marker)).toBeCloseTo(cx(layout['item:2']), 0)
+    })
+
+    it('шкала из пяти пунктов (как в term-check): части item:<k> — только подписи, части и подписи краёв нигде не пересекаются', () => {
+      const scale5: BoardSpec = {
+        type: 'board',
+        scale: {
+          left: 'человек понимает весь код',
+          right: 'код почти не читают',
+          items: [
+            { label: 'Подсказка в редакторе', pos: 0, at: 0 },
+            { label: 'Чат', pos: 0.25, at: 1 },
+            { label: 'Агент с вопросом', pos: 0.5, at: 2 },
+            { label: 'Задача агенту целиком', pos: 0.75, at: 3 },
+            { label: 'Вайб-кодинг', pos: 1, at: 4 },
+          ],
+          marker: [{ at: 4, pos: 0.25 }, { at: 5, pos: 0.75 }],
+        },
+      }
+      const layout = def.layout(scale5, ctx)
+      const s = boardPlan(scale5).scale!
+      const names = Object.keys(layout).filter((k) => k !== 'frame')
+      expect(names).toEqual(['item:0', 'item:1', 'item:2', 'item:3', 'item:4', 'marker'])
+      // подпись над линией кончается выше её, под линией — начинается ниже маркера
+      s.items.forEach((it, k) => {
+        const r = layout[`item:${k}`]
+        if (it.side === 'above') expect(r.y + r.h, `item:${k}`).toBeLessThanOrEqual(s.y - 30)
+        else expect(r.y, `item:${k}`).toBeGreaterThanOrEqual(layout.marker.y + layout.marker.h)
+        // у части нет «полки» к точке: её ширина — ширина подписи
+        expect(r.w, `item:${k}`).toBeCloseTo(it.box.w, 6)
+        expect(r.h, `item:${k}`).toBeCloseTo(it.lines.length * 44, 6)
+      })
+      const rects: [string, Rect][] = [...names.map((k): [string, Rect] => [k, layout[k]]), ['левый край', s.edges.left], ['правый край', s.edges.right]]
+      for (let i = 0; i < rects.length; i++) {
+        for (let j = i + 1; j < rects.length; j++) expect(apart(rects[i][1], rects[j][1]), `${rects[i][0]} и ${rects[j][0]}`).toBe(true)
+      }
+      // подписи краёв стоят на уровне линии, у краёв SAFE
+      expect(s.edges.left.x).toBe(SAFE.x)
+      expect(s.edges.right.x + s.edges.right.w).toBeCloseTo(SAFE.x + SAFE.w, 6)
+      expect(s.edges.left.y + s.edges.left.h / 2).toBeCloseTo(s.y + 1, 6)
     })
 
     it('заголовок, таблица, карточки и шкала вместе — блоки друг под другом', () => {
@@ -811,22 +893,34 @@ describe('Board', () => {
   describe('размещение', () => {
     const titleBottom = (layout: Record<string, Rect>) => layout.title.y + layout.title.h
 
-    it('блок под заголовком не уходит от него дальше TITLE.lift: заголовок и карточки остаются рядом', () => {
-      const layout = def.layout({ ...CARDS, title: 'Что выбрать' }, ctx)
-      expect(layout['card:0'].y - titleBottom(layout)).toBe(TITLE.gap + TITLE.lift)
+    const center = SAFE.y + SAFE.h / 2
+    const near = (a: number, b: number) => Math.abs(a - b) <= 2
+    // Группа «заголовок + блок»: от верха заголовка до низа последней части
+    const group = (layout: Record<string, Rect>, last: string) => ({ top: layout.title.y, bottom: layout[last].y + layout[last].h })
+
+    it('заголовок с блоком — одна группа: центр группы по центру SAFE, отступ между ними TITLE.gap', () => {
+      for (const spec of [{ ...CARDS, title: 'Что выбрать' }, TABLE_SPEC] as BoardSpec[]) {
+        const layout = def.layout(spec, ctx)
+        const last = spec.cards ? 'card:0' : 'row:2'
+        const g = group(layout, last)
+        expect(near((g.top + g.bottom) / 2, center), `${spec.title}: центр группы ${(g.top + g.bottom) / 2}`).toBe(true)
+        // между заголовком и блоком — TITLE.gap (у таблицы блок начинается с шапки, поэтому проверяем карточки)
+        if (spec.cards) expect(layout['card:0'].y - titleBottom(layout)).toBe(TITLE.gap)
+        expect(boardPlan(spec).title!.rect.y).toBe(g.top)
+      }
     })
 
     it('без заголовка блок по центру окна по высоте', () => {
       const layout = def.layout(CARDS, ctx)
       const r = layout['card:0']
-      expect(r.y - SAFE.y).toBeCloseTo(SAFE.y + SAFE.h - (r.y + r.h), 0)
+      expect(near(r.y + r.h / 2, center)).toBe(true)
     })
 
-    it('очень высокий блок прижимается к заголовку без зазора сверху: остаётся TITLE.gap', () => {
-      const words = Array.from({ length: 25 }, (_, i) => `слово${i}`).join(' ')
-      const layout = def.layout({ type: 'board', title: 'Т', cards: [{ title: 'Высокая', text: [words, words, words], at: 0 }] }, ctx)
-      expect(layout['card:0'].y - titleBottom(layout)).toBeLessThan(TITLE.gap + TITLE.lift)
-      expect(layout['card:0'].y - titleBottom(layout)).toBeGreaterThanOrEqual(TITLE.gap)
+    it('группа выше SAFE — от верха: заголовок на SAFE.y, problems говорит «не помещается»', () => {
+      const words = Array.from({ length: 400 }, (_, i) => `слово${i}`).join(' ')
+      const spec: BoardSpec = { type: 'board', title: 'Т', cards: [{ title: 'Высокая', text: [words], at: 0 }] }
+      expect(def.layout(spec, ctx).title.y).toBe(SAFE.y)
+      expect(problems(spec).join('\n')).toMatch(/помещается/)
     })
 
     it('таблица не уже TABLE.perCol на столбец: три столбца — на всю ширину окна, два — на две трети', () => {
@@ -902,15 +996,55 @@ describe('Agenda', () => {
     expect(name).toContain('Golos Text')
   })
 
-  it('заголовок — первая глава урока («Что узнаете») Golos 48 px 600 ink', () => {
+  it('кикер — название первой главы урока (Martian Mono 24 px faint), под ним название урока Golos 56 px 600 ink', () => {
     const html = view(SPEC, beat(0) + 60, CLOCK, four)
-    const title = /<text [^>]*>Что узнаете<\/text>/.exec(html)![0]
-    expect(title).toContain('font-size:48px')
+    const kicker = /<text [^>]*>Что узнаете<\/text>/.exec(html)![0]
+    expect(kicker).toContain('font-size:24px')
+    expect(kicker).toContain(`fill="${T.faint}"`)
+    expect(kicker).toContain('Martian Mono')
+    const title = /<text [^>]*>Фикстура<\/text>/.exec(html)![0]
+    expect(title).toContain('font-size:56px')
     expect(title).toContain('font-weight:600')
     expect(title).toContain(`fill="${T.ink}"`)
-    // у ролика дня первая глава зовётся иначе — заголовок её
-    const day: FrameCtx = { ...ctx, lesson: { ...ctx.lesson, chapters: ['Что строим сегодня', 'Пример', 'Подводный камень', 'Проверьте у себя'] } }
-    expect(plain(view(SPEC, beat(0) + 60, CLOCK, day))).toContain('Что строим сегодня')
+    expect(title).toContain('Golos Text')
+    expect(number(kicker, /\by="([\d.]+)"/)).toBeLessThan(number(title, /\by="([\d.]+)"/))
+    // у ролика дня первая глава зовётся иначе — кикер её, название урока своё
+    const day: FrameCtx = { ...ctx, lesson: { ...ctx.lesson, title: 'Сохранить подход', chapters: ['Что строим сегодня', 'Пример', 'Подводный камень', 'Проверьте у себя'] } }
+    const dayHtml = view(SPEC, beat(0) + 60, CLOCK, day)
+    expect(/<text [^>]*>Что строим сегодня<\/text>/.exec(dayHtml)![0]).toContain('Martian Mono')
+    expect(plain(dayHtml)).toContain('Сохранить подход')
+  })
+
+  it('кикер и название появляются вместе с кадром, до реплики 0', () => {
+    expect(plain(view(SPEC, 3, CLOCK, four))).toContain('Фикстура')
+    expect(opacityOf(/<g opacity="[\d.]+">/.exec(view(SPEC, 3, CLOCK, four))![0])).toBeCloseTo(appear(3, 0), 4)
+  })
+
+  it('длинное название урока переносится по ширине SAFE: строки одна под другой, ниже кикера; больше двух строк — проблема', () => {
+    const long: FrameCtx = { ...four, lesson: { ...four.lesson, title: 'Как устроено приложение: от кнопки на экране до записи в базе данных и обратно' } }
+    const html = view(SPEC, beat(0) + 60, CLOCK, long)
+    const rows = [...html.matchAll(/<text [^>]*font-size:56px[^>]*>([^<]*)<\/text>/g)].map((m) => m[1])
+    expect(rows.length).toBe(2)
+    expect(rows.join(' ')).toBe(long.lesson.title)
+    expect(problems(SPEC, long)).toEqual([])
+    const huge: FrameCtx = { ...four, lesson: { ...four.lesson, title: 'слово '.repeat(40) } }
+    expect(problems(SPEC, huge).join('\n')).toMatch(/название урока/)
+  })
+
+  it('группа «кикер + название + строки» — по центру SAFE (±2 px), если помещается; иначе от верха', () => {
+    for (const c of [four, five]) {
+      const g = agendaPlan(SPEC, c, CLOCK).group
+      expect(Math.abs(g.y + g.h / 2 - (SAFE.y + SAFE.h / 2))).toBeLessThanOrEqual(2)
+      const layout = def.layout(SPEC, c)
+      const items = Object.keys(layout).filter((k) => k.startsWith('item:'))
+      expect(g.y + g.h).toBeCloseTo(layout[items[items.length - 1]].y + layout[items[items.length - 1]].h, 6)
+    }
+    const tall: FrameCtx = { ...ctx, lesson: { ...ctx.lesson, chapters: ['Что узнаете', ...Array.from({ length: 8 }, (_, i) => `Глава ${i}`), 'Итог'] } }
+    const g = agendaPlan(SPEC, tall, CLOCK).group
+    expect(g.h).toBeLessThanOrEqual(SAFE.h)
+    expect(g.y + g.h).toBeLessThanOrEqual(SAFE.y + SAFE.h)
+    const over: FrameCtx = { ...ctx, lesson: { ...ctx.lesson, chapters: ['Что узнаете', ...Array.from({ length: 14 }, (_, i) => `Глава ${i}`), 'Итог'] } }
+    expect(agendaPlan(SPEC, over, CLOCK).group.y).toBe(SAFE.y)
   })
 
   it('без at пункты идут очередью от beat(0) с шагом MOTION.stagger × 3', () => {
@@ -987,19 +1121,50 @@ describe('Recap', () => {
   }
   const problems = (spec: RecapSpec, c: FrameCtx = two, clock: Clock = CLOCK) => def.problems(spec, c, clock)
 
-  it('заголовок «Итог» 48 px 600; пункты 32 px ink со знаком «✓» цвета ok', () => {
+  it('заголовок «Итог» 48 px 600; пункты 32 px ink, галочка нарисована линией цвета ok 3 px, а не глифом', () => {
     const html = view(SPEC, beat(2) + 60, CLOCK, two)
     const title = /<text [^>]*>Итог<\/text>/.exec(html)![0]
     expect(title).toContain('font-size:48px')
     expect(title).toContain('font-weight:600')
     const item = part(html, 'item:1')!
-    const tick = /<text [^>]*>✓<\/text>/.exec(item)![0]
-    expect(tick).toContain(`fill="${T.ok}"`)
-    expect(tick).toContain('font-size:32px')
-    expect(tick).toContain('Golos Text')
+    expect(html).not.toContain('✓')
+    const tick = /<path [^>]*>/.exec(item)![0]
+    expect(tick).toContain(`stroke="${T.ok}"`)
+    expect(tick).toContain('stroke-width="3"')
+    expect(tick).toContain('fill="none"')
+    expect(tick).toContain('stroke-linecap="round"')
+    expect(tick).toMatch(/d="M[\d.]+ [\d.]+L[\d.]+ [\d.]+L[\d.]+ [\d.]+"/)
+    // галочка стоит слева от текста, на высоте первой строки
+    const xs = [...tick.matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((m) => [Number(m[1]), Number(m[2])])
+    const layout = def.layout(SPEC, two)['item:1']
+    for (const [x, y] of xs) {
+      expect(x).toBeGreaterThanOrEqual(SAFE.x)
+      expect(x).toBeLessThan(SAFE.x + 40)
+      expect(y).toBeGreaterThanOrEqual(layout.y)
+      expect(y).toBeLessThanOrEqual(layout.y + 44)
+    }
     const text = /<text [^>]*>Секреты хранятся в \.env\.local, а не в чате\.<\/text>/.exec(item)![0]
     expect(text).toContain(`fill="${T.ink}"`)
     expect(text).toContain('font-size:32px')
+  })
+
+  it('группа «заголовок + пункты» по центру SAFE (±2 px), если помещается над блоком книги; книга остаётся у нижнего края', () => {
+    for (const c of [two, { ...two, lesson: { ...two.lesson, book: [] } }]) {
+      const g = recapPlan(SPEC, c, CLOCK).group
+      expect(Math.abs(g.y + g.h / 2 - (SAFE.y + SAFE.h / 2))).toBeLessThanOrEqual(2)
+      const layout = def.layout(SPEC, c)
+      expect(g.y + g.h).toBeCloseTo(layout['item:2'].y + layout['item:2'].h, 6)
+    }
+  })
+
+  it('группа, которой тесно над блоком книги, поднимается вверх, но не выше SAFE.y и не налезает на книгу', () => {
+    const items = Array.from({ length: 7 }, (_, i) => ({ text: `Пункт итога номер ${i}`, at: Math.min(i, 5) }))
+    const many: FrameCtx = { ...two, lesson: { ...two.lesson, book: ['s5', 's6', 's7', 's77', 's78'] } }
+    const p = recapPlan({ type: 'recap', items }, many, CLOCK)
+    const layout = def.layout({ type: 'recap', items }, many)
+    expect(p.group.y).toBeGreaterThanOrEqual(SAFE.y)
+    expect(p.group.y + p.group.h).toBeLessThanOrEqual(layout.book.y - 24 + 0.01)
+    expect(def.problems({ type: 'recap', items }, many, CLOCK)).toEqual([])
   })
 
   it('заголовок — последняя глава урока: у ролика дня «Проверьте у себя»', () => {
@@ -1141,7 +1306,6 @@ describe('размер текста и безопасная область (Boar
       }
       for (let i = 0; i < names.length; i++) {
         for (let j = i + 1; j < names.length; j++) {
-          if (names[i] === 'marker' || names[j] === 'marker') continue // маркер стоит под пунктом
           expect(apart(layout[names[i]], layout[names[j]]), `${spec.type}: ${names[i]} и ${names[j]}`).toBe(true)
         }
       }

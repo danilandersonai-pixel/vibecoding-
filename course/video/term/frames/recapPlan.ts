@@ -7,9 +7,10 @@ import { beatProblem } from './source'
 
 /**
  * Итог: заголовок (последняя глава урока: «Итог» у ролика главы, «Проверьте у себя» у ролика дня; Golos 48 px 600) и пункты
- * со знаком «✓» цвета ok (Golos 32 px, текст ink) — каждый появляется на своей реплике at. Внизу «Книга:» (faint) и разделы книги
- * из ctx.lesson.book по bookSection: «Азбука · Код, языки и чужие детали», по строке, 28 px soft; блок появляется, когда
- * последний пункт на месте. Разделов нет — блока нет.
+ * с галочкой цвета ok (линия 3 px, не глиф шрифта; текст Golos 32 px ink) — каждый появляется на своей реплике at.
+ * Заголовок и пункты — одна группа: она стоит по центру высоты SAFE, а если над блоком книги тесно — поднимается (но не выше SAFE.y).
+ * Внизу, у нижнего края SAFE, «Книга:» (faint) и разделы книги из ctx.lesson.book по bookSection: «Азбука · Код, языки и чужие детали»,
+ * по строке, 28 px soft; блок появляется, когда последний пункт на месте. Разделов нет — блока нет.
  * Части: 'frame', 'item:<k>', 'book'.
  */
 export type RecapSpec = { type: 'recap'; items: { text: string; at: number }[] }
@@ -25,7 +26,15 @@ export const BOOK_X = SAFE.x + Math.ceil(fitWidth(BOOK_LABEL, RECAP.book.size)) 
 
 export type RecapItem = { lines: string[]; y: number; at: number; rect: Rect }
 export type RecapBook = { sections: string[][]; y: number; h: number; rect: Rect }
-type Plan = { title: string; items: RecapItem[]; book: RecapBook | null; bookAt: number; problems: string[] }
+type Plan = {
+  title: { text: string; y: number }
+  items: RecapItem[]
+  book: RecapBook | null
+  bookAt: number
+  /** Заголовок и пункты вместе: от верха заголовка до низа последнего пункта. */
+  group: Rect
+  problems: string[]
+}
 
 export function plan(spec: RecapSpec, ctx: FrameCtx, clock: Clock): Plan {
   const problems: string[] = []
@@ -37,17 +46,18 @@ export function plan(spec: RecapSpec, ctx: FrameCtx, clock: Clock): Plan {
     if (k > 0 && it.at < spec.items[k - 1].at) problems.push(`items[${k}]: пункты идут по порядку реплик, а реплика ${it.at} раньше реплики ${spec.items[k - 1].at}`)
   })
 
-  // Пункты: строки по wrapText под знаком «✓», зазор между пунктами
-  let y = SAFE.y + RECAP.title.line + RECAP.title.gap
-  const items = spec.items.map((it): RecapItem => {
+  // Пункты: строки по словам под галочкой; y пока от верха группы
+  const header = RECAP.title.line + RECAP.title.gap
+  let y = header
+  const laid = spec.items.map((it) => {
     const lines = fitWrap(it.text, RECAP.item.size, SAFE.w - RECAP.item.indent)
     const h = lines.length * RECAP.item.line
     const w = RECAP.item.indent + Math.max(...lines.map((l) => fitWidth(l, RECAP.item.size)))
-    const item = { lines, y, at: clock.beat(it.at), rect: { x: SAFE.x, y, w: Math.min(w, SAFE.w), h } }
+    const placed = { lines, y, h, w, at: clock.beat(it.at) }
     y += h + RECAP.item.gap
-    return item
+    return placed
   })
-  const itemsEnd = y - RECAP.item.gap
+  const height = laid.length > 0 ? y - RECAP.item.gap : header
 
   // Разделы книги: «Азбука · Код, языки и чужие детали»; неизвестный якорь — проблема
   let book: RecapBook | null = null
@@ -57,21 +67,30 @@ export function plan(spec: RecapSpec, ctx: FrameCtx, clock: Clock): Plan {
     if (!s) problems.push(`book: раздела «${id}» нет в книге (book-sections.json)`)
     else texts.push(`${s.chapter} · ${s.title}`)
   }
+  let floor = SAFE.y + SAFE.h // до куда может дойти группа
   if (texts.length > 0) {
     const sections = texts.map((t) => fitWrap(t, RECAP.book.size, SAFE.w - (BOOK_X - SAFE.x)))
     const h = Math.max(RECAP.book.line, sections.reduce((sum, s) => sum + s.length * RECAP.book.line, 0))
     const top = SAFE.y + SAFE.h - h
     const w = BOOK_X - SAFE.x + Math.max(...sections.flat().map((l) => fitWidth(l, RECAP.book.size)))
     book = { sections, y: top, h, rect: { x: SAFE.x, y: top, w: Math.min(w, SAFE.w), h } }
-    if (items.length > 0 && itemsEnd + RECAP.book.gapAbove > top) {
-      problems.push(`не помещается: пункты доходят до y ${Math.round(itemsEnd)}, а блок книги начинается с y ${Math.round(top)} — сократите пункты или разделы`)
-    }
-  } else if (items.length > 0 && itemsEnd > SAFE.y + SAFE.h) {
-    problems.push(`не помещается: пункты доходят до y ${Math.round(itemsEnd)}, а окно кончается на y ${SAFE.y + SAFE.h}`)
+    floor = top - RECAP.book.gapAbove
   }
 
+  // Группа по центру SAFE; если над книгой тесно — выше, но не выше SAFE.y (тогда problems)
+  const centered = SAFE.y + Math.floor((SAFE.h - height) / 2)
+  const top = Math.max(SAFE.y, Math.min(centered, floor - height))
+  if (laid.length > 0 && top + height > floor + 0.01) {
+    problems.push(
+      book
+        ? `не помещается: пункты доходят до y ${Math.round(top + height)}, а блок книги начинается с y ${Math.round(floor + RECAP.book.gapAbove)} — сократите пункты или разделы`
+        : `не помещается: пункты доходят до y ${Math.round(top + height)}, а окно кончается на y ${SAFE.y + SAFE.h}`,
+    )
+  }
+  const items = laid.map((it): RecapItem => ({ lines: it.lines, y: top + it.y, at: it.at, rect: { x: SAFE.x, y: top + it.y, w: Math.min(it.w, SAFE.w), h: it.h } }))
+
   const last = spec.items.length > 0 ? Math.max(...spec.items.map((i) => i.at)) : 0
-  return { title, items, book, bookAt: clock.beat(last) + MOTION.appear, problems }
+  return { title: { text: title, y: top }, items, book, bookAt: clock.beat(last) + MOTION.appear, group: { x: SAFE.x, y: top, w: SAFE.w, h: height }, problems }
 }
 
 export function recapLayout(spec: RecapSpec, ctx: FrameCtx): Record<string, Rect> {

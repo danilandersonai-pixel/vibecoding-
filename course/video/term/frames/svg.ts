@@ -98,3 +98,15 @@ export function drawn(child: string, p: number): string {
   const style = `stroke-dasharray:1;stroke-dashoffset:${offset}${own ? ';' + own : ''}`
   return `<path${attrs} pathLength="1" style="${style}"${m[2]}>${child.slice(m[0].length)}`
 }
+
+/**
+ * Классы figures.css с зашитым цветом: терминальные цвета схем заданы #hex, а не var(--…), поэтому от темы кадра не зависят и не из T.
+ * Тест сверяет список с файлом: появится правило с #hex — тест напомнит дописать сюда.
+ */
+export const HARD_COLORS = ['fg-term', 'fg-tbar', 'fg-tt', 'fg-tp', 'fg-tok', 'fg-terr', 'fg-tdim', 'fg-tyel']
+
+/** Какие из HARD_COLORS использует схема (в порядке списка). */
+export function hardColors(children: string[]): string[] {
+  const used = new Set(children.flatMap((child) => [...child.matchAll(/\sclass="([^"]*)"/g)].flatMap((m) => m[1].split(/\s+/))))
+  return HARD_COLORS.filter((c) => used.has(c))
+}

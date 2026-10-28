@@ -5,10 +5,15 @@ import { appear } from '../motion'
 import { SAFE, T } from '../theme'
 import { BOOK_LABEL, BOOK_X, RECAP, plan } from './recapPlan'
 import type { RecapSpec } from './recapPlan'
+import { golos, n } from './style'
 
 type Props = { spec: RecapSpec; clock: Clock; ctx: FrameCtx }
 
-const golos = (size: number, weight = 500) => ({ fontFamily: T.font, fontSize: size, fontWeight: weight }) as const
+// Галочка линией: короткий штрих вниз-вправо и длинный вверх-вправо, по высоте первой строки пункта
+const tick = (top: number) => {
+  const cy = top + RECAP.item.line / 2
+  return `M${n(SAFE.x + 2)} ${n(cy)}L${n(SAFE.x + 10)} ${n(cy + 9)}L${n(SAFE.x + 24)} ${n(cy - 10)}`
+}
 
 /** Итог: чистая функция номера кадра. */
 export function Recap({ spec, clock, ctx }: Props): JSX.Element {
@@ -17,8 +22,8 @@ export function Recap({ spec, clock, ctx }: Props): JSX.Element {
   return (
     <g>
       <g opacity={appear(frame, 0)}>
-        <text x={SAFE.x} y={SAFE.y + RECAP.title.base} fill={T.ink} style={golos(RECAP.title.size, 600)}>
-          {p.title}
+        <text x={SAFE.x} y={p.title.y + RECAP.title.base} fill={T.ink} style={golos(RECAP.title.size, 600)}>
+          {p.title.text}
         </text>
       </g>
       {p.items.map((it, k) => {
@@ -26,9 +31,7 @@ export function Recap({ spec, clock, ctx }: Props): JSX.Element {
         if (o <= 0) return null
         return (
           <g key={k} data-part={`item:${k}`} opacity={o}>
-            <text x={SAFE.x} y={it.y + RECAP.item.base} fill={T.ok} style={golos(RECAP.item.size, 600)}>
-              ✓
-            </text>
+            <path d={tick(it.y)} fill="none" stroke={T.ok} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
             {it.lines.map((line, j) => (
               <text key={j} x={SAFE.x + RECAP.item.indent} y={it.y + j * RECAP.item.line + RECAP.item.base} fill={T.ink} style={golos(RECAP.item.size)}>
                 {line}

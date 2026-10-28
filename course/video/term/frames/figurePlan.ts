@@ -2,7 +2,7 @@ import type { Clock, FrameCtx, Rect } from '../frame'
 import { appear } from '../motion'
 import { MIN_TEXT, MOTION, SAFE } from '../theme'
 import { beatProblem } from './source'
-import { isDrawable, splitSvg } from './svg'
+import { hardColors, isDrawable, splitSvg } from './svg'
 
 /**
  * Схема книги (content/figures/*.svg, `?raw`). Вписывается в SAFE с сохранением пропорций и по центру; crop [x, y, w, h] в координатах
@@ -117,6 +117,13 @@ export function figureMoments(spec: FigureSpec, clock: Clock): number[] {
 export function figureProblems(spec: FigureSpec, _ctx: FrameCtx, clock: Clock): string[] {
   const p = parse(spec.svg)
   if (!p.ok) return [`схема: ${p.error}`]
+  // Зашитые цвета не мешают остальным проверкам: сообщение идёт первым, дальше всё как обычно
+  const hard = hardColors(p.children)
+  const colors = hard.length > 0 ? [`в схеме зашитые цвета (${hard.join(', ')}): эти классы figures.css красят #hex, а не var(--…), и в кадре цвета не из T — возьмите схему без них`] : []
+  return [...colors, ...checkFigure(spec, p, clock)]
+}
+
+function checkFigure(spec: FigureSpec, p: Extract<Parsed, { ok: true }>, clock: Clock): string[] {
   const bad: string[] = []
   const { viewBox } = p
   if (p.children.length === 0) bad.push('в схеме нет ни одного элемента')
