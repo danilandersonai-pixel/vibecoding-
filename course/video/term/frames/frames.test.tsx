@@ -354,6 +354,16 @@ describe('Terminal', () => {
       expect(part(html, 'line:ls:2')).not.toContain(T.err)
     })
 
+    it('показан диапазон без последней строки — err у последней показанной: красной остаётся сама ошибка', () => {
+      const cut: TerminalSpec = { type: 'terminal', items: [{ session: S, event: 'fail', at: 0, lines: [1, 2] }] }
+      const html = view(cut, 400)
+      expect(part(html, 'line:fail:1')).toContain(`fill="${T.err}"`)
+      expect(part(html, 'line:fail:0')).not.toContain(T.err)
+      // у команды с кодом 0 красного нет и при диапазоне
+      const ok: TerminalSpec = { type: 'terminal', items: [{ session: S, event: 'ls', at: 0, lines: [1, 2] }] }
+      expect(view(ok, 400)).not.toContain(`fill="${T.err}"`)
+    })
+
     it('commit: команда — cmd события, вывод — out', () => {
       const spec: TerminalSpec = { type: 'terminal', items: [{ session: S, event: 'c1', at: 0 }] }
       const html = view(spec, 400)

@@ -10,7 +10,8 @@ import type { Range } from './source'
  * Терминал: команды набираются, вывод идёт строками, окно прокручивается.
  * event — run, commit или browser: у browser показываются строки server (вывод работающего dev-сервера)
  * продолжением вывода, без команды и набора. at — реплика сцены, на которой начинается элемент.
- * lines — показанные строки вывода: с 1, включительно; без него — весь вывод.
+ * lines — показанные строки вывода: с 1, включительно; без него — весь вывод. У команды с кодом выхода ≠ 0 последняя показанная
+ * строка — цвета err.
  * Части: 'frame', 'cmd:<event>', 'out:<event>', 'line:<event>:<k>' (k — номер показанной строки вывода с 0).
  * layout не зависит от времени, поэтому все части — по одному снимку: окно в конце сцены, когда всё появилось и прокручено.
  * Часть, целиком ушедшая за верх окна, в layout нет; видная частично — прямоугольник, обрезанный окном.
@@ -60,13 +61,14 @@ export function plan(spec: TerminalSpec, ctx: FrameCtx): Plan {
     const cmdRows = ev.kind === 'browser' ? [] : wrapMono(prompt + cmd, COLS)
     const cmdRow = row
     row += cmdRows.length
-    // Код выхода ≠ 0: последняя строка вывода цвета err (если она среди показанных)
+    // Код выхода ≠ 0: последняя показанная строка вывода цвета err — при диапазоне lines это строка, которую выбрал автор
+    // (например, сама ошибка без хвоста про журнал)
     const failed = ev.kind === 'run' && ev.code !== null && ev.code !== 0
     const lines = shown.map((text, k) => {
       const rows = wrapMono(text, COLS)
       // Прокрутка уводит строки вверх, но одна строка вывода должна поместиться в окно целиком
       if (rows.length > WIN.rows) problems.push(`${who}: строка ${first + k} после переноса занимает ${rows.length} строк окна, а в окне помещается ${WIN.rows}`)
-      const line = { text, rows, row, err: failed && first + k === all.length }
+      const line = { text, rows, row, err: failed && k === shown.length - 1 }
       row += rows.length
       return line
     })
