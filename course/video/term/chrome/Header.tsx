@@ -1,8 +1,8 @@
 import { useCurrentFrame } from 'remotion'
 import { easeOut } from '../motion'
-import { fitText, monoChars } from '../text'
+import { fitText } from '../text'
 import { HEADER, MONO, MOTION, SAFE, T } from '../theme'
-import { BASELINE, CELL, LEFT, RIGHT } from './layout'
+import { BASELINE, CELL, LEFT, RIGHT, cellsFor, titleRoom } from './layout'
 
 type Props = {
   /** id ролика, например «ch-abc». */
@@ -11,6 +11,8 @@ type Props = {
   chapter: { n: number; total: number; title: string }
   /** Ссылка на книгу справа (bookRef); пустая строка — справа ничего. */
   book: string
+  /** Сколько px справа занято тем, что рисует не шапка (метки ошибки, ссылка на книгу сцены — HeaderBook), если book пуст. */
+  reserve?: number
   /** Кадр, на котором началась эта глава (в той же шкале, что useCurrentFrame): 12 кадров номер прокручивается, а полоса главы переезжает. */
   at: number
 }
@@ -25,16 +27,16 @@ const text = { fontFamily: T.mono, fontSize: MONO.size, fontWeight: 500, fontVar
 
 // Шапка кадра (y 32–80, Martian Mono 24 px, faint): слева ролик и глава «02/07 · Git: история проекта», справа ссылка на книгу.
 // Под текстом — полоса глав: по сегменту на главу, текущая ink. Рисуется <g> поверх общего <svg viewBox="0 0 1920 1080">.
-export function Header({ lessonId, chapter, book, at }: Props) {
+export function Header({ lessonId, chapter, book, reserve = 0, at }: Props) {
   const frame = useCurrentFrame()
   const p = easeOut((frame - at) / MOTION.chapter)
   const rolling = chapter.n > 1 && p < 1
 
   const numberX = LEFT + (lessonId.length + 2) * CELL
   const restX = numberX + 2 * CELL
-  // Названию остаётся то, что не заняли id, номер, «/07 · » и ссылка на книгу (с промежутком в три знака).
-  const room = monoChars(SAFE.w) - (lessonId.length + 2 + 2) - 3 - 3 - (book ? [...book].length + 3 : 0)
-  const title = fitText(chapter.title, Math.max(1, room))
+  // Названию остаётся то, что не заняли id, номер, «/07 · » и правая часть (с промежутком в три знака).
+  const right = book ? [...book].length : cellsFor(reserve)
+  const title = fitText(chapter.title, Math.max(1, titleRoom(lessonId, right)))
 
   const segW = (SAFE.w - STRIP.gap * (chapter.total - 1)) / chapter.total
   const segX = (i: number) => LEFT + i * (segW + STRIP.gap)
@@ -63,15 +65,20 @@ export function Header({ lessonId, chapter, book, at }: Props) {
       <text x={restX} y={BASELINE} fill={T.faint} style={text} opacity={rolling ? p : 1}>
         {`/${pad(chapter.total)} · ${title}`}
       </text>
-      {book && (
-        <text x={RIGHT} y={BASELINE} fill={T.faint} style={text} textAnchor="end">
-          {book}
-        </text>
-      )}
+      {book && <HeaderBook text={book} />}
       {Array.from({ length: chapter.total }, (_, i) => (
         <rect key={i} x={segX(i)} y={stripY} width={segW} height={STRIP.h} fill={i < current ? T.faint : T.grid} />
       ))}
       <rect x={inkX} y={stripY} width={segW} height={STRIP.h} fill={T.ink} />
     </g>
+  )
+}
+
+/** Ссылка на книгу справа в шапке. Урок рисует её внутри сцены (растворяется вместе со сценой, как метки ошибки), а шапке даёт reserve. */
+export function HeaderBook({ text: book }: { text: string }) {
+  return (
+    <text x={RIGHT} y={BASELINE} fill={T.faint} style={text} textAnchor="end">
+      {book}
+    </text>
   )
 }

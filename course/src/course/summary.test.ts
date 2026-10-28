@@ -3,6 +3,7 @@ import { getDays } from '../content/load'
 import fixture from '../content/fixtures/valid-day.json'
 import { DaySchema, type Day } from '../content/schema'
 import { pilotRlsScript } from '../../video/pilot-rls/script'
+import { videos } from '../video/registry'
 import { daySummaryLine, dayVideoSummary, formatDuration, plural, readinessLine, videoMeta } from './summary'
 
 const days = getDays()
@@ -26,6 +27,16 @@ describe('summary', () => {
     expect(meta.seconds).toBe(203)
     expect(meta.hotspots).toBe(pilotRlsScript.hotspots.length)
     expect(videoMeta('нет')).toBeNull()
+  })
+
+  it('обложка ролика с poster — этот кадр (середина первого примера), а не горячая точка', () => {
+    const script = { ...pilotRlsScript, id: 'poster-test', width: 1920 as const, height: 1080 as const, poster: 1234 }
+    videos['poster-test'] = { script, load: videos['pilot-rls'].load }
+    try {
+      expect(videoMeta('poster-test')!.posterFrame).toBe(1234)
+    } finally {
+      delete videos['poster-test']
+    }
   })
 
   it('plural', () => {

@@ -1,0 +1,214 @@
+import { describe, expect, it } from 'vitest'
+import { buildLesson } from './build'
+import { fixtureLesson } from './fixture-lesson'
+import type { Lesson, LessonScene } from './lesson'
+import { lessonProblems } from './problems'
+
+// Фикстура проходит все проверки урока, кроме длины (она короче ролика главы). Каждая поломка ниже — по одной — даёт свою строку.
+const short = (lesson: Lesson) => lessonProblems(lesson, { checkLength: false })
+
+function broken(change: (l: Lesson, scene: (id: string) => LessonScene) => void): string[] {
+  const l = structuredClone(fixtureLesson)
+  const scene = (id: string) => l.chapters.flatMap((c) => c.scenes).find((s) => s.id === id)!
+  change(l, scene)
+  return short(l)
+}
+
+const has = (problems: string[], re: RegExp) => expect(problems).toContainEqual(expect.stringMatching(re))
+
+describe('lessonProblems: фикстура', () => {
+  it('без проверки длины — ни одной проблемы', () => {
+    expect(short(fixtureLesson)).toEqual([])
+  })
+
+  it('с проверкой длины — одна строка: ролик главы короче 5400 кадров', () => {
+    const problems = lessonProblems(fixtureLesson)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toMatch(/урок «term-lesson»: длина \d+ кадров.*5400–8100/)
+  })
+
+  it('minFrames — не короче прежнего ролика той же темы', () => {
+    has(lessonProblems(fixtureLesson, { minFrames: 9000 }), /не короче прежнего: 9000/)
+  })
+})
+
+describe('lessonProblems: поломки по одной', () => {
+  it('сцена mistake без «Верно»', () => {
+    const p = broken((_, s) => (s('parts-key').verdict = [{ at: 0, kind: 'wrong' }]))
+    has(p, /сцена «parts-key»: .*вердикт.*right/)
+  })
+
+  it('«Верно» раньше «Неверно»', () => {
+    const p = broken((_, s) => (s('parts-key').verdict = [{ at: 0, kind: 'right' }, { at: 1, kind: 'wrong' }]))
+    has(p, /сцена «parts-key»: .*wrong.*раньше/)
+  })
+
+  it('вердикт вне сцены mistake', () => {
+    const p = broken((_, s) => (s('site-dev').verdict = [{ at: 0, kind: 'wrong' }]))
+    has(p, /сцена «site-dev»: вердикты бывают только у сцены mistake/)
+  })
+
+  it('пояснение в последних 12 кадрах сцены (until — до самого конца)', () => {
+    const p = broken((_, s) => (s('site-dev').spots![0].until = 2))
+    has(p, /сцена «site-dev»: spots\[0\].*последние 12 кадров/)
+  })
+
+  it('пояснение в первых 12 кадрах сцены (реплика 0 начинается на кадре 9)', () => {
+    const p = broken((_, s) => (s('site-dev').spots![0].at = 0))
+    has(p, /сцена «site-dev»: spots\[0\].*первые 12 кадров/)
+  })
+
+  it('реплика 200 знаков — три строки субтитров', () => {
+    const p = broken((_, s) => (s('site-envs').lines[1] = 'Разработка — ваш компьютер, здесь можно ломать что угодно; staging — копия боевой версии, где всё проверяют перед выпуском; продакшен — настоящее приложение, ошибка стоит дорого.'))
+    has(p, /сцена «site-envs»: реплика 1 .*3 строки субтитров/)
+  })
+
+  it('камера движется во время пояснения', () => {
+    const p = broken((_, s) => s('parts-route').camera!.push({ at: 2, target: 'whole' }))
+    has(p, /сцена «parts-route»: spots\[0\].*камера движется/)
+  })
+
+  it('цель камеры — несуществующая часть cmd:nope', () => {
+    const p = broken((_, s) => (s('site-dev').camera = [{ at: 0, target: 'cmd:nope' }]))
+    has(p, /сцена «site-dev»: camera\[0\]: части «cmd:nope» нет в кадре terminal/)
+  })
+
+  it('цель пояснения — несуществующая часть', () => {
+    const p = broken((_, s) => (s('site-dev').spots![0].target = 'line:dev:99'))
+    has(p, /сцена «site-dev»: spots\[0\]: части «line:dev:99» нет в кадре terminal/)
+  })
+
+  it('пояснение за краем кадра 1920 × 1080 после наезда камеры', () => {
+    const p = broken((_, s) => (s('parts-route').spots![0].target = 'tree'))
+    has(p, /сцена «parts-route»: spots\[0\].*за краем кадра/)
+  })
+
+  it('реплики, которой нет в сцене, у камеры, пояснения и вердикта', () => {
+    has(broken((_, s) => (s('site-dev').camera = [{ at: 5, target: 'whole' }])), /сцена «site-dev»: camera\[0\]: реплики 5 нет в сцене — в ней 2/)
+    has(broken((_, s) => (s('site-dev').spots![0].at = 2)), /сцена «site-dev»: spots\[0\]: реплики 2 нет в сцене/)
+    has(broken((_, s) => (s('parts-key').verdict![1].at = 3)), /сцена «parts-key»: verdict\[1\]: реплики 3 нет в сцене/)
+  })
+
+  it('глава без сцены example', () => {
+    const p = broken((l) => (l.chapters[2].scenes = l.chapters[2].scenes.filter((s) => s.role !== 'example')))
+    has(p, /глава «site»: нет сцены с ролью example/)
+  })
+
+  it('роли в главе не по порядку explain → example → mistake', () => {
+    const p = broken((l) => l.chapters[1].scenes.reverse())
+    has(p, /глава «parts»: .*не по порядку/)
+  })
+
+  it('промежуток 5 с без изменений в кадре', () => {
+    const p = broken((_, s) => {
+      const envs = s('site-envs')
+      envs.frame = { type: 'board', cards: [{ title: 'Три окружения', text: ['разработка, staging и продакшен'], at: 0 }] }
+      envs.lines = ['Разработка — ваш компьютер, здесь можно ломать что угодно.', 'Продакшен — настоящее приложение, ошибка там стоит дорого.']
+    })
+    has(p, /сцена «site-envs»: кадр стоит без изменений \d+ кадров/)
+  })
+
+  it('раздел книги s999', () => {
+    const p = broken((l) => (l.chapters[1].book = ['s999']))
+    has(p, /глава «parts»: раздела книги «s999» нет/)
+    has(broken((l) => (l.book = ['sa1', 's999'])), /урок «term-lesson»: раздела книги «s999» нет/)
+  })
+
+  it('проблемы кадра — с именем сцены', () => {
+    const p = broken((_, s) => (s('site-dev').frame = { type: 'terminal', items: [{ session: 's02-sets', event: 'нет', at: 0 }] }))
+    has(p, /сцена «site-dev»: items\[0\] «нет»: нет события/)
+  })
+
+  it('пояснений меньше двух у ролика главы', () => {
+    const p = broken((_, s) => {
+      delete s('site-dev').spots
+      delete s('works-script').spots
+    })
+    has(p, /урок «term-lesson»: пояснений 1, а у ролика главы нужно не меньше 2/)
+  })
+
+  it('каркас: первая глава — одна сцена intro с agenda, последняя — одна сцена summary с recap', () => {
+    has(broken((l) => (l.chapters[0].scenes[0].frame = { type: 'board', title: 'План' })), /глава «intro»: .*agenda/)
+    has(broken((l) => l.chapters[4].scenes.push({ ...l.chapters[4].scenes[0], id: 'recap-2' })), /глава «recap»: .*одна сцена/)
+  })
+
+  it('ролик главы: тематических глав 3–5', () => {
+    const p = broken((l) => l.chapters.splice(3, 1))
+    has(p, /урок «term-lesson»: тематических глав 2, а у ролика главы их 3–5/)
+  })
+
+  it('кадр записи — не меньше чем в трёх тематических главах', () => {
+    const p = broken((_, s) => {
+      s('parts-route').frame = { type: 'board', title: 'Кухня', cards: [{ title: 'route.ts', text: ['проверяет вес'], at: 0 }, { title: '400', text: ['ответ'], at: 1 }, { title: 'Ошибка', text: ['текст'], at: 2 }] }
+      s('parts-pkg').frame = { type: 'board', title: 'Чужие детали', cards: [{ title: 'next', text: ['фреймворк'], at: 0 }, { title: 'react', text: ['интерфейс'], at: 1 }] }
+    })
+    has(p, /урок «term-lesson»: кадр записи .* в 2 тематических главах/)
+  })
+
+  it('ролик дня: главы «Что строим сегодня» → «Пример» → «Подводный камень» → «Проверьте у себя»', () => {
+    const p = broken((l) => {
+      l.kind = 'day'
+      l.chapters = [l.chapters[0], l.chapters[2], l.chapters[4]]
+    })
+    has(p, /урок «term-lesson»: у ролика дня 4 главы/)
+    const titles = broken((l) => {
+      l.kind = 'day'
+      l.chapters = [l.chapters[0], { ...l.chapters[2], scenes: [l.chapters[2].scenes[1]] }, { ...l.chapters[3], scenes: [l.chapters[3].scenes[2]] }, l.chapters[4]]
+    })
+    has(titles, /глава «intro»: у ролика дня глава 1 — «Что строим сегодня»/)
+    has(titles, /глава «site»: у ролика дня глава 2 — «Пример»/)
+  })
+
+  it('id сцены повторяется', () => {
+    const p = broken((_, s) => (s('site-local').id = 'site-dev'))
+    has(p, /сцена «site-dev»: id сцены повторяется/)
+  })
+})
+
+describe('lessonProblems: шапка, шум песочницы, прокрутка терминала', () => {
+  it('название главы не помещается в шапку рядом со ссылкой на книгу', () => {
+    const p = broken((l) => (l.chapters[2].title = 'Как код с компьютера разработчика попадает на настоящий сайт для людей'))
+    has(p, /сцена «site-envs»: название главы .* не помещается в шапку рядом со ссылкой на книгу/)
+  })
+
+  it('в сцене mistake название главы не должно доходить до метки «Типичная ошибка»', () => {
+    // У «term-lesson» 53 знака: рядом со ссылкой на книгу помещается (ей остаётся 25), рядом с метками ошибки — нет (там 51)
+    const title = 'Четыре части: зал, официант, кухня и склад приложения'
+    expect([...title].length).toBe(53)
+    const p = broken((l) => (l.chapters[1].title = title))
+    has(p, /сцена «parts-key»: название главы .* налезает на метку «Типичная ошибка»/)
+    expect(p).toHaveLength(1)
+  })
+
+  it('шум песочницы в кадре: предупреждения о Google Fonts в выводе dev-сервера', () => {
+    const p = broken((_, s) => (s('site-dev').frame = { type: 'terminal', items: [{ session: 's02-sets', event: 'dev', at: 0 }, { session: 's02-sets', event: 'save-ok', at: 1, lines: [24, 29] }] }))
+    has(p, /сцена «site-dev»: в кадре шум песочницы .*Google Fonts/)
+  })
+
+  it('терминал прокручивается, а камера наведена на строку раннего элемента', () => {
+    const p = broken((_, s) => {
+      const dev = s('site-dev')
+      dev.frame = {
+        type: 'terminal',
+        items: [
+          { session: 's02-sets', event: 'dev', at: 0 },
+          { session: 's02-sets', event: 'start-dev', at: 0 },
+          { session: 's02-sets', event: 'scripts', at: 1 },
+        ],
+      }
+      delete dev.spots
+      dev.camera = [{ at: 1, target: 'line:start-dev:0' }]
+    })
+    has(p, /сцена «site-dev»: camera\[0\]: терминал прокручивается — цель камеры «line:start-dev:0» к концу сцены на другом месте; разделите сцену/)
+  })
+})
+
+describe('buildLesson на сломанном уроке не падает внутри lessonProblems', () => {
+  it('реплики нет — проверка говорит об этом, а не бросает исключение', () => {
+    const l = structuredClone(fixtureLesson)
+    l.chapters[2].scenes[1].lines = []
+    expect(() => short(l)).not.toThrow()
+    has(short(l), /сцена «site-dev»: нет реплик/)
+    expect(() => buildLesson(fixtureLesson)).not.toThrow()
+  })
+})

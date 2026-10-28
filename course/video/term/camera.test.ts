@@ -38,6 +38,30 @@ describe('focusShot', () => {
     expect(focusShot({ x: 0, y: 0, w: 100, h: 1360 }).zoom).toBe(1)
     expect(focusShot({ x: 0, y: 0, w: 1920, h: 1080 }).zoom).toBe(1)
   })
+
+  // Наезд на часть у края окна не должен открывать пустой стол за окном: окно (keep) остаётся на весь SAFE экрана, часть — в SAFE экрана
+  it('keep: часть у верха окна — окно не отъезжает от верха экрана, часть видна целиком', () => {
+    const cmd = { x: 120, y: 166, w: 436.8, h: 36 }
+    const free = focusShot(cmd)
+    const kept = focusShot(cmd, SAFE)
+    expect(kept.zoom).toBe(free.zoom)
+    expect(kept.y).toBeGreaterThan(free.y)
+    const win = toScreen(SAFE, kept)
+    expect(win.y).toBeCloseTo(SAFE.y)
+    expect(win.x).toBeCloseTo(SAFE.x)
+    const r = toScreen(cmd, kept)
+    expect(r.x).toBeGreaterThanOrEqual(SAFE.x - 0.01)
+    expect(r.y).toBeGreaterThanOrEqual(SAFE.y - 0.01)
+    expect(r.y + r.h).toBeLessThanOrEqual(SAFE.y + SAFE.h + 0.01)
+  })
+
+  it('keep: часть в середине окна — тот же наезд, что и без keep; при zoom 1 камера не сдвигается', () => {
+    const mid = { x: 760, y: 440, w: 400, h: 200 }
+    expect(focusShot(mid, SAFE)).toEqual(focusShot(mid))
+    const wide = { x: 120, y: 700, w: 1680, h: 36 }
+    expect(focusShot(wide).zoom).toBe(1)
+    expect(focusShot(wide, SAFE)).toEqual(WHOLE)
+  })
 })
 
 describe('cameraAt', () => {

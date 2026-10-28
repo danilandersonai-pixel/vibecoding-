@@ -6,8 +6,10 @@ const clock = vi.hoisted(() => ({ frame: 0 }))
 vi.mock('remotion', async (importOriginal) => ({ ...(await importOriginal<typeof import('remotion')>()), useCurrentFrame: () => clock.frame }))
 
 import { SubtitlesShown } from '../../lib/subtitlesShown'
-import { MIN_TEXT, T } from '../theme'
-import { Header } from './Header'
+import { balanceText, fitText } from '../text'
+import { MIN_TEXT, SUBS, T } from '../theme'
+import { Header, HeaderBook } from './Header'
+import { bookRoom, CELL, cellsFor, HEADER_BOOK, HEADER_COLS, RIGHT, titleRoom, verdictWidth } from './layout'
 import { TermSubtitles } from './Subtitles'
 import { Verdict } from './Verdict'
 
@@ -75,6 +77,15 @@ describe('TermSubtitles', () => {
     expect(lines.join(' ')).toBe(long)
   })
 
+  it('две строки выровнены по длине — тем же переносом, что проверяет урок (balanceText)', () => {
+    clock.frame = 5
+    const text = 'Сервер запущен, страница открывается на localhost, и вывод идёт в терминал.'
+    const html = renderToStaticMarkup(<TermSubtitles cues={[{ from: 0, to: 30, text }]} />)
+    const lines = [...html.matchAll(/data-line="\d+"[^>]*>([^<]*)</g)].map((m) => m[1])
+    expect(lines).toEqual(balanceText(text, SUBS.size, SUBS.maxWidth))
+    expect(lines[1]).not.toBe('терминал.')
+  })
+
   it('плашка term-bg с прозрачностью 88 %, Golos Text 500 40 px', () => {
     clock.frame = 20
     const html = subtitles()
@@ -123,6 +134,41 @@ describe('Header', () => {
     expect(html).toContain('…')
     expect(html).not.toContain('помещается в шапку целиком')
   })
+
+  it('reserve — место справа под то, что рисует не шапка (метки ошибки, ссылка на книгу сцены): название до него не доходит', () => {
+    clock.frame = 200
+    const title = 'Очень длинное название главы, которое никак не помещается рядом с метками ошибки'
+    const reserve = verdictWidth(true)
+    const html = renderToStaticMarkup(<svg><Header lessonId="ch-abc" chapter={{ n: 2, total: 7, title }} book="" reserve={reserve} at={100} /></svg>)
+    const room = titleRoom('ch-abc', Math.ceil(reserve / CELL))
+    expect(html).toContain(`/07 · ${fitText(title, room)}`)
+    expect(fitText(title, room)).toMatch(/…$/)
+  })
+
+  it('reserve ровно в n знаков — n знаков, а не n + 1 из-за дробной ширины знака', () => {
+    for (const n of [1, 26, 55, 56]) expect(cellsFor(n * CELL)).toBe(n)
+    expect(cellsFor(0)).toBe(0)
+    expect(cellsFor(CELL + 0.5)).toBe(2)
+  })
+
+  it('titleRoom и bookRoom: id, номер, «/07 · », название и ссылка на книгу вместе не длиннее строки шапки', () => {
+    expect(HEADER_COLS).toBe(102)
+    // «ch-abc  02/07 · » — 16 знаков, промежуток до правой части — 3
+    expect(titleRoom('ch-abc', 0)).toBe(HEADER_COLS - 16)
+    expect(titleRoom('ch-abc', 40)).toBe(HEADER_COLS - 16 - 3 - 40)
+    expect(bookRoom('ch-abc', 'Git: история проекта')).toBe(HEADER_BOOK.max)
+    const long = 'а'.repeat(60)
+    expect(bookRoom('ch-abc', long)).toBe(HEADER_COLS - 16 - 3 - 60)
+    expect(titleRoom('ch-abc', bookRoom('ch-abc', long))).toBe(60)
+  })
+
+  it('HeaderBook — ссылка на книгу справа в шапке, как у Header', () => {
+    const html = renderToStaticMarkup(<svg><HeaderBook text="книга · Азбука · Где живёт код" /></svg>)
+    expect(html).toContain('книга · Азбука · Где живёт код')
+    expect(html).toContain(`x="${RIGHT}"`)
+    expect(html).toContain('text-anchor="end"')
+    expect(html).toContain(T.faint)
+  })
 })
 
 describe('Verdict', () => {
@@ -151,6 +197,14 @@ describe('Verdict', () => {
     expect(html).toContain('>Верно<')
     expect(html).not.toContain('Неверно')
     expect(html).toContain(T.ok)
+  })
+
+  it('verdictWidth — сколько места справа занимают метки: левый край «Типичная ошибка»', () => {
+    clock.frame = 0
+    const x = Number(/<rect x="([\d.]+)"/.exec(verdict())![1])
+    expect(x).toBeCloseTo(RIGHT - verdictWidth(true) + 1)
+    const alone = renderToStaticMarkup(<svg><Verdict mistake verdict={[]} /></svg>)
+    expect(Number(/<rect x="([\d.]+)"/.exec(alone)![1])).toBeCloseTo(RIGHT - verdictWidth(false) + 1)
   })
 
   it('вердикт показывается и вне сцены-ошибки, но без метки «Типичная ошибка»', () => {

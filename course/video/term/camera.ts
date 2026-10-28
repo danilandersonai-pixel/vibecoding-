@@ -40,8 +40,20 @@ export function toScreen(r: Rect, cam: Shot): Rect {
   return { x: CENTER.x + (r.x - cam.x) * cam.zoom, y: CENTER.y + (r.y - cam.y) * cam.zoom, w: r.w * cam.zoom, h: r.h * cam.zoom }
 }
 
-/** Наезд на часть кадра: часть в центр, zoom — вписать её в безопасную область с полем 48 px, не больше 1,6 и не меньше 1. */
-export function focusShot(r: Rect): Shot {
-  const zoom = Math.min(1.6, (SAFE.w - 96) / r.w, (SAFE.h - 96) / r.h)
-  return { x: r.x + r.w / 2, y: r.y + r.h / 2, zoom: Math.max(1, zoom) }
+/**
+ * Наезд на часть кадра: часть в центр, zoom — вписать её в безопасную область с полем 48 px, не больше 1,6 и не меньше 1.
+ * keep — окно кадра (часть 'frame'): камера сдвигается от центра части ровно настолько, чтобы окно не отъезжало от краёв SAFE экрана
+ * и за ним не открывался пустой стол; часть при этом остаётся в SAFE экрана (её увеличенный размер меньше SAFE).
+ */
+export function focusShot(r: Rect, keep?: Rect): Shot {
+  const zoom = Math.max(1, Math.min(1.6, (SAFE.w - 96) / r.w, (SAFE.h - 96) / r.h))
+  const shot = { x: r.x + r.w / 2, y: r.y + r.h / 2, zoom }
+  if (!keep) return shot
+  // Край keep на экране — не внутри SAFE: центр камеры между lo и hi; keep меньше экрана — по его центру
+  const clamp = (v: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : Math.min(Math.max(v, lo), hi))
+  return {
+    x: clamp(shot.x, keep.x + (CENTER.x - SAFE.x) / zoom, keep.x + keep.w - (SAFE.x + SAFE.w - CENTER.x) / zoom),
+    y: clamp(shot.y, keep.y + (CENTER.y - SAFE.y) / zoom, keep.y + keep.h - (SAFE.y + SAFE.h - CENTER.y) / zoom),
+    zoom,
+  }
 }

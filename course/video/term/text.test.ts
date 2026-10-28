@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ch01Script } from '../ch-01/script'
 import { chAbcScript } from '../ch-abc/script'
-import { fitText, monoChars, textWidth, wrapMono, wrapText } from './text'
+import { balanceText, fitText, monoChars, textWidth, wrapMono, wrapText } from './text'
 import { GOLOS, MEASURED_ADVANCE, MEASURED_GOLOS, MONO, SUBS } from './theme'
 
 describe('monoChars', () => {
@@ -85,6 +85,32 @@ describe('textWidth и wrapText', () => {
     expect(cues.length).toBeGreaterThan(80)
     const long = cues.filter((c) => wrapText(c.text, SUBS.size, SUBS.maxWidth).length > SUBS.maxLines)
     expect(long.map((c) => c.text)).toEqual([])
+  })
+})
+
+describe('balanceText', () => {
+  // Жадный перенос оставляет во второй строке одно слово: «терминал.»
+  const WIDOW = 'Сервер запущен, страница открывается на localhost, и вывод идёт в терминал.'
+
+  it('две строки выравниваются по длине: во второй строке не одно висячее слово', () => {
+    const greedy = wrapText(WIDOW, SUBS.size, SUBS.maxWidth)
+    expect(greedy).toHaveLength(2)
+    expect(greedy[1].split(' ')).toHaveLength(1)
+    const lines = balanceText(WIDOW, SUBS.size, SUBS.maxWidth)
+    expect(lines).toHaveLength(2)
+    expect(lines.join(' ')).toBe(WIDOW)
+    expect(lines[1].split(' ').length).toBeGreaterThan(1)
+    const [a, b] = lines.map((l) => [...l].length)
+    expect(Math.abs(a - b)).toBeLessThanOrEqual(12)
+    for (const line of lines) expect(textWidth(line, SUBS.size)).toBeLessThanOrEqual(SUBS.maxWidth)
+  })
+
+  it('строк столько же, сколько у жадного переноса: одна остаётся одной, три — тремя', () => {
+    expect(balanceText('Коротко и ясно.', SUBS.size, SUBS.maxWidth)).toEqual(['Коротко и ясно.'])
+    const three = 'Слово '.repeat(40).trim()
+    expect(wrapText(three, SUBS.size, SUBS.maxWidth)).toHaveLength(4)
+    expect(balanceText(three, SUBS.size, SUBS.maxWidth)).toHaveLength(4)
+    expect(balanceText('', SUBS.size, SUBS.maxWidth)).toEqual([''])
   })
 })
 

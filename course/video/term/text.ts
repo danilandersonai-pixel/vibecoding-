@@ -57,3 +57,22 @@ export function wrapText(text: string, sizePx: number, maxWidth: number): string
   if (current || lines.length === 0) lines.push(current)
   return lines
 }
+
+/**
+ * Перенос, как у субтитров: строк столько же, сколько у wrapText, но они выровнены по длине — самая узкая ширина, при которой
+ * строк не больше (как text-wrap: balance), поэтому во второй строке не остаётся одно висячее слово. Им же проверяют реплики урока.
+ */
+export function balanceText(text: string, sizePx: number, maxWidth: number): string[] {
+  const lines = wrapText(text, sizePx, maxWidth)
+  if (lines.length < 2) return lines
+  // Ширина в знаках: число строк жадного переноса с шириной не растёт, ищем самую узкую с тем же числом строк
+  const cell = sizePx * GOLOS.avg
+  let lo = 1
+  let hi = Math.max(1, Math.floor(maxWidth / cell + 1e-9))
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2)
+    if (wrapText(text, sizePx, mid * cell).length <= lines.length) hi = mid
+    else lo = mid + 1
+  }
+  return wrapText(text, sizePx, hi * cell)
+}

@@ -116,6 +116,9 @@ export function lastRow(p: Plan, tl: Timing[], frame: number): number {
 /** На сколько строк прокручено окно, когда последняя появившаяся строка — last. */
 export const scrollAt = (last: number) => Math.max(0, last + 1 - WIN.rows)
 
+/** Прокручивается ли окно в сцене: всё вместе не помещается в окно. Тогда части ранних элементов к концу сцены стоят не там, где появились. */
+export const terminalScrolls = (spec: TerminalSpec, ctx: FrameCtx) => scrollAt(plan(spec, ctx).rows - 1) > 0
+
 // Прямоугольник строк first…last на снимке «конец сцены» (окно прокручено на scroll строк); целиком выше окна — нет, частично — обрезан.
 function place(first: number, last: number, w: number, scroll: number): Rect | null {
   const bottom = last - scroll

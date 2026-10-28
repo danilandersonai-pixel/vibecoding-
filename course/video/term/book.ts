@@ -21,12 +21,16 @@ function shortChapter(chapter: string): string {
 
 /**
  * Ссылка на книгу для шапки: «книга · Азбука · Код, языки и чужие детали», для глав — «книга · гл. 1 · …».
- * Для нескольких разделов — первый и «и ещё N»; неизвестные якоря пропускаются. Длиннее maxChars не бывает (обрезка с «…»).
+ * Для нескольких разделов — первый и «и ещё N»; неизвестные якоря пропускаются. Длиннее maxChars не бывает: обрезается с «…»
+ * название первого раздела, а «и ещё N» остаётся (если под название не остаётся и пяти знаков — обрезается вся строка).
  */
 export function bookRef(ids: string[], maxChars: number): string {
   const found = ids.map(bookSection).filter((s) => s !== null)
   if (found.length === 0) return fitText('книга', maxChars)
   const [first, ...rest] = found
   const more = rest.length > 0 ? ` и ещё ${rest.length}` : ''
-  return fitText(`книга · ${shortChapter(first.chapter)} · ${first.title}${more}`, maxChars)
+  const head = `книга · ${shortChapter(first.chapter)} · `
+  const room = maxChars - [...head].length - [...more].length
+  if (more && [...first.title].length > room && room >= 5) return head + fitText(first.title, room) + more
+  return fitText(`${head}${first.title}${more}`, maxChars)
 }

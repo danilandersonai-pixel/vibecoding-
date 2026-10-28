@@ -18,6 +18,7 @@ import { CLOCK, ctx, FIXTURE, makeClock } from './fixture'
 import { cells, outsideSafe, rowTop, take, widest, WIN } from './geometry'
 import { FRAMES, frameDef } from './index'
 import type { DiffSpec, EditorSpec, FrameSpec, TerminalSpec } from './index'
+import { terminalScrolls } from './terminalPlan'
 
 const S = 'fixture'
 const START = CLOCK.beat(0) // 30
@@ -238,6 +239,14 @@ describe('Terminal', () => {
       expect(l['cmd:fail'].y).toBeCloseTo(rowTop(0))
       expect(l['line:fail:0'].y).toBeCloseTo(rowTop(1))
       expect(l['cmd:ls'].y).toBeCloseTo(rowTop(4))
+    })
+
+    it('terminalScrolls — прокручивается ли окно в сцене: всё вместе не помещается в 19 строк', () => {
+      expect(terminalScrolls(T0, ctx)).toBe(false)
+      expect(terminalScrolls({ type: 'terminal', items: [{ session: S, event: 'many', at: 0 }] }, ctx)).toBe(true)
+      // ровно 19 строк — ещё без прокрутки: команда и 18 строк вывода
+      expect(terminalScrolls({ type: 'terminal', items: [{ session: S, event: 'many', at: 0, lines: [1, 18] }] }, ctx)).toBe(false)
+      expect(terminalScrolls({ type: 'terminal', items: [{ session: S, event: 'many', at: 0, lines: [1, 19] }] }, ctx)).toBe(true)
     })
   })
 
