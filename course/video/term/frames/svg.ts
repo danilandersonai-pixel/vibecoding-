@@ -1,3 +1,5 @@
+import { svgId } from '../ids'
+
 // Схемы книги как строки SVG: разбор на верхние элементы, размер самого мелкого текста, маркеры стрелок, прорисовка линии. Без React.
 // Схемы лежат в content/figures/*.svg; в роликах их ставят как текст (`?raw`).
 
@@ -66,6 +68,19 @@ export function splitSvg(svg: string): { viewBox: [number, number, number, numbe
 /** Содержимое <defs> файла _defs.svg — маркеры стрелок. Их ставят в видимый <defs> кадра: из display:none Chromium маркеры не рисует. */
 export function defsOf(raw: string): string {
   return /<defs\b[^>]*>([\s\S]*?)<\/defs>/.exec(raw)?.[1] ?? ''
+}
+
+// id маркеров страницы (_defs.svg, FigureDefs): bk-arrow, bk-arrow-acc, bk-arrow-risk, bk-arrow-ok — в объявлении id="…" и в ссылках url(#…).
+// Без lookbehind: бандл читают и старые Safari.
+const BK_ARROW = /(\bid="|#)bk-arrow((?:-[a-z]+)?)(?=["')])/g
+
+/**
+ * Маркеры стрелок в кадре: id bk-arrow… → term-arrow… с id ролика — и в объявлениях (defsOf), и в ссылках схемы (marker-end="url(#…)").
+ * Те же id уже объявляет FigureDefs страницы, а он раньше кадра в документе: ссылка на bk-arrow уходит в тот маркер, и наконечник
+ * красится от темы страницы, а не от FIGURE_VARS кадра. Свои id (и свои у каждого ролика) держат ссылки схемы внутри кадра.
+ */
+export function scopeMarkers(markup: string, lessonId: string): string {
+  return markup.replace(BK_ARROW, (_, pre: string, variant: string) => pre + svgId(lessonId, `arrow${variant}`))
 }
 
 // Классы сплошных линий схем (figures.css) и пунктирных: у пунктира stroke-dasharray уже занят рисунком, прорисовать его штрихом нельзя.

@@ -12,6 +12,7 @@ import { TermSubtitles } from './chrome/Subtitles'
 import { Verdict } from './chrome/Verdict'
 import type { FrameCtx } from './frame'
 import { frameDef } from './frames'
+import { svgId } from './ids'
 import type { Lesson } from './lesson'
 import { textWidth } from './text'
 import { CANVAS, MOTION, T } from './theme'
@@ -22,8 +23,9 @@ import { CANVAS, MOTION, T } from './theme'
 // (у сцены mistake), при смене прежняя уходит и приходит новая (headerRight). Субтитры — поверх всего.
 // debugSpots — рамки пояснений там, где они будут на экране.
 
-// Камера не заходит на шапку: кадр выше VIEW.top обрезается; при наезде края видимой части растушёвываются (CameraFade)
-const VIEW_CLIP = 'lesson-view'
+// Камера не заходит на шапку: кадр выше VIEW.top обрезается; при наезде края видимой части растушёвываются (CameraFade).
+// id клипа — свой у каждого ролика: на странице дня их несколько в одном документе (ids.ts)
+const viewClip = (lessonId: string) => svgId(lessonId, 'view')
 /** Подпись отладочной рамки пояснения: кегль и высота плашки. */
 const LABEL = { size: 28, h: 40 }
 
@@ -36,13 +38,13 @@ function SceneView({ b, ctx, first }: SceneProps) {
   const cam = cameraAt(frame, keys)
   const { Component } = frameDef(b.scene.frame)
   return (
-    <g data-scene={b.id} opacity={opacity} clipPath={`url(#${VIEW_CLIP})`}>
+    <g data-scene={b.id} opacity={opacity} clipPath={`url(#${viewClip(ctx.lesson.id)})`}>
       <g transform={`translate(0 ${dy})`}>
         <g transform={`translate(${CANVAS.w / 2} ${CANVAS.h / 2}) scale(${cam.zoom}) translate(${-cam.x} ${-cam.y})`}>
           <Component spec={b.scene.frame} clock={b.clock} ctx={ctx} />
         </g>
       </g>
-      <CameraFade zoom={cam.zoom} />
+      <CameraFade zoom={cam.zoom} lessonId={ctx.lesson.id} />
     </g>
   )
 }
@@ -102,11 +104,11 @@ export function LessonVideo({ lesson, debugSpots = false }: { lesson: Lesson; de
     <AbsoluteFill style={{ background: T.desk }}>
       <svg viewBox={`0 0 ${CANVAS.w} ${CANVAS.h}`} width={CANVAS.w} height={CANVAS.h} style={{ position: 'absolute', inset: 0 }}>
         <defs>
-          <clipPath id={VIEW_CLIP}>
+          <clipPath id={viewClip(lesson.id)}>
             <rect x={0} y={VIEW.top} width={CANVAS.w} height={CANVAS.h - VIEW.top} />
           </clipPath>
         </defs>
-        <CameraFadeDefs />
+        <CameraFadeDefs lessonId={lesson.id} />
         {scenes.map((b, i) => (
           <Sequence key={b.start} name={b.id} from={b.start} durationInFrames={b.duration + (i < last ? MOTION.sceneFade : 0)} layout="none">
             <SceneView b={b} ctx={ctx} first={i === 0} />

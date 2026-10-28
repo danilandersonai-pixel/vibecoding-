@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { defsOf, drawn, isDrawable, rootFontSize, splitSvg } from './svg'
+import { defsOf, drawn, isDrawable, rootFontSize, scopeMarkers, splitSvg } from './svg'
 
 const FIGURES = resolve(dirname(fileURLToPath(import.meta.url)), '../../../content/figures')
 const read = (name: string) => readFileSync(resolve(FIGURES, name), 'utf8')
@@ -85,6 +85,34 @@ describe('defsOf', () => {
 
   it('нет <defs> — пустая строка', () => {
     expect(defsOf('<svg></svg>')).toBe('')
+  })
+})
+
+describe('scopeMarkers', () => {
+  const line = '<path d="M147.2 133L171.2 133" class="fg-ln" marker-end="url(#bk-arrow)"/>'
+
+  it('id маркеров и ссылки на них переезжают из bk-arrow… в term-arrow… с id ролика; все четыре цвета', () => {
+    const inner = scopeMarkers(defsOf(read('_defs.svg')), 'ch-01')
+    for (const name of ['arrow', 'arrow-acc', 'arrow-risk', 'arrow-ok']) expect(inner).toContain(`id="term-${name}-ch-01"`)
+    expect(inner).not.toContain('bk-arrow')
+    expect(scopeMarkers(line, 'ch-01')).toBe('<path d="M147.2 133L171.2 133" class="fg-ln" marker-end="url(#term-arrow-ch-01)"/>')
+    expect(scopeMarkers('<path marker-end="url(#bk-arrow-acc)"/><path marker-start="url(#bk-arrow-risk)"/>', 'a')).toBe(
+      '<path marker-end="url(#term-arrow-acc-a)"/><path marker-start="url(#term-arrow-risk-a)"/>',
+    )
+  })
+
+  it('чужие id, классы и тексты не трогает', () => {
+    const other = '<path class="fg-arrowhead" id="x" marker-end="url(#other)"/><text>bk-arrow</text>'
+    expect(scopeMarkers(other, 'ch-01')).toBe(other)
+  })
+
+  it('схемы книги: после замены ни одной ссылки в bk-arrow, а ссылок столько же', () => {
+    for (const f of readdirSync(FIGURES).filter((n) => n.endsWith('.svg') && !n.startsWith('_'))) {
+      const svg = read(f)
+      const out = scopeMarkers(svg, 'ch-01')
+      expect(out, f).not.toContain('bk-arrow')
+      expect((out.match(/url\(#term-arrow(-acc|-risk|-ok)?-ch-01\)/g) ?? []).length, f).toBe((svg.match(/url\(#bk-arrow(-acc|-risk|-ok)?\)/g) ?? []).length)
+    }
   })
 })
 

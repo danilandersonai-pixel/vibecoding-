@@ -307,13 +307,71 @@ describe('Figure', () => {
       expect(HARD_COLORS.length).toBeGreaterThan(5)
     })
 
-    it('маркеры стрелок _defs.svg лежат в видимом <defs> внутри обёртки, а не в скрытом блоке', () => {
+    it('маркеры стрелок _defs.svg лежат в видимом <defs> внутри обёртки, а не в скрытом блоке; id свои, term-arrow… с id ролика', () => {
       const html = view(WHOLE, START + 30)
       const wrap = html.slice(html.indexOf('<g data-figure'))
       expect(wrap.indexOf('<defs>')).toBeGreaterThan(-1)
-      for (const id of ['bk-arrow', 'bk-arrow-acc', 'bk-arrow-risk', 'bk-arrow-ok']) expect(wrap).toContain(`id="${id}"`)
+      expect([...wrap.matchAll(/<marker id="([^"]+)"/g)].map((m) => m[1])).toEqual(['arrow', 'arrow-acc', 'arrow-risk', 'arrow-ok'].map((name) => `term-${name}-fixture`))
       expect(wrap.indexOf('<defs>')).toBeLessThan(wrap.indexOf('<svg'))
       expect(html).not.toMatch(/display:\s*none|hidden/)
+    })
+
+    // Схема ссылается на маркеры по id, а id берётся первым в документе. Маркеры страницы (FigureDefs, bk-arrow…) раньше кадра, и их
+    // fill: var(--fig-line) считается от темы страницы, а не от тёмных FIGURE_VARS обёртки кадра: в светлой теме наконечники светлеют или исчезают.
+    describe('стрелки схемы не уходят в маркеры страницы', () => {
+      const arrows =
+        '<svg viewBox="0 0 100 100" font-size="13">' +
+        [['fg-ln', 'bk-arrow'], ['fg-ln-acc', 'bk-arrow-acc'], ['fg-ln-risk', 'bk-arrow-risk'], ['fg-ln-ok', 'bk-arrow-ok']]
+          .map(([cls, id], i) => `<path d="M10 ${10 + i * 20}L90 ${10 + i * 20}" class="${cls}" marker-end="url(#${id})"/>`)
+          .join('') +
+        '</svg>'
+      const wrapOf = (svg: string, c: FrameCtx = ctx) => {
+        const html = view({ type: 'figure', svg }, START + 40, CLOCK, c)
+        return html.slice(html.indexOf('<g data-figure'))
+      }
+      const lessonCtx = (id: string): FrameCtx => ({ ...ctx, lesson: { ...ctx.lesson, id } })
+      const defined = (wrap: string) => [...wrap.matchAll(/<marker id="([^"]+)"/g)].map((m) => m[1])
+      const used = (wrap: string) => [...wrap.matchAll(/marker-end="url\(#([^)]+)\)"/g)].map((m) => m[1])
+
+      it('в обёртке нет ни id, ни ссылок bk-arrow — ни у одной схемы книги', () => {
+        for (const svg of [arrows, restaurant, trust, vibe, modelcard, models, envs, aiwords, terminal]) expect(wrapOf(svg)).not.toContain('bk-arrow')
+        // и у схем со стрелками они есть: проверка не пустая
+        for (const svg of [arrows, restaurant, trust, vibe]) expect(used(wrapOf(svg)).length).toBeGreaterThan(0)
+      })
+
+      it('каждая стрелка ссылается на маркер из <defs> своей обёртки, цвета (acc, risk, ok) сохранены', () => {
+        const wrap = wrapOf(arrows)
+        expect(used(wrap)).toEqual(['arrow', 'arrow-acc', 'arrow-risk', 'arrow-ok'].map((name) => `term-${name}-fixture`))
+        for (const id of used(wrap)) expect(defined(wrap)).toContain(id)
+        expect(wrap).toContain('class="fg-arrowhead-acc"')
+        for (const svg of [restaurant, trust, vibe]) {
+          const w = wrapOf(svg)
+          for (const id of used(w)) expect(defined(w)).toContain(id)
+        }
+      })
+
+      it('прорисовка линии не трогает ссылку: пока линия не дорисована, наконечника нет, потом он на своём маркере', () => {
+        const start = view({ type: 'figure', svg: arrows }, START + 4)
+        expect(start).not.toContain('marker-end')
+        expect(wrapOf(arrows)).toContain('marker-end="url(#term-arrow-fixture)"')
+      })
+
+      it('у двух роликов на странице маркеры разные: id зависит от ролика (ctx.lesson.id)', () => {
+        const [a, b] = [wrapOf(arrows, lessonCtx('ch-abc')), wrapOf(arrows, lessonCtx('ch-01'))]
+        expect(defined(a).filter((id) => defined(b).includes(id))).toEqual([])
+        expect(used(a).filter((id) => used(b).includes(id))).toEqual([])
+        for (const id of used(a)) expect(defined(a)).toContain(id)
+        for (const id of used(b)) expect(defined(b)).toContain(id)
+      })
+
+      it('как в браузере: на странице маркеры FigureDefs, а ссылки кадра находят первый маркер с id — в самом кадре', () => {
+        const page = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../../content/figures/_defs.svg'), 'utf8')
+        document.body.innerHTML = `<div data-owner="page">${page}</div><div data-owner="video">${view({ type: 'figure', svg: arrows }, START + 40)}</div>`
+        const ids = used(document.body.innerHTML.slice(document.body.innerHTML.indexOf('data-owner="video"')))
+        expect(ids).toHaveLength(4)
+        for (const id of ids) expect(document.getElementById(id)!.closest('[data-owner]')!.getAttribute('data-owner')).toBe('video')
+        document.body.innerHTML = ''
+      })
     })
 
     it('схема — вложенный <svg> с viewBox схемы (или crop), по центру SAFE и без полей', () => {
@@ -356,7 +414,7 @@ describe('Figure', () => {
 
     it('наконечник стрелки появляется, когда линия дорисована', () => {
       expect(view(WHOLE, START + 4)).not.toContain('marker-end')
-      expect(view(WHOLE, START + MOTION.draw)).toContain('marker-end="url(#bk-arrow)"')
+      expect(view(WHOLE, START + MOTION.draw)).toContain('marker-end="url(#term-arrow-fixture)"')
     })
 
     it('элемент без прогресса не выводится; непрозрачность — appear за MOTION.appear', () => {

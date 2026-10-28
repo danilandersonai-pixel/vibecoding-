@@ -163,6 +163,20 @@ describe('Header', () => {
     expect(titleRoom('ch-abc', bookRoom('ch-abc', long))).toBe(60)
   })
 
+  it('клип номера главы свой у каждого ролика: на странице дня их два, а url(#…) берёт первый id в документе', () => {
+    clock.frame = 200
+    const of = (lessonId: string) =>
+      renderToStaticMarkup(<svg><Header lessonId={lessonId} chapter={CHAPTER} book="" at={100} /></svg>)
+    const [a, b] = [of('ch-abc'), of('ch-01')]
+    const idA = /<clipPath id="([^"]+)"/.exec(a)![1]
+    const idB = /<clipPath id="([^"]+)"/.exec(b)![1]
+    expect(idA).not.toBe(idB)
+    expect(a).toContain(`clip-path="url(#${idA})"`)
+    expect(b).toContain(`clip-path="url(#${idB})"`)
+    // один и тот же ролик в одном кадре даёт один и тот же id: рендер детерминирован
+    expect(of('ch-01')).toBe(b)
+  })
+
   it('HeaderBook — ссылка на книгу справа в шапке, как у Header', () => {
     const html = renderToStaticMarkup(<svg><HeaderBook text="книга · Азбука · Где живёт код" /></svg>)
     expect(html).toContain('книга · Азбука · Где живёт код')
@@ -217,12 +231,16 @@ describe('Verdict', () => {
 })
 
 describe('CameraFade', () => {
-  const fade = (zoom: number) => renderToStaticMarkup(<svg><CameraFade zoom={zoom} /></svg>)
+  const fade = (zoom: number, lessonId = 'ch-abc') => renderToStaticMarkup(<svg><CameraFade zoom={zoom} lessonId={lessonId} /></svg>)
+  const defs = (lessonId = 'ch-abc') => renderToStaticMarkup(<svg><CameraFadeDefs lessonId={lessonId} /></svg>)
+  const idsOf = (html: string) => [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1])
+  const refsOf = (html: string) => [...html.matchAll(/url\(#([^)]+)\)/g)].map((m) => m[1])
 
   it('при zoom 1 растушёвки нет, при наезде — по краям видимой части кадра (ниже шапки, выше субтитров)', () => {
     expect(fade(1)).toBe('<svg></svg>')
     const html = fade(1.6)
-    for (const side of ['top', 'bottom', 'left', 'right']) expect(html).toContain(`url(#lesson-fade-${side})`)
+    expect(refsOf(html)).toHaveLength(4)
+    expect(refsOf(html)).toEqual(idsOf(defs()))
     expect(html).toContain('opacity="1"')
     // полоса 48 px: сверху от шапки, снизу до полосы субтитров
     expect(html).toContain(`y="${VIEW.top}"`)
@@ -239,10 +257,17 @@ describe('CameraFade', () => {
   })
 
   it('градиенты — из desk в прозрачный', () => {
-    const html = renderToStaticMarkup(<svg><CameraFadeDefs /></svg>)
-    for (const side of ['top', 'bottom', 'left', 'right']) expect(html).toContain(`id="lesson-fade-${side}"`)
+    const html = defs()
+    expect(idsOf(html)).toHaveLength(4)
     expect(html).toContain(T.desk)
     expect(html).toContain('stop-opacity="0"')
+  })
+
+  it('id градиентов свои у каждого ролика: растушёвка второго не берёт градиенты первого', () => {
+    const [a, b] = [defs('ch-abc'), defs('ch-01')]
+    expect(idsOf(a).filter((id) => idsOf(b).includes(id))).toEqual([])
+    expect(refsOf(fade(1.6, 'ch-01'))).toEqual(idsOf(b))
+    expect(refsOf(fade(1.6, 'ch-abc'))).toEqual(idsOf(a))
   })
 })
 

@@ -14,6 +14,8 @@ const CH01 = 'Вайб-кодинг: шкала, а не выключатель'
 // #141619 — desk, фон кадра набора «Репозиторий» и сцены (.video-stage.is-dark); #E9EBEE — ink, светлая рамка пояснений
 const DESK = 'rgb(20, 22, 25)'
 const INK = 'rgb(233, 235, 238)'
+// #7A818A — line, линии схем книги в кадре (и их наконечники)
+const LINE = 'rgb(122, 129, 138)'
 
 // Сценарии сайта — script.gen.json: их читают ch-abc/script.ts и ch-01/script.ts (там import без атрибута json, Node в Playwright его не берёт)
 const chAbcScript = chAbcData as VideoScript
@@ -213,6 +215,93 @@ test('в светлой теме страницы кадр тёмного рол
       }
     }
   }
+})
+
+// Кадр сцены по номеру: сцены идут подряд, начало — сумма длин предыдущих
+function sceneFrame(script: VideoScript, id: string, offset: number): number {
+  let start = 0
+  for (const s of script.scenes) {
+    if (s.id === id) return start + offset
+    start += s.durationInFrames
+  }
+  throw new Error(`нет сцены ${id}`)
+}
+
+// Перемотать ролик на кадр (с обложки — запустив его и поставив на паузу); ждём, пока в кадре нарисуется схема (path со стрелкой)
+async function seekFigure(figure: Locator, frame: number) {
+  const cover = figure.getByRole('button', { name: /^Смотреть ролик «/ })
+  if (await cover.count()) {
+    await cover.click()
+    await figure.getByRole('button', PAUSE).click()
+  }
+  await figure.getByRole('slider', { name: 'Перемотка' }).fill(String(frame))
+  await expect(figure.locator('.video-frame [data-figure] path[marker-end]').first()).toBeAttached()
+}
+
+// id внутри SVG ролика уникальны для ролика: на странице дня два кадра рядом, а url(#id) в браузере находит первый элемент с таким id
+// во всём документе. Общий id у двух роликов делает чужой клип/маркер/градиент своим (у «ch-01» терялась первая цифра номера главы).
+test('день 1: id внутри двух роликов не пересекаются, каждая ссылка url(#…) ведёт в элемент своего ролика', async ({ page }) => {
+  await page.goto('/#/day/1')
+  // кадры со схемами: шапка, обрезка кадра, растушёвка и маркеры стрелок — всё на месте
+  await seekFigure(videoFigure(page, ABC), sceneFrame(chAbcScript, 'parts-restaurant', 400))
+  await seekFigure(videoFigure(page, CH01), sceneFrame(ch01Script, 'modes-map', 500))
+
+  const frames = page.locator('.video-frame')
+  await expect(frames).toHaveCount(2)
+  const found = await frames.evaluateAll((els) =>
+    els.map((el) => {
+      const ids = [...el.querySelectorAll('[id]')].map((e) => e.id)
+      const refs = [...el.querySelectorAll('*')].flatMap((e) =>
+        [...e.attributes].flatMap((a) => [...a.value.matchAll(/url\(#([^)]+)\)/g)].map((m) => ({ id: m[1], attr: a.name, own: el.contains(document.getElementById(m[1])) }))),
+      )
+      return { ids, refs }
+    }),
+  )
+  for (const f of found) {
+    expect(f.ids.length).toBeGreaterThan(5)
+    expect(f.refs.length).toBeGreaterThan(5)
+    // внутри ролика один id — один элемент
+    expect(f.ids.filter((id, i) => f.ids.indexOf(id) !== i)).toEqual([])
+    // ссылки находят свой элемент: клип обрезки кадра, клип номера главы, градиенты растушёвки, маркеры стрелок
+    expect(f.refs.filter((r) => !r.own)).toEqual([])
+    expect(f.refs.map((r) => r.attr)).toEqual(expect.arrayContaining(['clip-path', 'marker-end']))
+  }
+  expect(found[0].ids.filter((id) => found[1].ids.includes(id))).toEqual([])
+})
+
+// Наконечники стрелок схем в кадре красятся по теме кадра (FIGURE_VARS обёртки), а не страницы: FigureDefs страницы стоит раньше в документе
+// и объявляет те же маркеры; светлая тема страницы красила бы наконечники своими токенами (у ch1_trust ось пропадала).
+test('в светлой теме страницы наконечники стрелок схем в кадре — цвета кадра, маркеры лежат в самом кадре', async ({ page }) => {
+  await openDay1(page, 'light')
+  const heads = async (figure: Locator) =>
+    figure.locator('.video-frame').evaluate((frame) =>
+      [...frame.querySelectorAll('[data-figure] path[marker-end]')].map((path) => {
+        const id = /url\(#([^)]+)\)/.exec(path.getAttribute('marker-end')!)![1]
+        // маркер, который рисует браузер: первый элемент с таким id в документе
+        const marker = document.getElementById(id)!
+        return { id, own: frame.contains(marker), fill: getComputedStyle(marker.querySelector('path')!).fill }
+      }),
+    )
+
+  // ch-01, «Пять режимов»: линии схемы цвета line — #7A818A (rgb(122, 129, 138)), а не цвет страницы
+  const ch01 = videoFigure(page, CH01)
+  await seekFigure(ch01, sceneFrame(ch01Script, 'modes-map', 500))
+  const lines = await heads(ch01)
+  expect(lines.length).toBeGreaterThan(0)
+  for (const h of lines) expect(h, h.id).toMatchObject({ own: true, fill: LINE })
+
+  // ch-01, «Бенчмарки»: ось схемы ch1_trust с акцентом — в кадре акцент это ink (#E9EBEE), на странице — синий
+  await seekFigure(ch01, sceneFrame(ch01Script, 'bench-trust', 380))
+  const accent = await heads(ch01)
+  expect(accent.length).toBeGreaterThan(0)
+  for (const h of accent) expect(h, h.id).toMatchObject({ own: true, fill: INK })
+
+  // ch-abc: схема «ресторан» — линии
+  const abc = videoFigure(page, ABC)
+  await seekFigure(abc, sceneFrame(chAbcScript, 'parts-restaurant', 400))
+  const restaurant = await heads(abc)
+  expect(restaurant.length).toBeGreaterThan(0)
+  for (const h of restaurant) expect(h, h.id).toMatchObject({ own: true, fill: LINE })
 })
 
 // Пояснение на паузе у тёмного ролика: слой зон помечен is-dark, рамка светлая (#E9EBEE) в обеих темах страницы, зона — над своим местом в кадре

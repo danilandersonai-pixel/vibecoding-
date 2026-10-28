@@ -1,4 +1,5 @@
 import { useCurrentFrame } from 'remotion'
+import { svgId } from '../ids'
 import { easeOut } from '../motion'
 import { fitText } from '../text'
 import { HEADER, MONO, MOTION, SAFE, T } from '../theme'
@@ -32,6 +33,8 @@ export function Header({ lessonId, chapter, book, reserve = 0, at }: Props) {
   const p = easeOut((frame - at) / MOTION.chapter)
   const rolling = chapter.n > 1 && p < 1
 
+  // Клип номера свой у каждого ролика: x клипа зависит от длины id, а на странице дня роликов несколько (см. ids.ts)
+  const clip = svgId(lessonId, 'header-number')
   const numberX = LEFT + (lessonId.length + 2) * CELL
   const restX = numberX + 2 * CELL
   // Названию остаётся то, что не заняли id, номер, «/07 · » и правая часть (с промежутком в три знака).
@@ -46,13 +49,13 @@ export function Header({ lessonId, chapter, book, reserve = 0, at }: Props) {
 
   return (
     <g>
-      <clipPath id="term-header-number">
+      <clipPath id={clip}>
         <rect x={numberX} y={HEADER.y} width={2 * CELL} height={HEADER.h} />
       </clipPath>
       <text x={LEFT} y={BASELINE} fill={T.faint} style={text}>
         {lessonId}
       </text>
-      <g clipPath="url(#term-header-number)">
+      <g clipPath={`url(#${clip})`}>
         {rolling && (
           <text x={numberX} y={BASELINE} fill={T.faint} style={text} transform={`translate(0 ${-p * ROLL})`}>
             {pad(chapter.n - 1)}
