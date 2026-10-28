@@ -51,7 +51,7 @@ describe('верх главной', () => {
     expect(card.getByText('день 01, неделя 1')).toBeInTheDocument()
     expect(card.getByRole('heading', { level: 2, name: 'Азбука и знакомство с моделями' })).toBeInTheDocument()
     expect(card.getByText(day.goal)).toBeInTheDocument()
-    expect(card.getByText('2 видеоурока (8:51), тест, 6 шагов практики')).toBeInTheDocument()
+    expect(card.getByText('2 видеоурока (8:52), тест, 6 шагов практики')).toBeInTheDocument()
     const start = card.getByRole('link', { name: 'Начать' })
     expect(start).toHaveAttribute('href', '#/day/1')
     expect(start.querySelector('svg')).toBeNull()

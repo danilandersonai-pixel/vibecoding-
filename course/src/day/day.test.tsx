@@ -72,7 +72,7 @@ describe('страница дня', () => {
     expect(hero.getByText(day.goal)).toBeInTheDocument()
     // Состав дня — пары «подпись — значение» (dl), только то, что в дне есть
     expect(hero.getAllByRole('term').map((dt) => dt.textContent)).toEqual(['видеоуроки', 'теория', 'практика', 'тест'])
-    expect(hero.getAllByRole('definition').map((dd) => dd.textContent)).toEqual(['2 (8:51)', '≈ 40 мин', '≈ 80 мин', '6 вопросов'])
+    expect(hero.getAllByRole('definition').map((dd) => dd.textContent)).toEqual(['2 (8:52)', '≈ 40 мин', '≈ 80 мин', '6 вопросов'])
     for (const dt of hero.getAllByRole('term')) expect(dt.nextElementSibling?.tagName).toBe('DD')
     // «Результат дня» — строка диффа: «+ » только для глаз
     expect(hero.getByText('Результат дня')).toBeInTheDocument()
