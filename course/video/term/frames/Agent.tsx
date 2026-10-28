@@ -96,7 +96,7 @@ export function Agent({ spec, clock, ctx }: Props): JSX.Element {
           </g>
         )
       })}
-      {frame >= t.reply && (
+      {p.reply.lines.length > 0 && frame >= t.reply && (
         <g data-part="reply">
           {p.reply.lines.map((text, j) => {
             const o = appear(frame, t.reply + j * MOTION.stagger)

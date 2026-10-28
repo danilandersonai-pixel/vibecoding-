@@ -17,14 +17,15 @@ import type { DiffKind, Range } from './source'
  * (Golos Text 28 px). mode — имя режима в нижней строке окна.
  * event — agent; at — реплики сцены: prompt — где начинает набираться запрос, steps — по реплике на каждый шаг записи
  * (шаг ждёт конца набора и конца предыдущего шага), reply — где появляется ответ.
- * chat: true — окно «Чат с ИИ», без шагов: запрос, ответ и код нового файла (добавленные строки диффа первого шага file, не больше diffLines;
- * если строк больше — последней строкой «…» faint) блоком. Если первый file правит существующий файл — problems.
+ * chat: true — окно «Чат с ИИ», без шагов и без ответа агента (чат в проекте ничего не делает, а ответ записи — слова агента):
+ * запрос и под ним код нового файла (добавленные строки диффа первого шага file, не больше diffLines; если строк больше — последней
+ * строкой «…» faint) блоком; at.reply — реплика, на которой появляется код. Если первый file правит существующий файл — problems.
  * code — только у chat: какие строки нового файла показать (с 1, включительно; diffLines тогда код не обрезает) — так в блок попадает
  * нужное место файла, а не его начало; выше и ниже, если файл шире, — строка «…» faint.
  * diffLines — число строк диффа у всех шагов file или по шагам: { id шага: строк } (не указанный шаг — по умолчанию 6); так у одного
  * шага видна сама правка, а у других — только «Edited …».
  * Всё должно помещаться в окно: 19 строк, а с режимом — 18; иначе problems. Если дифф не лезет — уменьшайте diffLines.
- * Части: 'frame', 'prompt' (рамка ввода), 'step:<id>', 'reply', 'code' (только chat), 'mode'.
+ * Части: 'frame', 'prompt' (рамка ввода), 'step:<id>', 'reply' (не у chat), 'code' (только chat), 'mode'.
  * Части — один снимок, как у Terminal: окно в конце сцены, когда всё появилось.
  */
 export type AgentSpec = {
@@ -213,12 +214,13 @@ export function plan(spec: AgentSpec, ctx: FrameCtx): Plan {
     }
   }
 
+  // Ответ агента — только в сессии агента: чат в проекте ничего не делает, его ответ — сам код
   row += GAP
-  const lines = wrapText(ev.reply, REPLY.size, REPLY.width)
+  const lines = spec.chat ? [] : wrapText(ev.reply, REPLY.size, REPLY.width)
   const reply = { lines, row, rows: (lines.length * REPLY.line) / LH }
   row += reply.rows
   if (code) {
-    row += GAP
+    if (reply.lines.length > 0) row += GAP
     code.row = row
     let at = row + CODE_PAD / LH
     for (const l of code.lines) {
@@ -286,7 +288,7 @@ export function agentLayout(spec: AgentSpec, ctx: FrameCtx): Record<string, Rect
   if (!p.ok) return parts
   parts.prompt = boxRect(p.prompt.length)
   for (const s of p.steps) parts[`step:${s.id}`] = { x: X0, y: rowTop(s.row), w: Math.max(1, ...s.lines.map((l) => l.width)) * CELL, h: s.rows * LH }
-  parts.reply = { x: X0, y: rowTop(p.reply.row), w: Math.max(1, ...p.reply.lines.map((l) => textWidth(l, REPLY.size))), h: p.reply.lines.length * REPLY.line }
+  if (p.reply.lines.length > 0) parts.reply = { x: X0, y: rowTop(p.reply.row), w: Math.max(1, ...p.reply.lines.map((l) => textWidth(l, REPLY.size))), h: p.reply.lines.length * REPLY.line }
   if (p.code) parts.code = { x: BOX.x, y: rowTop(p.code.row), w: BOX.w, h: p.code.rows * LH }
   if (spec.mode) parts.mode = { x: X0, y: rowTop(MODE_ROW), w: widest([spec.mode]), h: LH }
   return parts

@@ -187,11 +187,10 @@ describe('Agent', () => {
       expect(bare.mode).toBeUndefined()
     })
 
-    it('chat: нет шагов, есть code; запрос → ответ → код', () => {
+    it('chat: нет шагов и ответа агента, есть code; запрос → код', () => {
       const chat = def.layout(CHAT, ctx)
-      expect(Object.keys(chat).sort()).toEqual(['code', 'frame', 'prompt', 'reply'])
-      expect(below(chat.reply, chat.prompt)).toBe(true)
-      expect(below(chat.code, chat.reply)).toBe(true)
+      expect(Object.keys(chat).sort()).toEqual(['code', 'frame', 'prompt'])
+      expect(below(chat.code, chat.prompt)).toBe(true)
       for (const r of Object.values(chat)) expect(inside(r)).toBe(true)
     })
   })
@@ -434,17 +433,30 @@ describe('Agent', () => {
       expect(texts).toEqual(wrapText(reply.reply, 28, 1560))
     })
 
-    it('chat: запрос, ответ, код из диффа первого шага file; ни «Reading», ни «Edited»', () => {
+    it('chat: запрос и код из диффа первого шага file; ни «Reading», ни «Edited», ни ответа агента — чат в проекте ничего не делает', () => {
       const html = view(CHAT, END)
       expect(plain(html)).not.toMatch(/Reading|Edited|Run "/)
       expect(plain(part(html, 'prompt')!)).toContain('Добавь проверку веса в форму подхода')
-      expect(part(html, 'reply')).not.toBeNull()
+      expect(part(html, 'reply')).toBeNull()
+      const ag = FIXTURE.events.find((e) => e.id === 'ag') as AgentEvent
+      expect(plain(html)).not.toContain(ag.reply.slice(0, 20))
       const code = plain(part(html, 'code')!)
       expect(code).toContain('export async function GET() {')
       expect(code).toContain("  return Response.json({ sets: [] })")
       expect(code).not.toContain('+') // знаки диффа не нужны
       expect(code).not.toContain('@@')
       expect(html).not.toContain('data-part="step:')
+    })
+
+    it('chat: блок кода появляется на реплике at.reply — сразу после запроса', () => {
+      const t = def.moments(CHAT, CLOCK, ctx)
+      const codeAt = CLOCK.beat(CHAT.at.reply)
+      expect(t).toContain(codeAt)
+      expect(part(view(CHAT, codeAt - 1), 'code')).toBeNull()
+      expect(part(view(CHAT, codeAt), 'code')).not.toBeNull()
+      // строк ответа под запросом нет: код стоит сразу под рамкой ввода, через просвет
+      const lay = def.layout(CHAT, ctx)
+      expect(lay.code.y - (lay.prompt.y + lay.prompt.h)).toBeLessThan(36)
     })
 
     it('chat: diffLines ограничивает код', () => {
