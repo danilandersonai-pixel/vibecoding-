@@ -270,11 +270,25 @@ describe('recordChain: вывод команд', () => {
 
   it('метки ИИ-агента, из которого запущен рекордер, в команды не попадают', async () => {
     // по таким меткам `next dev` понимает, что его запустил агент, и дописывает в проект AGENTS.md
-    const marks = { CLAUDECODE: '1', CLAUDE_CODE_ENTRYPOINT: 'cli', AI_AGENT: 'claude-code', CURSOR_AGENT: '1', CODEX_SANDBOX: 'seatbelt', GEMINI_CLI: '1' }
+    const marks = {
+      AI_AGENT: 'claude-code',
+      CLAUDECODE: '1',
+      CLAUDE_CODE_ENTRYPOINT: 'cli',
+      CODEX_SANDBOX: 'seatbelt',
+      CURSOR_AGENT: '1',
+      COPILOT_MODEL: 'gpt',
+      GEMINI_CLI: '1',
+      OPENCODE_CLIENT: 'cli',
+      AUGMENT_AGENT: '1',
+      ANTIGRAVITY_AGENT: '1',
+      REPL_ID: 'repl',
+    }
     const saved = Object.fromEntries(Object.keys(marks).map((name) => [name, process.env[name]]))
     Object.assign(process.env, marks)
     try {
-      const [e] = await outOf([{ id: 'env', run: 'env | cut -d= -f1 | grep -E "^(AI_AGENT|CLAUDE|CURSOR|CODEX|GEMINI)" | sort; echo конец' }])
+      // и все метки из шаблона рекордера, в том числе настоящие CLAUDE_* запустившего тесты
+      const pattern = '^(AI_AGENT|CLAUDE|CODEX_|CURSOR_|COPILOT_|GEMINI_CLI|OPENCODE_|AUGMENT_AGENT|ANTIGRAVITY_AGENT|REPL_ID)'
+      const [e] = await outOf([{ id: 'env', run: `env | cut -d= -f1 | grep -E "${pattern}" | sort; echo конец` }])
       expect(e).toMatchObject({ out: ['конец'] })
     } finally {
       for (const [name, value] of Object.entries(saved)) {
