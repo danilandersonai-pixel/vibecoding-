@@ -58,12 +58,12 @@ function LessonHeader({ lesson, scenes }: { lesson: Lesson; scenes: BuiltScene[]
         lessonId={lesson.id}
         chapter={{ n: b.chapter + 1, total: lesson.chapters.length, title: lesson.chapters[b.chapter].title }}
         book=""
-        reserve={sceneReserve(lesson, b)}
+        reserve={sceneReserve(lesson, scenes, b)}
         at={start}
       />
       {headerRight(lesson, scenes, frame).map(({ b: s, opacity, label }) => (
         <g key={s.start} opacity={opacity}>
-          {s.scene.role === 'mistake' ? <Verdict mistake={label} verdict={sceneVerdict(s).map((v) => ({ ...v, at: s.start + v.at }))} /> : <HeaderBook text={sceneBook(lesson, s)} />}
+          {s.scene.role === 'mistake' ? <Verdict mistake={label} verdict={sceneVerdict(scenes, s).map((v) => ({ ...v, at: s.start + v.at }))} /> : <HeaderBook text={sceneBook(lesson, s)} />}
         </g>
       ))}
     </g>

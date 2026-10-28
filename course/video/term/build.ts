@@ -62,9 +62,30 @@ export function spotWindow(b: BuiltScene, spot: Spot): { from: number; to: numbe
 export const spotTimed = (b: BuiltScene, spot: Spot) =>
   isBeat(spot.at, b.clock.lines) && (spot.until === undefined || (Number.isInteger(spot.until) && spot.until > spot.at && spot.until <= b.clock.lines))
 
-/** Вердикты сцены в кадрах сцены (для Verdict); с неверной репликой — пропускаются. */
-export function sceneVerdict(b: BuiltScene): { at: number; kind: 'wrong' | 'right' }[] {
-  return (b.scene.verdict ?? []).filter((v) => isBeat(v.at, b.clock.lines)).map((v) => ({ at: b.clock.beat(v.at), kind: v.kind }))
+type Verdict = { at: number; kind: 'wrong' | 'right' }
+
+/** Вердикт, с которым сцена начинается: последний вердикт прежней сцены той же серии mistake (сцены mistake подряд в главе), иначе нет. */
+function carried(scenes: BuiltScene[], b: BuiltScene): Verdict['kind'] | null {
+  const i = scenes.indexOf(b)
+  const prev = scenes[i - 1]
+  if (b.scene.role !== 'mistake' || !prev || prev.chapter !== b.chapter || prev.scene.role !== 'mistake') return null
+  const list = sceneVerdict(scenes, prev)
+  return list.length > 0 ? list[list.length - 1].kind : null
+}
+
+/**
+ * Вердикты сцены в кадрах сцены (для Verdict); с неверной репликой — пропускаются. В серии сцен mistake сцена начинается с вердикта
+ * прежней — он уже проявлен (at = −MOTION.appear), поэтому на смене сцен не гаснет; вердикт того же вида подряд не повторяется.
+ */
+export function sceneVerdict(scenes: BuiltScene[], b: BuiltScene): Verdict[] {
+  const own = (b.scene.verdict ?? [])
+    .filter((v) => isBeat(v.at, b.clock.lines))
+    .map((v) => ({ at: b.clock.beat(v.at), kind: v.kind }))
+    .sort((x, y) => x.at - y.at)
+  const from = carried(scenes, b)
+  const out: Verdict[] = from ? [{ at: -MOTION.appear, kind: from }] : []
+  for (const v of own) if (out.length === 0 || out[out.length - 1].kind !== v.kind) out.push(v)
+  return out
 }
 
 /**
@@ -79,8 +100,8 @@ export function sceneBook(lesson: Lesson, b: BuiltScene): string {
 }
 
 /** Сколько px справа в шапке занимает сцена: метки ошибки или ссылка на книгу (шапка не даёт названию главы дойти до них). */
-export function sceneReserve(lesson: Lesson, b: BuiltScene): number {
-  if (b.scene.role === 'mistake') return verdictWidth((b.scene.verdict ?? []).length > 0)
+export function sceneReserve(lesson: Lesson, scenes: BuiltScene[], b: BuiltScene): number {
+  if (b.scene.role === 'mistake') return verdictWidth(sceneVerdict(scenes, b).length > 0)
   return [...sceneBook(lesson, b)].length * CELL
 }
 
@@ -88,7 +109,7 @@ export function sceneReserve(lesson: Lesson, b: BuiltScene): number {
  * Правая часть шапки на кадре ролика: чья (ссылка на книгу сцены или её метки ошибки), насколько видна и рисуется ли у неё метка
  * «Типичная ошибка» (label). Если у соседних сцен она та же (одна ссылка на книгу), смены нет; иначе в первые полсмены сцены прежняя
  * уходит, во вторые — приходит новая: они не накладываются. Две сцены mistake подряд: метка стоит, уходит только вердикт прежней
- * (вердикт новой появляется на её реплике, позже смены).
+ * (вердикт новой появляется на её реплике, позже смены), а если у прежней был вердикт — он переходит в новую без разрыва.
  */
 export function headerRight(lesson: Lesson, scenes: BuiltScene[], frame: number): { b: BuiltScene; opacity: number; label: boolean }[] {
   const b = sceneAt(scenes, frame)
@@ -100,7 +121,11 @@ export function headerRight(lesson: Lesson, scenes: BuiltScene[], frame: number)
   if (!prev || same || t >= MOTION.sceneFade) return [now]
   const half = MOTION.sceneFade / 2
   const out = 1 - easeIn(Math.min(1, t / half))
-  if (mistake(prev) && mistake(b)) return [{ b: prev, opacity: out, label: false }, now]
+  if (mistake(prev) && mistake(b)) {
+    // Серия сцен mistake: вердикт прежней переходит в новую (sceneVerdict), поэтому прежняя в шапке не рисуется
+    if (carried(scenes, b) !== null) return [now]
+    return [{ b: prev, opacity: out, label: false }, now]
+  }
   return [
     { b: prev, opacity: out, label: mistake(prev) },
     { b, opacity: appear(t - half, 0, half), label: mistake(b) },

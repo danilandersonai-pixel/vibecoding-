@@ -1,7 +1,7 @@
 import { totalFrames, validateScript } from '../lib/timeline'
 import type { Cue } from '../types'
 import { bookSection } from './book'
-import { buildLesson, cameraKeys, isBeat, lessonCtx, sceneParts, SPOT_EDGE, spotTimed, spotWindow } from './build'
+import { buildLesson, cameraKeys, lessonCtx, sceneParts, sceneVerdict, SPOT_EDGE, spotTimed, spotWindow } from './build'
 import type { BuiltScene } from './build'
 import { cameraAt, toScreen } from './camera'
 import type { Shot } from './camera'
@@ -151,7 +151,7 @@ function cueProblems(b: BuiltScene, cues: Cue[]): string[] {
 const scrolledTarget = (spec: FrameSpec, name: string, ctx: FrameCtx, clock: BuiltScene['clock']) =>
   spec.type === 'terminal' && terminalPartMoves(spec, ctx, clock, name)
 
-function sceneProblems(lesson: Lesson, b: BuiltScene, ctx: FrameCtx): string[] {
+function sceneProblems(lesson: Lesson, scenes: BuiltScene[], b: BuiltScene, ctx: FrameCtx): string[] {
   const S = `сцена «${b.id}»`
   const out: string[] = []
   const { scene, clock } = b
@@ -222,7 +222,7 @@ function sceneProblems(lesson: Lesson, b: BuiltScene, ctx: FrameCtx): string[] {
   const title = lesson.chapters[b.chapter].title
   const n = [...title].length
   if (scene.role === 'mistake') {
-    const room = titleRoom(lesson.id, cellsFor(verdictWidth(verdict.length > 0)))
+    const room = titleRoom(lesson.id, cellsFor(verdictWidth(sceneVerdict(scenes, b).length > 0)))
     if (n > room) out.push(`${S}: название главы «${title}» (${n} знаков) налезает на метку «Типичная ошибка» в шапке — рядом с ней помещается ${room}`)
   } else {
     const room = bookRoom(lesson.id, title)
@@ -239,7 +239,7 @@ function sceneProblems(lesson: Lesson, b: BuiltScene, ctx: FrameCtx): string[] {
   if (frameBad.length === 0 && clock.lines > 0) {
     // ключ камеры — перемена, только если кадр камеры от него меняется (иначе им можно «закрыть» стоящий кадр)
     const moves = keys.filter((k, i) => i > 0 && !sameShot(cameraAt(k.at, keys), k)).map((k) => k.at)
-    const at = [0, ...def.moments(spec, clock, ctx), ...moves, ...verdict.filter((v) => isBeat(v.at, clock.lines)).map((v) => clock.beat(v.at)), b.duration]
+    const at = [0, ...def.moments(spec, clock, ctx), ...moves, ...sceneVerdict(scenes, b).filter((v) => v.at >= 0).map((v) => v.at), b.duration]
     const moments = [...new Set(at.filter((f) => f >= 0 && f <= b.duration))].sort((x, y) => x - y)
     moments.forEach((f, i) => {
       const next = moments[i + 1]
@@ -309,7 +309,7 @@ export function lessonProblems(lesson: Lesson, opts: { minFrames?: number; check
     out.push(...cueProblems(b, script.cues.slice(cue, cue + b.scene.lines.length)))
     cue += b.scene.lines.length
     try {
-      out.push(...sceneProblems(lesson, b, ctx))
+      out.push(...sceneProblems(lesson, scenes, b, ctx))
     } catch (e) {
       out.push(`сцена «${b.id}»: проверка не прошла: ${e instanceof Error ? e.message : String(e)}`)
     }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildScript } from '../kit/script'
 import { find } from '../sessions'
 import { totalFrames, validateScript } from '../lib/timeline'
-import { buildLesson, cameraKeys, headerRight, lessonCtx, sceneAt, sceneBook, sceneFade, spotWindow } from './build'
+import { buildLesson, cameraKeys, headerRight, lessonCtx, sceneAt, sceneBook, sceneFade, sceneVerdict, spotWindow } from './build'
 import { WHOLE, cameraAt, focusShot, toScreen } from './camera'
 import { fixtureLesson } from './fixture-lesson'
 import { frameDef } from './frames'
@@ -181,22 +181,41 @@ describe('правая часть шапки: ссылка на книгу ил�
     expect(headerRight(fixtureLesson, scenes, 0)).toEqual([{ b: scenes[0], opacity: 1, label: false }])
   })
 
-  it('две сцены mistake подряд: «Типичная ошибка» стоит, уходит только вердикт прежней', () => {
+  it('две сцены mistake подряд: «Типичная ошибка» стоит, вердикт прежней переходит в новую без разрыва', () => {
     const l = structuredClone(fixtureLesson)
     const parts = l.chapters[1].scenes
     parts.push({ ...structuredClone(parts[parts.length - 1]), id: 'parts-key-2' })
     const built = buildLesson(l).scenes
-    const first = built.find((s) => s.id === 'parts-key')!
     const second = built.find((s) => s.id === 'parts-key-2')!
     for (let t = 0; t <= MOTION.sceneFade; t++) {
-      const right = headerRight(l, built, second.start + t)
-      // у новой сцены метка видна всё время смены
-      expect(right).toContainEqual({ b: second, opacity: 1, label: true })
-      const prev = right.find((r) => r.b === first)
-      if (prev) expect(prev.label).toBe(false)
+      // у новой сцены метка и вердикт видны всё время смены, прежняя сцена в шапке не рисуется
+      expect(headerRight(l, built, second.start + t)).toEqual([{ b: second, opacity: 1, label: true }])
     }
-    expect(headerRight(l, built, second.start + 2).find((r) => r.b === first)!.opacity).toBeLessThan(1)
-    expect(headerRight(l, built, second.start + MOTION.sceneFade)).toEqual([{ b: second, opacity: 1, label: true }])
+    // новая начинается с «Верно» прежней (уже проявленным), потом её «Неверно» на реплике 0 и «Верно» на реплике 1
+    expect(sceneVerdict(built, second)).toEqual([
+      { at: -MOTION.appear, kind: 'right' },
+      { at: second.clock.beat(0), kind: 'wrong' },
+      { at: second.clock.beat(1), kind: 'right' },
+    ])
+  })
+
+  it('сцена серии без вердиктов или с тем же вердиктом на реплике 0 — продолжает вердикт прежней, без повторного появления', () => {
+    const l = structuredClone(fixtureLesson)
+    const parts = l.chapters[1].scenes
+    const key = parts[parts.length - 1]
+    parts.push({ ...structuredClone(key), id: 'parts-key-2', verdict: undefined }, { ...structuredClone(key), id: 'parts-key-3', verdict: [{ at: 0, kind: 'right' }] })
+    const built = buildLesson(l).scenes
+    const b = (id: string) => built.find((s) => s.id === id)!
+    expect(sceneVerdict(built, b('parts-key-2'))).toEqual([{ at: -MOTION.appear, kind: 'right' }])
+    expect(sceneVerdict(built, b('parts-key-3'))).toEqual([{ at: -MOTION.appear, kind: 'right' }])
+    // у первой сцены серии вердикты свои, как раньше; сцена не mistake — вердиктов нет
+    expect(sceneVerdict(built, b('parts-key'))).toEqual([
+      { at: b('parts-key').clock.beat(0), kind: 'wrong' },
+      { at: b('parts-key').clock.beat(1), kind: 'right' },
+    ])
+    for (const id of ['parts-key-2', 'parts-key-3']) {
+      for (let t = 0; t <= MOTION.sceneFade; t++) expect(headerRight(l, built, b(id).start + t)).toEqual([{ b: b(id), opacity: 1, label: true }])
+    }
   })
 })
 
