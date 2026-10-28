@@ -68,13 +68,13 @@ export function sceneVerdict(b: BuiltScene): { at: number; kind: 'wrong' | 'righ
 }
 
 /**
- * Ссылка на книгу в шапке сцены: первый раздел главы (или урока), обрезанный «…» по месту рядом с названием главы — все разделы
- * перечисляет итог (Recap); в сцене mistake — пусто, там метки ошибки.
+ * Ссылка на книгу в шапке сцены: первый раздел сцены (или главы, или урока: scene.book ?? chapter.book ?? lesson.book), обрезанный «…»
+ * по месту рядом с названием главы — все разделы перечисляет итог (Recap); в сцене mistake — пусто, там метки ошибки.
  */
 export function sceneBook(lesson: Lesson, b: BuiltScene): string {
   if (b.scene.role === 'mistake') return ''
   const chapter = lesson.chapters[b.chapter]
-  const first = (chapter.book ?? lesson.book).find((id) => bookSection(id) !== null)
+  const first = (b.scene.book ?? chapter.book ?? lesson.book).find((id) => bookSection(id) !== null)
   return bookRef(first ? [first] : [], Math.max(1, bookRoom(lesson.id, chapter.title)))
 }
 

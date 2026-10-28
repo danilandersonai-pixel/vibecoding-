@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { catalog } from '../../video/catalog'
 import { scriptProblems } from '../../video/kit/checks'
@@ -45,6 +48,11 @@ describe('реестр роликов', () => {
   // MP4 есть только у старых роликов 1280 × 720; новые (1920 × 1080, набор «Репозиторий») смотрят в плеере, адреса и кнопки «Скачать MP4» у них нет
   it.each(Object.keys(catalog).filter((id) => catalog[id].script.width === 1280))('у старого ролика %s есть адрес MP4 в хранилище страницы', (id) => {
     expect(videos[id].mp4Url).toMatch(/^\/_blob\/[0-9a-f]{32}$/)
+  })
+
+  // Ролик набора «Репозиторий» проверяет только тест его урока (lessonProblems и снимок сценария): без него ролик прошёл бы реестр по одной длине
+  it.each(Object.keys(catalog).filter((id) => catalog[id].script.width === 1920))('у ролика 1920 × 1080 %s есть тест урока video/lessons/<id>/lesson.test.ts', (id) => {
+    expect(existsSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../video/lessons', id, 'lesson.test.ts')), id).toBe(true)
   })
 
   it('у роликов 1920 × 1080 адреса MP4 нет', () => {

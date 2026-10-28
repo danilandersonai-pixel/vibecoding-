@@ -150,6 +150,18 @@ describe('правая часть шапки: ссылка на книгу ил�
     expect(ref).not.toContain('ещё')
   })
 
+  it('раздел книги сцены важнее раздела главы и урока: scene.book ?? chapter.book ?? lesson.book', () => {
+    const own = structuredClone(fixtureLesson)
+    own.chapters[1].scenes.find((s) => s.id === 'parts-pkg')!.book = ['sa2']
+    const b = (id: string) => buildLesson(own).scenes.find((s) => s.id === id)!
+    expect(sceneBook(own, b('parts-pkg'))).toBe('книга · Азбука · Код, языки и чужие детали')
+    // соседняя сцена той же главы — по-прежнему раздел главы, поэтому на границе ссылка меняется
+    expect(sceneBook(own, b('parts-route'))).toBe('книга · Азбука · Из чего состоит любое приложение')
+    // неизвестный раздел сцены пропускается, как у главы: ссылка — просто «книга»
+    own.chapters[1].scenes.find((s) => s.id === 'parts-pkg')!.book = ['nope']
+    expect(sceneBook(own, b('parts-pkg'))).toBe('книга')
+  })
+
   it('та же ссылка в соседних сценах — без смены; иначе прежняя уходит за полсмены, новая приходит за вторую половину', () => {
     const pkg = scene('parts-pkg')
     expect(headerRight(fixtureLesson, scenes, pkg.start)).toEqual([{ b: pkg, opacity: 1, label: false }])

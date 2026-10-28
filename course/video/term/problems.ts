@@ -125,6 +125,9 @@ function bookProblems(lesson: Lesson): string[] {
   for (const id of lesson.book) if (!bookSection(id)) out.push(`урок «${lesson.id}»: раздела книги «${id}» нет (book-sections.json)`)
   for (const c of lesson.chapters) {
     for (const id of c.book ?? []) if (!bookSection(id)) out.push(`глава «${c.id}»: раздела книги «${id}» нет (book-sections.json)`)
+    for (const s of c.scenes) {
+      for (const id of s.book ?? []) if (!bookSection(id)) out.push(`сцена «${s.id}»: раздела книги «${id}» нет (book-sections.json)`)
+    }
   }
   return out
 }

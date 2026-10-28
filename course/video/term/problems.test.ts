@@ -33,6 +33,12 @@ describe('lessonProblems: фикстура', () => {
 })
 
 describe('lessonProblems: поломки по одной', () => {
+  it('неизвестный раздел книги у сцены', () => {
+    const p = broken((_, s) => (s('parts-pkg').book = ['sa99']))
+    has(p, /сцена «parts-pkg»: раздела книги «sa99» нет/)
+    expect(broken((_, s) => (s('parts-pkg').book = ['sa2']))).toEqual([])
+  })
+
   it('сцена mistake без «Верно»', () => {
     const p = broken((_, s) => (s('parts-key').verdict = [{ at: 0, kind: 'wrong' }]))
     has(p, /сцена «parts-key»: .*вердикт.*right/)

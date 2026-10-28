@@ -64,7 +64,8 @@ export const MIN_TEXT = 24
 
 // Замер шрифтов — node scripts/measure-fonts.mjs (Chromium, woff2 из @fontsource-variable/*), 2026-10-28.
 // Martian Mono, все веса 400–700 и знаки «0», «ш», «M»: 0,70000 em на знак (ось ширины на 100 %; на 87,5 % — 0,65, на 75 % — 0,60).
-// Golos Text 500 по репликам ch-abc и ch-01 (93 реплики, 6279 знаков): в среднем 0,53146 em на знак.
+// Golos Text 500 по репликам прежних (светлых) роликов ch-abc и ch-01 (93 реплики, 6279 знаков): в среднем 0,53146 em на знак —
+// замер исторический: новые уроки его не меняют, measure-fonts.mjs теперь берёт реплики урока из lessons/<id>/script.gen.json.
 // Константы ниже — замер, округлённый вверх до 0,01 em, чтобы текст не вылезал за окно; text.test.ts сверяет их с замером.
 export const MEASURED_ADVANCE = 0.7
 export const MEASURED_GOLOS = 0.53146
