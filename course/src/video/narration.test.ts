@@ -57,6 +57,16 @@ describe('spokenText', () => {
     expect(spokenText('Анна сохранила подход.')).toBe('Анна сохранила подход.')
     expect(spokenText('Planner и APIs')).toBe('Planner и APIs')
   })
+  // Правила SAY общие: новое правило, нужное свежему ролику, срабатывает и на репликах старых (1280 × 720), и меняет их озвучку молча.
+  // Снимок хранит произношение каждой реплики старых роликов; изменилось — разбираться, а не принимать -u вслепую (допустимо, когда
+  // новое правило намеренно поправило и их, например латинское слово, которое раньше читалось по буквам).
+  it('произношение реплик старых роликов (1280 × 720) не меняется молча от новых правил', async () => {
+    const old = Object.entries(catalog).filter(([, e]) => e.script.width === 1280 && e.script.height === 720)
+    expect(old.length).toBeGreaterThan(0)
+    const lines = old.flatMap(([id, e]) => e.script.cues.map((c, i) => `${id} #${i}\t${spokenText(c.text)}`))
+    await expect(lines.join('\n') + '\n').toMatchFileSnapshot('./narration.old-videos.spoken.txt')
+  })
+
   it('в репликах всех роликов каталога не остаётся латиницы — у каждого слова есть произношение', () => {
     const left = Object.entries(catalog).flatMap(([id, e]) =>
       e.script.cues.flatMap((c) => (spokenText(c.text).match(/[A-Za-z]+/g) ?? []).map((w) => `${id}: ${w}`)),

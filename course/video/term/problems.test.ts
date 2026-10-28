@@ -172,6 +172,22 @@ describe('lessonProblems: поломки по одной', () => {
     has(p, /урок «term-lesson»: пояснений 1, а у ролика главы нужно не меньше 2/)
   })
 
+  it('пояснения с неверным at или until не считаются в минимум: на экране их не будет', () => {
+    const p = broken((_, s) => {
+      const bad = { target: 'cmd:dev', title: 'Пустое', text: 'Такое пояснение не откроется.' }
+      s('works-script').spots = [{ ...bad, at: 99 }]
+      s('site-dev').spots = [
+        { ...bad, at: 1, until: 1 }, // until не после at
+        { ...bad, at: 1, until: 99 }, // until дальше конца сцены
+      ]
+    })
+    // пояснение из первой сцены с пояснением — единственное настоящее; три неверных с ним не складываются
+    has(p, /урок «term-lesson»: пояснений 1, а у ролика главы нужно не меньше 2/)
+    // сами они названы своими проблемами
+    has(p, /сцена «works-script»: spots\[0\]/)
+    has(p, /сцена «site-dev»: spots\[0\]: until 1/)
+  })
+
   it('каркас: первая глава — одна сцена intro с agenda, последняя — одна сцена summary с recap', () => {
     has(broken((l) => (l.chapters[0].scenes[0].frame = { type: 'board', title: 'План' })), /глава «intro»: .*agenda/)
     has(broken((l) => l.chapters[4].scenes.push({ ...l.chapters[4].scenes[0], id: 'recap-2' })), /глава «recap»: .*одна сцена/)

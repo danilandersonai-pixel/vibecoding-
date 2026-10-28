@@ -315,7 +315,8 @@ export function lessonProblems(lesson: Lesson, opts: { minFrames?: number; check
     }
   }
 
-  const spots = scenes.reduce((sum, b) => sum + (b.scene.spots?.length ?? 0), 0)
+  // Считаются пояснения, которые откроются на экране: с неверным at или until их нет в сценарии (hotspots), а сами они уже названы проблемой сцены
+  const spots = scenes.reduce((sum, b) => sum + (b.scene.spots ?? []).filter((s) => spotTimed(b, s)).length, 0)
   if (spots < MIN_SPOTS[lesson.kind]) out.push(`${L}: пояснений ${spots}, а у ролика ${lesson.kind === 'chapter' ? 'главы' : 'дня'} нужно не меньше ${MIN_SPOTS[lesson.kind]}`)
   out.push(...validateScript(script).map((e) => `${L}: сценарий: ${e}`))
   return out
