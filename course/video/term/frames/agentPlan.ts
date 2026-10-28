@@ -13,11 +13,12 @@ import type { DiffKind } from './source'
  * Агент: сессия Claude Code в тёмном окне «Claude Code». Запрос `> …` в рамке ввода набирается, шаги записи —
  * строки как на схеме книги ch1_agent_session: `read` → «Reading <путь>», `file` → «Edited <путь> (+N −M)» и первые
  * diffLines строк диффа под ней (по умолчанию 6, с «@@», как в Diff), `run` и `commit` → `Run "<команда>"? [y / n]`
- * и «y», если id шага в ask, иначе просто `$ <команда>`; дальше вывод команды. Затем ответ агента абзацем soft
+ * (если в команде есть «"» — `Run «<команда>»? [y / n]`) и «y», если id шага в ask, иначе просто `$ <команда>`; дальше вывод команды. Затем ответ агента абзацем soft
  * (Golos Text 28 px). mode — имя режима в нижней строке окна.
  * event — agent; at — реплики сцены: prompt — где начинает набираться запрос, steps — по реплике на каждый шаг записи
  * (шаг ждёт конца набора и конца предыдущего шага), reply — где появляется ответ.
- * chat: true — без шагов: запрос, ответ и код (добавленные строки диффа первого шага file, не больше diffLines) блоком.
+ * chat: true — окно «Чат с ИИ», без шагов: запрос, ответ и код нового файла (добавленные строки диффа первого шага file, не больше diffLines;
+ * если строк больше — последней строкой «…» faint) блоком. Если первый file правит существующий файл — problems.
  * Всё должно помещаться в окно: 19 строк, а с режимом — 18; иначе problems. Если дифф не лезет — уменьшайте diffLines.
  * Части: 'frame', 'prompt' (рамка ввода), 'step:<id>', 'reply', 'code' (только chat), 'mode'.
  * Части — один снимок, как у Terminal: окно в конце сцены, когда всё появилось.
@@ -50,6 +51,9 @@ export const CODE_PAD = 8
 export const MODE_ROW = WIN.rows - 1
 /** Пауза между вопросом `[y / n]` и ответом «y»: человек читает вопрос. */
 export const ANSWER = MOTION.move
+/** Заголовок окна: сессия Claude Code и чат. */
+export const TITLE = 'Claude Code'
+export const CHAT_TITLE = 'Чат с ИИ'
 /** Строк диффа под «Edited …» по умолчанию. */
 export const DIFF_LINES = 6
 
@@ -71,7 +75,7 @@ export type StepLine = {
   width: number
 }
 export type Step = { id: string; kind: 'read' | 'file' | 'run' | 'commit'; asked: boolean; row: number; rows: number; lines: StepLine[]; span: number }
-export type CodeLine = { text: string; rows: string[]; row: number }
+export type CodeLine = { text: string; rows: string[]; row: number; /** Последняя строка «…»: код обрезан diffLines. */ more?: boolean }
 type Plan = {
   ok: boolean
   promptText: string
@@ -111,7 +115,9 @@ function buildStep(id: string, ev: Extract<SessionEvent, { kind: 'read' | 'file'
     })
   } else {
     if (asked) {
-      const question = wrapMono(`Run "${ev.cmd}"? [y / n]`, COLS)
+      // Как в книге — прямые кавычки; если в самой команде есть «"», внешние — «ёлочки»
+      const [open, close] = ev.cmd.includes('"') ? ['«', '»'] : ['"', '"']
+      const question = wrapMono(`Run ${open}${ev.cmd}${close}? [y / n]`, COLS)
       push({ role: 'ask', col: 0, fill: T.warn, delay: 0 }, question)
       // «y» — на той же строке, если помещается, иначе на следующей
       const last = [...question[question.length - 1]].length
@@ -164,14 +170,17 @@ export function plan(spec: AgentSpec, ctx: FrameCtx): Plan {
     })
   } else {
     // chat: код — добавленные строки диффа первого шага file
-    const first = ev.steps.map((id) => lookup(ctx, spec.session, id, ['file'] as const)).find((f) => f.error === undefined)
-    if (first?.event === undefined) problems.push('chat: среди шагов записи нет file — не из чего взять код')
+    const first = ev.steps.map((id) => ({ id, found: lookup(ctx, spec.session, id, ['file'] as const) })).find((f) => f.found.error === undefined)
+    if (first?.found.event === undefined) problems.push('chat: среди шагов записи нет file — не из чего взять код')
+    else if (first.found.event.before !== null) problems.push(`chat: в чате показывается код только нового файла, а «${first.id}» правит существующий (${first.found.event.path})`)
     else {
-      const adds = diffBody(first.event.diff)
+      const adds = diffBody(first.found.event.diff)
         .filter((l) => l.kind === 'add')
-        .slice(0, diffLines)
         .map((l) => l.raw.slice(1))
-      code = { lines: adds.map((text) => ({ text, rows: wrapMono(text, COLS - 1), row: 0 })), row: 0, rows: 0 }
+      const shown = adds.slice(0, diffLines).map((text): CodeLine => ({ text, rows: wrapMono(text, COLS - 1), row: 0 }))
+      // Обрезан — последней строкой «…», чтобы не казалось, что файл кончился
+      if (adds.length > diffLines) shown.push({ text: '…', rows: ['…'], row: 0, more: true })
+      code = { lines: shown, row: 0, rows: 0 }
     }
   }
 

@@ -13,7 +13,10 @@ import type { Range } from './source'
  * строка, совпадающая с текстом из buttons, — кнопка (инверсия: фон ink, текст desk); остальные — текст 28 px.
  * Строки появляются очередью от реплики at.page; новые строки `after` — за MOTION.appear на реплике at.action,
  * нижние строки при этом сдвигаются, пропавшие растворяются. Без at.action страница остаётся такой, как `before`.
- * marks — цвет текстовой строки страницы (точное совпадение текста): в записи нет ролей элементов, цвет задаёт автор.
+ * marks — цвет текстовой строки страницы (точное совпадение текста): в записи нет ролей элементов, цвет задаёт автор;
+ * одинаковые строки красятся все сразу.
+ * Блок страницы (заголовок, поля, кнопка, текст — и до, и после action) стоит по центру окна по ширине самого широкого своего содержимого;
+ * длинный текст переносится не шире PAGE.width.
  * console: true — снизу панель «Console» (около 40 % окна, семь строк): сообщения записи, как в DevTools, с реплики
  * at.console (по умолчанию — вместе со страницей, на at.page) очередью; consoleLines выбирает сообщения (с 1, включительно, как lines у других кадров).
  * Части: 'frame', 'url', 'page' (область страницы), 'field:<подпись>', 'button:<текст>', 'console' (панель),
@@ -30,7 +33,7 @@ export type BrowserSpec = {
 }
 
 /** Поля страницы и размеры её частей, px. */
-export const PAGE = { width: 960, x: SAFE.x + (SAFE.w - 960) / 2, top: 20, bottom: 12, input: 520, labelMin: 160 }
+export const PAGE = { width: 960, top: 20, bottom: 12, input: 520, labelMin: 160 }
 export const FIELD_H = 52
 /** Строка адреса в полосе окна: правее вкладки, на всю оставшуюся ширину. */
 export const URL_BAR: Rect = { x: SAFE.x + 480, y: SAFE.y + 6, w: SAFE.w - 480 - WIN.pad, h: 36 }
@@ -56,6 +59,8 @@ type Plan = {
   before: Item[]
   after: Item[]
   slots: Slot[]
+  /** Левый край блока страницы и колонки поля ввода: блок по центру окна. */
+  x: number
   labelW: number
   inputX: number
   messages: Message[]
@@ -63,7 +68,7 @@ type Plan = {
   problems: string[]
 }
 
-const EMPTY: Plan = { ok: false, url: '', title: '', before: [], after: [], slots: [], labelW: 0, inputX: 0, messages: [], pageBottom: SAFE.y + SAFE.h, problems: [] }
+const EMPTY: Plan = { ok: false, url: '', title: '', before: [], after: [], slots: [], x: 0, labelW: 0, inputX: 0, messages: [], pageBottom: SAFE.y + SAFE.h, problems: [] }
 
 /** Тип сообщения консоли: error — ✕ и подложка err, warning — ▲ warn, остальные — без значка. */
 export const isError = (type: string) => type === 'error'
@@ -133,6 +138,9 @@ export function plan(spec: BrowserSpec, ctx: FrameCtx): Plan {
   const before = stack(ev.before, fields, buttons, tones, top, labelW)
   const after = spec.at.action === undefined ? before : stack(ev.after, fields, buttons, tones, top, labelW)
   const slots = spec.at.action === undefined ? before.map((b) => ({ text: b.text, from: b, to: b })) : match(before, after)
+  // Блок по центру окна по самой широкой строке до и после action (кнопка стоит в колонке поля ввода)
+  const contentW = Math.max(1, ...[...before, ...after].map((i) => (i.kind === 'button' ? labelW + i.w : i.w)))
+  const x = Math.round(SAFE.x + (SAFE.w - contentW) / 2)
 
   if (before.length === 0) problems.push('у события нет строк страницы (before)')
   if (spec.at.action !== undefined && after.length === 0) problems.push('at.action задан, а у события нет строк after')
@@ -168,7 +176,7 @@ export function plan(spec: BrowserSpec, ctx: FrameCtx): Plan {
     }
   } else if (spec.consoleLines) problems.push('consoleLines задан без console: true')
 
-  return { ok: true, url: host, title: ev.title, before, after, slots, labelW, inputX: PAGE.x + labelW, messages, pageBottom, problems }
+  return { ok: true, url: host, title: ev.title, before, after, slots, x, labelW, inputX: x + labelW, messages, pageBottom, problems }
 }
 
 export function browserLayout(spec: BrowserSpec, ctx: FrameCtx): Record<string, Rect> {
@@ -178,7 +186,7 @@ export function browserLayout(spec: BrowserSpec, ctx: FrameCtx): Record<string, 
   parts.url = { ...URL_BAR }
   parts.page = { x: SAFE.x, y: SAFE.y + WIN.bar, w: SAFE.w, h: p.pageBottom - (SAFE.y + WIN.bar) }
   for (const i of p.after) {
-    if (i.kind === 'field') parts[`field:${i.text}`] = { x: PAGE.x, y: i.y, w: i.w, h: i.h }
+    if (i.kind === 'field') parts[`field:${i.text}`] = { x: p.x, y: i.y, w: i.w, h: i.h }
     if (i.kind === 'button') parts[`button:${i.text}`] = { x: p.inputX, y: i.y, w: i.w, h: i.h }
   }
   if (spec.console === true) {
@@ -211,6 +219,11 @@ export function browserProblems(spec: BrowserSpec, ctx: FrameCtx, clock: Clock):
     if (b === undefined) continue
     const why = beatProblem(b, clock.lines)
     if (why) bad.push(`${name}: ${why}`)
+  }
+  // Действие и консоль не раньше страницы
+  for (const name of ['action', 'console'] as const) {
+    const b = spec.at[name]
+    if (b !== undefined && b < spec.at.page) bad.push(`at.${name} (${b}) раньше at.page (${spec.at.page}) — страницы ещё нет`)
   }
   if (bad.length > 0) return bad
   bad.push(...outsideSafe(browserLayout(spec, ctx)))

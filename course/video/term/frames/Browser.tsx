@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import type { JSX } from 'react'
 import { useCurrentFrame } from 'remotion'
 import type { Clock, FrameCtx } from '../frame'
@@ -23,8 +24,11 @@ export function Browser({ spec, clock, ctx }: Props): JSX.Element {
   const textX = SAFE.x + WIN.pad
   const iconX = textX + 12
 
-  // Страница: заголовок и текст — в одной группе, поля и кнопки — каждая в своей
-  const slots = p.slots.map((slot) => ({ slot, item: (slot.to ?? slot.from)!, ...slotAt(slot, spec, clock, frame) })).filter((s) => s.opacity > 0)
+  // Страница: заголовок и текст — в одной группе, поля и кнопки — каждая в своей. Ключ — порядок строки (после action или, у пропавших, до него), не текст:
+  // одинаковые строки не должны давать одинаковые ключи
+  const slots = p.slots
+    .map((slot) => ({ key: slot.to ? `a${slot.to.order}` : `b${slot.from!.order}`, item: (slot.to ?? slot.from)!, ...slotAt(slot, spec, clock, frame) }))
+    .filter((s) => s.opacity > 0)
   const consoleTop = CONSOLE_TOP
 
   return (
@@ -36,28 +40,36 @@ export function Browser({ spec, clock, ctx }: Props): JSX.Element {
         </text>
       </g>
       <g data-part="page">
-        {slots.map(({ item, y, opacity }) => {
+        {slots.map(({ key, item, y, opacity }) => {
           if (item.kind === 'title') {
-            return item.lines.map((line, j) => (
-              <text key={`${item.text}-${j}`} x={PAGE.x} y={y + 40 + j * 52} fill={T.ink} opacity={opacity} style={{ ...GOLOS, fontSize: 40, fontWeight: 600 }}>
-                {line}
-              </text>
-            ))
+            return (
+              <Fragment key={key}>
+                {item.lines.map((line, j) => (
+                  <text key={j} x={p.x} y={y + 40 + j * 52} fill={T.ink} opacity={opacity} style={{ ...GOLOS, fontSize: 40, fontWeight: 600 }}>
+                    {line}
+                  </text>
+                ))}
+              </Fragment>
+            )
           }
           if (item.kind !== 'text') return null
           const fill = item.tone === 'err' ? T.err : item.tone === 'ok' ? T.ok : T.ink
-          return item.lines.map((line, j) => (
-            <text key={`${item.text}-${j}`} x={PAGE.x} y={y + 30 + j * 40} fill={fill} opacity={opacity} style={{ ...GOLOS, fontSize: 28 }}>
-              {line}
-            </text>
-          ))
+          return (
+            <Fragment key={key}>
+              {item.lines.map((line, j) => (
+                <text key={j} x={p.x} y={y + 30 + j * 40} fill={fill} opacity={opacity} style={{ ...GOLOS, fontSize: 28 }}>
+                  {line}
+                </text>
+              ))}
+            </Fragment>
+          )
         })}
       </g>
-      {slots.map(({ item, y, opacity }) => {
+      {slots.map(({ key, item, y, opacity }) => {
         if (item.kind === 'field')
           return (
-            <g key={`f-${item.text}`} data-part={`field:${item.text}`} opacity={opacity}>
-              <text x={PAGE.x} y={y + 36} fill={T.soft} style={{ ...GOLOS, fontSize: 28 }}>
+            <g key={key} data-part={`field:${item.text}`} opacity={opacity}>
+              <text x={p.x} y={y + 36} fill={T.soft} style={{ ...GOLOS, fontSize: 28 }}>
                 {item.text}
               </text>
               <rect x={p.inputX} y={y} width={PAGE.input} height={FIELD_H} rx={8} fill={T.termBg} stroke={T.line} strokeWidth={2} />
@@ -68,7 +80,7 @@ export function Browser({ spec, clock, ctx }: Props): JSX.Element {
           )
         if (item.kind === 'button')
           return (
-            <g key={`b-${item.text}`} data-part={`button:${item.text}`} opacity={opacity}>
+            <g key={key} data-part={`button:${item.text}`} opacity={opacity}>
               <rect x={p.inputX} y={y} width={item.w} height={FIELD_H} rx={8} fill={T.ink} />
               <text x={p.inputX + item.w / 2} y={y + 36} textAnchor="middle" fill={T.desk} style={{ ...GOLOS, fontSize: 28, fontWeight: 600 }}>
                 {item.text}

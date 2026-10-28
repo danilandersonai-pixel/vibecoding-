@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { render } from '@testing-library/react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -12,7 +13,7 @@ import { makeFind } from '../../sessions/types'
 import type { AgentEvent, BrowserEvent } from '../../sessions/types'
 import type { Clock, FrameCtx, Rect } from '../frame'
 import { easeOut } from '../motion'
-import { wrapText } from '../text'
+import { textWidth, wrapText } from '../text'
 import { alpha, MIN_TEXT, MOTION, SAFE, T } from '../theme'
 import { CLOCK, ctx, FIXTURE, makeClock } from './fixture'
 import { wrapWords } from './geometry'
@@ -245,6 +246,13 @@ describe('Agent', () => {
       expect(problems(AG, SHORT).join('\n')).toMatch(/сцен/)
     })
 
+    it('chat: код берётся только у нового файла — если первый file правит существующий, это проблема', () => {
+      // у события ask единственный шаг — правка app/page.tsx (before ≠ null)
+      const edit: AgentSpec = { type: 'agent', session: S, event: 'ask', chat: true, at: { prompt: 0, steps: [], reply: 1 } }
+      expect(problems(edit).join('\n')).toMatch(/только нового файла/)
+      expect(problems(CHAT)).toEqual([]) // первый file — route.ts, новый
+    })
+
     it('chat: шаг file обязателен; ask в chat не нужен', () => {
       const noFile: AgentEvent = { id: 'nf', kind: 'agent', prompt: 'Что в пакете?', reply: 'Ничего особенного', steps: ['pkg'] }
       const c2 = { ...ctx, find: makeFind([{ ...FIXTURE, events: [...FIXTURE.events, noFile] }]) }
@@ -264,6 +272,14 @@ describe('Agent', () => {
       const html = view(AG, 20)
       expect(plain(html)).toContain('Claude Code')
       expect(html).toContain(`fill="${T.termBg}"`)
+    })
+
+    it('chat: заголовок окна — «Чат с ИИ», не «Claude Code»', () => {
+      expect(plain(view(CHAT, 20))).toContain('Чат с ИИ')
+      expect(plain(view(CHAT, 20))).not.toContain('Claude Code')
+      // и пока записи нет — тоже
+      expect(plain(view({ ...CHAT, event: 'zzz' }, 20))).toContain('Чат с ИИ')
+      expect(plain(view({ ...AG, event: 'zzz' }, 20))).toContain('Claude Code')
     })
 
     it('запрос в рамке `> …` набирается знак за знаком (30 в секунду), до набора — одна «>»', () => {
@@ -310,13 +326,21 @@ describe('Agent', () => {
 
     it('«Run …? [y / n]» только у шага из ask; у остальных команд — сама команда', () => {
       const html = view(AG, END)
-      expect(count(plain(html), 'Run "')).toBe(1)
+      expect(count(plain(html), 'Run ')).toBe(1)
       expect(plain(part(html, 'step:c2')!)).toContain('$ git commit -m "Проверка веса"')
       expect(plain(part(html, 'step:c2')!)).toContain('[main bcd2345] Проверка веса')
       const both = view({ ...AG, ask: ['fail', 'c2'] }, END)
-      expect(count(plain(both), 'Run "')).toBe(2)
-      expect(plain(part(both, 'step:c2')!).startsWith('Run "git commit -m "Проверка веса""? [y / n]')).toBe(true)
-      expect(count(plain(view({ ...AG, ask: [] }, END)), 'Run "')).toBe(0)
+      expect(count(plain(both), 'Run ')).toBe(2)
+      expect(count(plain(view({ ...AG, ask: [] }, END)), 'Run ')).toBe(0)
+    })
+
+    it('кавычки вопроса: прямые, как в книге, а если в команде есть «"» — внешние «ёлочки»', () => {
+      const both = view({ ...AG, ask: ['fail', 'c2'] }, END)
+      // у `npm test` кавычек нет — прямые
+      expect(plain(part(both, 'step:fail')!).startsWith('Run "npm test"? [y / n]')).toBe(true)
+      // у коммита внутри свои кавычки — внешние «»
+      expect(plain(part(both, 'step:c2')!).startsWith('Run «git commit -m "Проверка веса"»? [y / n]')).toBe(true)
+      expect(plain(part(both, 'step:c2')!)).not.toContain('""')
     })
 
     it('ответ «y» — на той же строке через MOTION.move кадров после вопроса; вывод — после ответа', () => {
@@ -414,6 +438,34 @@ describe('Agent', () => {
       const lines = (spec: AgentSpec) => count(view(spec, END), 'data-role="code"')
       expect(lines(CHAT)).toBe(4)
       expect(lines({ ...CHAT, diffLines: 2 })).toBe(2)
+    })
+
+    it('chat: если код обрезан diffLines, последняя строка блока — «…» цвета faint; если показан весь — её нет', () => {
+      const more = (spec: AgentSpec) => /<text[^>]*data-role="more"[^>]*>(.*?)<\/text>/.exec(view(spec, END))
+      const cut = more({ ...CHAT, diffLines: 2 })!
+      expect(cut[0]).toContain(`fill="${T.faint}"`)
+      expect(plain(cut[1])).toBe('…')
+      expect(more(CHAT)).toBeNull() // diffLines 6 ≥ 4 строк
+      expect(more({ ...CHAT, diffLines: 4 })).toBeNull() // ровно все
+      // «…» стоит под последней строкой кода и входит в блок
+      const html = view({ ...CHAT, diffLines: 2 }, END)
+      const rows = [...html.matchAll(/<text[^>]*data-role="(?:code|more)"[^>]*? y="([\d.]+)"/g)].map((m) => Number(m[1]))
+      expect(rows).toHaveLength(3)
+      expect(rows[2]).toBeGreaterThan(rows[1])
+      const lay = def.layout({ ...CHAT, diffLines: 2 }, ctx)
+      expect(rows[2]).toBeLessThanOrEqual(lay.code.y + lay.code.h)
+      expect(lay.code.h).toBeGreaterThan(def.layout({ ...CHAT, diffLines: 4 }, ctx).code.h / 4 * 2) // место под «…» посчитано
+      expect(def.problems({ ...CHAT, diffLines: 2 }, ctx, CLOCK)).toEqual([])
+    })
+
+    it('chat: «…» ждёт своей очереди после строк кода', () => {
+      const spec = { ...CHAT, diffLines: 2 }
+      // последний момент сцены — появление «…»: кадром раньше строки кода уже есть, а её ещё нет
+      const frames = def.moments(spec, CLOCK, ctx)
+      const moreAt = frames[frames.length - 1]
+      expect(count(view(spec, moreAt - 1), 'data-role="code"')).toBe(2)
+      expect(view(spec, moreAt - 1)).not.toContain('data-role="more"')
+      expect(view(spec, moreAt)).toContain('data-role="more"')
     })
   })
 
@@ -676,9 +728,24 @@ describe('consoleText', () => {
     expect(consoleText('')).toBe('')
   })
 
-  it('несколько стилей подряд: убираются все хвостовые объявления', () => {
+  it('стилей убирается ровно столько, сколько маркеров %c: аргумент — объявления через «;»', () => {
     expect(consoleText('%cA %cB color:red font-weight:bold')).toBe('A B')
     expect(consoleText('%cтекст background:#222;')).toBe('текст')
+    expect(consoleText('%cтекст color: red; font-size: 12px')).toBe('текст')
+    // один маркер — один аргумент: второй хвост — уже текст сообщения
+    expect(consoleText('%cA color:red font-weight:bold')).toBe('A color:red')
+  })
+
+  it('%c без хвоста-стиля: текст с «слово:значение» в конце не теряется', () => {
+    expect(consoleText('%cServer ready on localhost:3000')).toBe('Server ready on localhost:3000')
+    expect(consoleText('%cOpen http://localhost:3000')).toBe('Open http://localhost:3000')
+    expect(consoleText('%cStatus: ok')).toBe('Status: ok')
+    // а настоящий хвост-стиль после такого текста убирается
+    expect(consoleText('%cServer ready on localhost:3000 color:green')).toBe('Server ready on localhost:3000')
+  })
+
+  it('маркеров больше, чем стилей: убирается, что есть', () => {
+    expect(consoleText('%cA %cB color:red')).toBe('A B')
   })
 })
 
@@ -738,13 +805,79 @@ describe('Browser', () => {
       expect(layout['console:1'].h).toBeCloseTo(36)
     })
 
-    it('страница — колонка по центру окна: поля и кнопка внутри неё', () => {
-      const column = { x: SAFE.x + (SAFE.w - 960) / 2, w: 960 }
-      for (const name of ['field:Вес, кг', 'field:Повторы', 'button:Сохранить подход']) {
-        expect(layout[name].x, name).toBeGreaterThanOrEqual(column.x - 0.01)
-        expect(layout[name].x + layout[name].w, name).toBeLessThanOrEqual(column.x + column.w + 0.01)
+    it('блок страницы стоит по центру окна по ширине своего содержимого: тут самая широкая строка — подпись и поле', () => {
+      const field = layout['field:Вес, кг']
+      expect(field.x - SAFE.x).toBeCloseTo(SAFE.x + SAFE.w - (field.x + field.w), 0)
+      // кнопка начинается в колонке поля ввода, правее подписей, и не шире блока
+      const button = layout['button:Сохранить подход']
+      expect(button.x).toBeGreaterThan(field.x)
+      expect(button.x + button.w).toBeLessThanOrEqual(field.x + field.w + 0.01)
+    })
+
+    it('блок центрируется по самой широкой строке страницы, а не по колонке: длинный текст двигает блок влево', () => {
+      const long = 'Строка страницы шире строки с полем ввода и подписью'
+      const wide: BrowserEvent = {
+        ...(FIXTURE.events.find((e) => e.id === 'form') as BrowserEvent),
+        id: 'wide-text',
+        before: ['Тренировка', 'Вес, кг', 'Повторы', 'Сохранить подход', long],
+        after: [],
       }
-      expect(layout['field:Вес, кг'].x).toBeCloseTo(column.x)
+      const c2 = { ...ctx, find: makeFind([{ ...FIXTURE, events: [...FIXTURE.events, wide] }]) }
+      const spec: BrowserSpec = { type: 'browser', session: S, event: 'wide-text', at: { page: 0 } }
+      const width = textWidth(long, 28)
+      expect(width).toBeGreaterThan(680) // шире подписи и поля
+      expect(width).toBeLessThan(960)
+      const x = number(view(spec, PAGE_AT + 60, CLOCK, c2), new RegExp(`<text[^>]*? x="([\\d.]+)"[^>]*>${long}</text>`))
+      expect(x).toBeCloseTo(SAFE.x + (SAFE.w - width) / 2, 0)
+      // поля при этом едут вместе с блоком
+      expect(def.layout(spec, c2)['field:Вес, кг'].x).toBeCloseTo(x, 0)
+      expect(problems(spec, CLOCK, c2)).toEqual([])
+    })
+
+    it('при action блок не прыгает: центр считается по строкам before и after вместе', () => {
+      const long = 'Строка страницы шире строки с полем ввода и подписью'
+      const grow: BrowserEvent = {
+        ...(FIXTURE.events.find((e) => e.id === 'form') as BrowserEvent),
+        id: 'grow',
+        before: ['Тренировка', 'Вес, кг', 'Повторы', 'Сохранить подход'],
+        after: ['Тренировка', 'Вес, кг', 'Повторы', 'Сохранить подход', long],
+      }
+      const c2 = { ...ctx, find: makeFind([{ ...FIXTURE, events: [...FIXTURE.events, grow] }]) }
+      const spec: BrowserSpec = { type: 'browser', session: S, event: 'grow', at: { page: 0, action: 1 } }
+      const fieldX = (frame: number) => number(part(view(spec, frame, CLOCK, c2), 'field:Вес, кг')!, /<rect[^>]*? x="([\d.]+)"/)
+      expect(fieldX(ACTION - 1)).toBeCloseTo(fieldX(ACTION + 100), 5)
+    })
+
+    it('строки с одинаковым текстом не дают предупреждения React о ключах; marks красит обе', () => {
+      const same: BrowserEvent = {
+        ...(FIXTURE.events.find((e) => e.id === 'form') as BrowserEvent),
+        id: 'dup',
+        before: ['Тренировка', 'Сохранить подход', 'Сохранить подход', 'Сохранённые подходы', '60 кг × 8', '60 кг × 8'],
+        after: ['Тренировка', 'Сохранить подход', 'Сохранить подход', 'Сохранённые подходы', '60 кг × 8', '60 кг × 8', '60 кг × 8'],
+      }
+      const c2 = { ...ctx, find: makeFind([{ ...FIXTURE, events: [...FIXTURE.events, same] }]) }
+      const spec: BrowserSpec = { type: 'browser', session: S, event: 'dup', marks: [{ line: '60 кг × 8', tone: 'ok' }], at: { page: 0, action: 1 } }
+      // предупреждение о повторных ключах даёт только клиентский рендер (renderToStaticMarkup его не видит)
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+      try {
+        for (const frame of [PAGE_AT + 30, ACTION + 3, ACTION + 100]) {
+          now.frame = frame
+          const { Component } = frameDef(spec)
+          const { container, unmount } = render(
+            <svg>
+              <Component spec={spec} clock={CLOCK} ctx={c2} />
+            </svg>,
+          )
+          const rows = [...container.querySelectorAll('text')].filter((t) => t.textContent === '60 кг × 8')
+          expect(rows.length, `@${frame}`).toBeGreaterThanOrEqual(2)
+          for (const r of rows) expect(r.getAttribute('fill'), `@${frame}`).toBe(T.ok)
+          expect(container.querySelectorAll('g[data-part="button:Сохранить подход"]').length, `@${frame}`).toBe(2)
+          unmount()
+        }
+        expect(errors.mock.calls.map((c) => String(c[0])).join('\n')).not.toMatch(/key/i)
+      } finally {
+        errors.mockRestore()
+      }
     })
 
     it('без console панели и сообщений нет, страница занимает всё окно', () => {
@@ -778,6 +911,14 @@ describe('Browser', () => {
     it('ловит неизвестное событие и событие другого вида', () => {
       expect(problems({ ...BR, event: 'zzz' }).join('\n')).toMatch(/zzz/)
       expect(problems({ ...BR, event: 'ls' })).not.toEqual([])
+    })
+
+    it('ловит at.action и at.console раньше at.page', () => {
+      const at = { page: 2, action: 3, console: 3 }
+      expect(problems({ ...BR, at })).toEqual([])
+      expect(problems({ ...BR, at: { ...at, action: 1 } }).join('\n')).toMatch(/at\.action.*at\.page/)
+      expect(problems({ ...BR, at: { ...at, console: 1 } }).join('\n')).toMatch(/at\.console.*at\.page/)
+      expect(problems({ ...BR, at: { page: 2, action: 2, console: 2 } })).toEqual([]) // та же реплика — можно
     })
 
     it('ловит реплики вне сцены', () => {

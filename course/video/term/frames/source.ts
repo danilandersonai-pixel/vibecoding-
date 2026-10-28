@@ -80,8 +80,23 @@ export function addedLines(diff: string[]): Set<number> {
   return added
 }
 
-/** Как сообщение показывает DevTools: «%c» убирается вместе с хвостом-стилем (в записи аргументы склеены через пробел). */
+// Имена свойств CSS, которые ставят в console.log(«%c…», стиль): по первому слову, «font-weight» → «font». «localhost:3000» среди них нет.
+const CSS_PROPS = new Set(['color', 'background', 'font', 'border', 'margin', 'padding', 'text', 'line', 'letter', 'word', 'display', 'width', 'height', 'opacity', 'cursor', 'outline', 'box', 'white', 'vertical', 'overflow'])
+// Один аргумент-стиль в конце: объявления «свойство:значение» через «;», значения без пробелов
+const STYLE_TAIL = /\s+((?:[a-z-]+:\s*[^\s;]+)(?:;\s*[a-z-]+:\s*[^\s;]+)*;?)$/i
+
+/**
+ * Как сообщение показывает DevTools: «%c» убирается вместе с аргументом-стилем — с хвоста снимается столько стилей, сколько было маркеров
+ * (в записи аргументы склеены через пробел), и только настоящих: «Server ready on localhost:3000» без стиля остаётся целиком.
+ */
 export function consoleText(text: string): string {
-  if (!text.includes('%c')) return text
-  return text.replaceAll('%c', '').replace(/\s+(?:[a-z-]+:[^\s:/;]+;?\s*)+$/i, '')
+  const marks = text.split('%c').length - 1
+  let rest = text.replaceAll('%c', '')
+  for (let i = 0; i < marks; i++) {
+    const m = STYLE_TAIL.exec(rest)
+    const props = m ? [...m[1].matchAll(/(?:^|;)\s*([a-z-]+):/gi)].map((p) => p[1].toLowerCase().split('-')[0]) : []
+    if (!m || props.length === 0 || !props.every((p) => CSS_PROPS.has(p))) break
+    rest = rest.slice(0, m.index)
+  }
+  return rest
 }

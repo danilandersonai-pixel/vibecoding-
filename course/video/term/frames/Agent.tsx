@@ -4,7 +4,7 @@ import { useCurrentFrame } from 'remotion'
 import type { Clock, FrameCtx } from '../frame'
 import { appear, typedCount } from '../motion'
 import { MOTION, SAFE, T } from '../theme'
-import { BOX, MODE_ROW, REPLY, X0, boxRect, cursorUntil, plan, timeline } from './agentPlan'
+import { BOX, CHAT_TITLE, MODE_ROW, REPLY, TITLE, X0, boxRect, cursorUntil, plan, timeline } from './agentPlan'
 import type { AgentSpec, StepLine } from './agentPlan'
 import { FILL, SIGN } from './diffPlan'
 import { LH, WIN, cells, rowTop, take } from './geometry'
@@ -46,7 +46,8 @@ function LineRows({ line }: { line: StepLine }) {
 export function Agent({ spec, clock, ctx }: Props): JSX.Element {
   const frame = useCurrentFrame()
   const p = plan(spec, ctx)
-  if (!p.ok) return <Window title="Claude Code" tone="term">{null}</Window>
+  const title = spec.chat ? CHAT_TITLE : TITLE
+  if (!p.ok) return <Window title={title} tone="term">{null}</Window>
   const t = timeline(spec, p, clock)
 
   // Запрос: рамка растёт вместе с набранным текстом, знаки набираются по строкам
@@ -68,7 +69,7 @@ export function Agent({ spec, clock, ctx }: Props): JSX.Element {
   }
 
   return (
-    <Window title="Claude Code" tone="term">
+    <Window title={title} tone="term">
       <g data-part="prompt">
         <rect x={box.x} y={box.y} width={box.w} height={box.h} rx={8} fill="none" stroke={T.line} strokeWidth={2} />
         <Row x={X0} row={0} fill={T.faint} weight={700} chars={1}>
@@ -116,7 +117,7 @@ export function Agent({ spec, clock, ctx }: Props): JSX.Element {
             (l, k) =>
               frame >= t.code! + k * MOTION.stagger &&
               l.rows.map((text, r) => (
-                <Row key={`${k}-${r}`} role="code" x={X0} row={l.row + r} fill={T.ink} chars={[...text].length}>
+                <Row key={`${k}-${r}`} role={l.more ? 'more' : 'code'} x={X0} row={l.row + r} fill={l.more ? T.faint : T.ink} chars={[...text].length}>
                   {text}
                 </Row>
               )),
