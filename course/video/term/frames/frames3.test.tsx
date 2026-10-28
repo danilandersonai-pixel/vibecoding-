@@ -563,7 +563,7 @@ describe('Board', () => {
       expect(cx(layout.marker)).toBeCloseTo(cx(layout['item:2']), 0)
     })
 
-    it('шкала из пяти пунктов (как в term-check): части item:<k> — только подписи, части и подписи краёв нигде не пересекаются', () => {
+    it('шкала из пяти пунктов: части item:<k> — только подписи, части и подписи краёв нигде не пересекаются', () => {
       const scale5: BoardSpec = {
         type: 'board',
         scale: {

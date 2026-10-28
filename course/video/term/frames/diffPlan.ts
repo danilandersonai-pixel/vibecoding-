@@ -1,7 +1,6 @@
 import type { Clock, FrameCtx, Rect } from '../frame'
-import { wrapMono } from '../text'
 import { MOTION, SAFE, T, alpha } from '../theme'
-import { COLS, LH, TEXT_X, WIN, outsideSafe, rowTop, widest } from './geometry'
+import { COLS, LH, TEXT_X, WIN, outsideSafe, rowTop, widest, wrapWords } from './geometry'
 import { beatProblem, diffBody, diffCounts, lookup, pick, rangeProblem } from './source'
 import type { DiffKind, Range } from './source'
 
@@ -49,9 +48,9 @@ export function plan(spec: DiffSpec, ctx: FrameCtx): Plan {
 
     const headerRow = row++
     const lines = shown.map(({ raw, kind }) => {
-      // У строк с «+», «-» и пробелом первая колонка — знак, остальное — текст
+      // У строк с «+», «-» и пробелом первая колонка — знак, остальное — текст; длинный код переносится по словам
       const signed = SIGNED.includes(kind)
-      const rows = wrapMono(signed ? raw.slice(1) : raw, COLS - (signed ? 1 : 0))
+      const rows = wrapWords(signed ? raw.slice(1) : raw, COLS - (signed ? 1 : 0)).map((w) => w.text)
       const line = { raw, kind, rows, row }
       row += rows.length
       return line

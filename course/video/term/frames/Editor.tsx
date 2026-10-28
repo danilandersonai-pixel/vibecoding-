@@ -60,9 +60,10 @@ export function Editor({ spec, clock, ctx }: Props): JSX.Element {
     const begun = p.lines.filter((l) => l.isNew && started(l))
     const l = begun[begun.length - 1]
     if (l && (frame < t.typing.end || Math.floor((frame - t.typing.end) / MOTION.blink) % 2 === 0)) {
+      // Строка окна, в которой стоит курсор: последняя, что началась; на месте переноса (пробел не показан) — в конце её
       const n = typed(l)
-      const r = Math.min(Math.floor(n / geo.cols), l.rows.length - 1)
-      cursor = <Cursor x={geo.textX + cells(n - r * geo.cols)} row={1 + l.row + r} />
+      const r = Math.max(0, l.from.findLastIndex((f) => f <= n))
+      cursor = <Cursor x={geo.textX + cells(Math.min(n - l.from[r], [...l.rows[r]].length))} row={1 + l.row + r} />
     }
   }
 
@@ -87,7 +88,7 @@ export function Editor({ spec, clock, ctx }: Props): JSX.Element {
                 {l.n}
               </text>
               {l.rows.map((text, r) => {
-                const shown = started(l) ? take(text, typed(l) - r * geo.cols) : ''
+                const shown = started(l) ? take(text, typed(l) - l.from[r]) : ''
                 return (
                   shown !== '' && (
                     <Row key={r} role="code" x={geo.textX} row={1 + l.row + r} fill={fillOf(l)} chars={[...shown].length}>

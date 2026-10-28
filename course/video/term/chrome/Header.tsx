@@ -11,7 +11,7 @@ type Props = {
   chapter: { n: number; total: number; title: string }
   /** Ссылка на книгу справа (bookRef); пустая строка — справа ничего. */
   book: string
-  /** Сколько px справа занято тем, что рисует не шапка (метки ошибки, ссылка на книгу сцены — HeaderBook), если book пуст. */
+  /** Сколько px справа занято тем, что рисуется рядом с шапкой, а не ею (ссылка на книгу сцены — HeaderBook, метки ошибки), если book пуст. */
   reserve?: number
   /** Кадр, на котором началась эта глава (в той же шкале, что useCurrentFrame): 12 кадров номер прокручивается, а полоса главы переезжает. */
   at: number
@@ -74,7 +74,10 @@ export function Header({ lessonId, chapter, book, reserve = 0, at }: Props) {
   )
 }
 
-/** Ссылка на книгу справа в шапке. Урок рисует её внутри сцены (растворяется вместе со сценой, как метки ошибки), а шапке даёт reserve. */
+/**
+ * Ссылка на книгу справа в шапке. Общий ролик (LessonVideo) рисует её рядом с Header (тот получает book='' и reserve):
+ * при смене сцены прежняя ссылка или метки ошибки уходят, новая приходит (headerRight в build.ts), а шапка стоит.
+ */
 export function HeaderBook({ text: book }: { text: string }) {
   return (
     <text x={RIGHT} y={BASELINE} fill={T.faint} style={text} textAnchor="end">

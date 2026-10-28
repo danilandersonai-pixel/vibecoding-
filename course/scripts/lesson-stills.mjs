@@ -6,14 +6,19 @@
 import { mkdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { MOTION } from '../video/term/theme.ts'
 
 const BROWSER = '/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell'
 
 const pad = (n) => String(n).padStart(2, '0')
 
+/** Через сколько кадров после начала реплики появилось то, что на неё приходит: появление и запас. */
+const SETTLE = MOTION.appear + 3
+
 /**
- * Что снимать: середина каждой сцены (scene-NN-<id>.png; если она между репликами — начало следующей реплики сцены, чтобы были видны
- * субтитры) и середина каждого пояснения (spot-NN-<сцена>.png, с рамками).
+ * Что снимать: середина каждой сцены (scene-NN-<id>.png) и середина каждого пояснения (spot-NN-<сцена>.png, с рамками).
+ * Кадр сцены — в её реплике (если середина между репликами — следующая), и не раньше, чем через SETTLE кадров после начала реплики
+ * (но не дальше её конца): на самом beat всё, что приходит на эту реплику, ещё прозрачно.
  */
 export function stillShots(script) {
   const starts = []
@@ -33,8 +38,8 @@ export function stillShots(script) {
   const middle = (i) => {
     const end = starts[i] + script.scenes[i].durationInFrames
     const mid = starts[i] + Math.floor(script.scenes[i].durationInFrames / 2)
-    if (cues.some((c) => mid >= c.from && mid < c.to)) return mid
-    return cues.find((c) => c.from > mid && c.from < end)?.from ?? mid
+    const cue = cues.find((c) => mid >= c.from && mid < c.to) ?? cues.find((c) => c.from > mid && c.from < end)
+    return cue ? Math.max(mid, Math.min(cue.from + SETTLE, cue.to - 1)) : mid
   }
   return [
     ...script.scenes.map((s, i) => ({ file: `scene-${pad(i + 1)}-${s.id}.png`, frame: middle(i), debugSpots: false })),

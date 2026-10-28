@@ -83,6 +83,15 @@ describe('lessonProblems: поломки по одной', () => {
     has(p, /сцена «parts-route»: spots\[0\].*за краем кадра/)
   })
 
+  it('пояснение под шапкой: после наезда камеры выше y 88 (видимая часть кадра — от шапки)', () => {
+    const l = structuredClone(fixtureLesson)
+    l.chapters[1].scenes.find((s) => s.id === 'parts-route')!.spots![0].target = 'line:20'
+    const spot = buildLesson(l).script.hotspots.find((h) => h.title === 'Ответ 400')!
+    expect(spot.y).toBeGreaterThan(0)
+    expect(spot.y).toBeLessThan(88)
+    has(short(l), /сцена «parts-route»: spots\[0\]: «line:20» после камеры за краем кадра/)
+  })
+
   it('реплики, которой нет в сцене, у камеры, пояснения и вердикта', () => {
     has(broken((_, s) => (s('site-dev').camera = [{ at: 5, target: 'whole' }])), /сцена «site-dev»: camera\[0\]: реплики 5 нет в сцене — в ней 2/)
     has(broken((_, s) => (s('site-dev').spots![0].at = 2)), /сцена «site-dev»: spots\[0\]: реплики 2 нет в сцене/)
@@ -104,6 +113,16 @@ describe('lessonProblems: поломки по одной', () => {
       const envs = s('site-envs')
       envs.frame = { type: 'board', cards: [{ title: 'Три окружения', text: ['разработка, staging и продакшен'], at: 0 }] }
       envs.lines = ['Разработка — ваш компьютер, здесь можно ломать что угодно.', 'Продакшен — настоящее приложение, ошибка там стоит дорого.']
+    })
+    has(p, /сцена «site-envs»: кадр стоит без изменений \d+ кадров/)
+  })
+
+  it('ключ камеры, который ничего не меняет (whole при целом кадре), не закрывает стоящий кадр', () => {
+    const p = broken((_, s) => {
+      const envs = s('site-envs')
+      envs.frame = { type: 'board', cards: [{ title: 'Три окружения', text: ['разработка, staging и продакшен'], at: 0 }] }
+      envs.lines = ['У проекта обычно три окружения.', 'Разработка, staging, продакшен.']
+      envs.camera = [{ at: 1, target: 'whole' }]
     })
     has(p, /сцена «site-envs»: кадр стоит без изменений \d+ кадров/)
   })
@@ -200,6 +219,38 @@ describe('lessonProblems: шапка, шум песочницы, прокрут�
       dev.camera = [{ at: 1, target: 'line:start-dev:0' }]
     })
     has(p, /сцена «site-dev»: camera\[0\]: терминал прокручивается — цель камеры «line:start-dev:0» к концу сцены на другом месте; разделите сцену/)
+  })
+})
+
+describe('lessonProblems: прокрутка последнего элемента терминала', () => {
+  it('пояснение на строке последнего элемента, которую его же вывод уводит вверх', () => {
+    const p = broken((_, s) => {
+      const dev = s('site-dev')
+      dev.frame = {
+        type: 'terminal',
+        items: [
+          { session: 's02-sets', event: 'dev', at: 0 },
+          { session: 's02-sets', event: 'scripts', at: 1 },
+        ],
+      }
+      dev.spots = [{ at: 1, target: 'line:scripts:0', title: 'npm run', text: 'Список скриптов проекта.' }]
+    })
+    has(p, /сцена «site-dev»: spots\[0\]: терминал прокручивается — цель пояснения «line:scripts:0» к концу сцены на другом месте; разделите сцену/)
+  })
+
+  it('последняя строка, которая появляется уже при конечной прокрутке, — можно', () => {
+    const p = broken((_, s) => {
+      const dev = s('site-dev')
+      dev.frame = {
+        type: 'terminal',
+        items: [
+          { session: 's02-sets', event: 'dev', at: 0 },
+          { session: 's02-sets', event: 'scripts', at: 1 },
+        ],
+      }
+      dev.spots = [{ at: 1, target: 'line:scripts:9', title: 'eslint', text: 'Последняя строка списка.' }]
+    })
+    expect(p.filter((x) => x.includes('прокручивается'))).toEqual([])
   })
 })
 

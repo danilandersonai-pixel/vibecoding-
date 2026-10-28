@@ -1,7 +1,7 @@
 import { buildScript } from '../kit/script'
 import { find } from '../sessions'
 import type { VideoChapter, VideoHotspot, VideoScript } from '../types'
-import { bookRef } from './book'
+import { bookRef, bookSection } from './book'
 import { WHOLE, cameraAt, focusShot, toScreen } from './camera'
 import type { CameraKey } from './camera'
 import { CELL, bookRoom, verdictWidth } from './chrome/layout'
@@ -67,11 +67,15 @@ export function sceneVerdict(b: BuiltScene): { at: number; kind: 'wrong' | 'righ
   return (b.scene.verdict ?? []).filter((v) => isBeat(v.at, b.clock.lines)).map((v) => ({ at: b.clock.beat(v.at), kind: v.kind }))
 }
 
-/** Ссылка на книгу в шапке сцены: разделы главы (или урока), не длиннее того, что остаётся рядом с названием главы; в сцене mistake — пусто, там метки ошибки. */
+/**
+ * Ссылка на книгу в шапке сцены: первый раздел главы (или урока), обрезанный «…» по месту рядом с названием главы — все разделы
+ * перечисляет итог (Recap); в сцене mistake — пусто, там метки ошибки.
+ */
 export function sceneBook(lesson: Lesson, b: BuiltScene): string {
   if (b.scene.role === 'mistake') return ''
   const chapter = lesson.chapters[b.chapter]
-  return bookRef(chapter.book ?? lesson.book, Math.max(1, bookRoom(lesson.id, chapter.title)))
+  const first = (chapter.book ?? lesson.book).find((id) => bookSection(id) !== null)
+  return bookRef(first ? [first] : [], Math.max(1, bookRoom(lesson.id, chapter.title)))
 }
 
 /** Сколько px справа в шапке занимает сцена: метки ошибки или ссылка на книгу (шапка не даёт названию главы дойти до них). */
@@ -81,19 +85,25 @@ export function sceneReserve(lesson: Lesson, b: BuiltScene): number {
 }
 
 /**
- * Правая часть шапки на кадре ролика: чья (ссылка на книгу сцены или её метки ошибки) и насколько видна. Если у соседних сцен она та же
- * (одна ссылка на книгу), смены нет; иначе в первые полсмены сцены прежняя уходит, во вторые — приходит новая: они не накладываются.
+ * Правая часть шапки на кадре ролика: чья (ссылка на книгу сцены или её метки ошибки), насколько видна и рисуется ли у неё метка
+ * «Типичная ошибка» (label). Если у соседних сцен она та же (одна ссылка на книгу), смены нет; иначе в первые полсмены сцены прежняя
+ * уходит, во вторые — приходит новая: они не накладываются. Две сцены mistake подряд: метка стоит, уходит только вердикт прежней
+ * (вердикт новой появляется на её реплике, позже смены).
  */
-export function headerRight(lesson: Lesson, scenes: BuiltScene[], frame: number): { b: BuiltScene; opacity: number }[] {
+export function headerRight(lesson: Lesson, scenes: BuiltScene[], frame: number): { b: BuiltScene; opacity: number; label: boolean }[] {
   const b = sceneAt(scenes, frame)
   const prev = scenes[scenes.indexOf(b) - 1]
   const t = frame - b.start
-  const same = prev && b.scene.role !== 'mistake' && prev.scene.role !== 'mistake' && sceneBook(lesson, prev) === sceneBook(lesson, b)
-  if (!prev || same || t >= MOTION.sceneFade) return [{ b, opacity: 1 }]
+  const mistake = (s: BuiltScene) => s.scene.role === 'mistake'
+  const same = prev && !mistake(b) && !mistake(prev) && sceneBook(lesson, prev) === sceneBook(lesson, b)
+  const now = { b, opacity: 1, label: mistake(b) }
+  if (!prev || same || t >= MOTION.sceneFade) return [now]
   const half = MOTION.sceneFade / 2
+  const out = 1 - easeIn(Math.min(1, t / half))
+  if (mistake(prev) && mistake(b)) return [{ b: prev, opacity: out, label: false }, now]
   return [
-    { b: prev, opacity: 1 - easeIn(Math.min(1, t / half)) },
-    { b, opacity: appear(t - half, 0, half) },
+    { b: prev, opacity: out, label: mistake(prev) },
+    { b, opacity: appear(t - half, 0, half), label: mistake(b) },
   ]
 }
 

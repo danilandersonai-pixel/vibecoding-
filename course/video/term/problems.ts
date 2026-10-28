@@ -11,10 +11,11 @@ import { frameDef } from './frames'
 import type { FrameSpec } from './frames'
 import { shownLines } from './frames/shown'
 import { beatProblem } from './frames/source'
-import { terminalScrolls } from './frames/terminalPlan'
+import { terminalPartMoves } from './frames/terminalPlan'
 import type { Lesson, LessonChapter, LessonScene, Role } from './lesson'
 import { balanceText, fitText } from './text'
 import { CANVAS, FPS, MOTION, SUBS } from './theme'
+import { VIEW } from './chrome/layout'
 
 // Проверка урока (спецификация §6.2 и §9): пустой список — урок готов. Каждая строка называет сцену («сцена «id»: …»),
 // главу или урок и говорит, что не так. Логику кадров не повторяет: части, моменты и показанные строки берёт у самих кадров.
@@ -142,13 +143,10 @@ function cueProblems(b: BuiltScene, cues: Cue[]): string[] {
   return out
 }
 
-// Терминал прокручивается, а цель — строка или команда элемента, который появляется раньше последнего: к концу сцены (снимок частей) она уже не там.
-function scrolledTarget(spec: FrameSpec, target: string, ctx: FrameCtx): boolean {
-  if (spec.type !== 'terminal' || spec.items.length === 0 || !terminalScrolls(spec, ctx)) return false
-  const event = (/^(?:cmd|out):(.+)$/.exec(target) ?? /^line:(.+):\d+$/.exec(target))?.[1]
-  const item = spec.items.find((i) => i.event === event)
-  return item !== undefined && item.at < spec.items[spec.items.length - 1].at
-}
+// Терминал прокручивается, а цель — команда или строка, которую окно уводит после её появления (ранний элемент или ранние строки
+// последнего): к концу сцены (снимок частей) она уже не там, где её увидел зритель. Проверяется, только если данные кадра верны.
+const scrolledTarget = (spec: FrameSpec, name: string, ctx: FrameCtx, clock: BuiltScene['clock']) =>
+  spec.type === 'terminal' && terminalPartMoves(spec, ctx, clock, name)
 
 function sceneProblems(lesson: Lesson, b: BuiltScene, ctx: FrameCtx): string[] {
   const S = `сцена «${b.id}»`
@@ -169,7 +167,7 @@ function sceneProblems(lesson: Lesson, b: BuiltScene, ctx: FrameCtx): string[] {
       out.push(`${S}: ${who}: части «${name}» нет в кадре ${spec.type} (есть: ${list})`)
       return null
     }
-    if (scrolledTarget(spec, name, ctx)) out.push(`${S}: ${who}: терминал прокручивается — цель ${whose} «${name}» к концу сцены на другом месте; разделите сцену`)
+    if (frameBad.length === 0 && scrolledTarget(spec, name, ctx, clock)) out.push(`${S}: ${who}: терминал прокручивается — цель ${whose} «${name}» к концу сцены на другом месте; разделите сцену`)
     return part
   }
 
@@ -200,10 +198,11 @@ function sceneProblems(lesson: Lesson, b: BuiltScene, ctx: FrameCtx): string[] {
       }
     }
     if (part) {
+      // Видимая часть кадра — от шапки (выше кадр обрезан) до низа
       const r = toScreen(part, start)
       const eps = 0.01
-      if (r.x < -eps || r.y < -eps || r.x + r.w > CANVAS.w + eps || r.y + r.h > CANVAS.h + eps) {
-        out.push(`${S}: ${who}: «${s.target}» после камеры за краем кадра ${CANVAS.w} × ${CANVAS.h} (x ${Math.round(r.x)}, y ${Math.round(r.y)}, ${Math.round(r.w)} × ${Math.round(r.h)})`)
+      if (r.x < -eps || r.y < VIEW.top - eps || r.x + r.w > CANVAS.w + eps || r.y + r.h > CANVAS.h + eps) {
+        out.push(`${S}: ${who}: «${s.target}» после камеры за краем кадра: видно x 0–${CANVAS.w}, y ${VIEW.top}–${CANVAS.h} (выше — шапка), а часть — x ${Math.round(r.x)}, y ${Math.round(r.y)}, ${Math.round(r.w)} × ${Math.round(r.h)}`)
       }
     }
   })
@@ -243,7 +242,9 @@ function sceneProblems(lesson: Lesson, b: BuiltScene, ctx: FrameCtx): string[] {
 
   // Каждые 3–4 с в кадре что-то меняется: начало сцены, моменты кадра, ключи камеры, вердикты, конец сцены
   if (frameBad.length === 0 && clock.lines > 0) {
-    const at = [0, ...def.moments(spec, clock, ctx), ...keys.map((k) => k.at), ...verdict.filter((v) => isBeat(v.at, clock.lines)).map((v) => clock.beat(v.at)), b.duration]
+    // ключ камеры — перемена, только если кадр камеры от него меняется (иначе им можно «закрыть» стоящий кадр)
+    const moves = keys.filter((k, i) => i > 0 && !sameShot(cameraAt(k.at, keys), k)).map((k) => k.at)
+    const at = [0, ...def.moments(spec, clock, ctx), ...moves, ...verdict.filter((v) => isBeat(v.at, clock.lines)).map((v) => clock.beat(v.at)), b.duration]
     const moments = [...new Set(at.filter((f) => f >= 0 && f <= b.duration))].sort((x, y) => x - y)
     moments.forEach((f, i) => {
       const next = moments[i + 1]

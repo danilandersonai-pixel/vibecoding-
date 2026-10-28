@@ -116,8 +116,25 @@ export function lastRow(p: Plan, tl: Timing[], frame: number): number {
 /** На сколько строк прокручено окно, когда последняя появившаяся строка — last. */
 export const scrollAt = (last: number) => Math.max(0, last + 1 - WIN.rows)
 
-/** Прокручивается ли окно в сцене: всё вместе не помещается в окно. Тогда части ранних элементов к концу сцены стоят не там, где появились. */
-export const terminalScrolls = (spec: TerminalSpec, ctx: FrameCtx) => scrollAt(plan(spec, ctx).rows - 1) > 0
+/**
+ * Часть терминала (cmd:, out:, line:) к концу сцены стоит не там, где появилась: после её появления окно прокрутилось дальше.
+ * Так бывает с частями ранних элементов и с ранними строками последнего, если его же вывод уводит их вверх. Камера и пояснение
+ * смотрят на снимок конца сцены (layout) — такую часть они ищут не там, где зритель её увидел. Не часть терминала — false.
+ */
+export function terminalPartMoves(spec: TerminalSpec, ctx: FrameCtx, clock: Clock, name: string): boolean {
+  const p = plan(spec, ctx)
+  const final = scrollAt(p.rows - 1)
+  if (final === 0) return false
+  const m = /^(cmd|out):(.+)$/.exec(name) ?? /^(line):(.+):(\d+)$/.exec(name)
+  const i = m ? p.entries.findIndex((e) => e.event === m[2]) : -1
+  if (!m || i < 0) return false
+  const e = p.entries[i]
+  const tl = timeline(p, clock)
+  // Миг, когда часть появилась целиком: команда — с подсказкой, вывод — с последней строкой, строка — сама
+  const at = m[1] === 'cmd' ? tl[i].promptAt : m[1] === 'out' ? tl[i].lineAt[e.lines.length - 1] : tl[i].lineAt[Number(m[3])]
+  if (at === undefined) return false
+  return scrollAt(lastRow(p, tl, at)) !== final
+}
 
 // Прямоугольник строк first…last на снимке «конец сцены» (окно прокручено на scroll строк); целиком выше окна — нет, частично — обрезан.
 function place(first: number, last: number, w: number, scroll: number): Rect | null {

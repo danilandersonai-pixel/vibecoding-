@@ -5,23 +5,24 @@ import type { VideoHotspot } from '../types'
 import type { BuiltScene } from './build'
 import { buildLesson, cameraKeys, headerRight, lessonCtx, sceneAt, sceneBook, sceneFade, sceneParts, sceneReserve, sceneVerdict } from './build'
 import { cameraAt } from './camera'
+import { CameraFade, CameraFadeDefs } from './chrome/CameraFade'
 import { Header, HeaderBook } from './chrome/Header'
+import { VIEW } from './chrome/layout'
 import { TermSubtitles } from './chrome/Subtitles'
 import { Verdict } from './chrome/Verdict'
 import type { FrameCtx } from './frame'
 import { frameDef } from './frames'
 import type { Lesson } from './lesson'
 import { textWidth } from './text'
-import { CANVAS, HEADER, MOTION, T } from './theme'
+import { CANVAS, MOTION, T } from './theme'
 
 // Общий ролик урока: один <svg viewBox="0 0 1920 1080"> на фоне desk. Сцены — в <Sequence> по началу, в сцене — группа камеры
-// с кадром. Сцена проявляется за 8 кадров со сдвигом 16 px и столько же уходит после своего конца, поверх — следующая.
+// с кадром и растушёвка краёв при наезде. Сцена проявляется за 8 кадров со сдвигом 16 px и столько же уходит после своего конца, поверх — следующая.
 // Шапка одна на весь ролик: на границе глав номер прокручивается 12 кадров; справа — ссылка на книгу сцены или метки ошибки
 // (у сцены mistake), при смене прежняя уходит и приходит новая (headerRight). Субтитры — поверх всего.
 // debugSpots — рамки пояснений там, где они будут на экране.
 
-// Камера не заходит на шапку: кадр под ней обрезается
-const VIEW_TOP = HEADER.y + HEADER.h + 8
+// Камера не заходит на шапку: кадр выше VIEW.top обрезается; при наезде края видимой части растушёвываются (CameraFade)
 const VIEW_CLIP = 'lesson-view'
 /** Подпись отладочной рамки пояснения: кегль и высота плашки. */
 const LABEL = { size: 28, h: 40 }
@@ -41,6 +42,7 @@ function SceneView({ b, ctx, first }: SceneProps) {
           <Component spec={b.scene.frame} clock={b.clock} ctx={ctx} />
         </g>
       </g>
+      <CameraFade zoom={cam.zoom} />
     </g>
   )
 }
@@ -59,9 +61,9 @@ function LessonHeader({ lesson, scenes }: { lesson: Lesson; scenes: BuiltScene[]
         reserve={sceneReserve(lesson, b)}
         at={start}
       />
-      {headerRight(lesson, scenes, frame).map(({ b: s, opacity }) => (
+      {headerRight(lesson, scenes, frame).map(({ b: s, opacity, label }) => (
         <g key={s.start} opacity={opacity}>
-          {s.scene.role === 'mistake' ? <Verdict mistake verdict={sceneVerdict(s).map((v) => ({ ...v, at: s.start + v.at }))} /> : <HeaderBook text={sceneBook(lesson, s)} />}
+          {s.scene.role === 'mistake' ? <Verdict mistake={label} verdict={sceneVerdict(s).map((v) => ({ ...v, at: s.start + v.at }))} /> : <HeaderBook text={sceneBook(lesson, s)} />}
         </g>
       ))}
     </g>
@@ -77,7 +79,7 @@ function SpotFrames({ hotspots }: { hotspots: VideoHotspot[] }) {
         .filter((h) => frame >= h.from && frame < h.to)
         .map((h) => {
           // Подпись над рамкой (или под ней, если сверху шапка) на плашке, чтобы читалась поверх кадра
-          const top = h.y > VIEW_TOP + LABEL.h ? h.y - LABEL.h - 4 : h.y + h.h + 4
+          const top = h.y > VIEW.top + LABEL.h ? h.y - LABEL.h - 4 : h.y + h.h + 4
           return (
             <g key={`${h.from}-${h.title}`}>
               <rect x={h.x} y={h.y} width={h.w} height={h.h} fill="none" stroke={T.warn} strokeWidth={3} strokeDasharray="12 8" />
@@ -101,9 +103,10 @@ export function LessonVideo({ lesson, debugSpots = false }: { lesson: Lesson; de
       <svg viewBox={`0 0 ${CANVAS.w} ${CANVAS.h}`} width={CANVAS.w} height={CANVAS.h} style={{ position: 'absolute', inset: 0 }}>
         <defs>
           <clipPath id={VIEW_CLIP}>
-            <rect x={0} y={VIEW_TOP} width={CANVAS.w} height={CANVAS.h - VIEW_TOP} />
+            <rect x={0} y={VIEW.top} width={CANVAS.w} height={CANVAS.h - VIEW.top} />
           </clipPath>
         </defs>
+        <CameraFadeDefs />
         {scenes.map((b, i) => (
           <Sequence key={b.start} name={b.id} from={b.start} durationInFrames={b.duration + (i < last ? MOTION.sceneFade : 0)} layout="none">
             <SceneView b={b} ctx={ctx} first={i === 0} />

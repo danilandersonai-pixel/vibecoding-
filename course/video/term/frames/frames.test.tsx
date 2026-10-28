@@ -11,14 +11,17 @@ vi.mock('remotion', async (importOriginal) => ({ ...(await importOriginal<typeof
 import { applyPatch } from '../../sessions/patch'
 import { makeFind } from '../../sessions/types'
 import type { FileEvent } from '../../sessions/types'
-import type { Clock, Rect } from '../frame'
+import { find } from '../../sessions'
+import type { Clock, FrameCtx, Rect } from '../frame'
 import { monoChars } from '../text'
 import { alpha, MIN_TEXT, MONO, MOTION, SAFE, T } from '../theme'
 import { CLOCK, ctx, FIXTURE, makeClock } from './fixture'
-import { cells, outsideSafe, rowTop, take, widest, WIN } from './geometry'
+import { plan as diffPlan } from './diffPlan'
+import { plan as editorPlan } from './editorPlan'
+import { cells, COLS, outsideSafe, rowTop, take, widest, WIN, wrapWords } from './geometry'
 import { FRAMES, frameDef } from './index'
 import type { DiffSpec, EditorSpec, FrameSpec, TerminalSpec } from './index'
-import { terminalScrolls } from './terminalPlan'
+import { plan as terminalPlan, terminalPartMoves } from './terminalPlan'
 
 const S = 'fixture'
 const START = CLOCK.beat(0) // 30
@@ -241,12 +244,20 @@ describe('Terminal', () => {
       expect(l['cmd:ls'].y).toBeCloseTo(rowTop(4))
     })
 
-    it('terminalScrolls — прокручивается ли окно в сцене: всё вместе не помещается в 19 строк', () => {
-      expect(terminalScrolls(T0, ctx)).toBe(false)
-      expect(terminalScrolls({ type: 'terminal', items: [{ session: S, event: 'many', at: 0 }] }, ctx)).toBe(true)
-      // ровно 19 строк — ещё без прокрутки: команда и 18 строк вывода
-      expect(terminalScrolls({ type: 'terminal', items: [{ session: S, event: 'many', at: 0, lines: [1, 18] }] }, ctx)).toBe(false)
-      expect(terminalScrolls({ type: 'terminal', items: [{ session: S, event: 'many', at: 0, lines: [1, 19] }] }, ctx)).toBe(true)
+    it('terminalPartMoves — часть к концу сцены стоит не там, где появилась (окно прокрутилось после неё)', () => {
+      // без прокрутки ничто не уезжает; ровно 19 строк — ещё без прокрутки
+      for (const name of ['cmd:fail', 'line:fail:0', 'out:ls', 'line:ls:2']) expect(terminalPartMoves(T0, ctx, CLOCK, name), name).toBe(false)
+      const fit: TerminalSpec = { type: 'terminal', items: [{ session: S, event: 'many', at: 0, lines: [1, 18] }] }
+      expect(terminalPartMoves(fit, ctx, CLOCK, 'cmd:many')).toBe(false)
+      // 24 строки: прокрутка на 5; ранний элемент уезжает, и ранние строки последнего — тоже (их уводит его же вывод)
+      const spec: TerminalSpec = { type: 'terminal', items: [{ session: S, event: 'fail', at: 0 }, { session: S, event: 'many', at: 1, lines: [1, 19] }] }
+      expect(terminalPartMoves(spec, ctx, CLOCK, 'line:fail:2')).toBe(true)
+      expect(terminalPartMoves(spec, ctx, CLOCK, 'line:many:0')).toBe(true)
+      expect(terminalPartMoves(spec, ctx, CLOCK, 'out:many')).toBe(false)
+      // последняя строка появляется уже при конечной прокрутке
+      expect(terminalPartMoves(spec, ctx, CLOCK, 'line:many:18')).toBe(false)
+      // не часть терминала
+      expect(terminalPartMoves(spec, ctx, CLOCK, 'frame')).toBe(false)
     })
   })
 
@@ -791,5 +802,65 @@ describe('размер текста', () => {
         expect(Math.min(...sizes), `${spec.type} @${frame}`).toBeGreaterThanOrEqual(MIN_TEXT)
       }
     }
+  })
+})
+
+// Код переносится по словам, как в редакторе (не «stat / us»); слово длиннее строки — по знакам. Терминал — по знакам, как терминал.
+describe('перенос кода по словам: Editor и Diff', () => {
+  const real: FrameCtx = { find, lesson: ctx.lesson }
+  const RS = 's02-sets'
+  // строка 23 маршрута: «    return Response.json({ error: "Нужен JSON: { weight, reps }" }, { status: 400 });»
+  const editorSpec: EditorSpec = { type: 'editor', session: RS, event: 'route', tree: { session: RS, commit: 'c-form' }, lines: [23, 23] }
+
+  it('Editor: длинная строка route.ts переносится на пробеле, ничего не теряется', () => {
+    const p = editorPlan(editorSpec, real)
+    const line = p.lines[0]
+    expect(line.text).toContain('{ status: 400 });')
+    expect(line.rows.length).toBeGreaterThan(1)
+    expect(line.rows.join(' ')).toBe(line.text)
+    for (const r of line.rows) expect([...r].length).toBeLessThanOrEqual(p.geo.cols)
+    expect(line.rows[line.rows.length - 1].startsWith('us')).toBe(false)
+    // начало каждой строки окна — номер знака в исходной строке (для набора)
+    line.rows.forEach((r, i) => expect(line.text.slice(line.from[i], line.from[i] + r.length)).toBe(r))
+  })
+
+  it('Editor: набор идёт по строкам окна с переносом по словам', () => {
+    const typing: EditorSpec = { ...editorSpec, typing: { at: 0 } }
+    const line = editorPlan(typing, real).lines[0]
+    const start = CLOCK.beat(0)
+    // кадр, на котором набрано начало второй строки окна и ещё 3 знака
+    const frame = start + Math.ceil(((line.from[1] + 3) * 30) / MOTION.typeCps)
+    now.frame = frame
+    const html = renderToStaticMarkup(
+      <svg>
+        <FRAMES.editor.Component spec={typing} clock={CLOCK} ctx={real} />
+      </svg>,
+    )
+    const code = [...html.matchAll(/data-role="code"[^>]*>([^<]*)</g)].map((m) => m[1].replace(/&quot;/g, '"'))
+    expect(code[0]).toBe(line.rows[0])
+    expect(code[1]).toBe(line.rows[1].slice(0, 3))
+  })
+
+  it('Editor: слово длиннее строки режется по знакам', () => {
+    const rows = wrapWords('x'.repeat(30), 12).map((r) => r.text)
+    expect(rows).toEqual(['x'.repeat(12), 'x'.repeat(12), 'x'.repeat(6)])
+  })
+
+  it('Diff: строка route.ts в диффе помещается в строку окна (оно шире редактора с деревом), длинная строка page.tsx — переносится на пробеле', () => {
+    const route = diffPlan({ type: 'diff', items: [{ session: RS, event: 'route', at: 0, lines: [24, 24] }] }, real).items[0].lines[0]
+    expect(route.raw).toContain('{ status: 400 });')
+    expect(route.rows).toEqual([route.raw.slice(1)])
+    // строка 37 диффа page.tsx — 142 знака className
+    const page = diffPlan({ type: 'diff', items: [{ session: RS, event: 'page', at: 0, lines: [37, 37] }] }, real).items[0].lines[0]
+    expect(page.rows.length).toBeGreaterThan(1)
+    expect(page.rows.join(' ')).toBe(page.raw.slice(1))
+    for (const r of page.rows) expect([...r].length).toBeLessThanOrEqual(COLS - 1)
+    expect(page.rows.every((r, i) => i === page.rows.length - 1 || page.raw.slice(1).includes(r + ' '))).toBe(true)
+  })
+
+  it('Terminal переносит по знакам, как терминал', () => {
+    const p = terminalPlan({ type: 'terminal', items: [{ session: S, event: 'long', at: 0 }] }, ctx)
+    const rows = p.entries[0].lines[0].rows
+    expect(rows.slice(0, -1).every((r) => [...r].length === COLS)).toBe(true)
   })
 })

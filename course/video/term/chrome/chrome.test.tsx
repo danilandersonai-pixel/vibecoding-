@@ -9,9 +9,10 @@ import { SubtitlesShown } from '../../lib/subtitlesShown'
 import { balanceText, fitText } from '../text'
 import { MIN_TEXT, SUBS, T } from '../theme'
 import { Header, HeaderBook } from './Header'
-import { bookRoom, CELL, cellsFor, HEADER_BOOK, HEADER_COLS, RIGHT, titleRoom, verdictWidth } from './layout'
+import { bookRoom, CELL, cellsFor, fadeOpacity, HEADER_BOOK, HEADER_COLS, RIGHT, titleRoom, VIEW, verdictWidth } from './layout'
 import { TermSubtitles } from './Subtitles'
 import { Verdict } from './Verdict'
+import { CameraFade, CameraFadeDefs } from './CameraFade'
 
 const CUES = [
   { from: 10, to: 40, text: 'Первая реплика' },
@@ -212,6 +213,36 @@ describe('Verdict', () => {
     const html = verdict(false)
     expect(html).toContain('>Верно<')
     expect(html).not.toContain('Типичная ошибка')
+  })
+})
+
+describe('CameraFade', () => {
+  const fade = (zoom: number) => renderToStaticMarkup(<svg><CameraFade zoom={zoom} /></svg>)
+
+  it('при zoom 1 растушёвки нет, при наезде — по краям видимой части кадра (ниже шапки, выше субтитров)', () => {
+    expect(fade(1)).toBe('<svg></svg>')
+    const html = fade(1.6)
+    for (const side of ['top', 'bottom', 'left', 'right']) expect(html).toContain(`url(#lesson-fade-${side})`)
+    expect(html).toContain('opacity="1"')
+    // полоса 48 px: сверху от шапки, снизу до полосы субтитров
+    expect(html).toContain(`y="${VIEW.top}"`)
+    expect(html).toContain(`y="${VIEW.bottom - 48}"`)
+    expect(html).toContain('width="48"')
+  })
+
+  it('непрозрачность растёт с наездом: 0 при zoom 1, половина при 1,15, полная с 1,3', () => {
+    expect(fadeOpacity(1)).toBe(0)
+    expect(fadeOpacity(1.15)).toBeCloseTo(0.5)
+    expect(fadeOpacity(1.3)).toBe(1)
+    expect(fadeOpacity(1.6)).toBe(1)
+    expect(fade(1.15)).toContain('opacity="0.5"')
+  })
+
+  it('градиенты — из desk в прозрачный', () => {
+    const html = renderToStaticMarkup(<svg><CameraFadeDefs /></svg>)
+    for (const side of ['top', 'bottom', 'left', 'right']) expect(html).toContain(`id="lesson-fade-${side}"`)
+    expect(html).toContain(T.desk)
+    expect(html).toContain('stop-opacity="0"')
   })
 })
 

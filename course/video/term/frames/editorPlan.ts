@@ -1,8 +1,8 @@
 import type { Clock, FrameCtx, Rect } from '../frame'
 import { typedFrames } from '../motion'
-import { monoChars, wrapMono } from '../text'
+import { monoChars } from '../text'
 import { MOTION, SAFE } from '../theme'
-import { BODY, CELL, LH, WIN, cells, outsideSafe, rowTop, widest } from './geometry'
+import { BODY, CELL, LH, WIN, cells, outsideSafe, rowTop, widest, wrapWords } from './geometry'
 import { addedLines, beatProblem, fileLines, lookup, pick, rangeProblem } from './source'
 import type { Range } from './source'
 
@@ -11,6 +11,7 @@ import type { Range } from './source'
  * справа файл с номерами строк. event — file (показан файл после правки) или read (прочитанный файл).
  * tree — коммит, чьи файлы составляют дерево; без него кода во всё окно.
  * lines — показанные строки файла: с 1, включительно; без него — весь файл (в окне помещается 18 строк, считая перенос).
+ * Длинная строка кода переносится по словам, как в редакторе (слово длиннее строки — по знакам).
  * highlight — полоса под строками файла (номера файловые), растягивается за 9 кадров.
  * typing — новые строки диффа набираются, начиная с реплики at; ghost — те же строки серым с реплики at,
  * а на реплике accept — обычным цветом (подсказка принята). Оба — только у file, и не вместе.
@@ -33,7 +34,8 @@ export const PANEL_PAD = WIN.pad
 const CODE_ROWS = WIN.rows - 1
 
 export type TreeRow = { label: string; path: string; depth: number; kind: 'dir' | 'open' | 'file'; selected: boolean }
-export type CodeLine = { n: number; text: string; rows: string[]; row: number; isNew: boolean }
+/** Строка файла: rows — после переноса по словам, from — номер знака исходной строки, с которого начинается каждая из них. */
+export type CodeLine = { n: number; text: string; rows: string[]; from: number[]; row: number; isNew: boolean }
 export type Geo = { treeW: number; panelX: number; panelW: number; numRight: number; textX: number; cols: number }
 type Plan = {
   kind: 'file' | 'read'
@@ -116,12 +118,12 @@ export function plan(spec: EditorSpec, ctx: FrameCtx): Plan {
   const bad = rangeProblem(spec.lines, all.length)
   if (bad) problems.push(bad)
   const { items: shown, first } = bad ? { items: [], first: 1 } : pick(all, spec.lines)
-  // Длинная строка переносится по ширине поля кода; row — первая строка окна под вкладкой (с нуля)
+  // Длинная строка переносится по словам в ширину поля кода; row — первая строка окна под вкладкой (с нуля)
   let row = 0
   const lines = shown.map((text, i) => {
-    const rows = wrapMono(text, geo.cols)
-    const line = { n: first + i, text, rows, row, isNew: added.has(first + i) }
-    row += rows.length
+    const wrapped = wrapWords(text, geo.cols)
+    const line = { n: first + i, text, rows: wrapped.map((w) => w.text), from: wrapped.map((w) => w.from), row, isNew: added.has(first + i) }
+    row += wrapped.length
     return line
   })
   return { kind: ev.kind, path: ev.path, lines, total: all.length, codeRows: row, tree, geo, problems, ok: true }

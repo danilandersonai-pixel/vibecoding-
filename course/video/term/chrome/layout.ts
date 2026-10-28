@@ -1,5 +1,5 @@
 import { monoChars } from '../text'
-import { HEADER, MONO, SAFE } from '../theme'
+import { HEADER, MONO, SAFE, SUBS } from '../theme'
 
 // Геометрия шапки: Header и Verdict стоят на одной строке и считают позиции по ширине знака Martian Mono.
 
@@ -43,3 +43,11 @@ export const pillWidth = (label: string) => [...label].length * CELL + 2 * PILL.
 export function verdictWidth(hasVerdicts: boolean): number {
   return pillWidth(VERDICT_LABEL.mistake) + (hasVerdicts ? pillWidth(VERDICT_LABEL.wrong) + PILL.gap : 0)
 }
+
+/** Видимая часть кадра сцены: ниже шапки (туда кадр не заходит — обрезка) и выше полосы субтитров. */
+export const VIEW = { top: HEADER.y + HEADER.h + 8, bottom: SUBS.top }
+/** Растушёвка краёв видимой части при наезде камеры: полоса, px, и наезд, с которого она полная. */
+export const FADE = { band: 48, fullAt: 1.3 }
+
+/** Непрозрачность растушёвки при наезде zoom: 0 при zoom 1, растёт до 1 к FADE.fullAt. */
+export const fadeOpacity = (zoom: number) => Math.min(1, Math.max(0, (zoom - 1) / (FADE.fullAt - 1)))

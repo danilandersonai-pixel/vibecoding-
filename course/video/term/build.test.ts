@@ -138,27 +138,53 @@ describe('buildLesson', () => {
 })
 
 describe('правая часть шапки: ссылка на книгу или метки ошибки', () => {
-  it('sceneBook — разделы главы (или урока) рядом с названием главы; в сцене mistake — пусто', () => {
-    expect(sceneBook(fixtureLesson, scene('parts-route'))).toMatch(/^книга · Азбука · Из чего состоит.* и ещё 1$/)
+  it('sceneBook — первый раздел главы (или урока), обрезка «…» по месту, без «и ещё N»; в сцене mistake — пусто', () => {
+    expect(sceneBook(fixtureLesson, scene('parts-route'))).toBe('книга · Азбука · Из чего состоит любое приложение')
     expect(sceneBook(fixtureLesson, scene('site-dev'))).toBe('книга · Азбука · Как код становится работающим сайтом')
-    expect(sceneBook(fixtureLesson, scene('agenda'))).toMatch(/^книга · Азбука · .* и ещё 2$/)
+    expect(sceneBook(fixtureLesson, scene('agenda'))).toBe('книга · Азбука · Из чего состоит любое приложение')
     expect(sceneBook(fixtureLesson, scene('parts-key'))).toBe('')
+    const long = structuredClone(fixtureLesson)
+    long.chapters[1].title = 'Четыре части: зал, официант, кухня и склад приложения'
+    const ref = sceneBook(long, buildLesson(long).scenes.find((s) => s.id === 'parts-route')!)
+    expect(ref).toMatch(/^книга · Азбука · Из чего.*…$/)
+    expect(ref).not.toContain('ещё')
   })
 
   it('та же ссылка в соседних сценах — без смены; иначе прежняя уходит за полсмены, новая приходит за вторую половину', () => {
     const pkg = scene('parts-pkg')
-    expect(headerRight(fixtureLesson, scenes, pkg.start)).toEqual([{ b: pkg, opacity: 1 }])
+    expect(headerRight(fixtureLesson, scenes, pkg.start)).toEqual([{ b: pkg, opacity: 1, label: false }])
     const key = scene('parts-key')
     const at = (t: number) => headerRight(fixtureLesson, scenes, key.start + t)
-    expect(at(0)).toEqual([{ b: pkg, opacity: 1 }, { b: key, opacity: 0 }])
+    expect(at(0)).toEqual([
+      { b: pkg, opacity: 1, label: false },
+      { b: key, opacity: 0, label: true },
+    ])
     expect(at(2)[0].opacity).toBeGreaterThan(0)
     expect(at(2)[0].opacity).toBeLessThan(1)
     expect(at(2)[1].opacity).toBe(0)
     expect(at(MOTION.sceneFade / 2)[0].opacity).toBe(0)
     expect(at(6)[1].opacity).toBeGreaterThan(0)
-    expect(at(MOTION.sceneFade)).toEqual([{ b: key, opacity: 1 }])
+    expect(at(MOTION.sceneFade)).toEqual([{ b: key, opacity: 1, label: true }])
     // первая сцена — сразу
-    expect(headerRight(fixtureLesson, scenes, 0)).toEqual([{ b: scenes[0], opacity: 1 }])
+    expect(headerRight(fixtureLesson, scenes, 0)).toEqual([{ b: scenes[0], opacity: 1, label: false }])
+  })
+
+  it('две сцены mistake подряд: «Типичная ошибка» стоит, уходит только вердикт прежней', () => {
+    const l = structuredClone(fixtureLesson)
+    const parts = l.chapters[1].scenes
+    parts.push({ ...structuredClone(parts[parts.length - 1]), id: 'parts-key-2' })
+    const built = buildLesson(l).scenes
+    const first = built.find((s) => s.id === 'parts-key')!
+    const second = built.find((s) => s.id === 'parts-key-2')!
+    for (let t = 0; t <= MOTION.sceneFade; t++) {
+      const right = headerRight(l, built, second.start + t)
+      // у новой сцены метка видна всё время смены
+      expect(right).toContainEqual({ b: second, opacity: 1, label: true })
+      const prev = right.find((r) => r.b === first)
+      if (prev) expect(prev.label).toBe(false)
+    }
+    expect(headerRight(l, built, second.start + 2).find((r) => r.b === first)!.opacity).toBeLessThan(1)
+    expect(headerRight(l, built, second.start + MOTION.sceneFade)).toEqual([{ b: second, opacity: 1, label: true }])
   })
 })
 
