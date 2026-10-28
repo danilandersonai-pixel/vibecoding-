@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import type { VideoHotspot } from '../../video/types'
 
-const pctX = (v: number) => `${(v / 1280) * 100}%`
-const pctY = (v: number) => `${(v / 720) * 100}%`
-
-// Зоны кадра на паузе: нажатие на объект показывает пояснение.
-export function HotspotLayer({ hotspots, frame }: { hotspots: VideoHotspot[]; frame: number }) {
+// Зоны кадра на паузе: нажатие на объект показывает пояснение. Координаты зон — в пикселях кадра ролика,
+// width × height — его размер (1280 × 720 у старых роликов, 1920 × 1080 у новых): положение и размер считаются в процентах от него.
+export function HotspotLayer({ hotspots, width, height, frame }: { hotspots: VideoHotspot[]; width: number; height: number; frame: number }) {
+  const pctX = (v: number) => `${(v / width) * 100}%`
+  const pctY = (v: number) => `${(v / height) * 100}%`
   const [open, setOpen] = useState<string | null>(null)
   const active = hotspots.filter((h) => frame >= h.from && frame < h.to)
   const shown = active.find((h) => h.title === open)
