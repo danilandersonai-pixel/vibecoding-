@@ -55,7 +55,16 @@ test('до запуска ролик не пустой: видна обложк�
   await expect(page.locator('.video-frame')).toHaveCount(2)
   for (const frame of await page.locator('.video-frame').all()) await expect(frame.locator('svg').first()).toBeVisible()
   await expect(page.locator('.video-hotspot')).toHaveCount(0)
-  // два ролика на компьютере — в один ряд
+  // тёмные ролики (кадр 1920 × 1080, мелкий код) — каждый во всю ширину сетки, друг под другом
+  const rows = await page.locator('.video-grid .video-stage').evaluateAll((els) => els.map((el) => el.getBoundingClientRect()))
+  const grid = await page.locator('.video-grid').first().evaluate((el) => el.getBoundingClientRect().width)
+  expect(rows[1].top).toBeGreaterThan(rows[0].bottom)
+  for (const r of rows) expect(Math.abs(r.width - grid)).toBeLessThan(2)
+})
+
+test('два старых ролика (1280 × 720) на компьютере — в один ряд', async ({ page }) => {
+  await page.goto('/#/day/2')
+  await expect(page.locator('.video-grid .video-stage')).toHaveCount(2)
   const [a, b] = await page.locator('.video-grid .video-stage').evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top))
   expect(a).toBe(b)
 })

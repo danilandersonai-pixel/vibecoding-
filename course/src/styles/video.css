@@ -9,10 +9,11 @@
 .video-title{margin:4px 0 0;font:600 16px/1.35 var(--font-body);overflow-wrap:break-word}
 .video-meta{margin:-4px 0 0;color:var(--ink-soft);font:400 12px/1.5 var(--font-ui)}
 
-/* Сетка роликов теории: два в ряд, одинокий ролик — во всю ширину */
+/* Сетка роликов теории: два в ряд, одинокий ролик — во всю ширину.
+   Тёмный ролик (кадр 1920 × 1080: код и вывод мелким шрифтом) — всегда во всю ширину, иначе текст кадра не читается */
 .video-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 20px;margin:22px 0}
 .video-grid > *{margin:0}
-.video-grid > :only-child{grid-column:1 / -1}
+.video-grid > :only-child,.video-grid > .video.is-term{grid-column:1 / -1}
 /* «Дальше» прокручивает к следующему материалу — над ним остаётся место (на узком экране — под полосой плана дня) */
 :is(.day-part,.video-grid) > *{scroll-margin-top:24px}
 

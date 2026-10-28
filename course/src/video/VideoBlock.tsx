@@ -196,7 +196,7 @@ function VideoBlockBody({ videoId, title, index }: Props) {
   const chapters = script.chapters?.length ? script.chapters : undefined
   const currentChapter = chapters ? chapterIndexAt(chapters, shownFrame) : -1
   return (
-    <figure ref={figureRef} className="block video" aria-labelledby={titleId}>
+    <figure ref={figureRef} className={dark ? 'block video is-term' : 'block video'} aria-labelledby={titleId}>
       <div ref={screenRef} className="video-screen">
         <div className={dark ? 'video-stage is-dark' : 'video-stage'}>
           {/* Пока ролик стоит на обложке, субтитры кадра обложки не рисуются: под нижним затемнением они только шумят */}

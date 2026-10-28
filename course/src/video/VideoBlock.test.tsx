@@ -588,6 +588,15 @@ describe('VideoBlock: главы ролика', () => {
     await act(async () => {})
   })
 
+  it('блок тёмного ролика (1920 × 1080) помечен is-term — в сетке дня он во всю ширину, у старого 1280 × 720 — нет', async () => {
+    const wide = render(<VideoBlock videoId="chaptered" title="Новый" />)
+    expect(wide.container.querySelector('figure.video')).toHaveClass('is-term')
+    wide.unmount()
+    const old = render(<VideoBlock videoId="a" title="Старый" />)
+    expect(old.container.querySelector('figure.video')).not.toHaveClass('is-term')
+    await act(async () => {})
+  })
+
   it('у ролика без глав (и с пустым списком глав) панель и блок прежние', async () => {
     for (const id of ['a', 'unchaptered']) {
       const { container, unmount } = render(<VideoBlock videoId={id} title="Ролик" />)
