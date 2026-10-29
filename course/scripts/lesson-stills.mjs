@@ -1,10 +1,12 @@
 // Снимки урока набора «Репозиторий» для проверки глазами: кадр середины каждой сцены и кадр середины каждого пояснения
-// (с рамками пояснений — проп debugSpots). Бандл Remotion собирается один раз, браузер открывается один раз.
+// (с рамками пояснений — проп debugSpots). Бандл Remotion собирается один раз, браузер открывается один раз;
+// в конце бандл удаляется из временной папки (иначе каждый запуск оставляет ~42 МБ).
 // Запуск (из course/): node scripts/lesson-stills.mjs <compositionId> <script.gen.json> <outDir>
 //   например: node scripts/lesson-stills.mjs term-lesson video/term/fixture-lesson.gen.json /tmp/stills
 // Браузер — headless_shell из /opt/pw-browsers; playwright install не запускать.
-import { mkdirSync, readFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { MOTION } from '../video/term/theme.ts'
 
@@ -78,5 +80,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     }
   } finally {
     await browser.close({ silent: true })
+    // Удаляем только свой бандл: каталог remotion-webpack-bundle-* прямо во временной папке
+    const dir = resolve(serveUrl)
+    if (dirname(dir) === resolve(tmpdir()) && basename(dir).startsWith('remotion-webpack-bundle-')) rmSync(dir, { recursive: true, force: true })
   }
 }
