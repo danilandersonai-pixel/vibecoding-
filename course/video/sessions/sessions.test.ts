@@ -993,3 +993,110 @@ test('s10: шаги по таблице; форму, проверку имён �
   expect(run('show-label').cmd).toBe('git log -1')
   expect(run('show-label').out.join('\n')).toContain(care.hash)
 })
+
+test('s11: рабочая сборка отвечает, манифест на месте', () => {
+  // сборка видит манифест и маршрут иконки; вход за Марину в рабочей сборке (npm start) приводит на /clients
+  const built = find('s11-ship', 'build', 'run')
+  expect(built.code).toBe(0)
+  expect(built.out.join('\n')).toContain('/manifest.webmanifest')
+  expect(find('s11-ship', 'prod-login', 'browser').urlAfter?.endsWith('/clients')).toBe(true)
+  // манифест по прямому адресу: имя «Тренер» и режим standalone
+  const manifest = find('s11-ship', 'prod-manifest', 'browser').after.join('\n')
+  expect(manifest).toContain('Тренер')
+  expect(manifest).toContain('standalone')
+})
+
+test('s11: шаги по таблице; манифест и иконку пишет агент, таблицу паритета и план — человек; три коммита на main — продолжение s10', () => {
+  expect(sessions['s11-ship'].events.map((e) => e.id)).toEqual([
+    ...['ask-pwa', 'manifest-file', 'icon-file', 'build', 'start', 'prod-login', 'prod-manifest', 'c-pwa'],
+    ...['parity', 'c-parity', 'plan-file', 'c-plan', 'pass-map', 'pass-log'],
+  ])
+  const file = (id: string) => find('s11-ship', id, 'file')
+  const run = (id: string) => find('s11-ship', id, 'run')
+  const commit = (id: string) => find('s11-ship', id, 'commit')
+
+  // PWA: просьба, манифест (имя, standalone, start_url) и иконка из JSX через ImageResponse — оба файла пишет агент
+  const ask = find('s11-ship', 'ask-pwa', 'agent')
+  expect(ask.prompt).toBe('Сделай приложение устанавливаемым на телефон: манифест и иконка')
+  expect(ask.steps).toEqual(['manifest-file', 'icon-file'])
+  expect(file('manifest-file')).toMatchObject({ path: 'app/manifest.ts', before: null, by: 'agent' })
+  expect(file('manifest-file').after).toContain('name: "Тренер"')
+  expect(file('manifest-file').after).toContain('display: "standalone"')
+  expect(file('manifest-file').after).toContain('start_url: "/login"')
+  expect(file('icon-file')).toMatchObject({ path: 'app/icon.tsx', before: null, by: 'agent' })
+  expect(file('icon-file').after).toContain('ImageResponse')
+
+  // рабочая сборка: npm run build печатает маршруты (манифест и иконка в списке), npm start держится до «Ready»
+  expect(run('build').cmd).toBe('npm run build')
+  expect(run('build').out.join('\n')).toMatch(/\/icon\b/)
+  expect(run('start')).toMatchObject({ cmd: 'npm start', code: null })
+  expect(run('start').out.join('\n')).toContain('Ready')
+  expect(run('start').by).toBeUndefined()
+  // обе браузерные проверки идут по рабочей сборке: вход без перенаправления с /login, манифест — по прямому адресу
+  const login = find('s11-ship', 'prod-login', 'browser')
+  expect(login.url).toBe('http://localhost:3000/login')
+  expect(login.fields).toEqual([
+    { label: 'Почта', value: 'marina@example.com' },
+    { label: 'Пароль', value: 'demo-password' },
+  ])
+  expect(login.urlAfter).toBe('http://localhost:3000/clients')
+  const manifestPage = find('s11-ship', 'prod-manifest', 'browser')
+  expect(manifestPage.url).toBe('http://localhost:3000/manifest.webmanifest')
+  expect(manifestPage.urlAfter).toBeUndefined()
+  expect(manifestPage.network).toEqual([])
+
+  // таблица паритета (шаг 5 чистой комнаты): сценарии × три эталона × «наше»; ячейки — только из своих слов
+  const parity = file('parity')
+  expect(parity).toMatchObject({ path: 'docs/parity.md', before: null })
+  expect(parity.by).toBeUndefined()
+  const rows = parity.after
+    .split('\n')
+    .filter((line) => line.startsWith('|'))
+    .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
+  expect(rows[0]).toEqual(['Сценарий', 'Эталон А', 'Эталон Б', 'Эталон В', 'Наше'])
+  const scenarios = rows.slice(2)
+  expect(scenarios.length).toBeGreaterThanOrEqual(10)
+  for (const [name, a, b, v, ours] of scenarios) {
+    for (const cell of [a, b, v]) expect(['есть', 'нет'], name).toContain(cell)
+    expect(['есть', 'нет', 'позже'], name).toContain(ours)
+  }
+  for (const word of ['есть', 'нет', 'позже']) expect(scenarios.map((row) => row[4]), word).toContain(word)
+  // отличие из спецификации: вес и повторы тренер видит только у нас
+  expect(scenarios.find((row) => row[0].startsWith('Тренер видит вес и повторы'))?.slice(1)).toEqual(['нет', 'нет', 'нет', 'есть'])
+  // эталоны без названий настоящих продуктов
+  expect(parity.after).not.toMatch(/Strong|Hevy|Trainerize|TrueCoach|MyFitnessPal|World Class/i)
+
+  // план недель 2–3: слова Марины с пробы и приоритеты по строкам таблицы паритета
+  const plan = file('plan-file')
+  expect(plan).toMatchObject({ path: 'docs/plan-weeks-2-3.md', before: null })
+  expect(plan.by).toBeUndefined()
+  expect(plan.after).toContain('Марина')
+  expect(plan.after).toContain('docs/parity.md')
+  for (const heading of ['## Что сказала Марина', '## Приоритеты', '## Неделя 2', '## Неделя 3']) expect(plan.after, heading).toContain(heading)
+
+  // три коммита подряд на main, первый — от последнего коммита s10; в первый ушли манифест и иконка
+  const chain = ['c-pwa', 'c-parity', 'c-plan'].map(commit)
+  expect(chain.map((c) => c.message)).toEqual([
+    'Приложение ставится на телефон: манифест и иконка',
+    'Таблица паритета с эталонами',
+    'План недель 2–3 после пробы с тренером',
+  ])
+  for (const c of chain) expect(c.branch, c.id).toBe('main')
+  for (let i = 1; i < chain.length; i++) expect(chain[i].parents, chain[i].id).toEqual([chain[i - 1].hash])
+  expect(chain[0].parents).toEqual([find('s10-care', 'c-care', 'commit').hash])
+  const tree = (c: (typeof chain)[number]) => c.files.map((f) => f.path)
+  expect(tree(chain[0])).toEqual(expect.arrayContaining(['app/manifest.ts', 'app/icon.tsx']))
+  expect(tree(chain[0])).not.toContain('docs/parity.md')
+  expect(tree(chain[1])).toContain('docs/parity.md')
+  expect(tree(chain[2])).toContain('docs/plan-weeks-2-3.md')
+  // сканер секретов ничего не нашёл: коммиты прошли
+
+  // карта проекта и последние три коммита — после последнего коммита, ничего не меняют
+  expect(run('pass-map').cmd).toBe('git ls-files app lib components supabase')
+  expect(run('pass-map').out).toEqual(expect.arrayContaining(['app/manifest.ts', 'app/icon.tsx', 'lib/db.ts', 'components/SetList.tsx']))
+  expect(run('pass-map').files).toBeUndefined()
+  expect(run('pass-log').cmd).toBe('git log --oneline --stat -3')
+  expect(run('pass-log').files).toBeUndefined()
+  const log = run('pass-log').out.join('\n')
+  for (const c of chain) expect(log).toContain(`${c.hash} ${c.message}`)
+})
