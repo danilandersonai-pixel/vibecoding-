@@ -10,7 +10,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, 
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { packState, recordChain, trackedFiles, unpackState } from './session/record.mjs'
+import { committedFiles, packState, recordChain, trackedFiles, unpackState } from './session/record.mjs'
 
 const fail = (message) => {
   console.error(message)
@@ -84,17 +84,17 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     fail(`${err.message}\nВременная папка записи оставлена для разбора: ${workdir}`)
   }
 
-  // Приложение в demo-app/app — ровно то, что закоммитила последняя сессия
+  // Приложение в demo-app/app — ровно то, что закоммитила последняя сессия, на той ветке, где проект стоит в её конце:
+  // сессия может кончиться переключением на main (`git switch main`), тогда приложение — дерево main, а не последний коммит записи
   const tracked = await trackedFiles(result.project)
   const last = result.records.at(-1)
-  const commit = last.events.findLast((e) => e.kind === 'commit')
-  if (!commit) fail(`В последней сессии «${last.id}» нет коммита: приложение для demo-app/app не зафиксировано.\nВременная папка записи: ${workdir}`)
-  const committed = new Map(commit.files.map((f) => [f.path, f.blob]))
+  if (!last.events.some((e) => e.kind === 'commit')) fail(`В последней сессии «${last.id}» нет коммита: приложение для demo-app/app не зафиксировано.\nВременная папка записи: ${workdir}`)
+  const committed = new Map((await committedFiles(result.project)).map((f) => [f.path, f.blob]))
   const problems = [
     ...tracked.filter((f) => committed.get(f.path) !== f.blob).map((f) => `изменён после коммита или не закоммичен: ${f.path}`),
     ...[...committed.keys()].filter((path) => !tracked.some((f) => f.path === path)).map((path) => `закоммичен, но удалён: ${path}`),
   ]
-  if (problems.length) fail(`Проект после последней сессии не совпадает с её последним коммитом, ничего не записано:\n${problems.join('\n')}\nВременная папка записи: ${workdir}`)
+  if (problems.length) fail(`Проект после последней сессии не совпадает с коммитом HEAD, ничего не записано:\n${problems.join('\n')}\nВременная папка записи: ${workdir}`)
 
   mkdirSync(outDir, { recursive: true })
   for (const record of result.records) writeFileSync(join(outDir, `${record.id}.json`), JSON.stringify(record, null, 1) + '\n')

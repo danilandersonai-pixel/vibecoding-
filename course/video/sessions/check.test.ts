@@ -247,6 +247,40 @@ describe('sessionProblems', () => {
     expectOnly(r, 'demo-app/app: другой файл «a.txt»', appOf({ 'a.txt': V2 }))
   })
 
+  // Сессия кончается переключением ветки (git switch main): последний коммит — на ветке прототипа, а проект уже на main.
+  // Что команды сделали с файлами после коммита, записано в run.files, и demo-app/app сверяется с деревом на конец сессии.
+  describe('app: команда после последнего коммита (git switch) меняет дерево', () => {
+    const afterSwitch = (files: RunEvent['files']): SessionRecord[] => {
+      const r = records()
+      r[1].events.push(commit('c3', { 'a.txt': V2, 'b.txt': 'b\n' }), run('main', files))
+      return r
+    }
+
+    it('файл, которого на main нет, в demo-app/app не нужен', () => {
+      expect(sessionProblems(afterSwitch([{ path: 'b.txt', blob: null }]), appOf({ 'a.txt': V2 }))).toEqual([])
+    })
+
+    it('файл, удалённый командой, в demo-app/app лишний', () => {
+      expectOnly(afterSwitch([{ path: 'b.txt', blob: null }]), 'demo-app/app: лишний файл «b.txt»', appOf({ 'a.txt': V2, 'b.txt': 'b\n' }))
+    })
+
+    it('файл, который команда вернула к другой версии, сверяется по новому хешу', () => {
+      const r = afterSwitch([{ path: 'a.txt', blob: gitBlobHash(V1) }, { path: 'b.txt', blob: null }])
+      expect(sessionProblems(r, appOf({ 'a.txt': V1 }))).toEqual([])
+      expectOnly(r, 'demo-app/app: другой файл «a.txt»', appOf({ 'a.txt': V2 }))
+    })
+
+    it('команда, не тронувшая файлы, дерево не меняет', () => {
+      expect(sessionProblems(afterSwitch(undefined), appOf({ 'a.txt': V2, 'b.txt': 'b\n' }))).toEqual([])
+    })
+
+    it('команда до последнего коммита дерево последнего коммита не меняет', () => {
+      const r = records()
+      r[1].events.splice(2, 0, run('tmp', [{ path: 'z.txt', blob: gitBlobHash('z\n') }]))
+      expect(sessionProblems(r, appOf({ 'a.txt': V2 }))).toEqual([])
+    })
+  })
+
   it('app: в последней сессии нет коммита', () => {
     const r = records()
     r[1].events.pop()

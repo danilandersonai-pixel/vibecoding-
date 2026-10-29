@@ -8,6 +8,7 @@ import s01Start from './s01-start.json'
 import s02Sets from './s02-sets.json'
 import s03Spec from './s03-spec.json'
 import s04Rules from './s04-rules.json'
+import s05Proto from './s05-proto.json'
 import { makeFind } from './types'
 import type { Find, SessionRecord } from './types'
 
@@ -17,6 +18,7 @@ export const sessions: Record<string, SessionRecord> = {
   's02-sets': s02Sets as SessionRecord,
   's03-spec': s03Spec as SessionRecord,
   's04-rules': s04Rules as SessionRecord,
+  's05-proto': s05Proto as SessionRecord,
 }
 
 export const find: Find = makeFind(Object.values(sessions))

@@ -1170,6 +1170,44 @@ describe('record-session.mjs: запись с середины цепочки', 
     expect(readdirSync(dirs.app).sort()).toEqual(['.gitignore', 'a.txt', 'b.txt'])
   })
 
+  // Сессия s05 кончается переключением ветки: прототип остаётся в proto/coach, проект стоит на main
+  const g04 = (tail: object[]) => ({
+    id: 'g04',
+    from: 'g03',
+    date: '2026-10-28T13:00:00Z',
+    steps: [
+      { id: 'br', run: 'git switch -c proto' },
+      { id: 'pr', write: 'proto.txt', content: 'прототип\n' },
+      { id: 'cp', commit: 'прототип' },
+      ...tail,
+    ],
+  })
+
+  it('сессия кончается переключением на main: demo-app/app — файлы main, прототип остаётся в своей ветке', () => {
+    const { dirs, run } = setup([...chain3(), g04([{ id: 'back', run: 'git switch main' }])])
+    const done = run()
+    expect(done.stderr).toBe('')
+    expect(done.status).toBe(0)
+    expect(readdirSync(dirs.app).sort()).toEqual(['.gitignore', 'a.txt', 'b.txt'])
+    // запись g04 знает, что проект ушёл с ветки: коммит прототипа на proto, затем команда убрала proto.txt
+    const record = JSON.parse(read(dirs.out, 'g04.json'))
+    expect(record.events.find((e: { id: string }) => e.id === 'cp').branch).toBe('proto')
+    expect(record.events.find((e: { id: string }) => e.id === 'back').files).toEqual([{ path: 'proto.txt', blob: null }])
+  })
+
+  it('правка после последнего коммита по-прежнему останавливает запись: ничего не записано', () => {
+    const { dirs, run } = setup([...chain3(), g04([{ id: 'late', write: 'a.txt', content: 'после коммита\n' }])])
+    const failed = run()
+    expect(failed.status).toBe(1)
+    expect(failed.stderr).toMatch(/Проект после последней сессии не совпадает с коммитом HEAD, ничего не записано:\nизменён после коммита или не закоммичен: a\.txt/)
+    expect([dirs.out, dirs.state, dirs.app].map((dir) => readdirSync(dir))).toEqual([[], [], []])
+    // сорванная запись оставляет временную папку rec-… для разбора; тест её убирает
+    const left = /Временная папка записи[^:\n]*: (.+)$/m.exec(failed.stderr)?.[1]
+    expect(left).toBeDefined()
+    expect(dirname(dirname(left!))).toBe(tmpdir())
+    rmSync(dirname(left!), { recursive: true, force: true })
+  })
+
   it('--from g03: пишет только g03 и её состояние, всё раньше не трогает; запись та же, что у всей цепочки', () => {
     const { dirs, run } = setup()
     expect(run().status).toBe(0)

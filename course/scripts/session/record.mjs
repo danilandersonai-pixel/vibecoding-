@@ -738,6 +738,14 @@ async function playSession({ home, project, npmCache, runLimitMs }, def) {
   return { id: def.id, from: def.from, recorded: new Date(def.date).toISOString().slice(0, 10), events }
 }
 
+// Файлы коммита HEAD (на ветке, где проект стоит сейчас) с хешами blob: [{ path, blob }]. Сессия может кончиться переключением
+// ветки (`git switch main`) — тогда это не файлы последнего коммита записи, а дерево главной ветки.
+export async function committedFiles(project) {
+  const env = baseEnv(join(project, '..'))
+  const rows = (await git(['ls-tree', '-r', '-z', 'HEAD'], { cwd: project, env })).split('\0').filter(Boolean)
+  return rows.map((row) => ({ path: row.slice(row.indexOf('\t') + 1), blob: row.split(' ')[2].split('\t')[0] }))
+}
+
 // Файлы проекта из `git ls-files` с хешами blob рабочего дерева: [{ path, blob }].
 export async function trackedFiles(project) {
   const env = baseEnv(join(project, '..'))

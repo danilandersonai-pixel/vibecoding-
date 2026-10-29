@@ -3,7 +3,9 @@ import { applyPatch } from './patch'
 import type { CommitEvent, SessionRecord } from './types'
 
 // Сверка записей сессий: пустой массив — всё сходится; каждая поломка — одна понятная строка.
-// app — путь → blob файлов demo-app/app; если он передан, сверяется с файлами последнего коммита последней сессии.
+// app — путь → blob файлов demo-app/app; если он передан, сверяется с файлами последнего коммита последней сессии
+// и тем, что команды сделали с файлами после него: сессия может кончиться переключением ветки (git switch main), и тогда
+// проект стоит уже не на ветке последнего коммита, а удалённые и возвращённые файлы записаны в run.files этих команд.
 // Записи считаются эталоном, поэтому «нет файла» и «лишний файл» — про demo-app/app: чего в нём не хватает и что в нём сверх записи.
 export function sessionProblems(records: SessionRecord[], app?: Map<string, string>): string[] {
   const problems: string[] = []
@@ -91,6 +93,13 @@ export function sessionProblems(records: SessionRecord[], app?: Map<string, stri
     else if (!commit) problems.push('demo-app/app: в последней сессии нет коммита')
     else {
       const committed = new Map(commit.files.map((f) => [f.path, f.blob]))
+      for (const e of last.events.slice(last.events.lastIndexOf(commit) + 1)) {
+        if (e.kind !== 'run') continue
+        for (const f of e.files ?? []) {
+          if (f.blob === null) committed.delete(f.path)
+          else committed.set(f.path, f.blob)
+        }
+      }
       for (const [path, blob] of committed) {
         const mine = app.get(path)
         if (mine === undefined) problems.push(`demo-app/app: нет файла «${path}»`)

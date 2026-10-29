@@ -168,3 +168,113 @@ test('s04: шаги идут по таблице, шрифты правит че
   expect(find('s04-rules', 'route-weight', 'file').after).toContain('parseWeight')
   expect(find('s04-rules', 'c-weight', 'commit').message).toBe('Разбор веса в lib/weight.ts с тестами')
 })
+
+test('s05: ключ с NEXT_PUBLIC_ находится в сборке, после исправления — нет', () => {
+  // ключ NEXT_PUBLIC_ читает клиентский компонент на /coach, поэтому сборка кладёт его значение в кусок .next/static
+  const button = find('s05-proto', 'advice-btn', 'file')
+  expect(button).toMatchObject({ path: 'app/coach/advice-button.tsx', by: 'agent' })
+  expect(button.after).toMatch(/^"use client";/)
+  expect(button.after).toContain('process.env.NEXT_PUBLIC_AI_KEY')
+  expect(find('s05-proto', 'key-env', 'file').after).toContain('NEXT_PUBLIC_AI_KEY=demo-ai-key-not-real')
+  const build = find('s05-proto', 'build', 'run')
+  expect(build.code).toBe(0)
+  const leak = find('s05-proto', 'leak', 'run')
+  expect(leak.cmd).toBe('grep -rl demo-ai-key-not-real .next/static || echo "не найдено"')
+  expect(leak.code).toBe(0)
+  expect(leak.out[0]).toMatch(/^\.next\/static\/.+\.js$/)
+  expect(leak.out).not.toContain('не найдено')
+  // исправление: ключ только на сервере (AI_KEY читает маршрут /api/advice), кнопка ходит на свой маршрут
+  expect(find('s05-proto', 'key-route', 'file')).toMatchObject({ path: 'app/api/advice/route.ts', before: null, by: 'agent' })
+  expect(find('s05-proto', 'key-route', 'file').after).toContain('process.env.AI_KEY')
+  const fixedEnv = find('s05-proto', 'key-env-fix', 'file')
+  expect(fixedEnv).toMatchObject({ path: '.env.local', by: 'agent' })
+  expect(fixedEnv.after).toContain('AI_KEY=demo-ai-key-not-real')
+  expect(fixedEnv.after).not.toContain('NEXT_PUBLIC_')
+  const fixedButton = find('s05-proto', 'key-btn-fix', 'file')
+  expect(fixedButton.after).toContain('fetch("/api/advice"')
+  expect(fixedButton.after).not.toContain('process.env')
+  expect(find('s05-proto', 'build2', 'run').code).toBe(0)
+  expect(find('s05-proto', 'leak2', 'run')).toMatchObject({ cmd: leak.cmd, out: ['не найдено'] })
+  // ключ не попадает в коммиты: .env.local под .gitignore
+  for (const e of sessions['s05-proto'].events) {
+    if (e.kind === 'commit') expect(e.files.map((f) => f.path), e.id).not.toContain('.env.local')
+  }
+
+  // показ: шесть подопечных, затем «Пора написать» у двоих сверху (больше 7 дней без тренировки), остальные в прежнем порядке
+  // Подопечный на странице: имя, пометка (если есть), «последняя тренировка: N дн. назад», «Совет ИИ»
+  const clientsOf = (lines: string[]) =>
+    lines.flatMap((line, i) => {
+      const days = /^последняя тренировка: (\d+) дн\. назад$/.exec(line)
+      if (!days) return []
+      const marked = lines[i - 1] === 'Пора написать'
+      return [{ name: lines[marked ? i - 2 : i - 1], days: Number(days[1]), marked }]
+    })
+  const before = find('s05-proto', 'proto-view', 'browser').after
+  expect(before).not.toContain('Пора написать')
+  const was = clientsOf(before)
+  expect(was.map((c) => c.name)).toEqual(['Анна', 'Денис', 'Ксения', 'Олег', 'Павел', 'Татьяна'])
+  expect(before.filter((line) => line === 'Совет ИИ')).toHaveLength(6)
+  const after = find('s05-proto', 'proto-view2', 'browser').after
+  expect(after.join('\n')).toContain('Пора написать')
+  const now = clientsOf(after)
+  expect(now).toHaveLength(6)
+  expect(now.map((c) => c.marked)).toEqual(now.map((c) => c.days > 7))
+  expect(now.map((c) => c.marked)).toEqual([true, true, false, false, false, false])
+  expect(now.slice(2).map((c) => c.name)).toEqual(was.map((c) => c.name).filter((name) => !now.slice(0, 2).some((c) => c.name === name)))
+
+  // ветки: прототип остаётся только в proto/coach, main возвращает приложение s04
+  expect(find('s05-proto', 'main', 'run').files).toContainEqual({ path: 'app/coach/page.tsx', blob: null })
+  const branches = find('s05-proto', 'branches', 'run').out.join('\n')
+  expect(branches).toContain('proto/coach')
+  expect(branches).toContain('main')
+})
+
+test('s05: шаги идут по таблице, документ и журнал пишет человек, прототип и ключ — агент', () => {
+  expect(sessions['s05-proto'].events.map((e) => e.id)).toEqual([
+    ...['proto-branch', 'proto-doc', 'ask-proto', 'fake-data', 'proto-page', 'c-proto'],
+    ...['ask-advice', 'key-env', 'advice-btn', 'advice-use', 'build', 'leak'],
+    ...['ask-key-fix', 'key-route', 'key-env-fix', 'key-btn-fix', 'build2', 'leak2', 'c-advice'],
+    ...['dev', 'proto-view', 'ask-iter', 'iter-page', 'proto-view2', 'journal', 'c-proto2', 'main', 'branches'],
+  ])
+  expect(find('s05-proto', 'proto-branch', 'run')).toMatchObject({ cmd: 'git switch -c proto/coach', code: 0 })
+  // docs/prototype.md: вопрос, таймбокс, тонкий срез, выдуманные данные, готовность выбросить, упрощения — и журнал решений после показа
+  const doc = find('s05-proto', 'proto-doc', 'file')
+  expect(doc).toMatchObject({ path: 'docs/prototype.md', before: null })
+  expect(doc.by).toBeUndefined()
+  expect(doc.after).toContain('Поймёт ли тренер с первого взгляда, кому пора написать?')
+  for (const part of ['## Таймбокс', '## Тонкий срез', '## Данные', '## Готова выбросить', '## Упрощения', '## Журнал решений']) expect(doc.after).toContain(part)
+  expect(doc.after).toContain('Два часа')
+  const journal = find('s05-proto', 'journal', 'file')
+  expect(journal).toMatchObject({ path: 'docs/prototype.md', before: doc.after })
+  expect(journal.by).toBeUndefined()
+  expect(journal.after).toContain('Пора написать')
+  expect(journal.after).toContain('развивать: строить по-настоящему на базе в день 4')
+  // запрос по шаблону s36: прототип, вопрос, один экран, выдуманные данные в памяти без входа и базы, стек, список упрощений
+  const ask = find('s05-proto', 'ask-proto', 'agent')
+  expect(ask.steps).toEqual(['fake-data', 'proto-page'])
+  for (const part of ['прототип', 'Вопрос', 'Один экран', 'выдуман', 'в памяти', 'без входа и базы', 'Стек', 'список упрощений']) expect(ask.prompt.toLowerCase()).toContain(part.toLowerCase())
+  expect(ask.reply).toContain('Упрощения')
+  const data = find('s05-proto', 'fake-data', 'file')
+  expect(data).toMatchObject({ path: 'lib/fake-clients.ts', before: null, by: 'agent' })
+  expect(data.after.match(/lastWorkout: "\d{4}-\d\d-\d\d"/g)).toHaveLength(6)
+  expect(find('s05-proto', 'proto-page', 'file')).toMatchObject({ path: 'app/coach/page.tsx', before: null, by: 'agent' })
+  expect(find('s05-proto', 'proto-page', 'file').after).toContain('последняя тренировка:')
+  expect(find('s05-proto', 'c-proto', 'commit')).toMatchObject({ message: 'Прототип: список подопечных', branch: 'proto/coach' })
+  expect(find('s05-proto', 'ask-advice', 'agent').steps).toEqual(['key-env', 'advice-btn', 'advice-use'])
+  expect(find('s05-proto', 'key-env', 'file')).toMatchObject({ path: '.env.local', by: 'agent', before: find('s02-sets', 'env', 'file').after })
+  expect(find('s05-proto', 'advice-use', 'file')).toMatchObject({ path: 'app/coach/page.tsx', by: 'agent' })
+  expect(find('s05-proto', 'ask-key-fix', 'agent').prompt).toContain('.next/static')
+  expect(find('s05-proto', 'ask-key-fix', 'agent').steps).toEqual(['key-route', 'key-env-fix', 'key-btn-fix'])
+  expect(find('s05-proto', 'c-advice', 'commit')).toMatchObject({ message: 'Совет ИИ: ключ только на сервере', branch: 'proto/coach' })
+  expect(find('s05-proto', 'ask-iter', 'agent').steps).toEqual(['iter-page'])
+  expect(find('s05-proto', 'iter-page', 'file')).toMatchObject({ path: 'app/coach/page.tsx', by: 'agent' })
+  expect(find('s05-proto', 'c-proto2', 'commit')).toMatchObject({ message: 'Прототип: сверху те, кому пора написать', branch: 'proto/coach' })
+  expect(find('s05-proto', 'main', 'run')).toMatchObject({ cmd: 'git switch main', code: 0 })
+  // dev-сервер, браузер не нажимал «Совет ИИ»: запроса к сервису ИИ в записи нет
+  for (const id of ['proto-view', 'proto-view2']) {
+    const view = find('s05-proto', id, 'browser')
+    expect(view.url).toBe('http://localhost:3000/coach')
+    expect(view.network).toEqual([])
+    expect(view.server.join('\n')).not.toMatch(/Google Fonts|fonts\.googleapis|font\/google/i)
+  }
+})
