@@ -414,3 +414,155 @@ test('s06: шаги идут по таблице, миграции и тест �
     expect(view.console.filter((m) => m.type === 'error' && !m.text.includes('404')), id).toEqual([])
   }
 })
+
+test('s07: дата как у большинства, затем по-русски; тест ловит поломку; сквозной тест проходит', () => {
+  const text = (id: string) => find('s07-cycle', id, 'browser').after.join('\n')
+  // Марина назначает «Грудь и спина» на 2026-11-02: дата в списке — американская, с языком системы сервера
+  const assign = find('s07-cycle', 'assign', 'browser')
+  expect(assign.url).toBe('http://localhost:3000/clients/1')
+  expect(assign.fields).toEqual([
+    { label: 'Название', value: 'Грудь и спина' },
+    { label: 'Дата', value: '2026-11-02' },
+  ])
+  expect(text('assign')).toContain('Грудь и спина')
+  expect(text('assign')).toContain('11/2/2026')
+  expect(find('s07-cycle', 'ask-date', 'agent').prompt).toContain('11/2/2026')
+  // после formatDay — «2 ноября», американской даты нет
+  expect(text('assign-view')).toContain('2 ноября')
+  expect(text('assign-view')).not.toContain('11/2/2026')
+  // Анна вписывает подход 60 × 8 в «Грудь и спина»: подход в списке, объём 480 кг
+  const logSet = find('s07-cycle', 'log-set', 'browser')
+  expect(logSet.before).toContain('Грудь и спина')
+  expect(text('log-set')).toContain('60 кг × 8')
+  expect(text('log-set')).toContain('480')
+  expect(text('log-set')).toContain('Объём: 480 кг')
+  // тест на объём зелёный; формула сломана — npm test красный, git restore вернул lib/volume.ts — зелёный
+  expect(find('s07-cycle', 'volume-run', 'run').code).toBe(0)
+  expect(find('s07-cycle', 'red', 'run').code).not.toBe(0)
+  expect(find('s07-cycle', 'green', 'run').code).toBe(0)
+  expect(find('s07-cycle', 'unbreak', 'run').files?.map((f) => f.path)).toContain('lib/volume.ts')
+  // сквозной тест проходит
+  const e2e = find('s07-cycle', 'e2e-run', 'run')
+  expect(e2e.code).toBe(0)
+  expect(e2e.out.join('\n')).toContain('1 passed')
+})
+
+test('s07: шаги идут по таблице, цикл и тесты пишет агент, поломку — человек', () => {
+  expect(sessions['s07-cycle'].events.map((e) => e.id)).toEqual([
+    ...['dev', 'ask-assign', 'assign-action', 'client-page2', 'workouts-db', 'workout-page', 'sets-action', 'volume-lib', 'drop-fake'],
+    ...['stage', 'diff-stat', 'diff-assign', 'login-marina', 'assign'],
+    ...['ask-date', 'dates-lib', 'date-use-1', 'date-use-2', 'assign-view', 'login-anna', 'log-set'],
+    ...['ask-volume-test', 'volume-test', 'volume-run', 'break', 'red', 'unbreak', 'green', 'pw'],
+    ...['ask-e2e', 'vitest-config', 'pw-config', 'e2e-file', 'e2e-ignore', 'e2e-run', 'c-cycle'],
+  ])
+  const file = (id: string) => find('s07-cycle', id, 'file')
+  // основной цикл: действия и страницы пишет агент, запросы — от имени вошедшего (asUser)
+  expect(find('s07-cycle', 'ask-assign', 'agent').steps).toEqual(['assign-action', 'client-page2', 'workouts-db', 'workout-page', 'sets-action', 'volume-lib', 'drop-fake'])
+  expect(file('assign-action')).toMatchObject({ path: 'app/clients/[id]/actions.ts', before: null, by: 'agent' })
+  expect(file('assign-action').after).toMatch(/^"use server";/)
+  expect(file('assign-action').after).toContain('insert into workouts')
+  const coach = file('client-page2')
+  expect(coach).toMatchObject({ path: 'app/clients/[id]/page.tsx', before: find('s06-auth', 'client-page', 'file').after, by: 'agent' })
+  expect(coach.after).toContain('new Date(workout.day).toLocaleDateString()')
+  expect(coach.after).toContain('assignWorkout.bind(null, id)')
+  for (const label of ['Название', 'Дата', 'Назначить']) expect(coach.after).toContain(label)
+  const workouts = file('workouts-db')
+  expect(workouts).toMatchObject({ path: 'app/workouts/page.tsx', by: 'agent' })
+  expect(workouts.before).toContain('@/lib/workouts')
+  expect(workouts.after).toContain('asUser(uid')
+  expect(workouts.after).not.toContain('@/lib/workouts')
+  expect(file('workout-page')).toMatchObject({ path: 'app/workouts/[id]/page.tsx', before: null, by: 'agent' })
+  for (const part of ['Вес, кг', 'Повторы', 'Сохранить подход', 'volume(workout.sets)']) expect(file('workout-page').after).toContain(part)
+  expect(file('sets-action')).toMatchObject({ path: 'app/workouts/[id]/actions.ts', before: null, by: 'agent' })
+  expect(file('sets-action').after).toContain('parseWeight(')
+  expect(file('sets-action').after).toContain('insert into sets')
+  const volume = file('volume-lib')
+  expect(volume).toMatchObject({ path: 'lib/volume.ts', before: null, by: 'agent' })
+  expect(volume.after).toContain('weight * reps, 0)')
+  // выдуманные данные уходят: lib/workouts.ts больше никто не импортирует
+  expect(find('s07-cycle', 'drop-fake', 'run')).toMatchObject({ cmd: 'git rm -q lib/workouts.ts', code: 0, out: [], by: 'agent', files: [{ path: 'lib/workouts.ts', blob: null }] })
+  // Анна добавляет всё в индекс и читает изменение: список файлов, затем дифф страницы тренера
+  const stage = find('s07-cycle', 'stage', 'run')
+  expect(stage).toMatchObject({ cmd: 'git add -A', code: 0, out: [] })
+  expect(stage.by).toBeUndefined()
+  const stat = find('s07-cycle', 'diff-stat', 'run')
+  expect(stat).toMatchObject({ cmd: 'git diff --stat HEAD', code: 0 })
+  const changed = stat.out.flatMap((line) => {
+    const row = /^ (\S+)\s+\|/.exec(line)
+    return row ? [row[1]] : []
+  })
+  expect(changed).toEqual(['app/clients/[id]/actions.ts', 'app/clients/[id]/page.tsx', 'app/workouts/[id]/actions.ts', 'app/workouts/[id]/page.tsx', 'app/workouts/page.tsx', 'lib/volume.ts', 'lib/workouts.ts'])
+  const diff = find('s07-cycle', 'diff-assign', 'run')
+  expect(diff).toMatchObject({ cmd: "git diff HEAD -- 'app/clients/[id]/page.tsx'", code: 0 })
+  expect(diff.out[0]).toBe('diff --git a/app/clients/[id]/page.tsx b/app/clients/[id]/page.tsx')
+  expect(diff.out).toContain('+              <p className="text-sm text-zinc-500">{new Date(workout.day).toLocaleDateString()}</p>')
+  // вход двух ролей: тренер — на /clients, подопечная — на /workouts, у Анны её тренировки из базы и нет тренировок Олега
+  expect(find('s07-cycle', 'login-marina', 'browser').urlAfter).toBe('http://localhost:3000/clients')
+  const anna = find('s07-cycle', 'login-anna', 'browser')
+  expect(anna.fields).toEqual([
+    { label: 'Почта', value: 'anna@example.com' },
+    { label: 'Пароль', value: 'demo-password' },
+  ])
+  expect(anna.urlAfter).toBe('http://localhost:3000/workouts')
+  for (const title of ['Ноги', 'Спина и бицепс', 'Грудь и плечи', 'Грудь и спина', '2 ноября']) expect(anna.after).toContain(title)
+  for (const title of ['Присед и тяга', 'Жим лёжа']) expect(anna.after).not.toContain(title)
+  // «Грудь и спина» — шестая тренировка: в seed их пять
+  expect(find('s07-cycle', 'log-set', 'browser').url).toBe('http://localhost:3000/workouts/6')
+  expect(find('s07-cycle', 'log-set', 'browser').urlAfter).toBeUndefined()
+  expect(find('s06-auth', 'seed-file', 'file').after.match(/^ {2}\(\d, '[^']+', '2026-\d\d-\d\d'\)/gm)).toHaveLength(5)
+  // дата по-русски: formatDay в lib/dates.ts, на страницах тренера и подопечного
+  expect(find('s07-cycle', 'ask-date', 'agent').steps).toEqual(['dates-lib', 'date-use-1', 'date-use-2'])
+  expect(file('dates-lib')).toMatchObject({ path: 'lib/dates.ts', before: null, by: 'agent' })
+  expect(file('dates-lib').after).toContain('toLocaleDateString("ru-RU", { day: "numeric", month: "long" })')
+  expect(file('date-use-1')).toMatchObject({ path: 'app/clients/[id]/page.tsx', before: coach.after, by: 'agent' })
+  expect(file('date-use-2')).toMatchObject({ path: 'app/workouts/page.tsx', before: workouts.after, by: 'agent' })
+  for (const id of ['date-use-1', 'date-use-2']) {
+    expect(file(id).after).toContain('formatDay(workout.day)')
+    expect(file(id).after).not.toContain('toLocaleDateString')
+  }
+  // тест на объём — по требованию из запроса; поломку вносит человек, git restore возвращает файл из индекса
+  expect(find('s07-cycle', 'ask-volume-test', 'agent').steps).toEqual(['volume-test', 'volume-run'])
+  expect(file('volume-test')).toMatchObject({ path: 'lib/volume.test.ts', before: null, by: 'agent' })
+  expect(file('volume-test').after).toContain('toBe(1500)')
+  expect(file('volume-test').after).toContain('expect(volume([])).toBe(0)')
+  expect(find('s07-cycle', 'volume-run', 'run')).toMatchObject({ cmd: 'npx vitest run lib/volume.test.ts', by: 'agent' })
+  expect(find('s07-cycle', 'volume-run', 'run').out.join('\n')).toContain('2 passed')
+  const broken = file('break')
+  expect(broken).toMatchObject({ path: 'lib/volume.ts', before: volume.after })
+  expect(broken.by).toBeUndefined()
+  expect(broken.after).toContain('weight + reps, 0)')
+  const red = find('s07-cycle', 'red', 'run')
+  expect(red.cmd).toBe('npm test')
+  expect(red.out.join('\n')).toContain('lib/volume.test.ts')
+  expect(red.out.join('\n')).toContain('1 failed')
+  expect(find('s07-cycle', 'unbreak', 'run')).toMatchObject({ cmd: 'git restore lib/volume.ts', code: 0, files: [{ path: 'lib/volume.ts', blob: volume.blob }] })
+  expect(find('s07-cycle', 'green', 'run')).toMatchObject({ cmd: 'npm test' })
+  expect(find('s07-cycle', 'pw', 'run')).toMatchObject({ cmd: 'npm install -D @playwright/test@1.56.1', code: 0 })
+  // сквозной тест: Vitest не берёт e2e/, Playwright идёт по запущенному npm run dev, отчёты — в .gitignore до запуска
+  expect(find('s07-cycle', 'ask-e2e', 'agent').steps).toEqual(['vitest-config', 'pw-config', 'e2e-file', 'e2e-ignore', 'e2e-run'])
+  expect(file('vitest-config')).toMatchObject({ path: 'vitest.config.ts', before: null, by: 'agent' })
+  expect(file('vitest-config').after).toContain('"e2e/**"')
+  expect(file('pw-config')).toMatchObject({ path: 'playwright.config.ts', before: null, by: 'agent' })
+  expect(file('pw-config').after).toContain('baseURL: "http://localhost:3000"')
+  expect(file('pw-config').after).toContain('reuseExistingServer: true')
+  expect(file('e2e-file')).toMatchObject({ path: 'e2e/cycle.spec.ts', before: null, by: 'agent' })
+  expect(file('e2e-ignore')).toMatchObject({ path: '.gitignore', by: 'agent' })
+  expect(file('e2e-ignore').after).toContain('/test-results/\n/playwright-report/\n')
+  expect(find('s07-cycle', 'e2e-run', 'run')).toMatchObject({ cmd: 'npx playwright test', by: 'agent' })
+  // коммит: новые файлы есть, lib/workouts.ts и отчётов Playwright нет
+  const commit = find('s07-cycle', 'c-cycle', 'commit')
+  expect(commit).toMatchObject({ message: 'Основной цикл: назначить тренировку, вписать подходы; тесты', branch: 'main' })
+  const paths = commit.files.map((f) => f.path)
+  for (const path of ['app/clients/[id]/actions.ts', 'app/workouts/[id]/page.tsx', 'lib/volume.ts', 'lib/volume.test.ts', 'lib/dates.ts', 'e2e/cycle.spec.ts', 'playwright.config.ts', 'vitest.config.ts']) {
+    expect(paths).toContain(path)
+  }
+  expect(paths).not.toContain('lib/workouts.ts')
+  expect(paths.filter((path) => /^(test-results|playwright-report)\//.test(path))).toEqual([])
+  // браузер без ошибок: в выводе сервера нет ошибок Next, в консоли — ошибок страницы
+  for (const id of ['login-marina', 'assign', 'assign-view', 'login-anna', 'log-set']) {
+    const view = find('s07-cycle', id, 'browser')
+    expect(view.server.join('\n'), id).not.toMatch(/Error|uncached data|Suspense/)
+    expect(view.console.filter((m) => m.type === 'error'), id).toEqual([])
+    expect(view.network, id).toEqual([])
+  }
+})
