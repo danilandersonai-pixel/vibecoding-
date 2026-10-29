@@ -2,16 +2,14 @@
 --
 -- Что это. Рекордер (record.mjs) для сессий с `db: true` поднимает обычный PostgreSQL 16 на порту 54322 (порт базы `supabase start`)
 -- и до первой миграции проекта выполняет этот файл. Он создаёт то, что в настоящем Supabase есть в базе с самого начала:
--- расширение pgcrypto, роли anon, authenticated и service_role, права на схему public и схему auth с таблицей auth.users
--- и функциями auth.uid() и auth.role(). Миграции приложения после этого пишутся так же, как для Supabase.
+-- схему extensions с расширением pgcrypto, роли anon, authenticated и service_role, права на схему public и схему auth
+-- с таблицей auth.users и функциями auth.uid() и auth.role(). Миграции приложения после этого пишутся так же, как для Supabase.
 --
 -- Почему так. Docker в контейнере записи не запускается, поэтому `supabase start` недоступен (спецификация §3).
 -- Чего здесь нет: PostgREST (HTTP-интерфейса к таблицам), настоящего Auth (токенов, писем, провайдеров входа), хранилища файлов.
 -- Вход в приложении — свой маршрут, который проверяет пароль через crypt() по auth.users.
 --
 -- Файл можно выполнить повторно: ничего не пересоздаётся, если уже есть.
-
-create extension if not exists pgcrypto;
 
 -- Роли для запросов от имени пользователя: на них действуют политики RLS; service_role политики обходит
 do $$
@@ -25,6 +23,18 @@ begin
   if not exists (select from pg_roles where rolname = 'service_role') then
     create role service_role nologin bypassrls;
   end if;
+end
+$$;
+
+-- Расширения: как в Supabase, они лежат в схеме extensions (extensions.crypt(), `create extension … with schema extensions` в миграциях),
+-- а схема стоит в search_path базы, поэтому crypt() и gen_salt() работают и без имени схемы. search_path базы действует на новые соединения:
+-- миграции, которые рекордер выполняет следом, и команды сессии уже его видят.
+create schema if not exists extensions;
+grant usage on schema extensions to anon, authenticated, service_role;
+create extension if not exists pgcrypto with schema extensions;
+do $$
+begin
+  execute format('alter database %I set search_path to "$user", public, extensions', current_database());
 end
 $$;
 

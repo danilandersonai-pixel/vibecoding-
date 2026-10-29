@@ -467,6 +467,7 @@ function commandEnv(home, npmCache) {
 // Вывод SQL в запись не попадает; ошибка SQL роняет запись с текстом ошибки и именем файла. Сессия начинает с чистой базы: данные прошлой сессии не переносятся.
 // Любая ошибка при запуске базу за собой убирает. Возвращает { dir, data, env } для stopDatabase.
 async function startDatabase({ home, project, id }) {
+  sweepDatabases()
   const dir = mkdtempSync(join(tmpdir(), 'rec-pg-'))
   const db = { dir, data: join(dir, 'data'), env: baseEnv(dir) } // HOME у Postgres — его папка: home/ записи для postgres закрыт
   databases.add(db)
@@ -499,6 +500,19 @@ async function startDatabase({ home, project, id }) {
   return db
 }
 
+// Остатки прошлых записей. Рекордер, убитый без возможности выйти штатно (SIGKILL, OOM), оставляет работать свой Postgres: `pg_ctl start`
+// отделяет сервер от группы процессов рекордера. Порт 54322 остался бы занят, а папка rec-pg-… — лежать. Поэтому перед запуском новой базы
+// все такие папки в tmpdir() с запущенным сервером (есть data/postmaster.pid) останавливаются и удаляются. Порт 54322 всё равно один на машину,
+// так что чужую работающую запись это не ломает: две записи с db одновременно не бывают. Базы этого процесса не трогаются.
+function sweepDatabases() {
+  const root = tmpdir()
+  for (const name of readdirSync(root)) {
+    const dir = join(root, name)
+    if (!name.startsWith('rec-pg-') || [...databases].some((db) => db.dir === dir) || !existsSync(join(dir, 'data', 'postmaster.pid'))) continue
+    stopDatabase({ dir, data: join(dir, 'data'), env: baseEnv(dir) })
+  }
+}
+
 // Останавливает базу (`pg_ctl stop -m fast`) и удаляет её папку. Синхронная: её зовёт и обработчик выхода, где ждать нечем.
 // Не бросает. Быстрая остановка не вышла — immediate, затем SIGKILL процессу postmaster: порт 54322 не должен остаться занятым.
 function stopDatabase(db) {
@@ -509,7 +523,8 @@ function stopDatabase(db) {
     if (!stopWith('fast') && !stopWith('immediate')) {
       try {
         const pid = Number(readFileSync(pidFile, 'utf8').split('\n')[0])
-        if (Number.isInteger(pid) && pid > 1) process.kill(pid, 'SIGKILL') // 0 и меньше убили бы целую группу процессов
+        // 0 и меньше убили бы целую группу процессов; в файле от давней записи pid мог достаться чужому процессу — убиваем только postgres
+        if (Number.isInteger(pid) && pid > 1 && readFileSync(`/proc/${pid}/cmdline`, 'utf8').includes('postgres')) process.kill(pid, 'SIGKILL')
       } catch {
         // процесса уже нет
       }

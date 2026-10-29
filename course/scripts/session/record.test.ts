@@ -643,14 +643,25 @@ describe('recordChain: база', () => {
     expect(await dbFree()).toBe(true)
     expect(dbDirs()).toEqual(dirsBefore)
   })
+  // Остановка базы в обход рекордера: для тестов, где рекордер убит или тест упал на утечке.
+  const forceStop = (dir: string) => {
+    spawnSync('runuser', ['-u', 'postgres', '--', '/usr/lib/postgresql/16/bin/pg_ctl', '-D', join(dir, 'data'), '-m', 'immediate', 'stop'], { stdio: 'ignore' })
+    rmSync(dir, { recursive: true, force: true })
+  }
   // страховка на случай, если тест выше упал на утечке: воркер vitest завершают сигналом, обработчик выхода рекордера тогда не срабатывает
   afterAll(() => {
-    for (const name of dbDirs().filter((name) => !dirsBefore.includes(name))) {
-      const dir = join(tmpdir(), name)
-      spawnSync('runuser', ['-u', 'postgres', '--', '/usr/lib/postgresql/16/bin/pg_ctl', '-D', join(dir, 'data'), '-m', 'immediate', 'stop'], { stdio: 'ignore' })
-      rmSync(dir, { recursive: true, force: true })
-    }
+    for (const name of dbDirs().filter((name) => !dirsBefore.includes(name))) forceStop(join(tmpdir(), name))
   })
+  // Ждёт, пока шаг сессии дочернего рекордера запишет файл; возвращает его текст.
+  const untilFile = async (path: string, what: string) => {
+    const until = Date.now() + 60_000
+    while (!(existsSync(path) && readFileSync(path, 'utf8').trim() !== '')) {
+      expect(Date.now(), what).toBeLessThan(until)
+      await new Promise((done) => setTimeout(done, 100))
+    }
+    return readFileSync(path, 'utf8').trim()
+  }
+  const recorderUrl = pathToFileURL(fileURLToPath(new URL('./record.mjs', import.meta.url))).href
 
   it('db: psql видит базу, auth.uid() берёт sub из request.jwt.claims', async () => {
     const find = await record([
@@ -674,7 +685,19 @@ describe('recordChain: база', () => {
     const roles = ['anon', 'authenticated', 'service_role']
     const find = await record([
       { id: 'roles', run: sql("select rolname, rolcanlogin, rolbypassrls from pg_roles where rolname in ('anon', 'authenticated', 'service_role') order by 1") },
-      { id: 'ext', run: sql("select extname from pg_extension where extname = 'pgcrypto'") },
+      { id: 'ext', run: sql("select extname, extnamespace::regnamespace from pg_extension where extname = 'pgcrypto'") },
+      {
+        // как в Supabase: расширения лежат в схеме extensions, она в search_path базы, доступна трём ролям, миграции ставят свои расширения туда же
+        id: 'extensions',
+        run: sql(
+          'show search_path',
+          "select extensions.crypt('demo-password', extensions.gen_salt('bf')) like '$2a$%'",
+          'create extension "uuid-ossp" with schema extensions',
+          'select extensions.uuid_generate_v4() is not null',
+          'set role authenticated',
+          "select extensions.crypt('a', extensions.gen_salt('bf')) is not null, crypt('a', gen_salt('bf')) is not null",
+        ),
+      },
       {
         id: 'users',
         run: sql(
@@ -717,7 +740,8 @@ describe('recordChain: база', () => {
       },
     ])
     expect(find('d01', 'roles', 'run').out).toEqual(['anon|f|f', 'authenticated|f|f', 'service_role|f|t'])
-    expect(find('d01', 'ext', 'run').out).toEqual(['pgcrypto'])
+    expect(find('d01', 'ext', 'run').out).toEqual(['pgcrypto|extensions'])
+    expect(find('d01', 'extensions', 'run').out).toEqual(['"$user", public, extensions', 't', 't', 't|t'])
     expect(find('d01', 'users', 'run').out).toEqual(['anna@example.com|t|f|t|t'])
     expect(find('d01', 'claims', 'run').out).toEqual(['t|t', 't', 't|t', 't', `${sub}|authenticated`])
     expect(find('d01', 'grants', 'run').out).toEqual(roles.map((r) => `${r}|t|t|t|t|t|t|t`))
@@ -843,25 +867,18 @@ describe('recordChain: база', () => {
 
   it('рекордер прерван сигналом посреди сессии с db: обработчик выхода останавливает базу и удаляет папку', async () => {
     const workdir = fresh()
-    const record = pathToFileURL(fileURLToPath(new URL('./record.mjs', import.meta.url))).href
     const steps = [
       { id: 'mark', run: "psql -Atc 'show data_directory' > ~/data-dir.txt" },
       { id: 'wait', run: 'sleep 120' },
     ]
     // как в record-session.mjs: сигнал завершает процесс штатно, и срабатывает process.on('exit')
-    const script = `import { recordChain } from ${JSON.stringify(record)}
+    const script = `import { recordChain } from ${JSON.stringify(recorderUrl)}
 process.on('SIGTERM', () => process.exit(130))
 await recordChain([${JSON.stringify(session('k01', null, steps, true))}], { workdir: ${JSON.stringify(workdir)} })`
     const child = spawn(process.execPath, ['--input-type=module', '-e', script], { stdio: 'ignore' })
     const closed = new Promise<number | null>((done) => child.once('close', done))
     try {
-      const marker = join(workdir, 'home', 'data-dir.txt')
-      const until = Date.now() + 60_000
-      while (!(existsSync(marker) && readFileSync(marker, 'utf8').trim() !== '')) {
-        expect(Date.now(), 'база не поднялась за минуту').toBeLessThan(until)
-        await new Promise((done) => setTimeout(done, 100))
-      }
-      const data = readFileSync(marker, 'utf8').trim()
+      const data = await untilFile(join(workdir, 'home', 'data-dir.txt'), 'база не поднялась за минуту')
       expect(await dbFree()).toBe(false) // пока рекордер жив, база работает
       child.kill('SIGTERM')
       expect(await closed).toBe(130)
@@ -871,6 +888,69 @@ await recordChain([${JSON.stringify(session('k01', null, steps, true))}], { work
         child.kill('SIGTERM')
         await closed
       }
+    }
+  })
+
+  it('рекордер убит SIGKILL посреди сессии с db: Postgres остаётся, но следующая запись с db убирает его сама и стартует', async () => {
+    const workdir = fresh()
+    const steps = [
+      { id: 'mark', run: "psql -Atc 'show data_directory' > ~/data-dir.txt" },
+      { id: 'wait', run: 'echo $$ > ~/wait.pid; exec sleep 120' }, // $$ — глава группы этой команды: тест добьёт её сам
+    ]
+    // SIGKILL не оставляет рекордеру ни обработчика выхода, ни сигнала
+    const script = `import { recordChain } from ${JSON.stringify(recorderUrl)}
+await recordChain([${JSON.stringify(session('k01', null, steps, true))}], { workdir: ${JSON.stringify(workdir)} })`
+    const child = spawn(process.execPath, ['--input-type=module', '-e', script], { stdio: 'ignore' })
+    const closed = new Promise<number | null>((done) => child.once('close', done))
+    let waiting = 0
+    let data = ''
+    try {
+      waiting = Number(await untilFile(join(workdir, 'home', 'wait.pid'), 'сессия не дошла до шага wait за минуту'))
+      data = await untilFile(join(workdir, 'home', 'data-dir.txt'), 'нет data_directory')
+      child.kill('SIGKILL')
+      await closed
+      // Postgres пережил рекордер: pg_ctl start отделяет его от группы процессов рекордера
+      expect(await dbFree()).toBe(false)
+      expect(existsSync(dirname(data))).toBe(true)
+
+      const find = await record([{ id: 'one', run: "psql -Atc 'select 1'" }])
+      expect(find('d01', 'one', 'run')).toMatchObject({ code: 0, out: ['1'] })
+      expect(existsSync(dirname(data))).toBe(false) // остаток убран
+    } finally {
+      if (waiting > 1) {
+        try {
+          process.kill(-waiting, 'SIGKILL')
+        } catch {
+          // группы уже нет
+        }
+      }
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
+      if (data) forceStop(dirname(data))
+    }
+  })
+
+  it('record-session.mjs: SIGHUP (обрыв терминала или ssh) останавливает базу так же, как SIGINT и SIGTERM', async () => {
+    const dirs = { sessions: fresh(), out: fresh(), app: fresh(), state: fresh() }
+    const marker = join(fresh(), 'data-dir.txt')
+    const steps = [{ id: 'mark', run: `psql -Atc 'show data_directory' > ${marker}` }, { id: 'wait', run: 'sleep 120' }]
+    writeFileSync(join(dirs.sessions, 'h01.mjs'), `export default ${JSON.stringify(session('h01', null, steps, true))}\n`)
+    const temp = fresh() // свой TMPDIR: недописанная временная папка записи после сигнала остаётся там и убирается вместе с тестом
+    chmodSync(temp, 0o755) // пользователь postgres должен пройти в папку базы
+    const env = { ...process.env, TMPDIR: temp, RECORD_SESSIONS_DIR: dirs.sessions, RECORD_OUT_DIR: dirs.out, RECORD_APP_DIR: dirs.app, RECORD_STATE_DIR: dirs.state }
+    const cli = fileURLToPath(new URL('../record-session.mjs', import.meta.url))
+    const child = spawn(process.execPath, [cli], { env, stdio: 'ignore' })
+    const closed = new Promise<number | null>((done) => child.once('close', done))
+    let data = ''
+    try {
+      data = await untilFile(marker, 'база не поднялась за минуту')
+      expect(data.startsWith(temp)).toBe(true)
+      child.kill('SIGHUP')
+      expect(await closed).toBe(130)
+      expect(existsSync(dirname(data))).toBe(false)
+      expect(await dbFree()).toBe(true)
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
+      if (data) forceStop(dirname(data))
     }
   })
 })

@@ -66,8 +66,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     }
   }
 
-  // Ctrl+C и kill: выходим штатно, чтобы рекордер успел добить dev-серверы
-  for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => process.exit(130))
+  // Ctrl+C, kill и обрыв терминала или ssh (SIGHUP): выходим штатно, чтобы рекордер успел добить dev-серверы и остановить базу
+  for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, () => process.exit(130))
 
   // Во временной папке: work/ — запись, state/ — состояния. В курс они попадают только после всех проверок.
   const temp = mkdtempSync(join(tmpdir(), 'rec-'))
