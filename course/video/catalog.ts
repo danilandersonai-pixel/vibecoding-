@@ -1,7 +1,6 @@
 import type { ComponentType } from 'react'
 import { ch04Script } from './ch-04/script'
 import { ch05Script } from './ch-05/script'
-import { ch06Script } from './ch-06/script'
 import { ch08Script } from './ch-08/script'
 import { ch09Script } from './ch-09/script'
 import { ch10Script } from './ch-10/script'
@@ -23,6 +22,7 @@ import { day21Script } from './day-21/script'
 import { ch01Script } from './lessons/ch-01/script'
 import { ch02Script } from './lessons/ch-02/script'
 import { ch03Script } from './lessons/ch-03/script'
+import { ch06Script } from './lessons/ch-06/script'
 import { ch12Script } from './lessons/ch-12/script'
 import { chAbcScript } from './lessons/ch-abc/script'
 import { pilotRlsScript } from './pilot-rls/script'
@@ -78,7 +78,7 @@ export const catalog: Record<string, CatalogEntry> = {
     title: 'Прототип за вечер',
     kind: 'chapter',
     script: ch06Script,
-    load: () => import('./ch-06/Video'),
+    load: () => import('./lessons/ch-06/Video'),
   },
   'ch-05': {
     title: 'Читать код, который написал ИИ',
