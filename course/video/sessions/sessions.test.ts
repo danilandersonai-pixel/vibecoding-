@@ -278,3 +278,139 @@ test('s05: шаги идут по таблице, документ и журна
     expect(view.server.join('\n')).not.toMatch(/Google Fonts|fonts\.googleapis|font\/google/i)
   }
 })
+
+test('s06: без RLS чужой подопечный открывается, с RLS — нет', () => {
+  const text = (id: string) => find('s06-auth', id, 'browser').after.join('\n')
+  // Марина входит: форма «Почта» / «Пароль», «Войти» — и она на /clients, у неё Анна и Олег, Светы нет
+  const login = find('s06-auth', 'login-marina', 'browser')
+  expect(login.url).toBe('http://localhost:3000/login')
+  expect(login.fields).toEqual([
+    { label: 'Почта', value: 'marina@example.com' },
+    { label: 'Пароль', value: 'demo-password' },
+  ])
+  expect(login.urlAfter).toMatch(/\/clients$/)
+  expect(text('login-marina')).toContain('Анна')
+  expect(text('login-marina')).toContain('Олег')
+  expect(text('login-marina')).not.toContain('Света')
+  // список фильтрует по тренеру, а карточка ищет только по id: по адресу /clients/3 открывается Света — подопечная Игоря
+  expect(find('s06-auth', 'clients-page', 'file').after).toContain('where coach_id = $1')
+  const card = find('s06-auth', 'client-page', 'file').after
+  expect(card).toContain('where id = $1')
+  expect(card).not.toContain('coach_id')
+  expect(card).toContain('notFound()')
+  expect(find('s06-auth', 'attack', 'browser').url).toBe('http://localhost:3000/clients/3')
+  expect(text('attack')).toContain('Света')
+  expect(find('s06-auth', 'attack', 'browser').network).toEqual([])
+  // RLS: та же ссылка — «Подопечный не найден» (404), Светы на странице нет
+  expect(find('s06-auth', 'attack2', 'browser').url).toBe('http://localhost:3000/clients/3')
+  expect(text('attack2')).toContain('Подопечный не найден')
+  expect(text('attack2')).not.toContain('Света')
+  expect(find('s06-auth', 'attack2', 'browser').network).toContainEqual({ method: 'GET', url: 'http://localhost:3000/clients/3', status: 404 })
+  // проверка в psql от имени Марины: строки 1 Анна и 2 Олег, Светы нет
+  const check = find('s06-auth', 'rls-check', 'run')
+  expect(check.code).toBe(0)
+  expect(check.out.some((line) => /^\s*1 \| Анна\s*$/.test(line))).toBe(true)
+  expect(check.out.some((line) => /^\s*2 \| Олег\s*$/.test(line))).toBe(true)
+  expect(check.out.join('\n')).not.toContain('Света')
+  // rowsecurity = t у всех четырёх таблиц
+  const rows = find('s06-auth', 'rls-on', 'run').out.flatMap((line) => {
+    const row = /^\s*(\w+)\s*\|\s*([tf])\s*$/.exec(line)
+    return row ? [[row[1], row[2]]] : []
+  })
+  expect(rows).toEqual([['clients', 't'], ['profiles', 't'], ['sets', 't'], ['workouts', 't']])
+  // тест на чужие данные проходит
+  const testRun = find('s06-auth', 'rls-test-run', 'run')
+  expect(testRun.code).toBe(0)
+  expect(testRun.out.join('\n')).toContain('3 passed')
+  // таблицы модели данных
+  const tables = find('s06-auth', 'tables', 'run').out.flatMap((line) => {
+    const row = /^\s*public\s*\|\s*(\w+)\s*\|\s*table\s*\|/.exec(line)
+    return row ? [row[1]] : []
+  })
+  expect(tables).toEqual(['clients', 'profiles', 'sets', 'workouts'])
+})
+
+test('s06: шаги идут по таблице, миграции и тест пишет агент, проверку и .env.local — человек', () => {
+  expect(sessions['s06-auth'].events.map((e) => e.id)).toEqual([
+    ...['pg', 'pg-types', 'ask-schema', 'schema-file', 'seed-file', 'db-init', 'db-seed', 'tables'],
+    ...['ask-login', 'db-lib', 'session-lib', 'login-route', 'login-page', 'clients-page', 'client-page', 'not-found'],
+    ...['env-db', 'dev', 'login-marina', 'attack'],
+    ...['ask-rls', 'rls-sql', 'rls-apply', 'as-marina-file', 'rls-check', 'attack2', 'rls-on'],
+    ...['ask-rls-test', 'rls-test-file', 'rls-test-run', 'c-auth', 'log6'],
+  ])
+  expect(find('s06-auth', 'pg', 'run')).toMatchObject({ cmd: 'npm install pg', code: 0 })
+  expect(find('s06-auth', 'pg-types', 'run')).toMatchObject({ cmd: 'npm install -D @types/pg', code: 0 })
+  // модель данных и демо-данные: четыре таблицы без RLS, пять пользователей с хешем пароля
+  expect(find('s06-auth', 'ask-schema', 'agent').steps).toEqual(['schema-file', 'seed-file'])
+  const schema = find('s06-auth', 'schema-file', 'file')
+  expect(schema).toMatchObject({ path: 'supabase/migrations/0001_init.sql', before: null, by: 'agent' })
+  for (const table of ['profiles', 'clients', 'workouts', 'sets']) expect(schema.after).toContain(`create table ${table} (`)
+  expect(schema.after).toContain('references auth.users')
+  expect(schema.after).not.toMatch(/row level security/i)
+  const seed = find('s06-auth', 'seed-file', 'file')
+  expect(seed).toMatchObject({ path: 'supabase/seed.sql', before: null, by: 'agent' })
+  expect(seed.after.match(/crypt\('demo-password', gen_salt\('bf'\)\)/g)).toHaveLength(5)
+  for (const email of ['marina', 'igor', 'anna', 'oleg', 'sveta']) expect(seed.after).toContain(`'${email}@example.com'`)
+  expect(find('s06-auth', 'db-init', 'run')).toMatchObject({ cmd: 'psql -f supabase/migrations/0001_init.sql', code: 0, out: Array(4).fill('CREATE TABLE') })
+  const seeded = find('s06-auth', 'db-seed', 'run')
+  expect(seeded).toMatchObject({ cmd: 'psql -f supabase/seed.sql', code: 0 })
+  expect(seeded.out).toEqual(['INSERT 0 5', 'INSERT 0 5', 'INSERT 0 3', 'INSERT 0 5', 'INSERT 0 14'])
+  // вход: запросы от имени вошедшего, как в Supabase; пароль сверяет crypt() от владельца базы
+  expect(find('s06-auth', 'ask-login', 'agent').steps).toEqual(['db-lib', 'session-lib', 'login-route', 'login-page', 'clients-page', 'client-page', 'not-found'])
+  const db = find('s06-auth', 'db-lib', 'file')
+  expect(db).toMatchObject({ path: 'lib/db.ts', before: null, by: 'agent' })
+  for (const part of ['process.env.DATABASE_URL', '"begin"', '"set local role authenticated"', "set_config('request.jwt.claims', $1, true)", '"commit"']) expect(db.after).toContain(part)
+  expect(find('s06-auth', 'session-lib', 'file').after).toContain('createHmac("sha256"')
+  expect(find('s06-auth', 'session-lib', 'file').after).toContain('httpOnly: true')
+  const route = find('s06-auth', 'login-route', 'file')
+  expect(route).toMatchObject({ path: 'app/api/login/route.ts', by: 'agent' })
+  expect(route.after).toContain('crypt($2, u.encrypted_password)')
+  expect(route.after).toContain('Неверная почта или пароль')
+  expect(find('s06-auth', 'login-page', 'file').after).toMatch(/^"use client";/)
+  expect(find('s06-auth', 'client-page', 'file').path).toBe('app/clients/[id]/page.tsx')
+  expect(find('s06-auth', 'not-found', 'file')).toMatchObject({ path: 'app/clients/[id]/not-found.tsx', by: 'agent' })
+  expect(find('s06-auth', 'not-found', 'file').after).toContain('Подопечный не найден')
+  // .env.local дописывает человек; секрет заведомо ненастоящий, файл в коммиты не попадает
+  const env = find('s06-auth', 'env-db', 'file')
+  expect(env).toMatchObject({ path: '.env.local', before: find('s05-proto', 'key-env-fix', 'file').after })
+  expect(env.by).toBeUndefined()
+  expect(env.after).toContain('DATABASE_URL=postgresql://postgres@127.0.0.1:54322/postgres\nSESSION_SECRET=demo-secret-not-real-session\n')
+  const commit = find('s06-auth', 'c-auth', 'commit')
+  expect(commit).toMatchObject({ message: 'Вход для двух ролей, модель данных и RLS', branch: 'main' })
+  expect(commit.files.map((f) => f.path)).not.toContain('.env.local')
+  for (const path of ['supabase/migrations/0001_init.sql', 'supabase/migrations/0002_rls.sql', 'supabase/seed.sql', 'supabase/tests/as-marina.sql', 'test/rls.test.ts']) {
+    expect(commit.files.map((f) => f.path)).toContain(path)
+  }
+  // RLS пишет и применяет агент (команда с вопросом [y / n]); политики через auth.uid(), без auth.jwt()
+  expect(find('s06-auth', 'ask-rls', 'agent').steps).toEqual(['rls-sql', 'rls-apply'])
+  const rls = find('s06-auth', 'rls-sql', 'file')
+  expect(rls).toMatchObject({ path: 'supabase/migrations/0002_rls.sql', before: null, by: 'agent' })
+  for (const table of ['profiles', 'clients', 'workouts', 'sets']) expect(rls.after).toContain(`alter table ${table} enable row level security;`)
+  expect(rls.after).toContain('auth.uid()')
+  expect(rls.after).not.toContain('auth.jwt()')
+  for (const kind of ['select', 'insert', 'update']) expect(rls.after).toMatch(new RegExp(`on sets\\n  for ${kind} `))
+  const apply = find('s06-auth', 'rls-apply', 'run')
+  expect(apply).toMatchObject({ cmd: 'psql -f supabase/migrations/0002_rls.sql', code: 0, by: 'agent' })
+  expect(apply.out.filter((line) => line === 'ALTER TABLE')).toHaveLength(4)
+  expect(apply.out.join('\n')).not.toMatch(/ERROR|NOTICE/)
+  // проверку от имени Марины пишет человек: uuid Марины из seed
+  const asMarina = find('s06-auth', 'as-marina-file', 'file')
+  expect(asMarina).toMatchObject({ path: 'supabase/tests/as-marina.sql', before: null })
+  expect(asMarina.by).toBeUndefined()
+  const marina = /\('([0-9a-f-]{36})', 'marina@example\.com'/.exec(seed.after)![1]
+  expect(asMarina.after).toContain(`'{"sub":"${marina}"}'`)
+  expect(asMarina.after).toMatch(/^begin;$[\s\S]*^set local role authenticated;$[\s\S]*^rollback;$/m)
+  // тест: vitest в среде node, адрес базы — из окружения
+  expect(find('s06-auth', 'ask-rls-test', 'agent').steps).toEqual(['rls-test-file', 'rls-test-run'])
+  const test = find('s06-auth', 'rls-test-file', 'file')
+  expect(test).toMatchObject({ path: 'test/rls.test.ts', before: null, by: 'agent' })
+  expect(test.after).toMatch(/^\/\/ @vitest-environment node\n/)
+  expect(find('s06-auth', 'rls-test-run', 'run')).toMatchObject({ cmd: 'npx vitest run test/rls.test.ts', by: 'agent' })
+  expect(find('s06-auth', 'log6', 'run').out[0]).toMatch(/^[0-9a-f]{7} Вход для двух ролей, модель данных и RLS$/)
+  // браузер без предупреждений Next в выводе сервера (cacheComponents: страницы с базой — instant = false)
+  for (const id of ['login-marina', 'attack', 'attack2']) {
+    const view = find('s06-auth', id, 'browser')
+    expect(view.server.join('\n'), id).not.toMatch(/Error|uncached data|Suspense/)
+    expect(view.console.filter((m) => m.type === 'error' && !m.text.includes('404')), id).toEqual([])
+  }
+})
