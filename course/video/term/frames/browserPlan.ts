@@ -13,6 +13,7 @@ import type { Range } from './source'
  * строка, совпадающая с текстом из buttons, — кнопка (инверсия: фон ink, текст desk); остальные — текст 28 px.
  * Строки появляются очередью от реплики at.page; новые строки `after` — за MOTION.appear на реплике at.action,
  * нижние строки при этом сдвигаются, пропавшие растворяются. Без at.action страница остаётся такой, как `before`.
+ * Строка адреса показывает url записи; если нажатие привело на другую страницу (у записи есть urlAfter), с реплики at.action — urlAfter.
  * marks — цвет текстовой строки страницы (точное совпадение текста): в записи нет ролей элементов, цвет задаёт автор;
  * одинаковые строки красятся все сразу.
  * Блок страницы (заголовок, поля, кнопка, текст — и до, и после action) стоит по центру окна по ширине самого широкого своего содержимого;
@@ -53,7 +54,9 @@ export type Slot = { text: string; from: Item | null; to: Item | null }
 type Message = { type: string; rows: string[]; row: number }
 type Plan = {
   ok: boolean
+  /** Адрес в строке до action и после него (без перехода или без action они равны). */
   url: string
+  urlAfter: string
   title: string
   /** Страница до action и после него (без action обе — before). */
   before: Item[]
@@ -68,7 +71,7 @@ type Plan = {
   problems: string[]
 }
 
-const EMPTY: Plan = { ok: false, url: '', title: '', before: [], after: [], slots: [], x: 0, labelW: 0, inputX: 0, messages: [], pageBottom: SAFE.y + SAFE.h, problems: [] }
+const EMPTY: Plan = { ok: false, url: '', urlAfter: '', title: '', before: [], after: [], slots: [], x: 0, labelW: 0, inputX: 0, messages: [], pageBottom: SAFE.y + SAFE.h, problems: [] }
 
 /** Тип сообщения консоли: error — ✕ и подложка err, warning — ▲ warn, остальные — без значка. */
 export const isError = (type: string) => type === 'error'
@@ -119,13 +122,18 @@ export function plan(spec: BrowserSpec, ctx: FrameCtx): Plan {
   const ev = found.event
   const problems: string[] = []
 
-  let host = ''
-  try {
-    const u = new URL(ev.url)
-    host = u.host + u.pathname + u.search
-  } catch {
-    problems.push(`адрес «${ev.url}» не разбирается`)
+  // Адрес в строке: хост, путь и запрос
+  const address = (url: string) => {
+    try {
+      const u = new URL(url)
+      return u.host + u.pathname + u.search
+    } catch {
+      problems.push(`адрес «${url}» не разбирается`)
+      return ''
+    }
   }
+  const host = address(ev.url)
+  const hostAfter = ev.urlAfter === undefined ? host : address(ev.urlAfter)
 
   const fields = new Map(ev.fields.map((f) => [f.label, f.value]))
   const buttons = new Set(ev.buttons)
@@ -176,7 +184,7 @@ export function plan(spec: BrowserSpec, ctx: FrameCtx): Plan {
     }
   } else if (spec.consoleLines) problems.push('consoleLines задан без console: true')
 
-  return { ok: true, url: host, title: ev.title, before, after, slots, x, labelW, inputX: x + labelW, messages, pageBottom, problems }
+  return { ok: true, url: host, urlAfter: hostAfter, title: ev.title, before, after, slots, x, labelW, inputX: x + labelW, messages, pageBottom, problems }
 }
 
 export function browserLayout(spec: BrowserSpec, ctx: FrameCtx): Record<string, Rect> {
@@ -235,6 +243,11 @@ export function browserProblems(spec: BrowserSpec, ctx: FrameCtx, clock: Clock):
   const last = Math.max(...ends)
   if (last >= clock.duration) bad.push(`не успевает до конца сцены: последнее появление на кадре ${last}, сцена кончается на кадре ${clock.duration}`)
   return bad
+}
+
+/** Адрес в строке на кадре frame (для Browser.tsx): urlAfter — с реплики at.action, до неё и без action — url. */
+export function urlAt(p: Plan, spec: BrowserSpec, clock: Clock, frame: number): string {
+  return spec.at.action !== undefined && frame >= clock.beat(spec.at.action) ? p.urlAfter : p.url
 }
 
 /** Положение строки и прозрачность на кадре frame (для Browser.tsx): прогресс action, очередь появления. */

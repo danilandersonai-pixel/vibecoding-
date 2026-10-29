@@ -4,7 +4,7 @@ import { useCurrentFrame } from 'remotion'
 import type { Clock, FrameCtx } from '../frame'
 import { fitText } from '../text'
 import { SAFE, T, alpha } from '../theme'
-import { CONSOLE, CONSOLE_TOP, FIELD_H, PAGE, TAB_CHARS, URL_BAR, consoleAt, isError, isWarning, plan, slotAt } from './browserPlan'
+import { CONSOLE, CONSOLE_TOP, FIELD_H, PAGE, TAB_CHARS, URL_BAR, consoleAt, isError, isWarning, plan, slotAt, urlAt } from './browserPlan'
 import type { BrowserSpec } from './browserPlan'
 import { LH, MONO_STYLE, WIN, cells, rowTop } from './geometry'
 import { Row, Window } from './Window'
@@ -36,7 +36,7 @@ export function Browser({ spec, clock, ctx }: Props): JSX.Element {
       <g data-part="url">
         <rect x={URL_BAR.x} y={URL_BAR.y} width={URL_BAR.w} height={URL_BAR.h} rx={8} fill={T.termBg} stroke={T.edge} strokeWidth={2} />
         <text x={URL_BAR.x + 16} y={URL_BAR.y + 26} fill={T.soft} style={MONO_STYLE}>
-          {p.url}
+          {urlAt(p, spec, clock, frame)}
         </text>
       </g>
       <g data-part="page">

@@ -974,6 +974,12 @@ describe('Browser', () => {
       expect(problems({ ...BR, at: { page: 0, action: 1, console: 9 } })).not.toEqual([])
     })
 
+    it('ловит urlAfter, который не адрес', () => {
+      const bad: BrowserEvent = { ...(FIXTURE.events.find((e) => e.id === 'form') as BrowserEvent), id: 'bad-url', urlAfter: 'не адрес' }
+      const c2 = { ...ctx, find: makeFind([{ ...FIXTURE, events: [...FIXTURE.events, bad] }]) }
+      expect(problems({ ...BR, event: 'bad-url' }, CLOCK, c2).join('\n')).toMatch(/адрес «не адрес» не разбирается/)
+    })
+
     it('ловит consoleLines без console, вне записи и с ошибкой диапазона', () => {
       expect(problems({ ...BR, console: false, consoleLines: [1, 1] }).join('\n')).toMatch(/consoleLines/)
       expect(problems({ ...BR, consoleLines: [1, 9] }).join('\n')).toMatch(/lines|консол/)
@@ -1108,6 +1114,20 @@ describe('Browser', () => {
     it('без action страница остаётся такой, как «до»', () => {
       const still: BrowserSpec = { ...BR, at: { page: 0, console: 2 } }
       expect(plain(view(still, 500))).not.toContain(HINT)
+    })
+
+    it('строка адреса: url записи до реплики action, urlAfter — с неё; без перехода и без action адрес не меняется', () => {
+      const go: BrowserEvent = { ...(FIXTURE.events.find((e) => e.id === 'form') as BrowserEvent), id: 'go', url: 'http://localhost:3000/login', urlAfter: 'http://localhost:3000/trainer?day=1' }
+      const c2 = { ...ctx, find: makeFind([{ ...FIXTURE, events: [...FIXTURE.events, go] }]) }
+      const spec: BrowserSpec = { type: 'browser', session: S, event: 'go', at: { page: 0, action: 1 } }
+      const bar = (s: BrowserSpec, frame: number, c: FrameCtx = c2) => plain(part(view(s, frame, CLOCK, c), 'url')!)
+      expect(bar(spec, PAGE_AT)).toBe('localhost:3000/login')
+      expect(bar(spec, ACTION - 1)).toBe('localhost:3000/login')
+      expect(bar(spec, ACTION)).toBe('localhost:3000/trainer?day=1')
+      expect(bar(spec, ACTION + 100)).toBe('localhost:3000/trainer?day=1')
+      expect(bar({ ...spec, at: { page: 0 } }, ACTION + 100)).toBe('localhost:3000/login') // без action переход не показывают
+      expect(bar(BR, ACTION + 100, ctx)).toBe('localhost:3000/') // в записи нет urlAfter
+      expect(problems(spec, CLOCK, c2)).toEqual([])
     })
 
     it('marks красит строку страницы: err — T.err, ok — T.ok; без marks — ink', () => {

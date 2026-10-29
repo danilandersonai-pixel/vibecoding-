@@ -3,7 +3,9 @@
 
 type By = { by?: 'agent' }
 
-export type RunEvent = { id: string; kind: 'run'; cwd: string; cmd: string; out: string[]; code: number | null } & By
+// files — файлы проекта, которые команда создала, изменила (blob — хеш нового содержимого) или удалила (blob: null), по пути;
+// нет поля — команда файлов не трогала или проекта под git ещё не было (до `git init`).
+export type RunEvent = { id: string; kind: 'run'; cwd: string; cmd: string; out: string[]; code: number | null; files?: { path: string; blob: string | null }[] } & By
 export type FileEvent = { id: string; kind: 'file'; path: string; before: string | null; after: string; diff: string[]; blob: string } & By
 export type ReadEvent = { id: string; kind: 'read'; path: string; text: string; blob: string } & By
 export type CommitEvent = {
@@ -18,10 +20,12 @@ export type CommitEvent = {
   files: { path: string; blob: string }[]
 } & By
 export type AgentEvent = { id: string; kind: 'agent'; prompt: string; reply: string; steps: string[] }
+// url — адрес, который открыли; urlAfter — адрес страницы после нажатий, если он другой (нажатие привело на другую страницу).
 export type BrowserEvent = {
   id: string
   kind: 'browser'
   url: string
+  urlAfter?: string
   title: string
   fields: { label: string; value: string }[]
   buttons: string[]

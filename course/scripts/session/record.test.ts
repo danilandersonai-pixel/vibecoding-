@@ -163,6 +163,7 @@ describe('recordChain: учебная цепочка из двух сессий'
     expect(save.console.some((m) => m.type === 'error')).toBe(true)
     expect(save.server).toContain('GET /api')
     expect(save.server).not.toContain('Ready')
+    expect(save).not.toHaveProperty('urlAfter') // нажатие обошлось без перехода
   })
 
   it('повтор той же цепочки в другой папке даёт те же хеши коммитов и те же записи', () => {
@@ -335,6 +336,46 @@ describe('recordChain: браузер', () => {
     expect(event.before).toEqual(['Сохранить'])
     expect(event.after).toEqual(['Сохранить', 'сохранено'])
   })
+
+  it('urlAfter — адрес после перехода по нажатию; без перехода поля нет', async () => {
+    // кнопка формы уходит на /done; страница печатает свой путь
+    const page =
+      '<!doctype html><meta charset=utf-8><title>Тренер</title><form method=post action=/done><button>Дальше</button></form><p id=r></p>' +
+      '<script>r.textContent=location.pathname</script>'
+    const event = await browserOf(page, { url: '/', click: 'Дальше' })
+    expect(event).toMatchObject({ url: 'http://localhost:3000/', urlAfter: 'http://localhost:3000/done', before: ['Дальше', '/'], after: ['Дальше', '/done'] })
+    expect(await browserOf(page, { url: '/' })).not.toHaveProperty('urlAfter')
+  })
+
+  it('браузер: локаль ru-RU и пояс Europe/Moscow', async () => {
+    const page =
+      '<!doctype html><meta charset=utf-8><title>Тренер</title><p id=l></p><p id=z></p>' +
+      '<script>l.textContent=navigator.language;z.textContent=Intl.DateTimeFormat().resolvedOptions().timeZone</script>'
+    const event = await browserOf(page, { url: '/' })
+    expect(event.before).toEqual(['ru-RU', 'Europe/Moscow'])
+  })
+
+  it('cookie живёт между шагами браузера одной сессии и не переходит в следующую', async () => {
+    // /set ставит cookie who=anna; страницы печатают, какие cookie пришли
+    const cookies =
+      "require('http').createServer((q,s)=>{console.log(q.method+' '+q.url);" +
+      "if(q.url==='/set')s.setHeader('set-cookie','who=anna; Path=/');" +
+      "s.setHeader('content-type','text/html;charset=utf-8');" +
+      "s.end('<!doctype html><meta charset=utf-8><title>Куки</title><p>'+(q.headers.cookie||'нет cookie')+'</p>')})" +
+      ".listen(3000,()=>console.log('Ready'))"
+    const dev = { id: 'dev', run: `node -e ${sh(cookies)}`, until: 'Ready' }
+    const { records } = await recordChain(
+      [
+        session([dev, { id: 'set', browser: { url: '/set' } }, { id: 'see', browser: { url: '/' } }]),
+        { id: 'b02', from: 'b01', date: '2026-10-28T11:00:00Z', steps: [dev, { id: 'again', browser: { url: '/' } }] },
+      ],
+      { workdir: fresh() },
+    )
+    const find = makeFind(records)
+    expect(find('b01', 'set', 'browser').before).toEqual(['нет cookie'])
+    expect(find('b01', 'see', 'browser').before).toEqual(['who=anna'])
+    expect(find('b02', 'again', 'browser').before).toEqual(['нет cookie'])
+  })
 })
 
 describe('recordChain: потолок обычной команды', () => {
@@ -402,6 +443,101 @@ describe('recordChain: правки файлов', () => {
 
   it('путь за пределами проекта — ошибка', async () => {
     await expect(recordChain([one([{ id: 'w', write: '../out.txt', content: 'x' }])], { workdir: fresh() })).rejects.toThrow(/вне проекта/)
+  })
+})
+
+describe('recordChain: файлы после команд', () => {
+  const one = (steps: object[]) => ({ id: 'x01', from: null, date: '2026-10-28T10:00:00Z', steps })
+  // репозиторий с закоммитенными a.txt и c.txt
+  const repo = [
+    { id: 'init', run: 'git init -q -b main' },
+    { id: 'a', write: 'a.txt', content: 'один\n' },
+    { id: 'c', write: 'c.txt', content: 'три\n' },
+    { id: 'c1', commit: 'два файла' },
+  ]
+  // запись сессии из repo и шагов steps: сами записи и поиск события в них
+  const play = async (steps: object[]) => {
+    const { records } = await recordChain([one([...repo, ...steps])], { workdir: fresh() })
+    return { records, find: makeFind(records) }
+  }
+
+  it('run: файлы, которые команда создала, изменила и удалила', async () => {
+    const { records, find } = await play([
+      { id: 'go', run: 'echo x > a.txt && touch b.txt && rm c.txt' },
+      { id: 'quiet', run: 'echo привет' },
+      { id: 'same', run: 'echo x > a.txt' },
+    ])
+    expect(find('x01', 'go', 'run').files).toEqual([
+      { path: 'a.txt', blob: gitBlobHash('x\n') },
+      { path: 'b.txt', blob: gitBlobHash('') },
+      { path: 'c.txt', blob: null },
+    ])
+    // команда без изменений и команда, записавшая то же самое, — без поля
+    expect(find('x01', 'quiet', 'run')).not.toHaveProperty('files')
+    expect(find('x01', 'same', 'run')).not.toHaveProperty('files')
+    expect(sessionProblems(records)).toEqual([])
+  })
+
+  it('до git init поля files нет, после — есть; пути по алфавиту, вложенные папки и неотслеживаемые файлы учтены', async () => {
+    const { records } = await recordChain(
+      [
+        one([
+          { id: 'pre', run: 'echo до > pre.txt' },
+          { id: 'init', run: 'git init -q -b main' },
+          { id: 'make', run: 'mkdir -p dir/sub && echo z > z.txt && echo y > dir/sub/y.txt && echo a > dir/a.txt' },
+          { id: 'del', run: 'rm -r dir' },
+        ]),
+      ],
+      { workdir: fresh() },
+    )
+    const find = makeFind(records)
+    expect(find('x01', 'pre', 'run')).not.toHaveProperty('files')
+    expect(find('x01', 'init', 'run')).not.toHaveProperty('files')
+    expect(find('x01', 'make', 'run').files).toEqual([
+      { path: 'dir/a.txt', blob: gitBlobHash('a\n') },
+      { path: 'dir/sub/y.txt', blob: gitBlobHash('y\n') },
+      { path: 'z.txt', blob: gitBlobHash('z\n') },
+    ])
+    expect(find('x01', 'del', 'run').files).toEqual([
+      { path: 'dir/a.txt', blob: null },
+      { path: 'dir/sub/y.txt', blob: null },
+    ])
+  })
+
+  it('игнорируемые файлы (.gitignore) в files не попадают', async () => {
+    const { find } = await play([
+      { id: 'ign', write: '.gitignore', content: 'out/\n' },
+      { id: 'go', run: 'mkdir out && echo x > out/f.txt && echo y > g.txt' },
+    ])
+    expect(find('x01', 'go', 'run').files).toEqual([{ path: 'g.txt', blob: gitBlobHash('y\n') }])
+  })
+
+  it('команда с ошибкой и долгая команда с until тоже дают files', async () => {
+    const { find } = await play([
+      { id: 'bad', run: 'echo y > g.txt; exit 3' },
+      { id: 'dev', run: `echo z > made.txt && node -e ${sh(SERVER)}`, until: 'Ready' },
+    ])
+    expect(find('x01', 'bad', 'run')).toMatchObject({ code: 3, files: [{ path: 'g.txt', blob: gitBlobHash('y\n') }] })
+    expect(find('x01', 'dev', 'run')).toMatchObject({ code: null, files: [{ path: 'made.txt', blob: gitBlobHash('z\n') }] })
+  })
+
+  it('edit после команды, изменившей файл: дифф от нового содержимого, сверка чистая', async () => {
+    const { records } = await recordChain(
+      [
+        one([
+          { id: 'init', run: 'git init -q -b main' },
+          { id: 'w', write: 'a.txt', content: 'a\n' },
+          { id: 'c1', commit: 'a' },
+          { id: 'go', run: 'printf "b\\n" > a.txt' },
+          { id: 'e', edit: 'a.txt', find: 'b', replace: 'c' },
+        ]),
+      ],
+      { workdir: fresh() },
+    )
+    const e = makeFind(records)('x01', 'e', 'file')
+    expect(e).toMatchObject({ before: 'b\n', after: 'c\n' })
+    expect(e.diff.slice(-3)).toEqual(['@@ -1 +1 @@', '-b', '+c'])
+    expect(sessionProblems(records)).toEqual([])
   })
 })
 

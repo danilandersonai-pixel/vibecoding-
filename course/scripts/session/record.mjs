@@ -2,7 +2,7 @@
 // браузер) и возвращает записи в формате video/sessions/types.ts. Шаги и правила записи — спецификация §4.2–4.3.
 // Сам ничего не пишет в курс: записи и demo-app/app/ кладёт скрипт record-session.mjs.
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { constants, tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 
@@ -223,6 +223,43 @@ async function blobOf(text, opts) {
   return (await git(['hash-object', '--no-filters', '--stdin'], { ...opts, input: text })).trim()
 }
 
+// Хеши содержимого файлов (как у `git hash-object --no-filters`), по порядку paths.
+async function hashPaths(paths, opts) {
+  check(paths.every((p) => !p.includes('\n')), 'В имени файла проекта есть перевод строки')
+  if (paths.length === 0) return []
+  return (await git(['hash-object', '--no-filters', '--stdin-paths'], { ...opts, input: paths.join('\n') + '\n' })).trim().split('\n')
+}
+
+// Файл (или ссылка) по пути внутри проекта есть на диске.
+function fileAt(project, path) {
+  try {
+    const stat = lstatSync(join(project, path))
+    return stat.isFile() || stat.isSymbolicLink()
+  } catch {
+    return false
+  }
+}
+
+// Файлы проекта и хеши их содержимого: путь → blob. Отслеживаемые и неотслеживаемые, но не игнорируемые (.gitignore);
+// удалённые из рабочей папки, но ещё не из индекса, пропускаются. null — проект ещё не под git (до `git init`).
+async function projectBlobs(project, opts) {
+  if (!existsSync(join(project, '.git'))) return null
+  const listed = (await git(['ls-files', '-z', '--cached', '--others', '--exclude-standard'], opts)).split('\0').filter(Boolean)
+  const paths = [...new Set(listed)].filter((path) => fileAt(project, path))
+  const blobs = await hashPaths(paths, opts)
+  return new Map(paths.map((path, i) => [path, blobs[i]]))
+}
+
+// Что сделала команда с файлами проекта: создала и изменила (blob — новое содержимое), удалила (blob: null); по пути.
+// Файл, который остался на диске, но стал игнорируемым, удалённым не считается. Нет проекта под git до или после — null.
+function changedFiles(before, after, project) {
+  if (!before || !after) return null
+  const files = []
+  for (const [path, blob] of after) if (before.get(path) !== blob) files.push({ path, blob })
+  for (const path of before.keys()) if (!after.has(path) && !fileAt(project, path)) files.push({ path, blob: null })
+  return files.sort((a, b) => (a.path < b.path ? -1 : 1))
+}
+
 // Настоящий `git diff` одной правки. Новый файл — `--no-index` от /dev/null (код 1 — норма).
 // Изменённый — `git diff` в черновом репозитории, где «до» уже в индексе: так дифф показывает только эту правку,
 // даже если файл правили несколько раз без коммита или он ещё не добавлен в индекс проекта.
@@ -305,6 +342,8 @@ async function playSession({ home, project, npmCache, runLimitMs }, def) {
   const events = []
   const procs = [] // процессы с until
   let commits = 0
+  let browser = null // Chromium сессии: один на все её шаги browser, создаётся на первом из них
+  let context = null
 
   // Окружение команд: ~ — это home/, постоянные автор и время (k-го коммита сессии — старт + k минут).
   const env = () => {
@@ -354,19 +393,25 @@ async function playSession({ home, project, npmCache, runLimitMs }, def) {
     const { id } = step
     if (step.run !== undefined) {
       const long = step.until !== undefined
+      const was = await projectBlobs(project, { cwd: project, env: env() }) // файлы проекта до команды
       const proc = launch(step.run, { cwd: step.cwd === '~' ? home : project, env: env(), group: true })
       const cwd = step.cwd === '~' ? '~' : '~/trainer-app'
+      // files — что команда сделала с файлами проекта; нет проекта под git или нет изменений — поля нет
+      const changed = async () => {
+        const files = changedFiles(was, await projectBlobs(project, { cwd: project, env: env() }), project)
+        return files?.length ? { files } : {}
+      }
       if (!long) {
         if (!(await within(proc.closed, runLimitMs))) {
           await stop(proc) // вместе со всей группой, иначе потомки останутся работать
           throw new Error(`команда не завершилась за ${limitText(runLimitMs)}\n${lines(proc.text).slice(-20).join('\n')}`)
         }
-        push({ id, kind: 'run', cwd, cmd: step.run, out: lines(proc.text), code: proc.code }, by)
+        push({ id, kind: 'run', cwd, cmd: step.run, out: lines(proc.text), code: proc.code, ...(await changed()) }, by)
         return
       }
       procs.push(proc)
       const out = await waitFor(proc, step.until)
-      push({ id, kind: 'run', cwd, cmd: step.run, out, code: null }, by)
+      push({ id, kind: 'run', cwd, cmd: step.run, out, code: null, ...(await changed()) }, by)
     } else if (step.write !== undefined || step.edit !== undefined) {
       const { abs, rel } = inProject(step.write ?? step.edit)
       const before = existsSync(abs) ? readFileSync(abs, 'utf8') : null
@@ -427,16 +472,25 @@ async function playSession({ home, project, npmCache, runLimitMs }, def) {
     return rows.slice(0, rows.findIndex((row) => row.includes(needle)) + 1)
   }
 
+  // Контекст браузера сессии: cookie и localStorage живут между её шагами, следующая сессия начинает с чистого.
+  // Язык и пояс заданы, как у команд, чтобы страницы (даты, Intl) не зависели от машины.
+  async function sessionContext() {
+    if (!context) {
+      const { chromium } = await import('@playwright/test')
+      browser = await chromium.launch()
+      context = await browser.newContext({ locale: 'ru-RU', timezoneId: 'Europe/Moscow' })
+    }
+    return context
+  }
+
   async function recordBrowser(step) {
     const server = procs.findLast((p) => !p.exited)
     check(server, 'browser нужен работающий шаг с until (dev-сервер)')
     const { url, fill = {}, click = [] } = step.browser
     const clicks = Array.isArray(click) ? click : [click]
     const mark = server.text.length // вывод сервера считаем с начала шага
-    const { chromium } = await import('@playwright/test')
-    const browser = await chromium.launch()
+    const page = await (await sessionContext()).newPage()
     try {
-      const page = await browser.newPage()
       const consoleLog = []
       const network = []
       page.on('console', (m) => consoleLog.push({ type: m.type(), text: m.text() }))
@@ -463,17 +517,35 @@ async function playSession({ home, project, npmCache, runLimitMs }, def) {
       }
       await page.waitForLoadState('load')
       const after = await pageText(page)
+      const urlAfter = page.url() // нажатие могло увести на другую страницу
       await sleep(SERVER_TAIL_MS)
-      return { id: step.id, kind: 'browser', url: BASE + url, title, fields, buttons, before, after, console: consoleLog, network, server: lines(server.text.slice(mark)) }
+      return {
+        id: step.id,
+        kind: 'browser',
+        url: BASE + url,
+        ...(urlAfter === BASE + url ? {} : { urlAfter }),
+        title,
+        fields,
+        buttons,
+        before,
+        after,
+        console: consoleLog,
+        network,
+        server: lines(server.text.slice(mark)),
+      }
     } finally {
-      await browser.close()
+      await page.close() // открытая страница держала бы соединения (HMR) и писала в вывод сервера следующих шагов
     }
   }
 
   try {
     for (const step of def.steps) await play(step, undefined)
   } finally {
-    for (const proc of procs) await stop(proc)
+    try {
+      await browser?.close()
+    } finally {
+      for (const proc of procs) await stop(proc)
+    }
   }
   return { id: def.id, from: def.from, recorded: new Date(def.date).toISOString().slice(0, 10), events }
 }
@@ -482,8 +554,6 @@ async function playSession({ home, project, npmCache, runLimitMs }, def) {
 export async function trackedFiles(project) {
   const env = baseEnv(join(project, '..'))
   const paths = (await git(['ls-files', '-z'], { cwd: project, env })).split('\0').filter(Boolean)
-  check(paths.every((p) => !p.includes('\n')), 'В имени файла проекта есть перевод строки')
-  if (paths.length === 0) return []
-  const blobs = (await git(['hash-object', '--no-filters', '--stdin-paths'], { cwd: project, env, input: paths.join('\n') + '\n' })).trim().split('\n')
+  const blobs = await hashPaths(paths, { cwd: project, env })
   return paths.map((path, i) => ({ path, blob: blobs[i] }))
 }
