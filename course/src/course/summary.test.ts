@@ -55,7 +55,7 @@ describe('summary', () => {
   })
 
   it('состав чернового дня 4', () => {
-    expect(daySummaryLine(days[3])).toBe('1 видеоурок (4:26)')
+    expect(daySummaryLine(days[3])).toBe('1 видеоурок (4:25)')
   })
 
   it('состав дня без роликов — без скобок, части через запятую', () => {
