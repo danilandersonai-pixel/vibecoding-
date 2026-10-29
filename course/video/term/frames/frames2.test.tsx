@@ -248,6 +248,15 @@ describe('Agent', () => {
       const one: AgentSpec = { ...AG, outLines: { fail: [2, 2] } }
       expect(problems(one)).toEqual([])
       expect(def.layout(one, ctx)['step:fail'].h).toBeCloseTo(4 * 36)
+      // «…» и над строкой 2 (скрыта строка 1), и под ней (скрыта строка 3)
+      const mid = plain(part(view(one, END), 'step:fail') ?? '')
+      const shown = mid.indexOf('✗ 1 тест не прошёл')
+      expect(shown).toBeGreaterThan(-1)
+      expect(mid.indexOf('…')).toBeGreaterThan(-1)
+      expect(mid.indexOf('…')).toBeLessThan(shown)
+      expect(mid.lastIndexOf('…')).toBeGreaterThan(shown)
+      expect(mid).not.toContain('> trainer-app@0.1.0 test')
+      expect(mid).not.toContain('вес должен быть числом')
       const tail: AgentSpec = { ...AG, outLines: { fail: [1, 1] } }
       expect(def.layout(tail, ctx)['step:fail'].h).toBeCloseTo(3 * 36) // вопрос, строка 1 и «…» под ней
       const html = view(tail, END)
