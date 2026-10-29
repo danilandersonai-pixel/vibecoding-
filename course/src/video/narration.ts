@@ -133,6 +133,7 @@ const SAY: [RegExp, string][] = [
   [/\bStack Overflow\b/g, 'стэк оверфлоу'],
   [/\bgit log\b/g, 'гит лог'],
   [/\bgit revert\b/g, 'гит риверт'],
+  [/\bHEAD\b/g, 'хэд'],
   [/\bgit bisect\b/g, 'гит бисект'],
   [/\/rewind\b/g, 'ривайнд'],
   [/\bEsc\b/g, 'эскейп'],

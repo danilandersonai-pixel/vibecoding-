@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react'
-import { ch03Script } from './ch-03/script'
 import { ch04Script } from './ch-04/script'
 import { ch05Script } from './ch-05/script'
 import { ch06Script } from './ch-06/script'
@@ -23,6 +22,7 @@ import { day20Script } from './day-20/script'
 import { day21Script } from './day-21/script'
 import { ch01Script } from './lessons/ch-01/script'
 import { ch02Script } from './lessons/ch-02/script'
+import { ch03Script } from './lessons/ch-03/script'
 import { ch12Script } from './lessons/ch-12/script'
 import { chAbcScript } from './lessons/ch-abc/script'
 import { pilotRlsScript } from './pilot-rls/script'
@@ -72,7 +72,7 @@ export const catalog: Record<string, CatalogEntry> = {
     title: 'Проблема 70%',
     kind: 'chapter',
     script: ch03Script,
-    load: () => import('./ch-03/Video'),
+    load: () => import('./lessons/ch-03/Video'),
   },
   'ch-06': {
     title: 'Прототип за вечер',
