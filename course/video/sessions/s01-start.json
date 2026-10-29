@@ -33,7 +33,7 @@
     "",
     "npm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options.",
     "",
-    "added 364 packages, and audited 365 packages in 27s",
+    "added 364 packages, and audited 365 packages in 28s",
     "",
     "found 0 vulnerabilities",
     "",
@@ -97,12 +97,12 @@
    "id": "c-start",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"Заготовка Next.js\"",
-   "hash": "25ffd84",
+   "hash": "afb9095",
    "message": "Заготовка Next.js",
    "branch": "main",
    "parents": [],
    "out": [
-    "[main (root-commit) 25ffd84] Заготовка Next.js",
+    "[main (root-commit) afb9095] Заготовка Next.js",
     " 16 files changed, 7053 insertions(+)",
     " create mode 100644 .gitignore",
     " create mode 100644 README.md",
@@ -156,7 +156,7 @@
     },
     {
      "path": "package-lock.json",
-     "blob": "778efffe896ec4e3d93ace5e04b35973cc75bb65"
+     "blob": "cc78f46dc9eda610fc53689d2e4c38f4aa261501"
     },
     {
      "path": "package.json",
@@ -224,14 +224,14 @@
    "id": "c-idea",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"Идея приложения в docs/idea.md\"",
-   "hash": "99400a8",
+   "hash": "d022935",
    "message": "Идея приложения в docs/idea.md",
    "branch": "main",
    "parents": [
-    "25ffd84"
+    "afb9095"
    ],
    "out": [
-    "[main 99400a8] Идея приложения в docs/idea.md",
+    "[main d022935] Идея приложения в docs/idea.md",
     " 1 file changed, 5 insertions(+)",
     " create mode 100644 docs/idea.md"
    ],
@@ -274,7 +274,7 @@
     },
     {
      "path": "package-lock.json",
-     "blob": "778efffe896ec4e3d93ace5e04b35973cc75bb65"
+     "blob": "cc78f46dc9eda610fc53689d2e4c38f4aa261501"
     },
     {
      "path": "package.json",
@@ -361,14 +361,14 @@
    "id": "c-claude",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"CLAUDE.md: цель, стек и запреты\"",
-   "hash": "e994198",
+   "hash": "354b94d",
    "message": "CLAUDE.md: цель, стек и запреты",
    "branch": "main",
    "parents": [
-    "99400a8"
+    "d022935"
    ],
    "out": [
-    "[main e994198] CLAUDE.md: цель, стек и запреты",
+    "[main 354b94d] CLAUDE.md: цель, стек и запреты",
     " 1 file changed, 23 insertions(+)",
     " create mode 100644 CLAUDE.md"
    ],
@@ -415,7 +415,7 @@
     },
     {
      "path": "package-lock.json",
-     "blob": "778efffe896ec4e3d93ace5e04b35973cc75bb65"
+     "blob": "cc78f46dc9eda610fc53689d2e4c38f4aa261501"
     },
     {
      "path": "package.json",
@@ -454,9 +454,9 @@
    "cwd": "~/trainer-app",
    "cmd": "git log --oneline",
    "out": [
-    "e994198 CLAUDE.md: цель, стек и запреты",
-    "99400a8 Идея приложения в docs/idea.md",
-    "25ffd84 Заготовка Next.js"
+    "354b94d CLAUDE.md: цель, стек и запреты",
+    "d022935 Идея приложения в docs/idea.md",
+    "afb9095 Заготовка Next.js"
    ],
    "code": 0
   },

@@ -318,11 +318,53 @@ async function pageButtons(page) {
   return (await page.getByRole('button').allInnerTexts()).map((text) => text.trim()).filter(Boolean)
 }
 
+// Состояние сессии — архив папки проекта на конец сессии. В него не входит то, что восстанавливается или пересоздаётся само:
+// node_modules (его ставит `npm ci` по package-lock.json), кэш сборки .next и отчёты тестов. Всё остальное, включая .git и игнорируемые
+// файлы вроде .env.local, сохраняется. Вне проекта (home/) ничего не сохраняется: сессии, которые продолжают с состояния, не должны от него зависеть.
+const STATE_SKIP = ['node_modules', '.next', 'test-results', 'playwright-report']
+
+// tar без оболочки: код не 0 — ошибка с выводом tar.
+function tar(args) {
+  return new Promise((done, fail) => {
+    const child = spawn('tar', args, { stdio: ['ignore', 'ignore', 'pipe'] })
+    let err = ''
+    child.stderr.setEncoding('utf8').on('data', (c) => (err += c))
+    child.once('error', fail)
+    child.once('close', (code) => (code === 0 ? done() : fail(new Error(`tar ${args.join(' ')}: код ${code}\n${err.trim()}`))))
+  })
+}
+
+// Сохраняет состояние проекта в архив (`tar -czf`); папка архива создаётся.
+export async function packState(archive, project) {
+  const names = readdirSync(project).filter((name) => !STATE_SKIP.includes(name)).sort()
+  check(names.length > 0, `В папке проекта нечего сохранять в состояние: ${project}`)
+  mkdirSync(dirname(resolve(archive)), { recursive: true })
+  await tar(['-czf', resolve(archive), '-C', project, '--', ...names])
+}
+
+// Разворачивает архив состояния в папку проекта. Владельцем файлов становится тот, кто запустил рекордер, а не тот, кто делал архив.
+export async function unpackState(archive, project) {
+  check(existsSync(archive), `Нет архива состояния: ${archive}`)
+  await tar(['-xzf', resolve(archive), '-C', project, '--no-same-owner'])
+}
+
 // Записывает цепочку сессий: defs по порядку, workdir — пустая папка. Внутри: home/ (это ~) и проект home/trainer-app.
 // npmCache — папка кэша npm (ускоряет перезапись, на вывод влияет только временем).
 // runLimitMs — потолок для обычной команды (по умолчанию 15 минут; параметр нужен только тестам).
-export async function recordChain(defs, { workdir, npmCache, runLimitMs = RUN_LIMIT_MS } = {}) {
+// state — состояния сессий: save(id, project) вызывается после каждой записанной сессии (серверы к этому времени остановлены);
+// restore { id, load(project) } — запись с середины: проект разворачивается из состояния сессии id (load кладёт его в пустую папку проекта),
+// при package-lock.json ставятся пакеты `npm ci` (в запись это не попадает), и записываются сессии цепочки, которые идут после id.
+// defs при этом — вся цепочка: from следующей за id сессии проверяется как обычно. Возвращает записи только проигранных сессий.
+export async function recordChain(defs, { workdir, npmCache, runLimitMs = RUN_LIMIT_MS, state } = {}) {
   checkChain(defs)
+  const restore = state?.restore
+  let first = 0
+  if (restore) {
+    const at = defs.findIndex((def) => def.id === restore.id)
+    check(at >= 0, `Нет сессии «${restore.id}» в цепочке: ${defs.map((def) => def.id).join(', ')}`)
+    check(at < defs.length - 1, `После сессии «${restore.id}» записывать нечего: она последняя в цепочке`)
+    first = at + 1
+  }
   check(typeof workdir === 'string' && workdir !== '', 'Не указана папка записи (workdir)')
   mkdirSync(workdir, { recursive: true })
   const root = realpathSync(workdir)
@@ -331,9 +373,50 @@ export async function recordChain(defs, { workdir, npmCache, runLimitMs = RUN_LI
   const project = join(home, 'trainer-app')
   mkdirSync(project, { recursive: true })
 
+  if (restore) {
+    await restore.load(project)
+    await installPackages({ home, project, npmCache, runLimitMs }, restore.id)
+  }
+
   const records = []
-  for (const def of defs) records.push(await playSession({ home, project, npmCache, runLimitMs }, def))
+  for (const def of defs.slice(first)) {
+    records.push(await playSession({ home, project, npmCache, runLimitMs }, def))
+    await state?.save(def.id, project)
+  }
   return { records, project }
+}
+
+// После разворачивания состояния: если в проекте есть package-lock.json, ставит по нему пакеты (`npm ci`, как в первой сессии `npm install`).
+// Команда не записывается: восстановление — не часть сессии.
+async function installPackages({ home, project, npmCache, runLimitMs }, restoredId) {
+  if (!existsSync(join(project, 'package-lock.json'))) return
+  const proc = launch('npm ci --prefer-offline --no-audit --no-fund', { cwd: project, env: commandEnv(home, npmCache), group: true })
+  if (!(await within(proc.closed, runLimitMs))) {
+    await stop(proc)
+    throw new Error(`Состояние сессии «${restoredId}»: npm ci не завершился за ${limitText(runLimitMs)}\n${outputLines(proc.text, home).slice(-20).join('\n')}`)
+  }
+  check(proc.code === 0, `Состояние сессии «${restoredId}»: npm ci не удался (код ${proc.code})\n${outputLines(proc.text, home).slice(-20).join('\n')}`)
+}
+
+// Окружение команд сессии без времени коммита: ~ — это home/, постоянный автор, порт и цвет, общий кэш npm.
+function commandEnv(home, npmCache) {
+  const vars = {
+    ...baseEnv(home),
+    GIT_AUTHOR_NAME: 'Анна',
+    GIT_AUTHOR_EMAIL: 'anna@example.com',
+    GIT_COMMITTER_NAME: 'Анна',
+    GIT_COMMITTER_EMAIL: 'anna@example.com',
+    NEXT_TELEMETRY_DISABLED: '1',
+    npm_config_update_notifier: 'false',
+    npm_config_fund: 'false',
+    PORT: String(PORT),
+    FORCE_COLOR: '0',
+  }
+  if (npmCache) {
+    vars.npm_config_cache = npmCache
+    vars.npm_config_logs_dir = join(home, '.npm', '_logs') // журнал npm там же, где без общего кэша: путь в выводе — ~/.npm/_logs
+  }
+  return vars
 }
 
 // Одна сессия: шаги по порядку, затем остановка серверов (и при ошибке тоже).
@@ -345,28 +428,10 @@ async function playSession({ home, project, npmCache, runLimitMs }, def) {
   let browser = null // Chromium сессии: один на все её шаги browser, создаётся на первом из них
   let context = null
 
-  // Окружение команд: ~ — это home/, постоянные автор и время (k-го коммита сессии — старт + k минут).
+  // Окружение команд: постоянные автор и время (k-го коммита сессии — старт + k минут).
   const env = () => {
     const stamp = `${start + (commits + 1) * 60} +0000`
-    const vars = {
-      ...baseEnv(home),
-      GIT_AUTHOR_NAME: 'Анна',
-      GIT_AUTHOR_EMAIL: 'anna@example.com',
-      GIT_COMMITTER_NAME: 'Анна',
-      GIT_COMMITTER_EMAIL: 'anna@example.com',
-      GIT_AUTHOR_DATE: stamp,
-      GIT_COMMITTER_DATE: stamp,
-      NEXT_TELEMETRY_DISABLED: '1',
-      npm_config_update_notifier: 'false',
-      npm_config_fund: 'false',
-      PORT: String(PORT),
-      FORCE_COLOR: '0',
-    }
-    if (npmCache) {
-      vars.npm_config_cache = npmCache
-      vars.npm_config_logs_dir = join(home, '.npm', '_logs') // журнал npm там же, где без общего кэша: путь в выводе — ~/.npm/_logs
-    }
-    return vars
+    return { ...commandEnv(home, npmCache), GIT_AUTHOR_DATE: stamp, GIT_COMMITTER_DATE: stamp }
   }
   const gitHere = (args, extra = {}) => git(args, { cwd: project, env: env(), ...extra })
   const lines = (text) => outputLines(text, home)
@@ -499,8 +564,11 @@ async function playSession({ home, project, npmCache, runLimitMs }, def) {
       })
       const idle = watchNetwork(page)
 
+      const requested = new URL(BASE + url).href // так адрес пишет браузер: русские буквы и пробелы кодируются
       await page.goto(BASE + url)
       await idle()
+      // перенаправление (вход, редирект сервера): кадр не должен показывать адрес, которого у страницы не было, поэтому в шаге указывают конечный
+      check(page.url() === requested, `страница открылась по адресу ${page.url()}, а запрошен ${BASE + url} — укажите в шаге конечный адрес`)
       const title = await page.title()
       const fields = []
       for (const [label, value] of Object.entries(fill)) {
@@ -517,13 +585,13 @@ async function playSession({ home, project, npmCache, runLimitMs }, def) {
       }
       await page.waitForLoadState('load')
       const after = await pageText(page)
-      const urlAfter = page.url() // нажатие могло увести на другую страницу
+      const urlAfter = page.url() // адрес в конце шага: нажатие могло увести на другую страницу
       await sleep(SERVER_TAIL_MS)
       return {
         id: step.id,
         kind: 'browser',
         url: BASE + url,
-        ...(urlAfter === BASE + url ? {} : { urlAfter }),
+        ...(urlAfter === requested ? {} : { urlAfter }),
         title,
         fields,
         buttons,

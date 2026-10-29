@@ -20,7 +20,8 @@ export type CommitEvent = {
   files: { path: string; blob: string }[]
 } & By
 export type AgentEvent = { id: string; kind: 'agent'; prompt: string; reply: string; steps: string[] }
-// url — адрес, который открыли; urlAfter — адрес страницы после нажатий, если он другой (нажатие привело на другую страницу).
+// url — адрес, который открыли (страница открылась именно по нему, перенаправление рекордер не принимает); urlAfter — адрес страницы
+// в конце шага (после нажатий), если он другой: нажатие привело на другую страницу.
 export type BrowserEvent = {
   id: string
   kind: 'browser'

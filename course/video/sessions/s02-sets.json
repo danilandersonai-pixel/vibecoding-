@@ -290,7 +290,7 @@
     "▲ Next.js 16.4.3 (Turbopack)",
     "- Local:         http://localhost:3000",
     "- Network:       http://192.0.2.2:3000",
-    "✓ Ready in 493ms"
+    "✓ Ready in 412ms"
    ],
    "code": null
   },
@@ -343,7 +343,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 318ms"
+     "text": "[Fast Refresh] done in 230ms"
     },
     {
      "type": "error",
@@ -407,7 +407,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET / 200 in 419ms (next.js: 211ms, application-code: 208ms)",
+    " GET / 200 in 372ms (next.js: 193ms, application-code: 179ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -500,7 +500,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET /api/sets 200 in 104ms (next.js: 84ms, application-code: 20ms)",
+    " GET /api/sets 200 in 76ms (next.js: 61ms, application-code: 16ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -547,7 +547,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET /api/sets 200 in 16ms (next.js: 3ms, application-code: 12ms)",
+    " GET /api/sets 200 in 12ms (next.js: 8ms, application-code: 4ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -594,7 +594,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " POST /api/sets 400 in 17ms (next.js: 7ms, application-code: 10ms)"
+    " POST /api/sets 400 in 13ms (next.js: 3ms, application-code: 10ms)"
    ]
   },
   {
@@ -768,7 +768,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET / 200 in 48ms (next.js: 4ms, application-code: 44ms)",
+    " GET / 200 in 59ms (next.js: 5ms, application-code: 54ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -861,7 +861,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET /api/sets 200 in 9ms (next.js: 4ms, application-code: 5ms)",
+    " GET /api/sets 200 in 6ms (next.js: 2ms, application-code: 4ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -908,7 +908,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET /api/sets 200 in 9ms (next.js: 3ms, application-code: 6ms)",
+    " GET /api/sets 200 in 6ms (next.js: 2ms, application-code: 4ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -955,7 +955,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " POST /api/sets 400 in 14ms (next.js: 8ms, application-code: 6ms)"
+    " POST /api/sets 400 in 7ms (next.js: 2ms, application-code: 5ms)"
    ]
   },
   {
@@ -1050,7 +1050,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET / 200 in 55ms (next.js: 4ms, application-code: 51ms)",
+    " GET / 200 in 38ms (next.js: 3ms, application-code: 35ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -1143,7 +1143,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET /api/sets 200 in 7ms (next.js: 3ms, application-code: 5ms)",
+    " GET /api/sets 200 in 8ms (next.js: 3ms, application-code: 5ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -1190,7 +1190,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " GET /api/sets 200 in 7ms (next.js: 1.9ms, application-code: 5ms)",
+    " GET /api/sets 200 in 8ms (next.js: 3ms, application-code: 5ms)",
     "⚠ [next]/internal/font/google/geist_a71539c9.module.css",
     "Warning: Error while requesting resource",
     "There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
@@ -1237,7 +1237,7 @@
     "    ./app/layout.tsx",
     "",
     "",
-    " POST /api/sets 201 in 12ms (next.js: 3ms, application-code: 9ms)"
+    " POST /api/sets 201 in 11ms (next.js: 3ms, application-code: 8ms)"
    ]
   },
   {
@@ -1256,14 +1256,14 @@
    "id": "c-form",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"Форма «Сохранить подход» с проверкой веса\"",
-   "hash": "806dd88",
+   "hash": "974b8ae",
    "message": "Форма «Сохранить подход» с проверкой веса",
    "branch": "sets-form",
    "parents": [
-    "e994198"
+    "354b94d"
    ],
    "out": [
-    "[sets-form 806dd88] Форма «Сохранить подход» с проверкой веса",
+    "[sets-form 974b8ae] Форма «Сохранить подход» с проверкой веса",
     " 3 files changed, 123 insertions(+), 64 deletions(-)",
     " create mode 100644 app/api/sets/route.ts"
    ],
@@ -1314,7 +1314,7 @@
     },
     {
      "path": "package-lock.json",
-     "blob": "778efffe896ec4e3d93ace5e04b35973cc75bb65"
+     "blob": "cc78f46dc9eda610fc53689d2e4c38f4aa261501"
     },
     {
      "path": "package.json",
@@ -1450,7 +1450,13 @@
    "cwd": "~/trainer-app",
    "cmd": "git restore app/globals.css",
    "out": [],
-   "code": 0
+   "code": 0,
+   "files": [
+    {
+     "path": "app/globals.css",
+     "blob": "a2dc41ecee5ec435200fe7cba2bde4107f823774"
+    }
+   ]
   },
   {
    "id": "clean",
@@ -1468,7 +1474,21 @@
    "out": [
     "Switched to branch 'main'"
    ],
-   "code": 0
+   "code": 0,
+   "files": [
+    {
+     "path": "app/api/sets/route.ts",
+     "blob": null
+    },
+    {
+     "path": "app/layout.tsx",
+     "blob": "9852c15349db239dd8a0712ffa70eccb731c9c88"
+    },
+    {
+     "path": "app/page.tsx",
+     "blob": "c887311c6a3904ef8b109f67effd5cad7def8b04"
+    }
+   ]
   },
   {
    "id": "merge",
@@ -1476,7 +1496,7 @@
    "cwd": "~/trainer-app",
    "cmd": "git merge sets-form",
    "out": [
-    "Updating e994198..806dd88",
+    "Updating 354b94d..974b8ae",
     "Fast-forward",
     " app/api/sets/route.ts |  40 ++++++++++++++",
     " app/layout.tsx        |   4 +-",
@@ -1484,7 +1504,21 @@
     " 3 files changed, 123 insertions(+), 64 deletions(-)",
     " create mode 100644 app/api/sets/route.ts"
    ],
-   "code": 0
+   "code": 0,
+   "files": [
+    {
+     "path": "app/api/sets/route.ts",
+     "blob": "c65d5569d19c0de84c818a2729a4aca71c1c475c"
+    },
+    {
+     "path": "app/layout.tsx",
+     "blob": "c98953bbd57ffffe632aa6f3cec330c8db38f7b9"
+    },
+    {
+     "path": "app/page.tsx",
+     "blob": "58c27d1e76bd2f9f7e7763f3d6256ea6a157749d"
+    }
+   ]
   },
   {
    "id": "start-dev",
@@ -1496,7 +1530,7 @@
     "npm error",
     "npm error To see a list of scripts, run:",
     "npm error   npm run",
-    "npm error A complete log of this run can be found in: ~/.npm/_logs/2026-10-28T12_30_04_096Z-debug-0.log"
+    "npm error A complete log of this run can be found in: ~/.npm/_logs/2026-10-29T05_49_56_039Z-debug-0.log"
    ],
    "code": 1
   },
@@ -1613,14 +1647,14 @@
    "id": "c-mini",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"Мини-набор задач для выбора модели\"",
-   "hash": "dde434a",
+   "hash": "ba50b4e",
    "message": "Мини-набор задач для выбора модели",
    "branch": "main",
    "parents": [
-    "806dd88"
+    "974b8ae"
    ],
    "out": [
-    "[main dde434a] Мини-набор задач для выбора модели",
+    "[main ba50b4e] Мини-набор задач для выбора модели",
     " 1 file changed, 28 insertions(+)",
     " create mode 100644 docs/mini-set.md"
    ],
@@ -1675,7 +1709,7 @@
     },
     {
      "path": "package-lock.json",
-     "blob": "778efffe896ec4e3d93ace5e04b35973cc75bb65"
+     "blob": "cc78f46dc9eda610fc53689d2e4c38f4aa261501"
     },
     {
      "path": "package.json",
@@ -1714,11 +1748,11 @@
    "cwd": "~/trainer-app",
    "cmd": "git log --oneline",
    "out": [
-    "dde434a Мини-набор задач для выбора модели",
-    "806dd88 Форма «Сохранить подход» с проверкой веса",
-    "e994198 CLAUDE.md: цель, стек и запреты",
-    "99400a8 Идея приложения в docs/idea.md",
-    "25ffd84 Заготовка Next.js"
+    "ba50b4e Мини-набор задач для выбора модели",
+    "974b8ae Форма «Сохранить подход» с проверкой веса",
+    "354b94d CLAUDE.md: цель, стек и запреты",
+    "d022935 Идея приложения в docs/idea.md",
+    "afb9095 Заготовка Next.js"
    ],
    "code": 0
   }

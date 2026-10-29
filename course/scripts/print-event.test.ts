@@ -157,7 +157,8 @@ describe('loadRecord и listEvents', () => {
     const record = loadRecord('s02-sets')
     expect(record.id).toBe('s02-sets')
     const dev = record.events.find((e: { id: string }) => e.id === 'dev')
-    expect(formatEvent(dev).join('\n')).toContain('8  ✓ Ready in 493ms')
+    // время запуска меняется от записи к записи, поэтому только его место: 8-я строка вывода
+    expect(formatEvent(dev).join('\n')).toMatch(/^8 {2}✓ Ready in \d+ms$/m)
     expect(makeFind([record])('s02-sets', 'dev', 'run').cmd).toBe('npm run dev')
   })
 
