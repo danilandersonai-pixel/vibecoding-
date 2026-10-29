@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import SetList from "@/components/SetList";
 import { asUser } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 import { volume } from "@/lib/volume";
@@ -33,13 +34,11 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<"/
     <main className="mx-auto w-full max-w-md p-8">
       <h1 className="text-3xl font-semibold">{workout.title}</h1>
 
-      <ul className="mt-6 flex flex-col gap-1">
-        {workout.sets.map((set) => (
-          <li key={set.id}>
-            {set.weight} кг × {set.reps}
-          </li>
-        ))}
-      </ul>
+      {workout.sets.length === 0 ? (
+        <p className="mt-6 text-zinc-500">Подходов пока нет</p>
+      ) : (
+        <SetList sets={workout.sets} className="mt-6 flex flex-col gap-1" />
+      )}
       <p className="mt-2 font-medium">Объём: {volume(workout.sets)} кг</p>
 
       <form action={save} className="mt-6 flex flex-col gap-4">
@@ -58,6 +57,16 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<"/
             id="reps"
             name="reps"
             inputMode="numeric"
+            className="rounded border border-zinc-300 px-3 py-2"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="note">Заметка</label>
+          <input
+            id="note"
+            name="note"
+            maxLength={200}
+            placeholder="Необязательно, до 200 знаков"
             className="rounded border border-zinc-300 px-3 py-2"
           />
         </div>

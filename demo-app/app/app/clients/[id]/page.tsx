@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import SetList from "@/components/SetList";
 import { formatDay } from "@/lib/dates";
 import { asUser } from "@/lib/db";
 import { currentUser } from "@/lib/session";
+import { volume } from "@/lib/volume";
 import { assignWorkout } from "./actions";
 
 export const metadata: Metadata = { title: "Подопечный" };
@@ -11,15 +13,23 @@ export const metadata: Metadata = { title: "Подопечный" };
 // Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки
 export const instant = false;
 
-// Карточка подопечного по id из адреса: имя, форма «Назначить» и тренировки
+// Тренировка подопечного с подходами: id подхода из json_agg — число
+type Workout = { id: string; title: string; day: Date; sets: { id: number; weight: number; reps: number }[] };
+
+// Карточка подопечного по id из адреса: имя, форма «Назначить» и тренировки с подходами и объёмом
 export default async function ClientPage({ params }: PageProps<"/clients/[id]">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
   const { id } = await params;
   const card = await asUser(uid, async (db) => {
     const client = await db.query<{ name: string }>("select name from clients where id = $1", [id]);
-    const workouts = await db.query<{ id: string; title: string; day: Date }>(
-      "select id, title, day from workouts where client_id = $1 order by day",
+    // тренировки с подходами одним запросом: left join берёт и тренировки без подходов, json_agg собирает подходы в массив
+    const workouts = await db.query<Workout>(
+      `select w.id, w.title, w.day, coalesce(json_agg(s order by s.id) filter (where s.id is not null), '[]') as sets
+         from workouts w left join sets s on s.workout_id = w.id
+        where w.client_id = $1
+        group by w.id
+        order by w.day`,
       [id],
     );
     return client.rows.length > 0 ? { name: client.rows[0].name, workouts: workouts.rows } : null;
@@ -69,6 +79,8 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
                 {workout.title}
               </Link>
               <p className="text-sm text-zinc-500">{formatDay(workout.day)}</p>
+              <SetList sets={workout.sets} className="mt-1 text-sm" />
+              <p className="text-sm font-medium">Объём, кг: {volume(workout.sets)}</p>
             </li>
           ))}
         </ul>

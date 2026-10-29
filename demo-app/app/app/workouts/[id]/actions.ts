@@ -20,8 +20,12 @@ export async function saveSet(workoutId: string, form: FormData) {
   const reps = Number(form.get("reps"));
   if (!Number.isInteger(reps) || reps <= 0) redirect(fail("Повторы — целое число больше нуля"));
 
+  // заметка необязательна: пустое поле — без заметки (null); длиннее 200 знаков не примет и база
+  const note = String(form.get("note") ?? "").trim() || null;
+  if (note && note.length > 200) redirect(fail("Заметка — не длиннее 200 знаков"));
+
   await asUser(uid, (db) =>
-    db.query("insert into sets (workout_id, weight, reps) values ($1, $2, $3)", [workoutId, weight, reps]),
+    db.query("insert into sets (workout_id, weight, reps, note) values ($1, $2, $3, $4)", [workoutId, weight, reps, note]),
   );
   // та же страница заново — с новым подходом и без прежней ошибки в адресе
   redirect(page);

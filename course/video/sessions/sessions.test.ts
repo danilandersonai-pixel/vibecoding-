@@ -566,3 +566,168 @@ test('s07: шаги идут по таблице, цикл и тесты пиш�
     expect(view.network, id).toEqual([])
   }
 })
+
+test('s08: стектрейс, деление пополам находит «Упростить», откат возвращает зелёные тесты', () => {
+  // Марина назначает «Ноги» без подходов — страница падает: TypeError и стектрейс с app/clients/[id]/page.tsx в выводе сервера
+  const crash = find('s08-debug', 'assign2', 'browser')
+  expect(crash.url).toBe('http://localhost:3000/clients/1')
+  expect(crash.fields).toEqual([
+    { label: 'Название', value: 'Ноги' },
+    { label: 'Дата', value: '2026-11-04' },
+  ])
+  const server = crash.server.join('\n')
+  expect(server).toContain('TypeError')
+  expect(server).toContain('page.tsx')
+  // в запросе — строка ошибки и первая строка стектрейса дословно
+  const at = crash.server.findIndex((line) => line.includes('TypeError'))
+  const stack = crash.server[at + 1].trim()
+  expect(stack).toMatch(/^at .*\(app\/clients\/\[id\]\/page\.tsx:\d+:\d+\)$/)
+  const cause = find('s08-debug', 'ask-cause', 'agent')
+  expect(cause.prompt).toContain(crash.server[at].trim())
+  expect(cause.prompt).toContain(stack)
+  expect(cause.prompt).toContain('Найди причину, пока ничего не исправляй')
+  // после исправления в запросе: вторая «Ноги» на 4 ноября, объём 0
+  const ok = find('s08-debug', 'crash-ok', 'browser').after
+  expect(ok).toContain('Ноги')
+  expect(ok.slice(-3)).toEqual(['Ноги', '4 ноября', 'Объём: 0 кг'])
+  // четыре коммита без тестов — красный; git bisect run по тесту объёма называет «Упростить подсчёт объёма»
+  const red = find('s08-debug', 'test-red', 'run')
+  expect(red.code).not.toBe(0)
+  expect(red.out.some((line) => line.startsWith('   × пустая тренировка — 0 '))).toBe(true)
+  expect(red.out.join('\n')).toContain('TypeError: Reduce of empty array with no initial value')
+  const bisect = find('s08-debug', 'bisect-run', 'run')
+  expect(bisect.out.join('\n')).toContain('is the first bad commit')
+  expect(bisect.out.join('\n')).toContain('Упростить подсчёт объёма')
+  const simplify = find('s08-debug', 'c-simplify', 'commit')
+  expect(bisect.out.find((line) => line.endsWith(' is the first bad commit'))).toMatch(new RegExp(`^${simplify.hash}[0-9a-f]{33} is`))
+  // откат только «Упростить» — тесты снова зелёные, и после рефакторинга тоже
+  expect(find('s08-debug', 'test-green', 'run').code).toBe(0)
+  expect(find('s08-debug', 'refactor-test', 'run').code).toBe(0)
+  // миграция с заметкой применена
+  expect(find('s08-debug', 'note-apply', 'run').out.join('\n')).toContain('ALTER TABLE')
+})
+
+test('s08: шаги идут по таблице; причину правят в запросе; bisect между c-fix и c-hint; SetList и заметку пишет агент', () => {
+  expect(sessions['s08-debug'].events.map((e) => e.id)).toEqual([
+    ...['dev', 'ask-volumes', 'volumes-page', 'login-marina', 'assign2', 'ask-cause', 'cause-read', 'ask-fix-cause', 'cause-fix', 'crash-ok', 'c-fix'],
+    ...['ask-round', 'round-fix', 'c-round', 'ask-simplify', 'simplify', 'c-simplify', 'ask-label', 'label', 'c-label', 'ask-hint', 'hint', 'c-hint'],
+    ...['test-red', 'bisect-start', 'bisect-run', 'bisect-reset', 'revert-simplify', 'test-green'],
+    ...['ask-refactor', 'setlist', 'use-setlist-1', 'use-setlist-2', 'refactor-test', 'diff-refactor', 'c-refactor'],
+    ...['ask-mentor', 'mentor-read', 'prompts', 'ask-migration', 'note-sql', 'note-apply', 'note-form', 'note-action', 'c-mentor'],
+  ])
+  const file = (id: string) => find('s08-debug', id, 'file')
+  const agent = (id: string) => find('s08-debug', id, 'agent')
+  const commit = (id: string) => find('s08-debug', id, 'commit')
+  const COACH = 'app/clients/[id]/page.tsx'
+  const WORKOUT = 'app/workouts/[id]/page.tsx'
+  // объём на карточке: подходы одним запросом через json_agg с filter — у тренировки без подходов он даёт null
+  expect(agent('ask-volumes')).toMatchObject({ prompt: 'На странице подопечного у каждой тренировки — объём', steps: ['volumes-page'] })
+  const volumes = file('volumes-page')
+  expect(volumes).toMatchObject({ path: COACH, before: find('s07-cycle', 'date-use-1', 'file').after, by: 'agent' })
+  expect(volumes.after).toContain('json_agg(s order by s.id) filter (where s.id is not null) as sets')
+  expect(volumes.after).toContain('left join sets s on s.workout_id = w.id')
+  expect(volumes.after).toContain('{workout.sets.map((set) => (')
+  expect(volumes.after).toContain('Объём: {volume(workout.sets)} кг')
+  // до падения карточка с подходами и объёмами тренировок seed
+  expect(find('s08-debug', 'assign2', 'browser').before).toContain('Объём: 1500 кг')
+  expect(find('s08-debug', 'assign2', 'browser').server.join('\n')).toContain('ƒ assignWorkout("1", {})')
+  // причина: агент только читает страницу; исправление — одна строка запроса, разметка без проверок на null
+  expect(agent('ask-cause').steps).toEqual(['cause-read'])
+  expect(find('s08-debug', 'cause-read', 'read')).toMatchObject({ path: COACH, text: volumes.after, by: 'agent' })
+  expect(agent('ask-cause').reply).toContain('null')
+  expect(agent('ask-fix-cause')).toMatchObject({ prompt: 'Исправь причину в запросе, а не проверкой в разметке', steps: ['cause-fix'] })
+  const fix = file('cause-fix')
+  expect(fix).toMatchObject({ path: COACH, before: volumes.after, by: 'agent' })
+  expect(fix.after).toContain("coalesce(json_agg(s order by s.id) filter (where s.id is not null), '[]') as sets")
+  expect(fix.diff.filter((line) => /^[-+](?![-+])/.test(line))).toHaveLength(2)
+  expect(fix.after).not.toMatch(/sets \?\?|sets\?\./)
+  expect(find('s08-debug', 'crash-ok', 'browser').server.join('\n')).not.toMatch(/Error/)
+  expect(commit('c-fix')).toMatchObject({ message: 'Объём тренировок у тренера; тренировка без подходов не роняет страницу', branch: 'main' })
+  // четыре маленьких коммита: только «Упростить» трогает начальное значение reduce
+  expect(file('round-fix')).toMatchObject({ path: 'lib/volume.ts', before: find('s07-cycle', 'volume-lib', 'file').after, by: 'agent' })
+  expect(file('round-fix').after).toContain('Math.round(sets.reduce((sum, { weight, reps }) => sum + weight * reps, 0))')
+  expect(agent('ask-simplify').prompt).toBe('Упрости lib/volume.ts')
+  expect(file('simplify')).toMatchObject({ path: 'lib/volume.ts', before: file('round-fix').after, by: 'agent' })
+  expect(file('simplify').after).toContain('.reduce((sum, value) => sum + value))')
+  expect(file('label')).toMatchObject({ path: COACH, before: fix.after, by: 'agent' })
+  expect(file('label').after).toContain('Объём, кг: {volume(workout.sets)}')
+  expect(file('hint')).toMatchObject({ path: WORKOUT, before: find('s07-cycle', 'workout-page', 'file').after, by: 'agent' })
+  expect(file('hint').after).toContain('Подходов пока нет')
+  // цепочка: c-fix ← c-round ← c-simplify ← c-label ← c-hint, каждый — один файл; HEAD~4 у bisect — c-fix
+  const chain = ['c-fix', 'c-round', 'c-simplify', 'c-label', 'c-hint'].map(commit)
+  expect(chain.map((c) => c.message)).toEqual([
+    'Объём тренировок у тренера; тренировка без подходов не роняет страницу',
+    'Объём — целым числом',
+    'Упростить подсчёт объёма',
+    'Подпись «Объём, кг»',
+    'Подсказка «Подходов пока нет»',
+  ])
+  for (let i = 1; i < chain.length; i++) {
+    expect(chain[i].parents, chain[i].id).toEqual([chain[i - 1].hash])
+    expect(chain[i].out.join('\n'), chain[i].id).toContain(' 1 file changed')
+  }
+  expect(chain[0].parents).toEqual([find('s07-cycle', 'c-cycle', 'commit').hash])
+  for (const id of ['test-red', 'bisect-start', 'bisect-run', 'bisect-reset', 'revert-simplify', 'test-green', 'diff-refactor']) {
+    expect(find('s08-debug', id, 'run').by, id).toBeUndefined()
+  }
+  expect(find('s08-debug', 'bisect-start', 'run')).toMatchObject({ cmd: 'git bisect start HEAD HEAD~4', code: 0 })
+  expect(find('s08-debug', 'bisect-run', 'run')).toMatchObject({ cmd: 'git bisect run npx vitest run lib/volume.test.ts', code: 0 })
+  expect(find('s08-debug', 'bisect-run', 'run').out.filter((line) => line.startsWith("running 'npx' 'vitest'")).length).toBeGreaterThanOrEqual(2)
+  // dev-сервер во время bisect файлов проекта не пишет: команды меняют только файлы этих коммитов
+  for (const id of ['bisect-start', 'bisect-run', 'bisect-reset']) {
+    for (const f of find('s08-debug', id, 'run').files ?? []) expect(['lib/volume.ts', COACH, WORKOUT], id).toContain(f.path)
+  }
+  expect(find('s08-debug', 'bisect-reset', 'run')).toMatchObject({ cmd: 'git bisect reset', code: 0 })
+  expect(find('s08-debug', 'bisect-reset', 'run').out).toContain("Switched to branch 'main'")
+  const revert = find('s08-debug', 'revert-simplify', 'run')
+  expect(revert).toMatchObject({ cmd: 'git revert --no-edit HEAD~2', code: 0, files: [{ path: 'lib/volume.ts', blob: file('round-fix').blob }] })
+  expect(revert.out[0]).toMatch(/^\[main [0-9a-f]{7}\] Revert "Упростить подсчёт объёма"$/)
+  expect(find('s08-debug', 'test-green', 'run').out.join('\n')).toContain('Tests  10 passed (10)')
+  // рефакторинг: общий вывод подходов в components/SetList.tsx, на страницах — только SetList
+  expect(agent('ask-refactor').steps).toEqual(['setlist', 'use-setlist-1', 'use-setlist-2', 'refactor-test'])
+  expect(file('setlist')).toMatchObject({ path: 'components/SetList.tsx', before: null, by: 'agent' })
+  expect(file('setlist').after).toContain('{set.weight} кг × {set.reps}')
+  expect(file('use-setlist-1')).toMatchObject({ path: COACH, before: file('label').after, by: 'agent' })
+  expect(file('use-setlist-2')).toMatchObject({ path: WORKOUT, before: file('hint').after, by: 'agent' })
+  for (const id of ['use-setlist-1', 'use-setlist-2']) {
+    expect(file(id).after, id).toContain('<SetList sets={workout.sets}')
+    expect(file(id).after, id).not.toContain('{set.weight} кг × {set.reps}')
+  }
+  expect(find('s08-debug', 'refactor-test', 'run')).toMatchObject({ cmd: 'npm test', by: 'agent' })
+  // новый SetList.tsx ещё не в git: git diff --stat видит только две страницы
+  const stat = find('s08-debug', 'diff-refactor', 'run')
+  expect(stat).toMatchObject({ cmd: 'git diff --stat', code: 0 })
+  expect(stat.out.flatMap((line) => /^ (\S+)\s+\|/.exec(line)?.[1] ?? [])).toEqual([COACH, WORKOUT])
+  expect(commit('c-refactor').files.map((f) => f.path)).toContain('components/SetList.tsx')
+  // наставник: только чтение политики, объяснение и три вопроса в конце
+  expect(agent('ask-mentor').steps).toEqual(['mentor-read'])
+  expect(find('s08-debug', 'mentor-read', 'read')).toMatchObject({ path: 'supabase/migrations/0002_rls.sql', text: find('s06-auth', 'rls-sql', 'file').after, by: 'agent' })
+  const mentor = agent('ask-mentor').reply
+  expect(mentor.match(/\?/g)).toHaveLength(3)
+  expect(mentor).toMatch(/1\. [^?]+\? 2\. [^?]+\? 3\. [^?]+\?$/)
+  // журнал запросов пишет человек: четыре записи с датами и строка разбора недели
+  const prompts = file('prompts')
+  expect(prompts).toMatchObject({ path: 'docs/prompts.md', before: null })
+  expect(prompts.by).toBeUndefined()
+  expect(prompts.after.match(/^## \d\d\.\d\d$/gm)).toEqual(['## 28.10', '## 29.10', '## 30.10', '## 01.11'])
+  for (const field of ['- Задача: ', '- Запрос: ', '- Сработало: ', '- Не сработало: ']) expect(prompts.after.split(field), field).toHaveLength(5)
+  expect(prompts.after).toMatch(/^Разбор недели/m)
+  expect(find('s02-sets', 'ask-fix', 'agent').prompt).toContain('Failed to load resource: the server responded with a status of 400 (Bad Request)')
+  expect(prompts.after).toContain('«Failed to load resource: the server responded with a status of 400 (Bad Request)»')
+  expect(prompts.after).toContain('Найди причину, пока ничего не исправляй')
+  // миграция с подтверждения: файл, psql -f от агента (в кадре — с вопросом [y / n]), поле «Заметка» и действие
+  expect(agent('ask-migration').steps).toEqual(['note-sql', 'note-apply', 'note-form', 'note-action'])
+  expect(file('note-sql')).toMatchObject({ path: 'supabase/migrations/0003_set_note.sql', before: null, by: 'agent' })
+  expect(file('note-sql').after).toContain('alter table sets add column note text check (char_length(note) <= 200);')
+  expect(find('s08-debug', 'note-apply', 'run')).toMatchObject({ cmd: 'psql -f supabase/migrations/0003_set_note.sql', code: 0, out: ['ALTER TABLE'], by: 'agent' })
+  expect(file('note-form')).toMatchObject({ path: WORKOUT, before: file('use-setlist-2').after, by: 'agent' })
+  expect(file('note-form').after).toContain('<label htmlFor="note">Заметка</label>')
+  expect(file('note-action')).toMatchObject({ path: 'app/workouts/[id]/actions.ts', before: find('s07-cycle', 'sets-action', 'file').after, by: 'agent' })
+  expect(file('note-action').after).toContain('insert into sets (workout_id, weight, reps, note)')
+  const last = commit('c-mentor')
+  expect(last).toMatchObject({ message: 'Журнал запросов и заметка к подходу', branch: 'main', parents: [commit('c-refactor').hash] })
+  for (const path of ['docs/prompts.md', 'supabase/migrations/0003_set_note.sql', 'components/SetList.tsx']) expect(last.files.map((f) => f.path)).toContain(path)
+  // браузер: вход Марины, падение только в assign2
+  expect(find('s08-debug', 'login-marina', 'browser').urlAfter).toBe('http://localhost:3000/clients')
+  for (const id of ['login-marina', 'crash-ok']) expect(find('s08-debug', id, 'browser').console.filter((m) => m.type === 'error'), id).toEqual([])
+})
