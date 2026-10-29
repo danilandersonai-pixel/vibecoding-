@@ -243,6 +243,29 @@ describe('Agent', () => {
       expect(problems({ ...AG, diffLines: { route: 0 } }).join('\n')).toMatch(/помещается/)
     })
 
+    it('outLines: у шага-команды — только выбранные строки вывода, скрытые выше и ниже — строкой «…»; неверные — проблема', () => {
+      // fail — npm test с тремя строками вывода и кодом 1: вопрос и строки 2–2 → «…», строка 2, «…» (4 строки окна вместо 4 без outLines)
+      const one: AgentSpec = { ...AG, outLines: { fail: [2, 2] } }
+      expect(problems(one)).toEqual([])
+      expect(def.layout(one, ctx)['step:fail'].h).toBeCloseTo(4 * 36)
+      const tail: AgentSpec = { ...AG, outLines: { fail: [1, 1] } }
+      expect(def.layout(tail, ctx)['step:fail'].h).toBeCloseTo(3 * 36) // вопрос, строка 1 и «…» под ней
+      const html = view(tail, END)
+      const fail = plain(part(html, 'step:fail') ?? '')
+      expect(fail).toContain('> trainer-app@0.1.0 test')
+      expect(fail).toContain('…')
+      expect(fail).not.toContain('вес должен быть числом')
+      // код ≠ 0: цвета err последняя показанная строка, а не последняя строка вывода
+      expect(part(html, 'step:fail')).toContain(T.err)
+      // шаг не из записи, шаг не команда, диапазон вне вывода, outLines у чата — проблема
+      expect(problems({ ...AG, outLines: { nope: [1, 1] } }).join('\n')).toMatch(/outLines.*nope/)
+      expect(problems({ ...AG, outLines: { route: [1, 1] } }).join('\n')).toMatch(/outLines.*route/)
+      expect(problems({ ...AG, outLines: { fail: [2, 9] } }).join('\n')).toMatch(/outLines «fail»/)
+      expect(problems({ ...CHAT, outLines: { fail: [1, 1] } }).join('\n')).toMatch(/outLines/)
+      // без outLines — весь вывод, как раньше
+      expect(def.layout(AG, ctx)['step:fail'].h).toBeCloseTo(4 * 36)
+    })
+
     it('ловит текст, который не помещается в окно: по умолчанию шесть строк диффа у каждого файла — слишком много', () => {
       expect(problems({ ...AG, diffLines: undefined }).join('\n')).toMatch(/помещается/)
       expect(problems({ ...AG, mode: undefined, diffLines: 3 })).toEqual([])

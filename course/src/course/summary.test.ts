@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { getDays } from '../content/load'
 import fixture from '../content/fixtures/valid-day.json'
 import { DaySchema, type Day } from '../content/schema'
-import { pilotRlsScript } from '../../video/pilot-rls/script'
+import { day08Script } from '../../video/day-08/script'
 import { videos } from '../video/registry'
 import { daySummaryLine, dayVideoSummary, formatDuration, plural, readinessLine, videoMeta } from './summary'
 
@@ -22,16 +22,16 @@ describe('summary', () => {
   })
 
   it('обложка ролика — начало первой горячей точки', () => {
-    const meta = videoMeta('pilot-rls')!
-    expect(meta.posterFrame).toBe(pilotRlsScript.hotspots[0].from)
-    expect(meta.seconds).toBe(203)
-    expect(meta.hotspots).toBe(pilotRlsScript.hotspots.length)
+    const meta = videoMeta('day-08')!
+    expect(meta.posterFrame).toBe(day08Script.hotspots[0].from)
+    expect(meta.seconds).toBe(150)
+    expect(meta.hotspots).toBe(day08Script.hotspots.length)
     expect(videoMeta('нет')).toBeNull()
   })
 
   it('обложка ролика с poster — этот кадр (середина первого примера), а не горячая точка', () => {
-    const script = { ...pilotRlsScript, id: 'poster-test', width: 1920 as const, height: 1080 as const, poster: 1234 }
-    videos['poster-test'] = { script, load: videos['pilot-rls'].load }
+    const script = { ...day08Script, id: 'poster-test', width: 1920 as const, height: 1080 as const, poster: 1234 }
+    videos['poster-test'] = { script, load: videos['day-08'].load }
     try {
       expect(videoMeta('poster-test')!.posterFrame).toBe(1234)
     } finally {
@@ -55,7 +55,7 @@ describe('summary', () => {
   })
 
   it('состав чернового дня 4', () => {
-    expect(daySummaryLine(days[3])).toBe('1 видеоурок (3:23)')
+    expect(daySummaryLine(days[3])).toBe('1 видеоурок (4:26)')
   })
 
   it('состав дня без роликов — без скобок, части через запятую', () => {

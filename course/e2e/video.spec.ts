@@ -1,22 +1,23 @@
 import { expect, test } from '@playwright/test'
-import { pilotRlsScript } from '../video/pilot-rls/script'
+import { day08Script } from '../video/day-08/script'
 
 // Кнопка панели — «Смотреть» / «Пауза» точно: у обложки имя длиннее («Смотреть ролик «…»»)
 const PLAY = { name: 'Смотреть', exact: true }
 const PAUSE = { name: 'Пауза', exact: true }
 
-test('ролик дня 4 запускается с обложки, на паузе открывается пояснение зоны', async ({ page }) => {
-  await page.goto('/#/day/4')
+// День 8 — старый ролик day-08 (1280 × 720): на нём проверяются обложка, пояснение зоны, отказ загрузки и телефон
+test('ролик дня 8 запускается с обложки, на паузе открывается пояснение зоны', async ({ page }) => {
+  await page.goto('/#/day/8')
   const time = page.getByTestId('video-time')
   await expect(time).toHaveText(/^0:00/)
-  await page.getByRole('button', { name: 'Смотреть ролик «Почему тренер не увидит чужих подопечных»' }).click()
+  await page.getByRole('button', { name: 'Смотреть ролик «Отзывы и фоновые агенты»' }).click()
   await expect(time).not.toHaveText(/^0:00/, { timeout: 5000 })
   await page.getByRole('button', PAUSE).click()
 
-  const zone = pilotRlsScript.hotspots.find((h) => h.title === 'client/18')!
+  const zone = day08Script.hotspots.find((h) => h.title === 'Задача в четыре части')!
   await page.getByRole('slider', { name: 'Перемотка' }).fill(String(zone.from + 15))
-  await page.getByRole('button', { name: 'client/18' }).click()
-  await expect(page.getByText(/Подменённый номер/)).toBeVisible()
+  await page.getByRole('button', { name: 'Задача в четыре части' }).click()
+  await expect(page.getByText(/Задача — одной фразой/)).toBeVisible()
 })
 
 test('если код ролика не загрузился, блок это говорит, а день остаётся на месте', async ({ page, request }) => {
@@ -26,17 +27,17 @@ test('если код ролика не загрузился, блок это г
   const main = [...html.matchAll(/\.\/assets\/([^"]+\.js)"/g)].map((m) => `/assets/${m[1]}`)
   expect(main.some((f) => f.startsWith('/assets/index-'))).toBe(true)
   await page.route('**/assets/*.js', (route) => (main.some((f) => route.request().url().endsWith(f)) ? route.continue() : route.abort()))
-  await page.goto('/#/day/4')
+  await page.goto('/#/day/8')
   await expect(page.getByText('Ролик не загрузился')).toBeVisible()
-  await expect(page.getByRole('heading', { level: 1, name: 'Вход для двух ролей и защита данных' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Отзывы и фоновые агенты' })).toBeVisible()
   // ни кнопки панели, ни обложки «Смотреть ролик «…»» (имя ищется по вхождению), ни перемотки
   await expect(page.getByRole('button', { name: 'Смотреть' })).toHaveCount(0)
   await expect(page.getByRole('slider', { name: 'Перемотка' })).toHaveCount(0)
 })
 
-test('день 4 с роликом на телефоне (390 px) — без горизонтальной прокрутки', async ({ page }) => {
+test('день 8 с роликом на телефоне (390 px) — без горизонтальной прокрутки', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/#/day/4')
+  await page.goto('/#/day/8')
   await expect(page.getByRole('button', PLAY)).toBeVisible()
   // кадр ролика уже нарисован: ленивый код сцен загрузился (svg внутри плеера, а не значок ▶ на обложке)
   await expect(page.locator('.video-frame svg').first()).toBeVisible()
@@ -71,15 +72,15 @@ test('два старых ролика (1280 × 720) на компьютере �
 })
 
 test('на обложке субтитров нет, после запуска — идут', async ({ page }) => {
-  const poster = pilotRlsScript.hotspots[0].from
-  const atPoster = pilotRlsScript.cues.find((c) => poster >= c.from && poster < c.to)!
-  await page.goto('/#/day/4')
+  const poster = day08Script.hotspots[0].from
+  const atPoster = day08Script.cues.find((c) => poster >= c.from && poster < c.to)!
+  await page.goto('/#/day/8')
   const frame = page.locator('.video-frame')
   // кадр обложки уже нарисован, но реплики этого кадра в нём нет
   await expect(frame.locator('svg').first()).toBeVisible()
   await expect(frame.getByText(atPoster.text)).toHaveCount(0)
-  await page.getByRole('button', { name: 'Смотреть ролик «Почему тренер не увидит чужих подопечных»' }).click()
-  await expect(frame.getByText(pilotRlsScript.cues[0].text)).toBeVisible({ timeout: 5000 })
+  await page.getByRole('button', { name: 'Смотреть ролик «Отзывы и фоновые агенты»' }).click()
+  await expect(frame.getByText(day08Script.cues[0].text)).toBeVisible({ timeout: 5000 })
 })
 
 test('на дне 1 два ролика: запуск второго ставит первый на паузу', async ({ page }) => {

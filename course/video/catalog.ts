@@ -25,7 +25,7 @@ import { ch03Script } from './lessons/ch-03/script'
 import { ch06Script } from './lessons/ch-06/script'
 import { ch12Script } from './lessons/ch-12/script'
 import { chAbcScript } from './lessons/ch-abc/script'
-import { pilotRlsScript } from './pilot-rls/script'
+import { pilotRlsScript } from './lessons/pilot-rls/script'
 import type { VideoScript } from './types'
 
 export type CatalogEntry = {
@@ -42,7 +42,7 @@ export const catalog: Record<string, CatalogEntry> = {
     title: 'Почему тренер не увидит чужих подопечных',
     kind: 'chapter',
     script: pilotRlsScript,
-    load: () => import('./pilot-rls/PilotRls'),
+    load: () => import('./lessons/pilot-rls/Video'),
   },
   'ch-abc': {
     title: 'Как устроено приложение',

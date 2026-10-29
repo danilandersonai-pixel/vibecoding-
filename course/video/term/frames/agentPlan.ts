@@ -6,7 +6,7 @@ import { MOTION, SAFE, T } from '../theme'
 import { SIGNED, TEXT } from './diffPlan'
 import { CELL, LH, WIN, outsideSafe, rowTop, widest, wrapWords } from './geometry'
 import type { Wrapped } from './geometry'
-import { beatProblem, diffBody, diffCounts, lookup, rangeProblem } from './source'
+import { beatProblem, diffBody, diffCounts, lookup, pick, rangeProblem } from './source'
 import type { DiffKind, Range } from './source'
 
 /**
@@ -24,6 +24,8 @@ import type { DiffKind, Range } from './source'
  * нужное место файла, а не его начало; выше и ниже, если файл шире, — строка «…» faint.
  * diffLines — число строк диффа у всех шагов file или по шагам: { id шага: строк } (не указанный шаг — по умолчанию 6); так у одного
  * шага видна сама правка, а у других — только «Edited …».
+ * outLines — какие строки вывода показать у шагов-команд (run, commit): { id шага: [от, до] } (с 1, включительно, как lines у Terminal);
+ * без него — весь вывод. Скрытые строки выше и ниже диапазона — строкой «…» faint, чтобы не казалось, что вывод кончился.
  * Всё должно помещаться в окно: 19 строк, а с режимом — 18; иначе problems. Если дифф не лезет — уменьшайте diffLines.
  * Части: 'frame', 'prompt' (рамка ввода), 'step:<id>', 'reply' (не у chat), 'code' (только chat), 'mode'.
  * Части — один снимок, как у Terminal: окно в конце сцены, когда всё появилось.
@@ -36,6 +38,7 @@ export type AgentSpec = {
   chat?: boolean
   ask?: string[]
   diffLines?: number | Record<string, number>
+  outLines?: Record<string, Range>
   code?: Range
   at: { prompt: number; steps: number[]; reply: number }
 }
@@ -99,7 +102,14 @@ const isCommand = (kind: string) => kind === 'run' || kind === 'commit'
 type LineInit = Omit<StepLine, 'rows' | 'row' | 'width'> & { width?: number }
 
 // Строки шага подряд с первой строки окна row; at — следующая свободная строка. Возвращает шаг и первую свободную строку после него.
-function buildStep(id: string, ev: Extract<SessionEvent, { kind: 'read' | 'file' | 'run' | 'commit' }>, row: number, asked: boolean, diffLines: number): { step: Step; end: number } {
+function buildStep(
+  id: string,
+  ev: Extract<SessionEvent, { kind: 'read' | 'file' | 'run' | 'commit' }>,
+  row: number,
+  asked: boolean,
+  diffLines: number,
+  out?: Range,
+): { step: Step; end: number } {
   const lines: StepLine[] = []
   let at = row
   const push = (init: LineInit, rows: string[]) => {
@@ -134,9 +144,18 @@ function buildStep(id: string, ev: Extract<SessionEvent, { kind: 'read' | 'file'
     } else {
       push({ role: 'cmd', col: 0, fill: T.ink, weight: 700, dim: 2, delay: 0 }, wrapMono(`$ ${ev.cmd}`, COLS))
     }
+    // Код выхода ≠ 0: последняя показанная строка вывода — цвета err (как у Terminal). Скрытые outLines строки — «…» faint
     const failed = ev.kind === 'run' && ev.code !== null && ev.code !== 0
-    ev.out.forEach((text, j) => {
-      push({ role: 'out', col: 2, fill: failed && j === ev.out.length - 1 ? T.err : T.soft, delay: (asked ? ANSWER : 0) + (j + 1) * MOTION.stagger }, wrapMono(text, COLS - 2))
+    const { items: shown } = pick(ev.out, out)
+    const above = out !== undefined && out[0] > 1
+    const below = out !== undefined && out[1] < ev.out.length
+    const rows: { text: string; fill: string }[] = [
+      ...(above ? [{ text: '…', fill: T.faint }] : []),
+      ...shown.map((text, j) => ({ text, fill: failed && j === shown.length - 1 ? T.err : T.soft })),
+      ...(below ? [{ text: '…', fill: T.faint }] : []),
+    ]
+    rows.forEach(({ text, fill }, j) => {
+      push({ role: 'out', col: 2, fill, delay: (asked ? ANSWER : 0) + (j + 1) * MOTION.stagger }, wrapMono(text, COLS - 2))
     })
   }
   const span = Math.max(...lines.map((l) => l.delay))
@@ -169,7 +188,18 @@ export function plan(spec: AgentSpec, ctx: FrameCtx): Plan {
   for (const id of asked) {
     if (!ev.steps.includes(id)) problems.push(`ask: шага «${id}» нет среди шагов записи (${ev.steps.join(', ')})`)
   }
+  // Строки вывода у шага-команды: шаг из записи, команда, диапазон в её выводе; неверный — проблема, а шаг рисуется со всем выводом
+  const outOf = (id: string, out: string[]): Range | undefined => {
+    const range = spec.outLines?.[id]
+    const bad = range ? rangeProblem(range, out.length) : null
+    if (bad) problems.push(`outLines «${id}»: ${bad.replace(/^lines: /, '')}`)
+    return bad ? undefined : range
+  }
+  for (const id of Object.keys(spec.outLines ?? {})) {
+    if (!ev.steps.includes(id)) problems.push(`outLines: шага «${id}» нет среди шагов записи (${ev.steps.join(', ')})`)
+  }
   if (spec.code && !spec.chat) problems.push('code: строки кода выбирают только у chat — в сессии агента код виден под «Edited …»')
+  if (spec.outLines && spec.chat) problems.push('outLines: в чате нет шагов — строки вывода выбирают только в сессии агента')
 
   const prompt = wrapWords(ev.prompt, PROMPT_COLS)
   let row = prompt.length
@@ -183,7 +213,9 @@ export function plan(spec: AgentSpec, ctx: FrameCtx): Plan {
       const s = lookup(ctx, spec.session, id, ['read', 'file', 'run', 'commit'] as const)
       if (s.error !== undefined) return void problems.push(`шаг ${i + 1} «${id}»: ${s.error}`)
       if (asked.has(id) && !isCommand(s.event.kind)) problems.push(`ask: «${id}» — это ${s.event.kind}, вопрос [y / n] бывает только перед командой`)
-      const { step, end } = buildStep(id, s.event, row, asked.has(id) && isCommand(s.event.kind), linesOf(id))
+      if (spec.outLines?.[id] && !isCommand(s.event.kind)) problems.push(`outLines: «${id}» — это ${s.event.kind}, строки вывода бывают только у команды`)
+      const out = s.event.kind === 'run' || s.event.kind === 'commit' ? outOf(id, s.event.out) : undefined
+      const { step, end } = buildStep(id, s.event, row, asked.has(id) && isCommand(s.event.kind), linesOf(id), out)
       steps.push(step)
       row = end
     })
