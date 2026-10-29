@@ -19,7 +19,7 @@
 node scripts/record-session.mjs
 ```
 
-Рекордер по-настоящему проигрывает все сессии по порядку во временной папке: создаёт проект через `create-next-app`, ставит пакеты (кэш npm — `course/node_modules/.cache/session-npm`), выполняет команды и коммиты, запускает `npm run dev` и открывает страницу в Chromium. Запись идёт несколько минут. В конце рекордер пишет `course/video/sessions/<id>.json` и заменяет `app/`. Команды идут как в терминале человека: без `NODE_ENV`, `NODE_OPTIONS`, меток тестов (`VITEST*`, `TEST`, `JEST_WORKER_ID`), меток ИИ-агента и `GIT_*` из окружения запуска — например, при `NODE_ENV=test` или `production` `next dev` дописывает в `tsconfig.json` лишнее, а `npm ci` при `production` не ставит devDependencies.
+Рекордер по-настоящему проигрывает все сессии по порядку во временной папке: создаёт проект через `create-next-app`, ставит пакеты (кэш npm — `course/node_modules/.cache/session-npm`), выполняет команды и коммиты, запускает `npm run dev` и открывает страницу в Chromium. Запись идёт несколько минут. В конце рекордер пишет `course/video/sessions/<id>.json` и заменяет `app/`. Команды идут как в терминале человека: без `NODE_ENV`, `NODE_OPTIONS`, меток тестов (`VITEST*`, `TEST`, `JEST_WORKER_ID`), меток ИИ-агента, `GIT_*` и настроек подключения к базе (`PG*`, `DATABASE_URL`) из окружения запуска — например, при `NODE_ENV=test` или `production` `next dev` дописывает в `tsconfig.json` лишнее, а `npm ci` при `production` не ставит devDependencies.
 
 После перезаписи — проверка записей:
 
@@ -49,9 +49,33 @@ node scripts/record-session.mjs --from s03-auth
 - Запись с середины даёт те же хеши коммитов и те же записи, что полная запись из тех же состояний, если команды сессий не зависят от `node_modules` и других файлов, которых нет в состоянии, пока их не поставили.
 - Папки можно подменить переменными окружения `RECORD_SESSIONS_DIR`, `RECORD_OUT_DIR`, `RECORD_APP_DIR`, `RECORD_STATE_DIR` (по умолчанию `demo-app/sessions`, `course/video/sessions`, `demo-app/app`, `demo-app/state`); так рекордер проверяют тесты.
 
+## Локальная база вместо Supabase
+
+Docker в контейнере записи не запускается, поэтому `supabase start` недоступен. Сессия с полем `db: true` (рядом с `id`, `from`, `date`) получает замену: обычный PostgreSQL 16 из `/usr/lib/postgresql/16/bin` на порту 54322 — это порт базы `supabase start`.
+
+Перед первым шагом такой сессии рекордер:
+
+1. создаёт во временной папке системы папку `rec-pg-…` и отдаёт её пользователю `postgres` (Postgres не запускается от root);
+2. создаёт кластер (`initdb`: UTF8, `C.UTF-8`, вход без пароля) и запускает сервер на `127.0.0.1:54322` — обе команды через `runuser -u postgres`;
+3. выполняет `course/scripts/session/supabase-local.sql`, затем файлы проекта `supabase/migrations/*.sql` по имени и `supabase/seed.sql`, если они есть, — как `supabase db reset`. Их вывод в запись не попадает; ошибка SQL останавливает запись с текстом ошибки и именем файла;
+4. добавляет в окружение команд сессии `PGHOST=127.0.0.1`, `PGPORT=54322`, `PGUSER=postgres`, `PGDATABASE=postgres` и `DATABASE_URL=postgresql://postgres@127.0.0.1:54322/postgres`: `psql` и приложение подключаются без настроек. У сессий без `db` этих переменных нет, и чужие `PG*` и `DATABASE_URL` из окружения запуска не попадают ни в какие команды.
+
+В конце сессии, при ошибке шага и при выходе рекордера (Ctrl+C, kill) сервер останавливается (`pg_ctl stop -m fast`), а папка удаляется. Каждая сессия с `db: true` начинает с чистой базы, собранной из миграций и seed, которые лежат в проекте на начало сессии: строки, добавленные командами предыдущей сессии, в следующую не переходят. Новую миграцию внутри сессии применяют шагом `run` (`psql -f supabase/migrations/0002_….sql`). Тесты уроков базу не запускают — только тесты самого рекордера. Если рекордер убит без возможности выйти штатно (`kill -9`), Postgres остаётся работать: порт 54322 занят, и следующая запись с `db: true` остановится с «Address already in use» в тексте ошибки. Тогда `runuser -u postgres -- /usr/lib/postgresql/16/bin/pg_ctl -D /tmp/rec-pg-…/data -m fast stop` и удалить папку `rec-pg-…`.
+
+Что повторяет слой `supabase-local.sql` из Supabase:
+
+- расширение `pgcrypto` (`crypt`, `gen_salt`; в Supabase оно в схеме `extensions`, здесь в `public`, вызывать функции можно так же, без схемы);
+- роли `anon` и `authenticated` (без входа) и `service_role` (без входа, обходит RLS);
+- права этих ролей на схему `public` и права по умолчанию на таблицы, последовательности и функции, которые создают миграции;
+- схему `auth` с таблицей `auth.users (id, email, encrypted_password, created_at)` — в настоящем Supabase столбцов больше;
+- функции `auth.uid()` и `auth.role()`: они читают `request.jwt.claims`, поэтому политики RLS можно проверять так: `select set_config('request.jwt.claims', '{"sub":"…","role":"authenticated"}', false)`, затем `set role authenticated`.
+
+Чего слой не повторяет: нет PostgREST (нет HTTP-интерфейса `/rest/v1`, `supabase-js` не подключить — приложение ходит в базу напрямую по `DATABASE_URL`), нет настоящего Auth (токенов, писем, провайдеров входа, `supabase.auth.*`): вход в приложении — свой маршрут, который проверяет пароль через `crypt()` по `auth.users`. Нет и хранилища файлов, Realtime и служебных ролей Supabase (`authenticator`, `supabase_admin`…). SQL миграций пишется таким, какой принял бы Supabase. В роликах это сказано честно: когда кадр показывает базу, на доске подпись «локальная база вместо Supabase».
+
 ## Что нужно на машине
 
 - Свободный порт 3000: на нём работает `npm run dev` сессии. Тест рекордера (`scripts/session/record.test.ts`) и `npm test` тоже поднимают сервер на этом порту.
+- Для сессий с `db: true` — свободный порт 54322, PostgreSQL 16 в `/usr/lib/postgresql/16/bin` (`initdb`, `pg_ctl`, `postgres`) с расширением `pgcrypto`, `psql` в `PATH`, пользователь `postgres` и `runuser`. Рекордер должен быть запущен от root; иначе ошибка «Сессия с db: true: Postgres запускается от пользователя postgres, рекордер нужно запускать от root (сессия «…»)» — до запуска первой команды и только для сессий, которые будут проиграны (при `--from` сессии раньше не считаются). Тесты рекордера в `npm test` тоже поднимают базу на этом порту.
 - Chromium из `/opt/pw-browsers` (Playwright берёт его сам, `playwright install` не нужен).
 - Доступ к реестру npm: пакеты Next.js ставятся из сети (при записи с середины — `npm ci` по `package-lock.json` из состояния, быстрее, если пакеты уже в кэше).
 - `tar` и `git` в `PATH`.

@@ -1,10 +1,11 @@
 // Рекордер сессий приложения тренера: по-настоящему выполняет шаги сессий (команды, правки файлов, коммиты,
 // браузер) и возвращает записи в формате video/sessions/types.ts. Шаги и правила записи — спецификация §4.2–4.3.
 // Сам ничего не пишет в курс: записи и demo-app/app/ кладёт скрипт record-session.mjs.
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { constants, tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const PORT = 3000
 const BASE = `http://localhost:${PORT}`
@@ -14,6 +15,18 @@ const IDLE_LIMIT_MS = 15_000
 const SERVER_TAIL_MS = 300 // сколько ждать вывод сервера после ответа
 const STOP_MS = 5_000 // сколько ждать остановки процесса, потом SIGKILL
 const CLICK_WAIT_MS = 200 // сколько минимум ждать после нажатия: запрос из обработчика уходит не мгновенно
+const DB_PORT = 54322 // порт базы `supabase start`
+const DB_HOST = '127.0.0.1'
+const PG_BIN = '/usr/lib/postgresql/16/bin'
+const DB_LAYER = fileURLToPath(new URL('./supabase-local.sql', import.meta.url)) // то, что у Supabase есть до первой миграции
+// Окружение команд сессии с db: true: psql и приложение находят локальную базу без настроек
+const DB_ENV = {
+  PGHOST: DB_HOST,
+  PGPORT: String(DB_PORT),
+  PGUSER: 'postgres',
+  PGDATABASE: 'postgres',
+  DATABASE_URL: `postgresql://postgres@${DB_HOST}:${DB_PORT}/postgres`,
+}
 export const RUN_LIMIT_MS = 15 * 60_000 // потолок для обычной команды (без until)
 
 const KINDS = ['run', 'write', 'edit', 'read', 'commit', 'agent', 'browser']
@@ -39,11 +52,15 @@ const AGENT_ENV = /^(AI_AGENT|CLAUDECODE|CLAUDE_.*|CODEX_.*|CURSOR_.*|COPILOT_.*
 // devDependencies, а `next dev` под NODE_ENV=test и метками тестов ведёт себя иначе, чем в терминале человека. NODE_OPTIONS — чужие ключи node.
 const RUN_ENV = /^(NODE_ENV|NODE_OPTIONS|TEST|JEST_WORKER_ID|VITEST.*)$/
 
-// Окружение команд без чужих настроек: ~ — это home/, переменные GIT_* родителя (хуки git), метки агента, режим сборки и метки тестов не наследуются.
+// Настройки подключения к базе из окружения запуска (PGHOST, PGPASSWORD, PGSSLMODE…, DATABASE_URL): в команды попадают только свои, у сессий с db: true.
+const DB_VARS = /^(PG[A-Z_]+|DATABASE_URL)$/
+
+// Окружение команд без чужих настроек: ~ — это home/, переменные GIT_* родителя (хуки git), метки агента, режим сборки, метки тестов
+// и настройки подключения к базе не наследуются.
 // Язык и пояс заданы, чтобы вывод (сообщения git и npm, даты, русский текст в UTF-8) не зависел от машины.
 function baseEnv(home) {
   const vars = { ...process.env, HOME: home, XDG_CONFIG_HOME: join(home, '.config'), LC_ALL: 'C.UTF-8', TZ: 'UTC' } // настройки create-next-app и git пользователя не просачиваются
-  for (const name of Object.keys(vars)) if (name.startsWith('GIT_') || AGENT_ENV.test(name) || RUN_ENV.test(name)) delete vars[name]
+  for (const name of Object.keys(vars)) if (name.startsWith('GIT_') || AGENT_ENV.test(name) || RUN_ENV.test(name) || DB_VARS.test(name)) delete vars[name]
   delete vars.NO_COLOR // вместе с FORCE_COLOR заставляет node печатать предупреждение
   delete vars.LANGUAGE // gettext берёт его раньше LC_ALL
   return vars
@@ -77,11 +94,12 @@ function gitLines(text) {
   return rows
 }
 
-// Команды `run` живут каждая в своей группе процессов. Если рекордер упал или его прервали, добиваем группы при выходе.
+// Команды `run` живут каждая в своей группе процессов, а локальная база — в своём процессе Postgres. Если рекордер упал или его прервали,
+// при выходе добиваем группы и останавливаем базы (сначала группы: у них могут быть соединения с базой).
 const orphans = new Set()
+const databases = new Set()
 let exitHook = false
-function trackGroup(pid) {
-  orphans.add(pid)
+function installExitHook() {
   if (exitHook) return
   exitHook = true
   process.on('exit', () => {
@@ -92,7 +110,12 @@ function trackGroup(pid) {
         // группы уже нет
       }
     }
+    for (const db of databases) stopDatabase(db)
   })
+}
+function trackGroup(pid) {
+  orphans.add(pid)
+  installExitHook()
 }
 
 function check(ok, message) {
@@ -159,6 +182,7 @@ function checkChain(defs) {
     const prev = defs[i - 1]?.id ?? null
     check(def.from === prev, prev === null ? `Сессия «${def.id}»: from = «${def.from}», а она первая в цепочке` : `Сессия «${def.id}»: from = «${def.from}», а перед ней в цепочке «${prev}»`)
     check(typeof def.date === 'string' && DATE.test(def.date) && !Number.isNaN(Date.parse(def.date)), `Сессия «${def.id}»: date — ISO-время с часовым поясом (2026-10-28T10:00:00Z)`)
+    check(def.db === undefined || def.db === true, `Сессия «${def.id}»: db — только true`)
     checkSteps(def, def.steps, new Set(), false)
   })
 }
@@ -219,6 +243,17 @@ function git(args, { cwd, env, input, ok = [0] }) {
       child.stdin.on('error', () => {}) // git мог закрыться раньше: причина придёт кодом выхода
       child.stdin.end(input)
     }
+  })
+}
+
+// Программа без оболочки: код выхода и общий вывод (stdout и stderr). Код не проверяется; не запустилась (нет программы) — ошибка.
+function exec(file, args, { cwd, env }) {
+  return new Promise((done, fail) => {
+    const child = spawn(file, args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] })
+    let out = ''
+    for (const stream of [child.stdout, child.stderr]) stream.setEncoding('utf8').on('data', (c) => (out += c))
+    child.once('error', (err) => fail(new Error(`${file}: ${err.message}`)))
+    child.once('close', (code) => done({ code, out }))
   })
 }
 
@@ -359,6 +394,7 @@ export async function unpackState(archive, project) {
 // restore { id, load(project) } — запись с середины: проект разворачивается из состояния сессии id (load кладёт его в пустую папку проекта),
 // при package-lock.json ставятся пакеты `npm ci` (в запись это не попадает), и записываются сессии цепочки, которые идут после id.
 // defs при этом — вся цепочка: from следующей за id сессии проверяется как обычно. Возвращает записи только проигранных сессий.
+// Сессия с db: true получает свою локальную базу (Postgres 16 со слоем Supabase, порт 54322), см. startDatabase; для неё рекордер запускают от root.
 export async function recordChain(defs, { workdir, npmCache, runLimitMs = RUN_LIMIT_MS, state } = {}) {
   checkChain(defs)
   const restore = state?.restore
@@ -369,6 +405,8 @@ export async function recordChain(defs, { workdir, npmCache, runLimitMs = RUN_LI
     check(at < defs.length - 1, `После сессии «${restore.id}» записывать нечего: она последняя в цепочке`)
     first = at + 1
   }
+  const needsDb = defs.slice(first).find((def) => def.db)
+  check(!needsDb || process.getuid?.() === 0, `Сессия с db: true: Postgres запускается от пользователя postgres, рекордер нужно запускать от root (сессия «${needsDb?.id}»)`)
   check(typeof workdir === 'string' && workdir !== '', 'Не указана папка записи (workdir)')
   mkdirSync(workdir, { recursive: true })
   const root = realpathSync(workdir)
@@ -423,7 +461,64 @@ function commandEnv(home, npmCache) {
   return vars
 }
 
-// Одна сессия: шаги по порядку, затем остановка серверов (и при ошибке тоже).
+// Локальная база сессии с db: true. Docker нет, поэтому вместо `supabase start` — обычный Postgres 16 на порту 54322 со слоем Supabase
+// (supabase-local.sql). Postgres не запускается от root, поэтому база живёт у пользователя postgres: папка в tmpdir() отдаётся ему, команды идут через runuser.
+// Дальше база собирается как `supabase db reset`: слой, миграции проекта supabase/migrations/*.sql по имени, supabase/seed.sql.
+// Вывод SQL в запись не попадает; ошибка SQL роняет запись с текстом ошибки и именем файла. Сессия начинает с чистой базы: данные прошлой сессии не переносятся.
+// Любая ошибка при запуске базу за собой убирает. Возвращает { dir, data, env } для stopDatabase.
+async function startDatabase({ home, project, id }) {
+  const dir = mkdtempSync(join(tmpdir(), 'rec-pg-'))
+  const db = { dir, data: join(dir, 'data'), env: baseEnv(dir) } // HOME у Postgres — его папка: home/ записи для postgres закрыт
+  databases.add(db)
+  installExitHook()
+  const tail = (text) => outputLines(text, home).slice(-20).join('\n')
+  const asPostgres = (tool, args) => ['-u', 'postgres', '--', `${PG_BIN}/${tool}`, ...args]
+  try {
+    const chown = await exec('chown', ['postgres:', dir], { cwd: dir, env: db.env })
+    check(chown.code === 0, `chown postgres не удался (код ${chown.code})\n${tail(chown.out)}`)
+    const init = await exec('runuser', asPostgres('initdb', ['-D', db.data, '-U', 'postgres', '--auth=trust', '-E', 'UTF8', '--locale=C.UTF-8']), { cwd: dir, env: db.env })
+    check(init.code === 0, `initdb не удался (код ${init.code})\n${tail(init.out)}`)
+    const log = join(dir, 'log')
+    const options = `-p ${DB_PORT} -c listen_addresses=${DB_HOST} -k ${dir}`
+    const start = await exec('runuser', asPostgres('pg_ctl', ['-D', db.data, '-o', options, '-l', log, '-w', 'start']), { cwd: dir, env: db.env })
+    check(start.code === 0, `pg_ctl start не удался (код ${start.code})\n${tail(start.out)}\n${tail(existsSync(log) ? readFileSync(log, 'utf8') : '')}`)
+
+    const files = [{ name: 'supabase-local.sql', path: DB_LAYER }]
+    const migrations = join(project, 'supabase', 'migrations')
+    const names = existsSync(migrations) ? readdirSync(migrations).filter((name) => name.endsWith('.sql')).sort() : []
+    for (const name of names) files.push({ name: `supabase/migrations/${name}`, path: `supabase/migrations/${name}` })
+    if (existsSync(join(project, 'supabase', 'seed.sql'))) files.push({ name: 'supabase/seed.sql', path: 'supabase/seed.sql' })
+    for (const { name, path } of files) {
+      const sql = await exec('psql', ['-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', path], { cwd: project, env: { ...db.env, ...DB_ENV } })
+      check(sql.code === 0, `ошибка SQL в ${name} (код ${sql.code})\n${tail(sql.out)}`)
+    }
+  } catch (err) {
+    stopDatabase(db)
+    throw new Error(`Сессия «${id}», локальная база: ${err.message}`, { cause: err })
+  }
+  return db
+}
+
+// Останавливает базу (`pg_ctl stop -m fast`) и удаляет её папку. Синхронная: её зовёт и обработчик выхода, где ждать нечем.
+// Не бросает. Быстрая остановка не вышла — immediate, затем SIGKILL процессу postmaster: порт 54322 не должен остаться занятым.
+function stopDatabase(db) {
+  databases.delete(db)
+  const pidFile = join(db.data, 'postmaster.pid')
+  if (existsSync(pidFile)) {
+    const stopWith = (mode) => spawnSync('runuser', ['-u', 'postgres', '--', `${PG_BIN}/pg_ctl`, '-D', db.data, '-m', mode, '-t', '30', 'stop'], { cwd: db.dir, env: db.env, stdio: 'ignore' }).status === 0
+    if (!stopWith('fast') && !stopWith('immediate')) {
+      try {
+        const pid = Number(readFileSync(pidFile, 'utf8').split('\n')[0])
+        if (Number.isInteger(pid) && pid > 1) process.kill(pid, 'SIGKILL') // 0 и меньше убили бы целую группу процессов
+      } catch {
+        // процесса уже нет
+      }
+    }
+  }
+  rmSync(db.dir, { recursive: true, force: true })
+}
+
+// Одна сессия: шаги по порядку, затем остановка серверов и базы (и при ошибке тоже).
 async function playSession({ home, project, npmCache, runLimitMs }, def) {
   const start = Math.floor(Date.parse(def.date) / 1000)
   const events = []
@@ -431,11 +526,12 @@ async function playSession({ home, project, npmCache, runLimitMs }, def) {
   let commits = 0
   let browser = null // Chromium сессии: один на все её шаги browser, создаётся на первом из них
   let context = null
+  let db = null // локальная база сессии с db: true
 
-  // Окружение команд: постоянные автор и время (k-го коммита сессии — старт + k минут).
+  // Окружение команд: постоянные автор и время (k-го коммита сессии — старт + k минут); у сессии с db — подключение к её базе.
   const env = () => {
     const stamp = `${start + (commits + 1) * 60} +0000`
-    return { ...commandEnv(home, npmCache), GIT_AUTHOR_DATE: stamp, GIT_COMMITTER_DATE: stamp }
+    return { ...commandEnv(home, npmCache), ...(db ? DB_ENV : {}), GIT_AUTHOR_DATE: stamp, GIT_COMMITTER_DATE: stamp }
   }
   const gitHere = (args, extra = {}) => git(args, { cwd: project, env: env(), ...extra })
   const lines = (text) => outputLines(text, home)
@@ -611,12 +707,17 @@ async function playSession({ home, project, npmCache, runLimitMs }, def) {
   }
 
   try {
+    if (def.db) db = await startDatabase({ home, project, id: def.id })
     for (const step of def.steps) await play(step, undefined)
   } finally {
     try {
       await browser?.close()
     } finally {
-      for (const proc of procs) await stop(proc)
+      try {
+        for (const proc of procs) await stop(proc)
+      } finally {
+        if (db) stopDatabase(db)
+      }
     }
   }
   return { id: def.id, from: def.from, recorded: new Date(def.date).toISOString().slice(0, 10), events }

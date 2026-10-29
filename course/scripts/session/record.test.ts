@@ -1,11 +1,11 @@
 // @vitest-environment node
-import { execFileSync, spawnSync } from 'node:child_process'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import { chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { connect } from 'node:net'
+import { connect, createServer } from 'node:net'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { dirname, join } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { gitBlobHash } from '../../video/sessions/blob'
 import { sessionProblems } from '../../video/sessions/check'
 import { makeFind } from '../../video/sessions/types'
@@ -42,10 +42,10 @@ const serverOf = (page: string, api = "s.statusCode=400;s.end('вес не чи�
   ".listen(3000,()=>console.log('Ready'))"
 const SERVER = serverOf(PAGE)
 
-// Порт 3000 свободен: к нему не подключиться.
-const portFree = () =>
+// Порт свободен (по умолчанию 3000): к нему не подключиться.
+const portFree = (port = 3000) =>
   new Promise<boolean>((resolve) => {
-    const socket = connect(3000, '127.0.0.1')
+    const socket = connect(port, '127.0.0.1')
     socket.once('connect', () => (socket.destroy(), resolve(false)))
     socket.once('error', () => resolve(true))
   })
@@ -625,6 +625,253 @@ describe('recordChain: ошибки цепочки', () => {
     const dir = fresh()
     await recordChain([session('s01', null)], { workdir: dir })
     await expect(recordChain([session('s01', null)], { workdir: dir })).rejects.toThrow(/не пуста/)
+  })
+})
+
+// Локальная база вместо Supabase: Postgres 16 на порту 54322 со слоем scripts/session/supabase-local.sql. Нужны root, пользователь postgres
+// и сервер из /usr/lib/postgresql/16/bin. Каждая сессия с db: true поднимает свою базу с нуля, а в конце (и при ошибке, и при выходе) останавливает её и удаляет папку.
+describe('recordChain: база', () => {
+  const sub = '00000000-0000-0000-0000-000000000001'
+  const dbFree = () => portFree(54322)
+  // папки баз, которые рекордер создаёт во временной папке системы
+  const dbDirs = () => readdirSync(tmpdir()).filter((name) => name.startsWith('rec-pg-')).sort()
+  const dirsBefore = dbDirs()
+  const session = (id: string, from: string | null, steps: object[], db = false) => ({ id, from, date: '2026-10-28T10:00:00Z', ...(db ? { db: true } : {}), steps })
+  const record = async (steps: object[], db = true) => makeFind((await recordChain([session('d01', null, steps, db)], { workdir: fresh() })).records)
+  // после каждого теста база остановлена, порт свободен, папок не осталось
+  afterEach(async () => {
+    expect(await dbFree()).toBe(true)
+    expect(dbDirs()).toEqual(dirsBefore)
+  })
+  // страховка на случай, если тест выше упал на утечке: воркер vitest завершают сигналом, обработчик выхода рекордера тогда не срабатывает
+  afterAll(() => {
+    for (const name of dbDirs().filter((name) => !dirsBefore.includes(name))) {
+      const dir = join(tmpdir(), name)
+      spawnSync('runuser', ['-u', 'postgres', '--', '/usr/lib/postgresql/16/bin/pg_ctl', '-D', join(dir, 'data'), '-m', 'immediate', 'stop'], { stdio: 'ignore' })
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('db: psql видит базу, auth.uid() берёт sub из request.jwt.claims', async () => {
+    const find = await record([
+      { id: 'uid', run: `psql -Atc "select set_config('request.jwt.claims', '{\\"sub\\":\\"${sub}\\"}', false), auth.uid()"` },
+      { id: 'url', run: 'echo $DATABASE_URL' },
+      { id: 'env', run: 'echo $PGHOST $PGPORT $PGUSER $PGDATABASE' },
+      { id: 'dir', run: "psql -Atc 'show data_directory'" },
+    ])
+    expect(find('d01', 'uid', 'run')).toMatchObject({ code: 0, out: [`{"sub":"${sub}"}|${sub}`] })
+    expect(find('d01', 'url', 'run').out).toEqual(['postgresql://postgres@127.0.0.1:54322/postgres'])
+    expect(find('d01', 'env', 'run').out).toEqual(['127.0.0.1 54322 postgres postgres'])
+    // база жила в своей папке во временной папке системы; в конце сессии папки нет
+    const [data] = find('d01', 'dir', 'run').out
+    expect(data).toMatch(/^\/.+\/rec-pg-[^/]+\/data$/)
+    expect(existsSync(dirname(data))).toBe(false)
+  })
+
+  it('слой Supabase: роли, pgcrypto, auth.users, права по умолчанию и политики по auth.uid()', async () => {
+    const claims = (role?: string) => JSON.stringify({ sub, ...(role ? { role } : {}) })
+    const sql = (...commands: string[]) => `psql -Atq ${commands.map((c) => `-c ${sh(c)}`).join(' ')}`
+    const roles = ['anon', 'authenticated', 'service_role']
+    const find = await record([
+      { id: 'roles', run: sql("select rolname, rolcanlogin, rolbypassrls from pg_roles where rolname in ('anon', 'authenticated', 'service_role') order by 1") },
+      { id: 'ext', run: sql("select extname from pg_extension where extname = 'pgcrypto'") },
+      {
+        id: 'users',
+        run: sql(
+          "insert into auth.users (email, encrypted_password) values ('anna@example.com', crypt('demo-password', gen_salt('bf')))",
+          "select email, encrypted_password = crypt('demo-password', encrypted_password), encrypted_password = crypt('другой', encrypted_password), id is not null, created_at is not null from auth.users",
+        ),
+      },
+      {
+        id: 'claims',
+        run: sql(
+          'select auth.uid() is null, auth.role() is null',
+          "select set_config('request.jwt.claims', '', false) = ''", // пустая строка: так остаётся claims после конца транзакции
+          'select auth.uid() is null, auth.role() is null',
+          `select set_config('request.jwt.claims', '${claims('authenticated')}', false) is not null`,
+          'select auth.uid(), auth.role()',
+        ),
+      },
+      {
+        id: 'grants',
+        run: sql(
+          'create table t (n int)',
+          'create sequence q',
+          "create function f() returns int language sql as 'select 1'",
+          `select r, has_schema_privilege(r, 'public', 'usage'), has_schema_privilege(r, 'auth', 'usage'), has_function_privilege(r, 'auth.uid()', 'execute'), has_function_privilege(r, 'auth.role()', 'execute'), has_table_privilege(r, 't', 'select, insert, update, delete'), has_sequence_privilege(r, 'q', 'usage, select, update'), has_function_privilege(r, 'f()', 'execute') from unnest(array[${roles.map((r) => `'${r}'`).join(', ')}]) r`,
+        ),
+      },
+      {
+        id: 'rls',
+        run: sql(
+          'create table notes (id int, owner uuid)',
+          `insert into notes values (1, '${sub}'), (2, '00000000-0000-0000-0000-000000000002')`,
+          'alter table notes enable row level security',
+          'create policy own on notes for select using (owner = auth.uid())',
+          `select set_config('request.jwt.claims', '${claims()}', false) is not null`,
+          'set role authenticated',
+          'select id from notes',
+          'set role service_role',
+          'select count(*) from notes',
+        ),
+      },
+    ])
+    expect(find('d01', 'roles', 'run').out).toEqual(['anon|f|f', 'authenticated|f|f', 'service_role|f|t'])
+    expect(find('d01', 'ext', 'run').out).toEqual(['pgcrypto'])
+    expect(find('d01', 'users', 'run').out).toEqual(['anna@example.com|t|f|t|t'])
+    expect(find('d01', 'claims', 'run').out).toEqual(['t|t', 't', 't|t', 't', `${sub}|authenticated`])
+    expect(find('d01', 'grants', 'run').out).toEqual(roles.map((r) => `${r}|t|t|t|t|t|t|t`))
+    expect(find('d01', 'rls', 'run').out).toEqual(['t', '1', '2'])
+  })
+
+  // сессия a пишет миграции и seed в проект и коммитит; db-сессии идут после неё
+  const sqlProject = (files: Record<string, string>) =>
+    session('a01', null, [{ id: 'init', run: 'git init -q -b main' }, ...Object.entries(files).map(([path, content], i) => ({ id: `w${i}`, write: path, content })), { id: 'c1', commit: 'база' }])
+
+  it('следующая сессия с db: миграции и seed проекта применены до первого шага', async () => {
+    const a = sqlProject({
+      'supabase/migrations/0002_label.sql': "alter table t add column label text not null default 'нет';\n", // записана раньше 0001, применяться должна позже
+      'supabase/migrations/0001_t.sql': 'create table t (n int);\n',
+      'supabase/migrations/README.md': 'не SQL, применяться не должен\n',
+      'supabase/seed.sql': "insert into t (n, label) values (7, 'seed');\n", // seed идёт после всех миграций
+    })
+    const b = session('b01', 'a01', [{ id: 'q', run: "psql -Atc 'select n, label from t'" }, { id: 'ins', run: "psql -Atc 'insert into t (n) values (8)'" }, { id: 'git', run: 'git status --short' }], true)
+    const c = session('c01', 'b01', [{ id: 'q', run: "psql -Atc 'select count(*) from t'" }], true)
+    const { records } = await recordChain([a, b, c], { workdir: fresh() })
+    const find = makeFind(records)
+    expect(find('b01', 'q', 'run')).toMatchObject({ code: 0, out: ['7|seed'] })
+    expect(find('b01', 'git', 'run').out).toEqual([]) // база проект не трогает
+    // вывод миграций в запись не попадает: в сессии только её шаги
+    expect(records[1].events.map((e) => e.id)).toEqual(['q', 'ins', 'git'])
+    expect(find('b01', 'ins', 'run').files).toBeUndefined()
+    // у каждой сессии с db своя база с нуля: строка из b в c не видна
+    expect(find('c01', 'q', 'run').out).toEqual(['1'])
+  })
+
+  it('ошибка SQL в миграции или seed останавливает запись: текст ошибки и имя файла', async () => {
+    const b = session('b01', 'a01', [{ id: 'q', run: 'echo не дошли' }], true)
+    const bad = sqlProject({ 'supabase/migrations/0001_t.sql': 'create table t (n int);\n', 'supabase/migrations/0002_bad.sql': 'select * from no_such_table;\n' })
+    await expect(recordChain([bad, b], { workdir: fresh() })).rejects.toThrow(/Сессия «b01»[\s\S]*supabase\/migrations\/0002_bad\.sql[\s\S]*no_such_table/)
+    expect(await dbFree()).toBe(true) // база остановлена сразу, не в afterEach
+    const seed = sqlProject({ 'supabase/migrations/0001_t.sql': 'create table t (n int);\n', 'supabase/seed.sql': 'insert into t values (1, 2, 3);\n' })
+    await expect(recordChain([seed, b], { workdir: fresh() })).rejects.toThrow(/Сессия «b01»[\s\S]*supabase\/seed\.sql[\s\S]*ERROR/)
+  })
+
+  it('ошибка шага в сессии с db: база остановлена, порт 54322 свободен', async () => {
+    const workdir = fresh()
+    const steps = [
+      { id: 'mark', run: "psql -Atc 'show data_directory' > ~/data-dir.txt" },
+      { id: 'x', edit: 'нет.txt', find: 'a', replace: 'b' }, // упадёт во время записи
+    ]
+    await expect(recordChain([session('f01', null, steps, true)], { workdir })).rejects.toThrow(/Сессия «f01», шаг «x»: файла «нет.txt» нет/)
+    const data = readFileSync(join(workdir, 'home', 'data-dir.txt'), 'utf8').trim()
+    expect(data).toMatch(/\/data$/) // к моменту ошибки база работала
+    expect(existsSync(dirname(data))).toBe(false)
+    expect(await dbFree()).toBe(true)
+    // новая сессия с db стартует
+    const find = await record([{ id: 'one', run: "psql -Atc 'select 1'" }])
+    expect(find('d01', 'one', 'run')).toMatchObject({ code: 0, out: ['1'] })
+    // шаг непонятного вида ловится до запуска: база не поднимается вовсе
+    const strange = [{ id: 'a', run: "psql -Atc 'select 1'" }, { id: 'x', nope: 1 }]
+    await expect(recordChain([session('f02', null, strange, true)], { workdir: fresh() })).rejects.toThrow(/нужен ровно один из/)
+  })
+
+  it('порт 54322 занят (остаток прошлой записи): ошибка с причиной из журнала Postgres, папка базы убрана', async () => {
+    const busy = createServer()
+    await new Promise<void>((done) => busy.listen(54322, '127.0.0.1', done))
+    try {
+      await expect(recordChain([session('d01', null, [{ id: 'a', run: 'true' }], true)], { workdir: fresh() })).rejects.toThrow(/Сессия «d01», локальная база: pg_ctl start не удался[\s\S]*already in use/)
+    } finally {
+      await new Promise((done) => busy.close(done))
+    }
+  })
+
+  it('сессия без db не получает PGHOST и DATABASE_URL, а с db — только свои PG*: чужие настройки подключения отбрасываются', async () => {
+    const marks = { PGHOST: 'чужой-хост', PGPORT: '5432', PGUSER: 'чужой', PGDATABASE: 'чужая', PGPASSWORD: 'x', PGSSLMODE: 'require', PGCONNECT_TIMEOUT: '1', DATABASE_URL: 'postgresql://чужой@хост/база' }
+    const saved = Object.fromEntries(Object.keys(marks).map((name) => [name, process.env[name]]))
+    Object.assign(process.env, marks)
+    try {
+      const names = { id: 'env', run: "env | cut -d= -f1 | grep -E '^(PG|DATABASE_URL)' | sort; echo конец" }
+      expect((await record([names], false))('d01', 'env', 'run').out).toEqual(['конец'])
+      const withDb = await record([names, { id: 'q', run: "psql -Atc 'select 1'" }])
+      expect(withDb('d01', 'env', 'run').out).toEqual(['DATABASE_URL', 'PGDATABASE', 'PGHOST', 'PGPORT', 'PGUSER', 'конец'])
+      expect(withDb('d01', 'q', 'run')).toMatchObject({ code: 0, out: ['1'] })
+    } finally {
+      for (const [name, value] of Object.entries(saved)) {
+        if (value === undefined) delete process.env[name]
+        else process.env[name] = value
+      }
+    }
+  })
+
+  it('db — только true; не root — ошибка до запуска команд', async () => {
+    for (const db of [false, 'да', 1]) {
+      const bad = { ...session('d01', null, []), db }
+      await expect(recordChain([bad], { workdir: fresh() })).rejects.toThrow(/Сессия «d01»: db — только true/)
+    }
+    const workdir = fresh()
+    const getuid = vi.spyOn(process, 'getuid').mockReturnValue(1000)
+    try {
+      const steps = [{ id: 'a', run: 'touch ran.txt' }]
+      await expect(recordChain([session('d01', null, steps, true)], { workdir })).rejects.toThrow(
+        'Сессия с db: true: Postgres запускается от пользователя postgres, рекордер нужно запускать от root (сессия «d01»)',
+      )
+      expect(readdirSync(workdir)).toEqual([]) // ничего не запускалось
+      // сессии цепочки без db не-root не мешает
+      const { records } = await recordChain([session('p01', null, [{ id: 'a', run: 'echo привет' }])], { workdir: fresh() })
+      expect(records[0].events[0]).toMatchObject({ out: ['привет'] })
+    } finally {
+      getuid.mockRestore()
+    }
+  })
+
+  it('запись с середины: сессия с db, которая уже записана, root не требует', async () => {
+    const dir = fresh()
+    writeFileSync(join(dir, 'a.txt'), 'один\n')
+    const archive = join(fresh(), 'd01.tar.gz')
+    await packState(archive, dir)
+    const defs = [session('d01', null, [], true), session('p02', 'd01', [{ id: 'a', run: 'cat a.txt' }])]
+    const getuid = vi.spyOn(process, 'getuid').mockReturnValue(1000)
+    try {
+      const { records } = await recordChain(defs, { workdir: fresh(), state: { save: async () => {}, restore: { id: 'd01', load: (project: string) => unpackState(archive, project) } } })
+      expect(records.map((r) => r.id)).toEqual(['p02'])
+      expect(records[0].events[0]).toMatchObject({ out: ['один'] })
+    } finally {
+      getuid.mockRestore()
+    }
+  })
+
+  it('рекордер прерван сигналом посреди сессии с db: обработчик выхода останавливает базу и удаляет папку', async () => {
+    const workdir = fresh()
+    const record = pathToFileURL(fileURLToPath(new URL('./record.mjs', import.meta.url))).href
+    const steps = [
+      { id: 'mark', run: "psql -Atc 'show data_directory' > ~/data-dir.txt" },
+      { id: 'wait', run: 'sleep 120' },
+    ]
+    // как в record-session.mjs: сигнал завершает процесс штатно, и срабатывает process.on('exit')
+    const script = `import { recordChain } from ${JSON.stringify(record)}
+process.on('SIGTERM', () => process.exit(130))
+await recordChain([${JSON.stringify(session('k01', null, steps, true))}], { workdir: ${JSON.stringify(workdir)} })`
+    const child = spawn(process.execPath, ['--input-type=module', '-e', script], { stdio: 'ignore' })
+    const closed = new Promise<number | null>((done) => child.once('close', done))
+    try {
+      const marker = join(workdir, 'home', 'data-dir.txt')
+      const until = Date.now() + 60_000
+      while (!(existsSync(marker) && readFileSync(marker, 'utf8').trim() !== '')) {
+        expect(Date.now(), 'база не поднялась за минуту').toBeLessThan(until)
+        await new Promise((done) => setTimeout(done, 100))
+      }
+      const data = readFileSync(marker, 'utf8').trim()
+      expect(await dbFree()).toBe(false) // пока рекордер жив, база работает
+      child.kill('SIGTERM')
+      expect(await closed).toBe(130)
+      expect(existsSync(dirname(data))).toBe(false)
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) {
+        child.kill('SIGTERM')
+        await closed
+      }
+    }
   })
 })
 
