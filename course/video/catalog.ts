@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react'
-import { ch04Script } from './ch-04/script'
 import { ch08Script } from './ch-08/script'
 import { ch09Script } from './ch-09/script'
 import { ch10Script } from './ch-10/script'
@@ -21,6 +20,7 @@ import { day21Script } from './day-21/script'
 import { ch01Script } from './lessons/ch-01/script'
 import { ch02Script } from './lessons/ch-02/script'
 import { ch03Script } from './lessons/ch-03/script'
+import { ch04Script } from './lessons/ch-04/script'
 import { ch05Script } from './lessons/ch-05/script'
 import { ch06Script } from './lessons/ch-06/script'
 import { ch12Script } from './lessons/ch-12/script'
@@ -90,7 +90,7 @@ export const catalog: Record<string, CatalogEntry> = {
     title: 'Что остаётся человеку',
     kind: 'chapter',
     script: ch04Script,
-    load: () => import('./ch-04/Video'),
+    load: () => import('./lessons/ch-04/Video'),
   },
   'ch-08': {
     title: 'Безопасность и надёжность',
