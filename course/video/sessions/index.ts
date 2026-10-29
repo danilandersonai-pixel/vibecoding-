@@ -13,6 +13,7 @@ import s06Auth from './s06-auth.json'
 import s07Cycle from './s07-cycle.json'
 import s08Debug from './s08-debug.json'
 import s09Audit from './s09-audit.json'
+import s10Care from './s10-care.json'
 import { makeFind } from './types'
 import type { Find, SessionRecord } from './types'
 
@@ -27,6 +28,7 @@ export const sessions: Record<string, SessionRecord> = {
   's07-cycle': s07Cycle as SessionRecord,
   's08-debug': s08Debug as SessionRecord,
   's09-audit': s09Audit as SessionRecord,
+  's10-care': s10Care as SessionRecord,
 }
 
 export const find: Find = makeFind(Object.values(sessions))

@@ -880,3 +880,116 @@ test('s09: шаги по таблице; инъекцию и ограничит�
   expect(tree).toContain('.githooks/pre-commit')
   expect(tree).toContain('supabase/seed-load.sql')
 })
+
+test('s10: «Ольга» не проходит, потом проходит; заметка о здоровье уходит из журнала; метка ИИ в коммите', () => {
+  // первая версия проверки «как у большинства» (только латиница) не пускает «Ольгу»: ошибка под формой, в списке её нет
+  const refused = find('s10-care', 'add-olga', 'browser')
+  expect(refused.after.join('\n')).toContain('Имя может содержать только буквы')
+  expect(refused.after).not.toContain('Ольга')
+  // после исправления проверки (и теста на имена) «Ольга» и «Анна-Мария» добавлены — стоят в списке подопечных
+  expect(find('s10-care', 'names-run', 'run').code).toBe(0)
+  expect(find('s10-care', 'add-olga2', 'browser').after).toContain('Ольга')
+  expect(find('s10-care', 'add-anna-maria', 'browser').after).toContain('Анна-Мария')
+  // журнал сервера: сначала в нём имя подопечного и заметка о колене, после правки — нет ни имени, ни заметки
+  const careless = find('s10-care', 'log-set2', 'browser').server.join('\n')
+  expect(careless).toContain('болит колено')
+  expect(careless).toContain('Анна')
+  const careful = find('s10-care', 'log-set3', 'browser').server.join('\n')
+  expect(careful).not.toContain('болит колено')
+  expect(careful).not.toContain('Анна')
+  // лицензии зависимостей: среди них MIT
+  expect(find('s10-care', 'licenses', 'run').out.join('\n')).toContain('MIT')
+  // метка ИИ в сообщении коммита видна в git log
+  expect(find('s10-care', 'show-label', 'run').out.join('\n')).toContain('Co-Authored-By: Claude')
+})
+
+test('s10: шаги по таблице; форму, проверку имён и журнал пишет агент; коммит с меткой ИИ — продолжение s09 на main', () => {
+  expect(sessions['s10-care'].events.map((e) => e.id)).toEqual([
+    ...['dev', 'login-marina', 'ask-add-client', 'name-lib', 'add-action', 'add-form', 'add-olga'],
+    ...['ask-names', 'names-test', 'names-fix', 'names-run', 'add-olga2', 'add-anna-maria', 'login-anna'],
+    ...['ask-log', 'log-full', 'log-set2', 'ask-log-fix', 'log-min', 'log-set3', 'licenses', 'c-care', 'show-label'],
+  ])
+  const file = (id: string) => find('s10-care', id, 'file')
+  const agent = (id: string) => find('s10-care', id, 'agent')
+  const run = (id: string) => find('s10-care', id, 'run')
+  const browser = (id: string) => find('s10-care', id, 'browser')
+
+  // две сессии подряд входят: Марина — на /clients, Анна — на /workouts
+  expect(browser('login-marina').urlAfter).toBe('http://localhost:3000/clients')
+  expect(browser('login-anna').urlAfter).toBe('http://localhost:3000/workouts')
+
+  // добавление подопечного пишет агент; первая проверка имени — «как у большинства», только латиница
+  expect(agent('ask-add-client').steps).toEqual(['name-lib', 'add-action', 'add-form'])
+  expect(agent('ask-add-client').prompt).toBe('Тренер добавляет подопечного: на /clients поле «Имя» и кнопка «Добавить», с проверкой имени')
+  expect(file('name-lib')).toMatchObject({ path: 'lib/names.ts', before: null, by: 'agent' })
+  expect(file('name-lib').after).toContain('/^[A-Za-z ]+$/')
+  expect(file('name-lib').after).toContain('Имя может содержать только буквы')
+  // подопечный записывается от имени тренера (RLS), имя проверяет lib/names.ts
+  expect(file('add-action')).toMatchObject({ path: 'app/clients/actions.ts', before: null, by: 'agent' })
+  expect(file('add-action').after).toContain('asUser(uid')
+  expect(file('add-action').after).toContain('insert into clients')
+  expect(file('add-action').after).toContain('checkName(name)')
+  expect(file('add-form')).toMatchObject({ path: 'app/clients/page.tsx', by: 'agent' })
+  expect(file('add-form').after).toContain('<label htmlFor="name">Имя</label>')
+  expect(file('add-form').after).toContain('Добавить')
+  // «Ольга» в браузере: поле заполнено, под формой ошибка, адрес — с ошибкой
+  expect(browser('add-olga').fields).toEqual([{ label: 'Имя', value: 'Ольга' }])
+  expect(browser('add-olga').buttons).toContain('Добавить')
+  expect(browser('add-olga').urlAfter).toContain('/clients?error=')
+
+  // исправление: сначала тест, потом проверка, потом запуск; запрос — дословно из задачи
+  expect(agent('ask-names').steps).toEqual(['names-test', 'names-fix', 'names-run'])
+  expect(agent('ask-names').prompt).toBe(
+    'Имя «Ольга» не проходит. Имена бывают на любом языке, с дефисом и апострофом: «Анна-Мария», «Д\'Артаньян». Сначала тест на эти случаи',
+  )
+  const test10 = file('names-test')
+  expect(test10).toMatchObject({ path: 'lib/names.test.ts', before: null, by: 'agent' })
+  for (const name of ['Ольга', 'Анна-Мария', "Д'Артаньян"]) expect(test10.after, name).toContain(`checkName("${name}")`)
+  const fix = file('names-fix')
+  expect(fix).toMatchObject({ path: 'lib/names.ts', before: file('name-lib').after, by: 'agent' })
+  expect(fix.after).toContain('\\p{L}')
+  expect(fix.after).not.toContain('A-Za-z')
+  expect(run('names-run')).toMatchObject({ cmd: 'npx vitest run lib/names.test.ts', by: 'agent' })
+  // Анна-Мария: дефис проходит; новые подопечные добавлены в тот же список
+  expect(browser('add-anna-maria').fields).toEqual([{ label: 'Имя', value: 'Анна-Мария' }])
+  expect(browser('add-anna-maria').after).toContain('Ольга')
+
+  // журнал: сначала агент печатает подопечного и заметку целиком, потом — только id подхода и время
+  expect(agent('ask-log').prompt).toBe('Пиши в журнал сервера сохранение подхода, чтобы разбирать ошибки')
+  expect(agent('ask-log').steps).toEqual(['log-full'])
+  const full = file('log-full')
+  expect(full).toMatchObject({ path: 'app/workouts/[id]/actions.ts', by: 'agent' })
+  expect(full.after).toContain('console.log("Подход сохранён"')
+  expect(full.after).toMatch(/client: saved\.client/)
+  expect(full.after).toMatch(/\bnote,/)
+  // тренировка 3 — из seed, она Анны
+  expect(browser('log-set2').url).toBe('http://localhost:3000/workouts/3')
+  expect(browser('log-set2').fields).toEqual([
+    { label: 'Вес, кг', value: '40' },
+    { label: 'Повторы', value: '10' },
+    { label: 'Заметка', value: 'болит колено' },
+  ])
+  expect(agent('ask-log-fix').prompt).toBe('В журнале — данные о здоровье. Только id подхода и время, без имени и заметки')
+  expect(agent('ask-log-fix').steps).toEqual(['log-min'])
+  const min = file('log-min')
+  expect(min).toMatchObject({ path: 'app/workouts/[id]/actions.ts', before: full.after, by: 'agent' })
+  expect(min.after).toContain('console.log("Подход сохранён", { setId, time:')
+  expect(min.after).not.toContain('client')
+  expect(min.after).not.toMatch(/console\.log\([^)]*note/)
+  // тот же ввод в log-set3
+  expect(browser('log-set3').url).toBe(browser('log-set2').url)
+  expect(browser('log-set3').fields).toEqual(browser('log-set2').fields)
+
+  // лицензии и метка ИИ: человек запускает license-checker, коммит с метками в двух абзацах
+  expect(run('licenses').cmd).toBe('npx --yes license-checker --summary')
+  expect(run('licenses').code).toBe(0)
+  expect(run('licenses').by).toBeUndefined()
+  const care = find('s10-care', 'c-care', 'commit')
+  expect(care.message).toBe('Имена на любом языке; журнал без данных о здоровье\n\nCo-Authored-By: Claude <noreply@anthropic.com>')
+  expect(care.branch).toBe('main')
+  expect(care.parents).toEqual([find('s09-audit', 'c-check', 'commit').hash])
+  const tree = care.files.map((f) => f.path)
+  for (const path of ['lib/names.ts', 'lib/names.test.ts', 'app/clients/actions.ts']) expect(tree).toContain(path)
+  expect(run('show-label').cmd).toBe('git log -1')
+  expect(run('show-label').out.join('\n')).toContain(care.hash)
+})

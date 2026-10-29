@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { formatDay } from "@/lib/dates";
 import { asUser } from "@/lib/db";
 import { currentUser } from "@/lib/session";
+import { addClient } from "./actions";
 
 export const metadata: Metadata = { title: "Подопечные" };
 
@@ -13,10 +14,11 @@ export const instant = false;
 // Подопечный тренера с датой последней тренировки
 type Client = { id: string; name: string; last: Date | null };
 
-// Подопечные вошедшего тренера, у каждого — дата последней тренировки
-export default async function ClientsPage() {
+// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного
+export default async function ClientsPage({ searchParams }: PageProps<"/clients">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
+  const { error } = await searchParams;
   const clients = await asUser(uid, async (db) => {
     // подопечные и дата последней тренировки — одним запросом: left join и max(day)
     const { rows } = await db.query<Client>(
@@ -49,6 +51,22 @@ export default async function ClientsPage() {
           </li>
         ))}
       </ul>
+
+      <form action={addClient} className="mt-8 flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="name">Имя</label>
+          <input id="name" name="name" required className="rounded border border-zinc-300 px-3 py-2" />
+        </div>
+        <button type="submit" className="rounded bg-zinc-900 px-4 py-2 text-white">
+          Добавить
+        </button>
+      </form>
+
+      {typeof error === "string" && (
+        <p role="alert" className="mt-4 text-red-600">
+          {error}
+        </p>
+      )}
     </main>
   );
 }
