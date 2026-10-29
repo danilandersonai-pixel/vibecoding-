@@ -145,6 +145,17 @@ describe('номера консоли и шагов совпадают с тем
     expect(Object.keys(FRAMES.browser.layout(spec, ctx))).toContain('console:0')
   })
 
+  it('Browser.pageLines: номер строки страницы — та же строка вверху прокрученного окна', () => {
+    const printed: string[] = formatEvent(event('form-long'))
+    expect(printed).toContain('строки страницы до нажатия (первая — заголовок) — номера для Browser.pageLines:')
+    const row = printed.find((r) => r.endsWith('Строка страницы 9'))!
+    const n = Number(/^\s*(\d+)/.exec(row)![1])
+    expect(n).toBe(9)
+    const spec = { type: 'browser' as const, session: 'fixture', event: 'form-long', pageLines: [n, 20] as [number, number], at: { page: 0 } }
+    const clock = { beat: (i: number) => 30 + i * 90, duration: 300, lines: 2 }
+    expect(FRAMES.browser.problems(spec, ctx, clock)).toEqual([])
+  })
+
   it('Agent.at.steps: номер шага — его порядок в at.steps', () => {
     const printed: string[] = formatEvent(event('ag'), FIXTURE)
     const steps = (event('ag') as { steps: string[] }).steps

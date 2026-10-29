@@ -2,7 +2,7 @@
 // Печатает событие записи сессии с номерами строк — в тех же единицах, что спеки кадров записей:
 //   run, commit — вывод: номера для Terminal.lines;
 //   browser — строки server: номера для Terminal.lines; сообщения консоли (как в DevTools): номера для Browser.consoleLines;
-//     текстовые строки страницы: их можно красить в Browser.marks;
+//     строки страницы до нажатия (первая — заголовок): номера для Browser.pageLines; текстовые строки страницы: их можно красить в Browser.marks;
 //   agent — шаги по порядку: по реплике на каждый в Agent.at.steps; команды можно спрашивать в Agent.ask;
 //   file — дифф от первой «@@»: номера для Diff.lines и Diff.highlight; файл после правки: номера для Editor.lines и Editor.highlight;
 //   read — текст файла: номера для Editor.lines и Editor.highlight.
@@ -66,6 +66,7 @@ export function formatEvent(event, record) {
       head(`${event.url} «${event.title}»`),
       ...(event.server.length > 0 ? ['вывод dev-сервера (server) — номера для Terminal.lines:', ...numbered(event.server)] : []),
       ...(event.console.length > 0 ? ['сообщения консоли (как в DevTools) — номера для Browser.consoleLines:', ...numbered(event.console.map((m) => `${m.type.padEnd(7)} ${consoleText(m.text)}`))] : []),
+      ...(event.before.length > 0 ? ['строки страницы до нажатия (первая — заголовок) — номера для Browser.pageLines:', ...numbered(event.before)] : []),
       ...(texts.length > 0 ? ['текстовые строки страницы — их можно красить в Browser.marks (текст строки — точно такой):', ...texts.map((t) => `  ${t}`)] : []),
     ]
   }

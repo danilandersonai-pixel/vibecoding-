@@ -18,6 +18,9 @@ import type { Range } from './source'
  * одинаковые строки красятся все сразу.
  * Блок страницы (заголовок, поля, кнопка, текст — и до, и после action) стоит по центру окна по ширине самого широкого своего содержимого;
  * длинный текст переносится не шире PAGE.width.
+ * pageLines — какие строки страницы показать, если вся она в окно не помещается (с 1, включительно, как lines у других кадров;
+ * первая строка — заголовок; номера — «строки страницы» в print-event.mjs): окно браузера прокручено так, что первая выбранная строка
+ * стоит вверху страницы, заголовком рисуется только первая строка записи. Только без at.action: до и после нажатия строки страницы разные.
  * console: true — снизу панель «Console» (около 40 % окна, семь строк): сообщения записи, как в DevTools, с реплики
  * at.console (по умолчанию — вместе со страницей, на at.page) очередью; consoleLines выбирает сообщения (с 1, включительно, как lines у других кадров).
  * Части: 'frame', 'url', 'page' (область страницы), 'field:<подпись>', 'button:<текст>', 'console' (панель),
@@ -29,6 +32,7 @@ export type BrowserSpec = {
   event: string
   console?: boolean
   consoleLines?: Range
+  pageLines?: Range
   marks?: { line: string; tone: 'ok' | 'err' }[]
   at: { page: number; action?: number; console?: number }
 }
@@ -77,11 +81,12 @@ const EMPTY: Plan = { ok: false, url: '', urlAfter: '', title: '', before: [], a
 export const isError = (type: string) => type === 'error'
 export const isWarning = (type: string) => type === 'warning' || type === 'warn'
 
-// Строки страницы сверху вниз: заголовок, поля, кнопки, текст. y — от верха области страницы.
-function stack(lines: string[], fields: Map<string, string>, buttons: Set<string>, tones: Map<string, 'ok' | 'err'>, top: number, labelW: number): Item[] {
+// Строки страницы сверху вниз: заголовок, поля, кнопки, текст. y — от верха области страницы. first — номер первой строки в записи (с 1):
+// заголовок — только первая строка записи, а у прокрученной страницы (pageLines) первая показанная — уже не он.
+function stack(lines: string[], fields: Map<string, string>, buttons: Set<string>, tones: Map<string, 'ok' | 'err'>, top: number, labelW: number, first = 1): Item[] {
   let y = top
   return lines.map((text, order) => {
-    const kind: Kind = order === 0 ? 'title' : fields.has(text) ? 'field' : buttons.has(text) ? 'button' : 'text'
+    const kind: Kind = first + order === 1 ? 'title' : fields.has(text) ? 'field' : buttons.has(text) ? 'button' : 'text'
     let item: Item
     if (kind === 'title') {
       const wrapped = wrapText(text, 40, PAGE.width)
@@ -143,7 +148,12 @@ export function plan(spec: BrowserSpec, ctx: FrameCtx): Plan {
   const top = SAFE.y + WIN.bar + PAGE.top
   const withConsole = spec.console === true
   const pageBottom = withConsole ? CONSOLE_TOP : SAFE.y + SAFE.h
-  const before = stack(ev.before, fields, buttons, tones, top, labelW)
+  // Прокрученная страница: только выбранные строки, первая — вверху окна
+  const badPage = rangeProblem(spec.pageLines, ev.before.length)
+  if (badPage) problems.push(`pageLines: ${badPage.replace(/^lines: /, '')}`)
+  if (spec.pageLines && spec.at.action !== undefined) problems.push('pageLines — только без at.action: до и после нажатия у страницы разные строки')
+  const page = badPage ? { items: ev.before, first: 1 } : pick(ev.before, spec.pageLines)
+  const before = stack(page.items, fields, buttons, tones, top, labelW, page.first)
   const after = spec.at.action === undefined ? before : stack(ev.after, fields, buttons, tones, top, labelW)
   const slots = spec.at.action === undefined ? before.map((b) => ({ text: b.text, from: b, to: b })) : match(before, after)
   // Блок по центру окна по самой широкой строке до и после action (кнопка стоит в колонке поля ввода)

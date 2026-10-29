@@ -1040,6 +1040,26 @@ describe('Browser', () => {
       expect(problems(long).join('\n')).toMatch(/помещается/)
     })
 
+    it('pageLines — окно прокручено к выбранным строкам: длинная страница помещается, заголовок — только первая строка записи', () => {
+      const top: BrowserSpec = { type: 'browser', session: S, event: 'form-long', pageLines: [1, 12], at: { page: 0 } }
+      expect(problems(top)).toEqual([])
+      const html = view(top, 120)
+      expect(plain(html)).toContain('Строка страницы 12')
+      expect(plain(html)).not.toContain('Строка страницы 13')
+      // первая строка записи — заголовок 40 px; у прокрученной страницы первая показанная строка — обычный текст 28 px
+      expect(html).toMatch(/font-size:40px[^>]*>Строка страницы 1</)
+      const scrolled: BrowserSpec = { ...top, pageLines: [8, 20], marks: [{ line: 'Строка страницы 8', tone: 'ok' }] }
+      expect(problems(scrolled)).toEqual([])
+      const html2 = view(scrolled, 120)
+      expect(plain(html2)).not.toContain('Строка страницы 7')
+      expect(html2).not.toMatch(/font-size:40px/)
+      expect(html2).toMatch(/font-size:28px[^>]*>Строка страницы 8</)
+      // строка вне показанных не красится, диапазон — внутри страницы, вместе с action — нельзя
+      expect(problems({ ...top, marks: [{ line: 'Строка страницы 15', tone: 'ok' }] }).join('\n')).toMatch(/Строка страницы 15/)
+      expect(problems({ ...top, pageLines: [1, 21] }).join('\n')).toMatch(/pageLines: \[1, 21\] вне записи/)
+      expect(problems({ ...BR, console: false, pageLines: [1, 3] }).join('\n')).toMatch(/pageLines — только без at\.action/)
+    })
+
     it('ловит консоль, которая не помещается в панель', () => {
       const noisy: BrowserEvent = {
         ...(FIXTURE.events.find((e) => e.id === 'form') as BrowserEvent),

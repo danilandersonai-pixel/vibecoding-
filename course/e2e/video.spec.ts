@@ -62,8 +62,9 @@ test('до запуска ролик не пустой: видна обложк�
   for (const r of rows) expect(Math.abs(r.width - grid)).toBeLessThan(2)
 })
 
+// день 7 — ch-10 и ch-11, оба ещё старые (1280 × 720) до своей переделки
 test('два старых ролика (1280 × 720) на компьютере — в один ряд', async ({ page }) => {
-  await page.goto('/#/day/2')
+  await page.goto('/#/day/7')
   await expect(page.locator('.video-grid .video-stage')).toHaveCount(2)
   const [a, b] = await page.locator('.video-grid .video-stage').evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top))
   expect(a).toBe(b)
