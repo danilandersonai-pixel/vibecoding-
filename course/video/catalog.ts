@@ -7,7 +7,6 @@ import { ch08Script } from './ch-08/script'
 import { ch09Script } from './ch-09/script'
 import { ch10Script } from './ch-10/script'
 import { ch11Script } from './ch-11/script'
-import { ch12Script } from './ch-12/script'
 import { day08Script } from './day-08/script'
 import { day09Script } from './day-09/script'
 import { day10Script } from './day-10/script'
@@ -24,6 +23,7 @@ import { day20Script } from './day-20/script'
 import { day21Script } from './day-21/script'
 import { ch01Script } from './lessons/ch-01/script'
 import { ch02Script } from './lessons/ch-02/script'
+import { ch12Script } from './lessons/ch-12/script'
 import { chAbcScript } from './lessons/ch-abc/script'
 import { pilotRlsScript } from './pilot-rls/script'
 import type { VideoScript } from './types'
@@ -66,7 +66,7 @@ export const catalog: Record<string, CatalogEntry> = {
     title: 'Своё приложение по образцу',
     kind: 'chapter',
     script: ch12Script,
-    load: () => import('./ch-12/Video'),
+    load: () => import('./lessons/ch-12/Video'),
   },
   'ch-03': {
     title: 'Проблема 70%',
