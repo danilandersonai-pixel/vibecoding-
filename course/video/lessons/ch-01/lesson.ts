@@ -1,12 +1,16 @@
 import modes from '../../../content/figures/1.1.svg?raw'
 import modelcard from '../../../content/figures/ch1_modelcard.svg?raw'
 import trust from '../../../content/figures/ch1_trust.svg?raw'
+import s01 from '../../sessions/s01-start.json'
+import s02 from '../../sessions/s02-sets.json'
+import type { SessionRecord } from '../../sessions/types'
 import type { Lesson } from '../../term/lesson'
 
 // Ролик главы 1 — «Вайб-кодинг: шкала, а не выключатель» (книга s5–s12, s77–s79), набор «Репозиторий».
 // Каркас: «Что узнаете» → пять тематических глав (объяснение → пример → типичная ошибка) → «Итог».
 // Примеры — настоящие записи s01-start и s02-sets; объяснения — схемы книги и доски. Факты и цифры сверены с разделами книги
 // (по главам — в комментариях у сцен).
+// Записи урок подключает сам (sessions) — в ленивый кусок ролика попадают только они.
 
 const S1 = 's01-start'
 const S2 = 's02-sets'
@@ -16,6 +20,7 @@ export const ch01: Lesson = {
   kind: 'chapter',
   title: 'Вайб-кодинг: шкала, а не выключатель',
   book: ['s5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's77', 's78', 's79'],
+  sessions: [s01, s02] as SessionRecord[],
   chapters: [
     {
       id: 'intro',

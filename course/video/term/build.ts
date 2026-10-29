@@ -1,5 +1,5 @@
 import { buildScript } from '../kit/script'
-import { find } from '../sessions'
+import { makeFind } from '../sessions/types'
 import type { VideoChapter, VideoHotspot, VideoScript } from '../types'
 import { bookRef, bookSection } from './book'
 import { WHOLE, cameraAt, focusShot, toScreen } from './camera'
@@ -25,9 +25,9 @@ export const SPOT_EDGE = 12
 /** Номер реплики сцены, на который можно сослаться: целое от 0 до числа реплик − 1. */
 export const isBeat = (at: number, lines: number) => Number.isInteger(at) && at >= 0 && at < lines
 
-/** Что кадру нужно, кроме данных сцены: записи сессий и урок (id, название, названия глав, разделы книги). */
+/** Что кадру нужно, кроме данных сцены: записи сессий урока (lesson.sessions) и урок (id, название, названия глав, разделы книги). */
 export function lessonCtx(lesson: Lesson): FrameCtx {
-  return { find, lesson: { id: lesson.id, title: lesson.title, chapters: lesson.chapters.map((c) => c.title), book: lesson.book } }
+  return { find: makeFind(lesson.sessions), lesson: { id: lesson.id, title: lesson.title, chapters: lesson.chapters.map((c) => c.title), book: lesson.book } }
 }
 
 /** Части кадра сцены на холсте — снимок конца сцены (layout кадра). */

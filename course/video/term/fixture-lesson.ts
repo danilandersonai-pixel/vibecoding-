@@ -1,5 +1,8 @@
 import envs from '../../content/figures/abc_envs.svg?raw'
 import restaurant from '../../content/figures/abc_restaurant.svg?raw'
+import s01 from '../sessions/s01-start.json'
+import s02 from '../sessions/s02-sets.json'
+import type { SessionRecord } from '../sessions/types'
 import type { Lesson } from './lesson'
 
 // Фикстура урока для тестов сборки и проверок и для композиции term-lesson (кадры глазами): короткий ролик главы
@@ -14,6 +17,7 @@ export const fixtureLesson: Lesson = {
   kind: 'chapter',
   title: 'Приложение тренера изнутри',
   book: ['sa1', 'sa4', 'sa5'],
+  sessions: [s01, s02] as SessionRecord[],
   chapters: [
     {
       id: 'intro',

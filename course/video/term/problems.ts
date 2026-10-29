@@ -151,12 +151,29 @@ function cueProblems(b: BuiltScene, cues: Cue[]): string[] {
 const scrolledTarget = (spec: FrameSpec, name: string, ctx: FrameCtx, clock: BuiltScene['clock']) =>
   spec.type === 'terminal' && terminalPartMoves(spec, ctx, clock, name)
 
+/** Записи, на которые ссылается кадр (поле session в его данных, в том числе вложенное: tree, items, rows), без повторов, по порядку. */
+function sessionRefs(value: unknown, found = new Set<string>()): string[] {
+  if (Array.isArray(value)) value.forEach((v) => sessionRefs(v, found))
+  else if (value !== null && typeof value === 'object') {
+    for (const [key, v] of Object.entries(value)) {
+      if (key === 'session' && typeof v === 'string') found.add(v)
+      else sessionRefs(v, found)
+    }
+  }
+  return [...found]
+}
+
 function sceneProblems(lesson: Lesson, scenes: BuiltScene[], b: BuiltScene, ctx: FrameCtx): string[] {
   const S = `сцена «${b.id}»`
   const out: string[] = []
   const { scene, clock } = b
   const spec = scene.frame
   const def = frameDef(spec)
+
+  // Запись, которой нет в lesson.sessions: урок подключает записи сам (иначе в ленивый кусок попали бы все), поэтому ссылка на чужую —
+  // проблема урока. Кадр про такую запись скажет и своё («нет события … Нет записи сессии»), но причину называет эта строка.
+  const connected = new Set(lesson.sessions.map((r) => r.id))
+  for (const id of sessionRefs(spec)) if (!connected.has(id)) out.push(`${S}: запись «${id}» не подключена к уроку (sessions)`)
   const frameBad = def.problems(spec, ctx, clock)
   out.push(...frameBad.map((p) => `${S}: ${p}`))
   const parts = sceneParts(b, ctx)
@@ -282,7 +299,7 @@ function verdictProblems(lesson: Lesson): string[] {
 
 /**
  * Проблемы урока: каркас (§6.2), разделы книги, длина (если checkLength не false; не короче minFrames), реплики и субтитры,
- * проблемы кадров, камера и пояснения, вердикты, шапка, шум песочницы, промежутки без изменений, сценарий (validateScript).
+ * записи сессий (кадр ссылается только на подключённые к уроку), проблемы кадров, камера и пояснения, вердикты, шапка, шум песочницы, промежутки без изменений, сценарий (validateScript).
  */
 export function lessonProblems(lesson: Lesson, opts: { minFrames?: number; checkLength?: boolean; ctx?: FrameCtx } = {}): string[] {
   const ctx = opts.ctx ?? lessonCtx(lesson)

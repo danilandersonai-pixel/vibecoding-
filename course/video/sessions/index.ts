@@ -1,5 +1,9 @@
 // Записи сессий пилота — работа над приложением тренера (demo-app). JSON пишет только рекордер:
 // node scripts/record-session.mjs (из course/). Руками записи не правятся.
+//
+// Только для тестов и скриптов. Код набора (video/term) и уроков (video/lessons) этот файл не импортирует:
+// он тянет в сборку все записи, а урок подключает свои сам — import s01 from '../../sessions/s01-start.json'
+// и sessions: [s01, …] as SessionRecord[] (imports.test.ts следит). Новую запись добавляйте и сюда: sessions.test.ts сверяет всю цепочку.
 import s01Start from './s01-start.json'
 import s02Sets from './s02-sets.json'
 import { makeFind } from './types'

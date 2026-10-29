@@ -2,12 +2,16 @@ import aiwords from '../../../content/figures/abc_aiwords.svg?raw'
 import envs from '../../../content/figures/abc_envs.svg?raw'
 import git from '../../../content/figures/abc_git.svg?raw'
 import restaurant from '../../../content/figures/abc_restaurant.svg?raw'
+import s01 from '../../sessions/s01-start.json'
+import s02 from '../../sessions/s02-sets.json'
+import type { SessionRecord } from '../../sessions/types'
 import type { Lesson } from '../../term/lesson'
 
 // Ролик главы «Азбука» — «Как устроено приложение» (книга sa1–sa6), набор «Репозиторий».
 // Каркас: «Что узнаете» → пять тематических глав (объяснение → пример на приложении тренера → типичная ошибка) → «Итог».
 // Примеры — настоящие записи s01-start (заготовка, первые коммиты) и s02-sets (форма «Сохранить подход»);
 // объяснения — схемы книги. Факты и термины сверены с разделами sa1–sa6 (по главам — в комментариях у сцен).
+// Записи урок подключает сам (sessions) — в ленивый кусок ролика попадают только они.
 
 const S1 = 's01-start'
 const S2 = 's02-sets'
@@ -17,6 +21,7 @@ export const chAbc: Lesson = {
   kind: 'chapter',
   title: 'Как устроено приложение',
   book: ['sa1', 'sa2', 'sa3', 'sa4', 'sa5', 'sa6'],
+  sessions: [s01, s02] as SessionRecord[],
   chapters: [
     {
       id: 'intro',

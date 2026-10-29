@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { buildScript } from '../kit/script'
-import { find } from '../sessions'
 import { totalFrames, validateScript } from '../lib/timeline'
 import { buildLesson, cameraKeys, headerRight, lessonCtx, sceneAt, sceneBook, sceneFade, sceneVerdict, spotWindow } from './build'
 import { WHOLE, cameraAt, focusShot, toScreen } from './camera'
 import { fixtureLesson } from './fixture-lesson'
 import { frameDef } from './frames'
 import type { Lesson } from './lesson'
+import { lessonProblems } from './problems'
 import { MOTION } from './theme'
 
 const built = buildLesson(fixtureLesson)
@@ -60,10 +60,37 @@ describe('buildLesson', () => {
     expect(start).toBe(totalFrames(script))
   })
 
-  it('ctx по умолчанию — записи сессий и урок: id, название, главы и книга', () => {
+  it('ctx по умолчанию — записи урока (lesson.sessions) и урок: id, название, главы и книга', () => {
     const ctx = lessonCtx(fixtureLesson)
-    expect(ctx.find).toBe(find)
+    const s02 = fixtureLesson.sessions.find((r) => r.id === 's02-sets')!
+    expect(ctx.find('s02-sets', 'route', 'file')).toBe(s02.events.find((e) => e.id === 'route'))
+    // Записи, которых нет в lesson.sessions, ctx не знает — даже если такая запись есть в video/sessions
+    expect(() => lessonCtx({ ...fixtureLesson, sessions: [] }).find('s02-sets', 'route', 'file')).toThrow('Нет записи сессии «s02-sets»')
+    expect(() => ctx.find('s03-spec', 'x', 'file')).toThrow('Нет записи сессии «s03-spec»')
     expect(ctx.lesson).toEqual({ id: 'term-lesson', title: 'Приложение тренера изнутри', chapters: fixtureLesson.chapters.map((c) => c.title), book: ['sa1', 'sa4', 'sa5'] })
+  })
+
+  it('сцена ссылается на запись не из lesson.sessions — понятная проблема, а не исключение', () => {
+    const without = (id: string): Lesson => ({ ...fixtureLesson, sessions: fixtureLesson.sessions.filter((r) => r.id !== id) })
+    const own = without('s02-sets')
+    expect(() => buildLesson(own)).not.toThrow()
+    expect(() => lessonProblems(own, { checkLength: false })).not.toThrow()
+    const p = lessonProblems(own, { checkLength: false })
+    // По одной строке на сцену и запись (редактор ссылается на запись и в событии, и в дереве — строка одна)
+    expect(p).toContain('сцена «parts-route»: запись «s02-sets» не подключена к уроку (sessions)')
+    expect(p.filter((l) => l.includes('«parts-route»: запись'))).toHaveLength(1)
+    // Подключённая запись (s01-start у сцены parts-pkg) проблемой не названа
+    expect(p.filter((l) => /не подключена к уроку/.test(l)).every((l) => l.includes('«s02-sets»'))).toBe(true)
+    expect(p.some((l) => l.includes('«parts-pkg»: запись'))).toBe(false)
+
+    // Ни одной записи: каждая сцена с записью называет свою, исключения нет
+    const none: Lesson = { ...fixtureLesson, sessions: [] }
+    expect(() => lessonProblems(none, { checkLength: false })).not.toThrow()
+    const q = lessonProblems(none, { checkLength: false })
+    expect(q).toContain('сцена «parts-pkg»: запись «s01-start» не подключена к уроку (sessions)')
+    expect(q).toContain('сцена «parts-route»: запись «s02-sets» не подключена к уроку (sessions)')
+    // Сцены без записей (схема, доска) о записях молчат
+    expect(q.some((l) => l.includes('«parts-scheme»: запись'))).toBe(false)
   })
 
   it('пояснение на cmd:dev при камере WHOLE — прямоугольник самой части, кадры — абсолютные', () => {
