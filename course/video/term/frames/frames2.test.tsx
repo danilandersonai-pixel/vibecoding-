@@ -16,7 +16,8 @@ import { easeOut } from '../motion'
 import { textWidth, wrapText } from '../text'
 import { alpha, MIN_TEXT, MOTION, SAFE, T } from '../theme'
 import { CLOCK, ctx, FIXTURE, makeClock } from './fixture'
-import { wrapWords } from './geometry'
+import { URL_BAR, URL_CHARS } from './browserPlan'
+import { cells, wrapWords } from './geometry'
 import { consoleText } from './source'
 import { FRAMES, frameDef } from './index'
 import type { AgentSpec, BrowserSpec, FrameSpec, GitLogSpec } from './index'
@@ -1218,6 +1219,19 @@ describe('Browser', () => {
       expect(bar({ ...spec, at: { page: 0 } }, ACTION + 100)).toBe('localhost:3000/login') // без action переход не показывают
       expect(bar(BR, ACTION + 100, ctx)).toBe('localhost:3000/') // в записи нет urlAfter
       expect(problems(spec, CLOCK, c2)).toEqual([])
+    })
+
+    it('длинный адрес (ошибка формы в адресе — %-коды) обрезан с «…» и не выходит за строку адреса', () => {
+      const error = encodeURIComponent('Имя может содержать только буквы')
+      const go: BrowserEvent = { ...(FIXTURE.events.find((e) => e.id === 'form') as BrowserEvent), id: 'go-long', urlAfter: `http://localhost:3000/clients?error=${error}` }
+      const c2 = { ...ctx, find: makeFind([{ ...FIXTURE, events: [...FIXTURE.events, go] }]) }
+      const spec: BrowserSpec = { type: 'browser', session: S, event: 'go-long', at: { page: 0, action: 1 } }
+      const shown = plain(part(view(spec, ACTION + 100, CLOCK, c2), 'url')!)
+      expect([...shown]).toHaveLength(URL_CHARS)
+      expect(shown).toBe(`localhost:3000/clients?error=${error}`.slice(0, URL_CHARS - 1) + '…')
+      expect(16 + cells(URL_CHARS)).toBeLessThanOrEqual(URL_BAR.w - 16)
+      // короткий адрес — как есть
+      expect(plain(part(view(spec, ACTION - 1, CLOCK, c2), 'url')!)).toBe('localhost:3000/')
     })
 
     it('marks красит строку страницы: err — T.err, ok — T.ok; без marks — ink', () => {

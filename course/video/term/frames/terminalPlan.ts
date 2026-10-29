@@ -26,16 +26,56 @@ export type TerminalSpec = {
 const CWD = '~/trainer-app'
 
 type Line = { text: string; rows: string[]; row: number; err: boolean }
+/**
+ * Строка окна у команды: text — что в ней стоит целиком; lead — сколько её первых знаков faint (подсказка у первой строки, «> »
+ * у строки после «\n» внутри команды, 0 у продолжения переноса); start — сколько знаков подсказки и команды («\n» — тоже знак:
+ * его набирают Enter) набрано к первому знаку строки после lead. Строка видна, когда набрано start, — тогда же её lead.
+ */
+export type CmdRow = { text: string; lead: number; start: number }
 type Entry = {
   event: string
   at: number
   /** Подсказка и команда; у browser пусто. */
   prompt: string
   cmd: string
-  cmdRows: string[]
+  cmdRows: CmdRow[]
   cmdRow: number
   lines: Line[]
 }
+
+/** Подсказка продолжения: так bash показывает строки команды, набранные после Enter внутри кавычек (сообщение коммита в два абзаца). */
+export const PS2 = '> '
+
+/**
+ * Строки окна у команды: подсказка и команда переносятся по COLS знаков, как в терминале; «\n» в команде (Enter внутри кавычек)
+ * начинает новую строку окна с подсказкой продолжения PS2 — как показывает bash. Команда без «\n» — ровно wrapMono(подсказка + команда).
+ */
+export function commandRows(prompt: string, cmd: string): CmdRow[] {
+  const rows: CmdRow[] = []
+  let at = [...prompt].length
+  cmd.split('\n').forEach((part, j) => {
+    const lead = j === 0 ? prompt : PS2
+    const n = [...lead].length
+    wrapMono(lead + part, COLS).forEach((text, k) => rows.push({ text, lead: k === 0 ? n : 0, start: k === 0 ? at : at + k * COLS - n }))
+    at += [...part].length + 1
+  })
+  return rows
+}
+
+/** Строка окна, в которой стоит курсор, когда набрано typed знаков подсказки и команды, и его отступ в знаках. */
+export function cursorCell(rows: CmdRow[], typed: number): { row: number; col: number } {
+  let row = 0
+  rows.forEach((r, i) => {
+    if (r.start <= typed) row = i
+  })
+  return { row, col: rows[row].lead + typed - rows[row].start }
+}
+
+/** Что видно в строке окна команды, когда набрано typed знаков: lead и набранная часть; строка, до которой не дошли, — пусто. */
+export function cmdRowShown(r: CmdRow, typed: number): string {
+  return typed < r.start ? '' : take(r.text, r.lead + typed - r.start)
+}
+
 type Plan = { entries: Entry[]; /** Сколько строк окна занимает всё вместе (до прокрутки). */ rows: number; problems: string[] }
 
 // Что показать: строки терминала по порядку. Каждая строка вывода после переноса занимает одну и более строк окна (row — первая).
@@ -58,7 +98,7 @@ export function plan(spec: TerminalSpec, ctx: FrameCtx): Plan {
 
     const prompt = ev.kind === 'browser' ? '' : `${ev.kind === 'run' ? ev.cwd : CWD} $ `
     const cmd = ev.kind === 'browser' ? '' : ev.cmd
-    const cmdRows = ev.kind === 'browser' ? [] : wrapMono(prompt + cmd, COLS)
+    const cmdRows = ev.kind === 'browser' ? [] : commandRows(prompt, cmd)
     const cmdRow = row
     row += cmdRows.length
     // Код выхода ≠ 0: последняя показанная строка вывода цвета err — при диапазоне lines это строка, которую выбрал автор
@@ -154,7 +194,7 @@ export function terminalLayout(spec: TerminalSpec, ctx: FrameCtx): Record<string
     if (rect) parts[name] = rect
   }
   for (const e of p.entries) {
-    if (e.cmdRows.length > 0) put(`cmd:${e.event}`, place(e.cmdRow, e.cmdRow + e.cmdRows.length - 1, widest(e.cmdRows), scroll))
+    if (e.cmdRows.length > 0) put(`cmd:${e.event}`, place(e.cmdRow, e.cmdRow + e.cmdRows.length - 1, widest(e.cmdRows.map((r) => r.text)), scroll))
     if (e.lines.length === 0) continue
     const lastLine = e.lines[e.lines.length - 1]
     put(`out:${e.event}`, place(e.lines[0].row, lastLine.row + lastLine.rows.length - 1, widest(e.lines.flatMap((l) => l.rows)), scroll))
@@ -170,11 +210,11 @@ export function terminalMoments(spec: TerminalSpec, clock: Clock, ctx: FrameCtx)
     const e = p.entries[i]
     if (e.cmdRows.length > 0) {
       for (const f of [t.promptAt, t.start, t.typedEnd]) at.add(f)
-      // Длинная команда набирается долго: начало каждой её следующей строки окна — тоже перемена в кадре (как у запроса агента)
-      let typed = -[...e.prompt].length
+      // Длинная команда набирается долго: начало каждой её следующей строки окна (перенос или Enter внутри кавычек) — тоже
+      // перемена в кадре (как у запроса агента)
       e.cmdRows.forEach((row, k) => {
+        const typed = row.start - [...e.prompt].length
         if (k > 0 && typed > 0) at.add(t.start + typedFrames(take(e.cmd, typed)))
-        typed += [...row].length
       })
     }
     t.lineAt.forEach((f) => at.add(f))

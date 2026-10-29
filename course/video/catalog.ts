@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react'
-import { ch09Script } from './ch-09/script'
 import { ch10Script } from './ch-10/script'
 import { ch11Script } from './ch-11/script'
 import { day08Script } from './day-08/script'
@@ -23,6 +22,7 @@ import { ch04Script } from './lessons/ch-04/script'
 import { ch05Script } from './lessons/ch-05/script'
 import { ch06Script } from './lessons/ch-06/script'
 import { ch08Script } from './lessons/ch-08/script'
+import { ch09Script } from './lessons/ch-09/script'
 import { ch12Script } from './lessons/ch-12/script'
 import { chAbcScript } from './lessons/ch-abc/script'
 import { pilotRlsScript } from './lessons/pilot-rls/script'
@@ -102,7 +102,7 @@ export const catalog: Record<string, CatalogEntry> = {
     title: 'Этика вайб-кодинга',
     kind: 'chapter',
     script: ch09Script,
-    load: () => import('./ch-09/Video'),
+    load: () => import('./lessons/ch-09/Video'),
   },
   'ch-10': {
     title: 'Фоновые агенты',

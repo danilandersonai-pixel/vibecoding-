@@ -1,6 +1,6 @@
 import type { Clock, FrameCtx, Rect } from '../frame'
 import { appear } from '../motion'
-import { monoChars, textWidth, wrapText } from '../text'
+import { fitText, monoChars, textWidth, wrapText } from '../text'
 import { MOTION, SAFE } from '../theme'
 import { LH, WIN, cells, outsideSafe, rowTop, wrapWords } from './geometry'
 import { beatProblem, consoleText, lookup, pick, rangeProblem } from './source'
@@ -42,6 +42,8 @@ export const PAGE = { width: 960, top: 20, bottom: 12, input: 520, labelMin: 160
 export const FIELD_H = 52
 /** Строка адреса в полосе окна: правее вкладки, на всю оставшуюся ширину. */
 export const URL_BAR: Rect = { x: SAFE.x + 480, y: SAFE.y + 6, w: SAFE.w - 480 - WIN.pad, h: 36 }
+/** Знаков адреса в строке адреса (Martian Mono 24 px, поле 16 px с обеих сторон): длинный адрес обрезается с «…», как в браузере. */
+export const URL_CHARS = monoChars(URL_BAR.w - 32)
 /** Вкладка: сколько знаков названия помещается левее строки адреса. */
 export const TAB_CHARS = 26
 /** Панель Console занимает нижние семь строк окна и полосу вкладки над ними. */
@@ -127,11 +129,11 @@ export function plan(spec: BrowserSpec, ctx: FrameCtx): Plan {
   const ev = found.event
   const problems: string[] = []
 
-  // Адрес в строке: хост, путь и запрос
+  // Адрес в строке: хост, путь и запрос; не помещается в строку адреса (ошибка формы в адресе — %-коды) — обрезан с «…»
   const address = (url: string) => {
     try {
       const u = new URL(url)
-      return u.host + u.pathname + u.search
+      return fitText(u.host + u.pathname + u.search, URL_CHARS)
     } catch {
       problems.push(`адрес «${url}» не разбирается`)
       return ''

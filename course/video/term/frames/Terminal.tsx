@@ -3,8 +3,8 @@ import { useCurrentFrame } from 'remotion'
 import type { Clock, FrameCtx } from '../frame'
 import { typedCount } from '../motion'
 import { MOTION, T } from '../theme'
-import { COLS, TEXT_X, cells, take } from './geometry'
-import { lastRow, plan, scrollAt, timeline } from './terminalPlan'
+import { TEXT_X, cells, take } from './geometry'
+import { cmdRowShown, cursorCell, lastRow, plan, scrollAt, timeline } from './terminalPlan'
 import type { TerminalSpec } from './terminalPlan'
 import { Cursor, Row, Window } from './Window'
 
@@ -26,9 +26,8 @@ export function Terminal({ spec, clock, ctx }: Props): JSX.Element {
     const typing = frame >= t.start && frame < t.typedEnd
     const idleSince = frame < t.start ? t.promptAt : t.typedEnd
     if (!typing && Math.floor((frame - idleSince) / MOTION.blink) % 2 === 1) return null
-    const at = [...e.prompt].length + typedCount(e.cmd, frame, t.start)
-    const r = Math.min(Math.floor(at / COLS), e.cmdRows.length - 1)
-    return onScreen(e.cmdRow + r) ? <Cursor key={e.event} x={TEXT_X + cells(at - r * COLS)} row={row(e.cmdRow + r)} /> : null
+    const { row: r, col } = cursorCell(e.cmdRows, [...e.prompt].length + typedCount(e.cmd, frame, t.start))
+    return onScreen(e.cmdRow + r) ? <Cursor key={e.event} x={TEXT_X + cells(col)} row={row(e.cmdRow + r)} /> : null
   })
 
   return (
@@ -40,9 +39,9 @@ export function Terminal({ spec, clock, ctx }: Props): JSX.Element {
           <g key={e.event}>
             {e.cmdRows.length > 0 && frame >= t.promptAt && onScreen(e.cmdRow + e.cmdRows.length - 1) && (
               <g data-part={`cmd:${e.event}`}>
-                {e.cmdRows.map((text, r) => {
-                  const shown = take(text, typed - r * COLS)
-                  const prompt = take(shown, [...e.prompt].length - r * COLS)
+                {e.cmdRows.map((cmdRow, r) => {
+                  const shown = cmdRowShown(cmdRow, typed)
+                  const prompt = take(shown, cmdRow.lead)
                   return (
                     onScreen(e.cmdRow + r) &&
                     shown !== '' && (

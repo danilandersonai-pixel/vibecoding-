@@ -383,6 +383,54 @@ describe('Terminal', () => {
       expect(plain(part(view(spec, start + 2), 'line:save:1')!)).toBe(' POST /api/sets 400 in 10ms')
     })
 
+    it('Enter внутри кавычек («\\n» в команде): новая строка окна с подсказкой «> », как в bash; видна, когда «\\n» набран', () => {
+      const cmd = 'git commit -m "Заголовок\n\nCo-Authored-By: Claude <noreply@anthropic.com>"'
+      const two = { id: 'two', kind: 'commit' as const, cmd, hash: 'abc9999', message: '', branch: 'main', parents: [], out: ['[main abc9999] Заголовок'], files: [] }
+      const c2 = { ...ctx, find: makeFind([{ ...FIXTURE, events: [...FIXTURE.events, two] }]) }
+      const spec: TerminalSpec = { type: 'terminal', items: [{ session: S, event: 'two', at: 0 }] }
+      const rows = terminalPlan(spec, c2).entries[0].cmdRows
+      expect(rows.map((r) => r.text)).toEqual(['~/trainer-app $ git commit -m "Заголовок', '> ', '> Co-Authored-By: Claude <noreply@anthropic.com>"'])
+      expect(rows.map((r) => r.lead)).toEqual([16, 2, 2])
+      const at = (n: number) => START + Math.ceil((n * 30) / MOTION.typeCps) // кадр, к которому набрано n знаков команды
+      const first = 'git commit -m "Заголовок'.length
+      const { Component } = frameDef(spec)
+      const render = (frame: number) => {
+        now.frame = frame
+        return renderToStaticMarkup(
+          <svg>
+            <Component spec={spec} clock={CLOCK} ctx={c2} />
+          </svg>,
+        )
+      }
+      // первый абзац набран, Enter — ещё нет: одна строка окна и курсор на её конце
+      const before = render(at(first))
+      expect(part(before, 'cmd:two')!.split('<text').length - 1).toBe(1)
+      expect(Number(/data-part="cursor" x="([\d.]+)"/.exec(before)![1])).toBeCloseTo(SAFE.x + WIN.pad + cells(16 + first))
+      // Enter набран: вторая строка — «> » faint, курсор после неё
+      const after = render(at(first + 1))
+      expect(part(after, 'cmd:two')!.split('<text').length - 1).toBe(2)
+      expect(part(after, 'cmd:two')).toContain(`fill="${T.faint}" font-weight="500">&gt; </tspan>`)
+      expect(Number(/data-part="cursor" x="([\d.]+)"/.exec(after)![1])).toBeCloseTo(SAFE.x + WIN.pad + cells(2))
+      // в конце — три строки окна, вывод — под ними
+      const end = render(400)
+      expect(plain(part(end, 'cmd:two')!)).toBe('~/trainer-app $ git commit -m "Заголовок> > Co-Authored-By: Claude <noreply@anthropic.com>"')
+      expect(terminalPlan(spec, c2).entries[0].lines[0].row).toBe(3)
+      // перемена в кадре — и на каждом Enter
+      const m = FRAMES.terminal.moments(spec, CLOCK, c2)
+      expect(m).toEqual(expect.arrayContaining([at(first + 1), at(first + 2)]))
+    })
+
+    it('команда без «\\n» — те же строки окна, что перенос подсказки и команды по COLS', () => {
+      const cmd = 'echo ' + 'x'.repeat(2 * COLS)
+      const long = { id: 'long-cmd', kind: 'run' as const, cwd: '~/trainer-app', cmd, out: ['ok'], code: 0 }
+      const c2 = { ...ctx, find: makeFind([{ ...FIXTURE, events: [...FIXTURE.events, long] }]) }
+      const rows = terminalPlan({ type: 'terminal', items: [{ session: S, event: 'long-cmd', at: 0 }] }, c2).entries[0].cmdRows
+      const full = '~/trainer-app $ ' + cmd
+      expect(rows.map((r) => r.text)).toEqual([0, 1, 2].map((k) => full.slice(k * COLS, (k + 1) * COLS)))
+      expect(rows.map((r) => r.start)).toEqual([16, COLS, 2 * COLS])
+      expect(rows.map((r) => r.lead)).toEqual([16, 0, 0])
+    })
+
     it('длинная строка переносится: рядов столько, сколько в layout', () => {
       const spec: TerminalSpec = { type: 'terminal', items: [{ session: S, event: 'long', at: 0 }] }
       const html = view(spec, 400)
