@@ -423,6 +423,18 @@ describe('Terminal', () => {
       expect(m).toEqual([...new Set(m)].sort((a, b) => a - b))
       expect(m).toContain(CLOCK.beat(1))
     })
+
+    it('пока длинная команда набирается, перемена — в начале каждой её строки окна (как у запроса агента)', () => {
+      // «~/trainer-app $ » — 16 знаков, строка окна — COLS знаков: вторая строка начинается после COLS − 16 знаков команды
+      const cmd = 'echo ' + 'x'.repeat(2 * COLS)
+      const long = { id: 'long-cmd', kind: 'run' as const, cwd: '~/trainer-app', cmd, out: ['ok'], code: 0 }
+      const c2 = { ...ctx, find: makeFind([{ ...FIXTURE, events: [...FIXTURE.events, long] }]) }
+      const spec: TerminalSpec = { type: 'terminal', items: [{ session: S, event: 'long-cmd', at: 0 }] }
+      const m = def.moments(spec, CLOCK, c2)
+      const end = START + cmd.length
+      expect(m).toEqual(expect.arrayContaining([START, START + COLS - 16, START + 2 * COLS - 16, end]))
+      for (let i = 1; i < m.length; i++) if (m[i] <= end) expect(m[i] - m[i - 1]).toBeLessThanOrEqual(COLS)
+    })
   })
 
   describe('appears', () => {

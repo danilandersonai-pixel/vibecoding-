@@ -2,7 +2,7 @@ import type { Clock, FrameCtx, Rect } from '../frame'
 import { wrapMono } from '../text'
 import { typedFrames } from '../motion'
 import { MOTION, SAFE } from '../theme'
-import { CELL, COLS, LH, TEXT_X, WIN, outsideSafe, rowTop, widest } from './geometry'
+import { CELL, COLS, LH, TEXT_X, WIN, outsideSafe, rowTop, take, widest } from './geometry'
 import { beatProblem, lookup, pick, rangeProblem } from './source'
 import type { Range } from './source'
 
@@ -167,7 +167,16 @@ export function terminalMoments(spec: TerminalSpec, clock: Clock, ctx: FrameCtx)
   const p = plan(spec, ctx)
   const at = new Set<number>([0])
   timeline(p, clock).forEach((t, i) => {
-    if (p.entries[i].cmdRows.length > 0) [t.promptAt, t.start, t.typedEnd].forEach((f) => at.add(f))
+    const e = p.entries[i]
+    if (e.cmdRows.length > 0) {
+      for (const f of [t.promptAt, t.start, t.typedEnd]) at.add(f)
+      // Длинная команда набирается долго: начало каждой её следующей строки окна — тоже перемена в кадре (как у запроса агента)
+      let typed = -[...e.prompt].length
+      e.cmdRows.forEach((row, k) => {
+        if (k > 0 && typed > 0) at.add(t.start + typedFrames(take(e.cmd, typed)))
+        typed += [...row].length
+      })
+    }
     t.lineAt.forEach((f) => at.add(f))
   })
   return [...at].sort((a, b) => a - b)
