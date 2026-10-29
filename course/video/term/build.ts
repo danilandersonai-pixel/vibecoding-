@@ -4,7 +4,7 @@ import type { VideoChapter, VideoHotspot, VideoScript } from '../types'
 import { bookRef, bookSection } from './book'
 import { WHOLE, cameraAt, focusShot, toScreen } from './camera'
 import type { CameraKey } from './camera'
-import { CELL, bookRoom, verdictWidth } from './chrome/layout'
+import { CELL, bookRoom, chapterIn, verdictWidth } from './chrome/layout'
 import type { Clock, FrameCtx, Rect } from './frame'
 import { frameDef } from './frames'
 import type { Lesson, LessonScene } from './lesson'
@@ -110,6 +110,8 @@ export function sceneReserve(lesson: Lesson, scenes: BuiltScene[], b: BuiltScene
  * «Типичная ошибка» (label). Если у соседних сцен она та же (одна ссылка на книгу), смены нет; иначе в первые полсмены сцены прежняя
  * уходит, во вторые — приходит новая: они не накладываются. Две сцены mistake подряд: метка стоит, уходит только вердикт прежней
  * (вердикт новой появляется на её реплике, позже смены), а если у прежней был вердикт — он переходит в новую без разрыва.
+ * Новая глава: правая часть меняется на одном кадре с названием главы — прежняя пропадает на кадре начала главы, новая проявляется
+ * вместе с названием (chapterIn), иначе длинное новое название проявлялось бы рядом с ещё не ушедшими метками прежней сцены.
  */
 export function headerRight(lesson: Lesson, scenes: BuiltScene[], frame: number): { b: BuiltScene; opacity: number; label: boolean }[] {
   const b = sceneAt(scenes, frame)
@@ -118,7 +120,9 @@ export function headerRight(lesson: Lesson, scenes: BuiltScene[], frame: number)
   const mistake = (s: BuiltScene) => s.scene.role === 'mistake'
   const same = prev && !mistake(b) && !mistake(prev) && sceneBook(lesson, prev) === sceneBook(lesson, b)
   const now = { b, opacity: 1, label: mistake(b) }
-  if (!prev || same || t >= MOTION.sceneFade) return [now]
+  if (!prev || same) return [now]
+  if (prev.chapter !== b.chapter) return [{ ...now, opacity: chapterIn(t) }]
+  if (t >= MOTION.sceneFade) return [now]
   const half = MOTION.sceneFade / 2
   const out = 1 - easeIn(Math.min(1, t / half))
   if (mistake(prev) && mistake(b)) {

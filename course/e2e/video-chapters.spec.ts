@@ -318,8 +318,11 @@ for (const theme of ['dark', 'light'] as const) {
     await expect(layer).toHaveClass(/is-dark/)
     const spot = figure.getByRole('button', { name: zone.title, exact: true })
     await expect(spot).toBeVisible()
-    await expect(spot).toHaveCSS('border-top-color', INK)
-    await expect(spot).toHaveCSS('border-top-width', '3px')
+    // рамка — снаружи зоны (outline с отступом), внутри зоны рамки нет: узкую часть кадра она не закрывает
+    await expect(spot).toHaveCSS('outline-color', INK)
+    await expect(spot).toHaveCSS('outline-width', '2px')
+    await expect(spot).toHaveCSS('outline-offset', '2px')
+    await expect(spot).toHaveCSS('border-top-width', '0px')
 
     // зона стоит над своим местом: доли кадра 1920 × 1080 (а не 1280 × 720)
     const stage = (await figure.locator('.video-stage').boundingBox())!
@@ -332,3 +335,35 @@ for (const theme of ['dark', 'light'] as const) {
     await expect(figure.getByRole('status')).toContainText(zone.text)
   })
 }
+
+// Review Focus 5: на телефоне пояснение по нажатию не закрывает кадр — панель встаёт под ним (на компьютере она лежит поверх низа кадра)
+test('телефон 390 px: открытое пояснение стоит под кадром и не закрывает его', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/#/day/1')
+  const zone = chAbcScript.hotspots.find((h) => h.title === 'Ответ 400')!
+  const figure = videoFigure(page, ABC)
+  await figure.getByRole('button', { name: /^Смотреть ролик «/ }).click()
+  await figure.getByRole('button', PAUSE).click()
+  await figure.getByRole('slider', { name: 'Перемотка' }).fill(String(zone.from + 15))
+
+  const stage = figure.locator('.video-stage')
+  const before = (await stage.boundingBox())!
+  const spot = figure.getByRole('button', { name: zone.title, exact: true })
+  await expect(spot).toBeVisible()
+  await spot.click()
+  const note = figure.getByRole('status')
+  await expect(note).toContainText(zone.text)
+
+  // верх панели не выше низа кадра, панель в ширине экрана; сам кадр не сдвинулся и не сжался
+  const frame = (await stage.boundingBox())!
+  const box = (await note.boundingBox())!
+  expect(box.y).toBeGreaterThanOrEqual(frame.y + frame.height - 0.5)
+  expect(box.x).toBeGreaterThanOrEqual(0)
+  expect(box.x + box.width).toBeLessThanOrEqual(390)
+  expect(frame).toEqual(before)
+  // зона по-прежнему над своим местом в кадре, и её можно нажать ещё раз — пояснение закрывается
+  await expect(spot).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await spot.click()
+  await expect(note).toHaveCount(0)
+})

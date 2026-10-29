@@ -176,7 +176,7 @@ export const chAbc: Lesson = {
             ],
           },
           lines: ['Терминал — окно для команд текстом.', 'git init делает папку репозиторием.', 'git status: Git за ними не следит.', 'Коммит — сохранение с подписью.'],
-          spots: [{ at: 2, until: 3, target: 'line:status:0', title: '??', text: 'Так git status отмечает новый файл: Git за ним ещё не следит. После коммита файл попадёт в историю.' }],
+          spots: [{ at: 3, target: 'line:status:0', title: '??', text: 'Так git status отмечает новый файл: Git за ним ещё не следит. После коммита файл попадёт в историю.' }],
         },
         {
           id: 'git-diff',
@@ -216,7 +216,7 @@ export const chAbc: Lesson = {
           },
           lines: ['Ошибка — крупная правка без коммита.', 'ИИ переписал 48 строк стилей.', 'Верно — с коммитом её отменит git restore.', 'Пустой status — всё как в коммите.'],
           camera: [{ at: 0, target: 'out:diff-css' }],
-          spots: [{ at: 1, until: 2, target: 'line:diff-css:0', title: '48 строк', text: 'Короткий дифф с последним коммитом: ИИ переписал стили — в app/globals.css 36 строк добавлено и 12 убрано.' }],
+          spots: [{ at: 2, until: 3, target: 'line:diff-css:0', title: '48 строк', text: 'Короткий дифф с последним коммитом: ИИ переписал стили — в app/globals.css 36 строк добавлено и 12 убрано.' }],
           verdict: [
             { at: 0, kind: 'wrong' },
             { at: 2, kind: 'right' },
@@ -319,13 +319,13 @@ export const chAbc: Lesson = {
         {
           id: 'works-console',
           role: 'example',
-          frame: { type: 'browser', session: S2, event: 'save-bad', console: true, consoleLines: [2, 5], at: { page: 0, console: 2 } },
+          frame: { type: 'browser', session: S2, event: 'save-bad', console: true, consoleLines: [5, 5], at: { page: 0, console: 2 } },
           lines: ['Вводим вес «60 кг» и сохраняем.', 'На странице — ничего.', 'Console: красная строка, ответ 400.'],
           camera: [
             { at: 0, target: 'field:Вес, кг' },
             { at: 1, target: 'whole' },
           ],
-          spots: [{ at: 2, target: 'console:3', title: 'Ошибка в Console', text: 'Сервер ответил кодом 400 и не сохранил подход. Скопируйте строку целиком: её текст нужен ИИ.' }],
+          spots: [{ at: 2, target: 'console:0', title: 'Ошибка в Console', text: 'Сервер ответил кодом 400 и не сохранил подход. Скопируйте строку целиком: её текст нужен ИИ.' }],
         },
         {
           id: 'works-ask',
@@ -404,7 +404,7 @@ export const chAbc: Lesson = {
             { at: 0, target: 'line:start-dev:0' },
             { at: 2, target: 'whole' },
           ],
-          spots: [{ at: 1, until: 2, target: 'line:start-dev:0', title: 'Missing script', text: 'В package.json нет такой команды. Список настоящих покажет npm run.' }],
+          spots: [{ at: 3, target: 'line:start-dev:0', title: 'Missing script', text: 'В package.json нет такой команды. Список настоящих покажет npm run.' }],
           verdict: [
             { at: 0, kind: 'wrong' },
             { at: 3, kind: 'right' },

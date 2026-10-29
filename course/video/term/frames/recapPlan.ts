@@ -12,7 +12,7 @@ import { beatProblem } from './source'
  * Внизу, у нижнего края SAFE, «Книга:» (faint) и разделы книги из ctx.lesson.book по bookSection: «Азбука · Код, языки и чужие детали»,
  * по строке, 28 px soft; если так пункты не помещаются над блоком — разделы одной главы подряд одним абзацем: глава строкой, под ней
  * названия разделов через « · » (так у ролика главы 1: одиннадцать разделов). Блок появляется, когда последний пункт на месте.
- * Разделов нет — блока нет.
+ * Разделов нет — блока нет. Блок выше SAFE (разделов слишком много и абзацами) — проблема.
  * Части: 'frame', 'item:<k>', 'book'.
  */
 export type RecapSpec = { type: 'recap'; items: { text: string; at: number }[] }
@@ -95,7 +95,10 @@ export function plan(spec: RecapSpec, ctx: FrameCtx, clock: Clock): Plan {
   // Группа по центру SAFE; если над книгой тесно — выше, но не выше SAFE.y (тогда problems)
   const centered = SAFE.y + Math.floor((SAFE.h - height) / 2)
   const top = Math.max(SAFE.y, Math.min(centered, floor - height))
-  if (laid.length > 0 && top + height > floor + 0.01) {
+  if (book && book.y < SAFE.y - 0.01) {
+    // Блок растёт от нижнего края вверх: и абзацами по главам он выше SAFE — под шапкой; пунктам над ним места нет тем более
+    problems.push(`не помещается: блок книги выходит выше SAFE — его верх на y ${Math.round(book.y)}, а SAFE начинается с y ${SAFE.y}; оставьте у урока меньше разделов книги`)
+  } else if (laid.length > 0 && top + height > floor + 0.01) {
     problems.push(
       book
         ? `не помещается: пункты доходят до y ${Math.round(top + height)}, а блок книги начинается с y ${Math.round(floor + RECAP.book.gapAbove)} — сократите пункты или разделы`

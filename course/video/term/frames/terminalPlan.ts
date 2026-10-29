@@ -173,6 +173,23 @@ export function terminalMoments(spec: TerminalSpec, clock: Clock, ctx: FrameCtx)
   return [...at].sort((a, b) => a - b)
 }
 
+/**
+ * С какого кадра части видны (FrameDef.appears): команда — когда набрана целиком (30 знаков/с от начала набора; недонабранную не прочесть),
+ * строка вывода — на своём кадре очереди (через MOTION.stagger после набора и дальше по строке), вывод — с первой строки. У события browser
+ * команды нет, строки server идут с самой реплики. Камера и пояснение смотрят на конец сцены, поэтому место части здесь не важно — только время.
+ */
+export function terminalAppears(spec: TerminalSpec, clock: Clock, ctx: FrameCtx): Map<string, number> {
+  const p = plan(spec, ctx)
+  const at = new Map<string, number>()
+  timeline(p, clock).forEach((t, i) => {
+    const e = p.entries[i]
+    if (e.cmdRows.length > 0) at.set(`cmd:${e.event}`, t.typedEnd)
+    e.lines.forEach((_, k) => at.set(`line:${e.event}:${k}`, t.lineAt[k]))
+    if (e.lines.length > 0) at.set(`out:${e.event}`, t.lineAt[0])
+  })
+  return at
+}
+
 export function terminalProblems(spec: TerminalSpec, ctx: FrameCtx, clock: Clock): string[] {
   const p = plan(spec, ctx)
   const bad = [...p.problems]

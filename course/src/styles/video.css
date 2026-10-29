@@ -38,16 +38,22 @@
 
 /* Зоны кадра на паузе: рамки мягко пульсируют. Кадр старых роликов светлый — рамка тёмная в обеих темах;
    кадр новых (1920×1080, слой с is-dark) всегда тёмный — рамка светлая, цвет ink тёмной темы курса: не переменная темы страницы,
-   потому что кадр от темы не зависит */
+   потому что кадр от темы не зависит.
+   Зона — ровно прямоугольник части кадра, а рамка — outline снаружи неё с отступом в свою толщину: border внутри узкой зоны
+   (одна буква, короткая строка) закрывал её первый знак. Рамка тонкая и близко к зоне: строки кода стоят вплотную, дальше она
+   зачёркивала бы соседнюю. Пульс — тень за рамкой. Фокус с клавиатуры — второе кольцо снаружи */
 .hotspot-layer{position:absolute;inset:0}
-.video-hotspot{position:absolute;padding:0;border:3px solid #16181B;border-radius:var(--radius-s);background:rgba(22,24,27,.08);animation:hs-pulse 1.6s ease-in-out infinite}
+.video-hotspot{position:absolute;padding:0;border:0;outline:2px solid #16181B;outline-offset:2px;border-radius:var(--radius-s);background:rgba(22,24,27,.08);animation:hs-pulse 1.6s ease-in-out infinite}
 .video-hotspot.is-open{animation:none;background:rgba(22,24,27,.16)}
-@keyframes hs-pulse{50%{box-shadow:0 0 0 6px rgba(22,24,27,.22)}}
-.hotspot-layer.is-dark .video-hotspot{border-color:#E9EBEE;background:rgba(233,235,238,.08);animation-name:hs-pulse-dark}
+.video-hotspot:focus-visible{outline:2px solid #16181B;outline-offset:2px;animation:none;box-shadow:0 0 0 6px #FBFAF6,0 0 0 8px #16181B}
+@keyframes hs-pulse{50%{box-shadow:0 0 0 8px rgba(22,24,27,.22)}}
+.hotspot-layer.is-dark .video-hotspot{outline-color:#E9EBEE;background:rgba(233,235,238,.08);animation-name:hs-pulse-dark}
 .hotspot-layer.is-dark .video-hotspot.is-open{animation:none;background:rgba(233,235,238,.16)}
-.hotspot-layer.is-dark .video-hotspot:focus-visible{outline-color:#E9EBEE}
-@keyframes hs-pulse-dark{50%{box-shadow:0 0 0 6px rgba(233,235,238,.22)}}
+.hotspot-layer.is-dark .video-hotspot:focus-visible{outline-color:#E9EBEE;box-shadow:0 0 0 6px #141619,0 0 0 8px #E9EBEE}
+@keyframes hs-pulse-dark{50%{box-shadow:0 0 0 8px rgba(233,235,238,.22)}}
 @media (prefers-reduced-motion: reduce){.video-hotspot,.hotspot-layer.is-dark .video-hotspot{animation:none}}
+/* Кадр и панель открытого пояснения — в одной обёртке: на компьютере панель лежит поверх низа кадра, на узком экране — под ним (ниже) */
+.video-view{position:relative}
 .video-hotspot-note{position:absolute;left:12px;right:12px;bottom:12px;padding:10px 14px;border-radius:var(--radius-s);background:var(--paper);color:var(--ink);border:1px solid var(--rule);box-shadow:var(--shadow-raised);font:400 .9rem/1.45 var(--font-body)}
 .video-hotspot-note p{margin:4px 0 0}
 
@@ -107,9 +113,6 @@
   .video-grid{grid-template-columns:minmax(0,1fr)}
   :is(.day-part,.video-grid) > *{scroll-margin-top:80px}
 }
-@media (max-width:600px){
-  .video-chapter{order:1;flex:1 1 100%;padding-bottom:4px}
-}
 @media (max-width:640px){
   .video-cover-play{width:60px;height:60px;margin:-30px 0 0 -30px}
   .video-cover-play svg{width:26px;height:26px}
@@ -120,4 +123,10 @@
   .video-end .btn{min-height:44px;padding:0 14px;font-size:14px}
   .video-title{font-size:15px}
   .video-hotspot-note{left:6px;right:6px;bottom:6px;padding:6px 10px;font-size:.78rem;line-height:1.35}
+}
+/* Телефон (уже 600 px): подпись главы — своей строкой панели; пояснение открывается под кадром, а не поверх него —
+   поверх оно закрывало до 60 % сцены. Под кадром места хватает, поэтому шрифт обычный */
+@media (max-width:600px){
+  .video-chapter{order:1;flex:1 1 100%;padding-bottom:4px}
+  .video-hotspot-note{position:static;margin-top:6px;padding:10px 14px;box-shadow:none;font-size:.9rem;line-height:1.45}
 }

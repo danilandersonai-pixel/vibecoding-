@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { buildLesson } from './build'
 import { fixtureLesson } from './fixture-lesson'
 import type { Lesson, LessonScene } from './lesson'
+import { typedFrames } from './motion'
 import { lessonProblems } from './problems'
+import { MOTION } from './theme'
 
 // Фикстура проходит все проверки урока, кроме длины (она короче ролика главы). Каждая поломка ниже — по одной — даёт свою строку.
 const short = (lesson: Lesson) => lessonProblems(lesson, { checkLength: false })
@@ -293,6 +295,42 @@ describe('lessonProblems: прокрутка последнего элемент
       dev.spots = [{ at: 1, target: 'line:scripts:9', title: 'eslint', text: 'Последняя строка списка.' }]
     })
     expect(p.filter((x) => x.includes('прокручивается'))).toEqual([])
+  })
+})
+
+// Пояснение открывается на паузе там, где часть кадра уже видна: у терминала строка вывода появляется через 17–20 кадров после реплики
+// (команда набирается 30 знаков/с, первая строка — через MOTION.stagger), у агента шаги ждут конца набора запроса.
+describe('lessonProblems: пояснение не раньше своей цели', () => {
+  const S2 = 's02-sets'
+  const devWith = (second: { event: string; lines?: [number, number] }, spot: { target: string; title: string }) =>
+    broken((_, s) => {
+      const dev = s('site-dev')
+      dev.frame = { type: 'terminal', items: [{ session: S2, event: 'dev', at: 0 }, { session: S2, at: 1, ...second }] }
+      dev.spots = [{ at: 1, text: 'Что здесь видно.', ...spot }]
+    })
+
+  it('пояснение раньше появления строки вывода — проблема с кадрами', () => {
+    const p = devWith({ event: 'diff' }, { target: 'line:diff:0', title: 'Дифф' })
+    // `git diff --stat` начинает набираться на реплике 1 (вывод dev кончился раньше), первая строка — после набора и шага очереди
+    const l = structuredClone(fixtureLesson)
+    const from = buildLesson(l).scenes.find((b) => b.id === 'site-dev')!.clock.beat(1)
+    const line = from + typedFrames('git diff --stat') + MOTION.stagger
+    expect(line - from).toBe(17)
+    has(p, new RegExp(`^сцена «site-dev»: spots\\[0\\]: Пояснение «Дифф» открывается на кадре ${from}, а «line:diff:0» появляется на кадре ${line}`))
+    expect(p).toHaveLength(1)
+    // команда — тоже цель с набором: видна целиком, когда набрана
+    has(devWith({ event: 'diff' }, { target: 'cmd:diff', title: 'Дифф' }), new RegExp(`Пояснение «Дифф» открывается на кадре ${from}, а «cmd:diff» появляется на кадре ${from + 15}`))
+    // вывод — с первой строки
+    has(devWith({ event: 'diff' }, { target: 'out:diff', title: 'Дифф' }), new RegExp(`а «out:diff» появляется на кадре ${line}`))
+  })
+
+  it('пояснение после появления — без проблем', () => {
+    // строка раннего элемента появилась задолго до реплики пояснения
+    expect(devWith({ event: 'diff' }, { target: 'line:dev:7', title: 'Ready' })).toEqual([])
+    // строка server у события browser идёт без набора, с самой реплики: пояснение на той же реплике открывается вместе с ней
+    expect(devWith({ event: 'save-ok', lines: [47, 47] }, { target: 'line:save-ok:0', title: 'Запрос' })).toEqual([])
+    // фикстура: пояснения на cmd:dev и line:start-dev:0 — после появления своих целей
+    expect(short(fixtureLesson)).toEqual([])
   })
 })
 

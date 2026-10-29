@@ -219,6 +219,28 @@ export function browserMoments(spec: BrowserSpec, clock: Clock, ctx: FrameCtx): 
   return [...at].sort((a, b) => a - b)
 }
 
+/**
+ * С какого кадра части видны (FrameDef.appears): поле и кнопка — когда начали проявляться в очереди страницы (от at.page по MOTION.stagger;
+ * на самом кадре начала непрозрачность 0, поэтому кадром позже); новые после action — когда начали проявляться после него; сдвинутые
+ * action — когда пошли на своё место (их часть — место после action). Сообщение консоли — на своём кадре очереди от at.console,
+ * панель 'console' — с первым сообщением. Строка адреса и область страницы видны с начала сцены — их в карте нет.
+ */
+export function browserAppears(spec: BrowserSpec, clock: Clock, ctx: FrameCtx): Map<string, number> {
+  const p = plan(spec, ctx)
+  const at = new Map<string, number>()
+  if (!p.ok) return at
+  const action = spec.at.action === undefined ? null : clock.beat(spec.at.action)
+  for (const { from, to } of p.slots) {
+    if (!to || (to.kind !== 'field' && to.kind !== 'button')) continue
+    const start = from ? pageAt(spec, clock) + from.order * MOTION.stagger : action!
+    const moved = from !== null && action !== null && from.y !== to.y ? action : -1
+    at.set(`${to.kind}:${to.text}`, Math.max(start, moved) + 1)
+  }
+  p.messages.forEach((_, k) => at.set(`console:${k}`, consoleAt(spec, clock, k)))
+  if (p.messages.length > 0) at.set('console', consoleAt(spec, clock, 0))
+  return at
+}
+
 export function browserProblems(spec: BrowserSpec, ctx: FrameCtx, clock: Clock): string[] {
   const p = plan(spec, ctx)
   const bad = [...p.problems]

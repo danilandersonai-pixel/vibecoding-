@@ -424,6 +424,44 @@ describe('Terminal', () => {
       expect(m).toContain(CLOCK.beat(1))
     })
   })
+
+  describe('appears', () => {
+    it('команда — когда набрана целиком, строка вывода — на своём кадре очереди, вывод — с первой строки', () => {
+      const at = def.appears!(T0, CLOCK, ctx)
+      expect(at.get('cmd:fail')).toBe(typedEnd)
+      expect(at.get('line:fail:0')).toBe(typedEnd + MOTION.stagger)
+      expect(at.get('line:fail:2')).toBe(typedEnd + 3 * MOTION.stagger)
+      expect(at.get('out:fail')).toBe(typedEnd + MOTION.stagger)
+      // ls ждёт своей реплики и набирается 30 знаков/с: два знака — два кадра
+      expect(at.get('cmd:ls')).toBe(CLOCK.beat(1) + 2)
+      expect(at.get('out:ls')).toBe(CLOCK.beat(1) + 2 + MOTION.stagger)
+      // часть, видная с начала сцены, в карте не нужна
+      expect(at.has('frame')).toBe(false)
+    })
+
+    it('совпадает с рисунком: за кадр до появления части её не видно (команда ещё не набрана), на кадре появления — видно', () => {
+      const spec: TerminalSpec = { type: 'terminal', items: [{ session: S, event: 'fail', at: 0 }, { session: S, event: 'dev', at: 1 }, { session: S, event: 'save', at: 2, lines: [2, 3] }] }
+      const at = def.appears!(spec, CLOCK, ctx)
+      expect(at.size).toBe(13) // по команде у двух run, по выводу и строкам у трёх событий
+      const end = view(spec, CLOCK.duration - 1)
+      for (const [name, f] of at) {
+        const [, kind, event] = /^(cmd|out|line):([^:]+)/.exec(name)!
+        if (kind === 'cmd') {
+          // набранная команда — такая, как в конце сцены; кадром раньше — ещё без последнего знака
+          expect(part(view(spec, f), name), `${name} на кадре ${f}`).toBe(part(end, name))
+          expect(part(view(spec, f - 1), name), `${name} на кадре ${f - 1}`).not.toBe(part(end, name))
+        } else {
+          // строка (у вывода — его первая) появляется сразу целиком
+          const line = kind === 'out' ? `line:${event}:0` : name
+          expect(part(view(spec, f), line), `${name} на кадре ${f}`).toBe(part(end, line))
+          expect(part(view(spec, f - 1), line), `${name} на кадре ${f - 1}`).toBeNull()
+        }
+      }
+      // у события browser команды нет, строки server — с самой реплики
+      expect(at.has('cmd:save')).toBe(false)
+      expect(at.get('line:save:0')).toBe(CLOCK.beat(2))
+    })
+  })
 })
 
 describe('Editor', () => {

@@ -313,6 +313,24 @@ export function agentMoments(spec: AgentSpec, clock: Clock, ctx: FrameCtx): numb
   return [...at].sort((a, b) => a - b)
 }
 
+/**
+ * С какого кадра части видны (FrameDef.appears): запрос — когда набран целиком (30 знаков/с с реплики at.prompt), шаг — со своей первой
+ * строки (шаги ждут конца набора запроса и предыдущего шага: на короткой реплике шаг приходит позже неё), ответ агента — когда начала
+ * проявляться первая строка (на самом кадре начала непрозрачность 0), код чата — с первой строки. Рамка ввода и режим видны с начала
+ * сцены — их в карте нет.
+ */
+export function agentAppears(spec: AgentSpec, clock: Clock, ctx: FrameCtx): Map<string, number> {
+  const p = plan(spec, ctx)
+  const at = new Map<string, number>()
+  if (!p.ok) return at
+  const t = timeline(spec, p, clock)
+  at.set('prompt', t.typedEnd)
+  p.steps.forEach((s, i) => at.set(`step:${s.id}`, t.steps[i]))
+  if (p.reply.lines.length > 0) at.set('reply', t.reply + 1)
+  if (p.code && t.code !== null) at.set('code', t.code)
+  return at
+}
+
 export function agentProblems(spec: AgentSpec, ctx: FrameCtx, clock: Clock): string[] {
   const p = plan(spec, ctx)
   const bad = [...p.problems]

@@ -1,5 +1,6 @@
+import { easeOut } from '../motion'
 import { monoChars } from '../text'
-import { HEADER, MONO, SAFE, SUBS } from '../theme'
+import { HEADER, MONO, MOTION, SAFE, SUBS } from '../theme'
 
 // Геометрия шапки: Header и Verdict стоят на одной строке и считают позиции по ширине знака Martian Mono.
 
@@ -23,6 +24,15 @@ export function titleRoom(lessonId: string, right: number): number {
 
 /** Сколько знаков шапки занимают px справа (с запасом на неточность дробной ширины знака). */
 export const cellsFor = (px: number) => Math.max(0, Math.ceil(px / CELL - 1e-6))
+
+/**
+ * Смена главы в шапке: номер крутится, а название новой главы и правая часть (ссылка на книгу или метки ошибки) проявляются вместе —
+ * t кадров от начала главы → 0…1 за MOTION.chapter по ease-out (на кадре начала главы 0); вне смены (раньше начала и после) — 1.
+ * Одна кривая на обе половины шапки (Header и headerRight в build.ts): прежние название и правая часть пропадают на одном кадре.
+ */
+export function chapterIn(t: number): number {
+  return t < 0 || t >= MOTION.chapter ? 1 : easeOut(t / MOTION.chapter)
+}
 
 /** Ссылка на книгу в шапке: не длиннее max знаков; если рядом с названием главы ей остаётся меньше min — название не помещается. */
 export const HEADER_BOOK = { max: 56, min: 24 }

@@ -1,4 +1,5 @@
 import type { Clock, FrameCtx, Rect } from '../frame'
+import { fitText } from '../text'
 import { MONO, MOTION, SAFE } from '../theme'
 import { fitWidth, fitWrap } from './fit'
 import { outsideSafe } from './geometry'
@@ -9,7 +10,8 @@ import { beatProblem } from './source'
  * Golos 56 px 600 ink, переносится по ширине SAFE, не больше двух строк) и главы строками, как лог — номер места главы в уроке
  * (02 у первой тематической, Martian Mono faint) и название (Golos Text 36 px ink). Пункты — главы ctx.lesson.chapters без первой и последней.
  * Кикер и название появляются вместе с кадром, пункты — на репликах at (по одной на пункт, по порядку) или очередью от реплики 0
- * с шагом MOTION.stagger × 3. Вся группа стоит по центру высоты SAFE; выше SAFE — от верха.
+ * с шагом MOTION.stagger × 3. Вся группа стоит по центру высоты SAFE; выше SAFE — от верха. Кикер — одна строка без переноса:
+ * шире SAFE — проблема.
  * Части: 'frame', 'item:<k>'.
  */
 export type AgendaSpec = { type: 'agenda'; at?: number[] }
@@ -28,7 +30,8 @@ export const NAME_X = SAFE.x + 2 * AGENDA.num.size * MONO.advance + AGENDA.numGa
 
 export type AgendaItem = { name: string; num: string; y: number; at: number; rect: Rect }
 type Plan = {
-  kicker: { text: string; y: number }
+  /** Кикер: текст, верх строки и ширина (Martian Mono 24 px). */
+  kicker: { text: string; y: number; w: number }
   title: { lines: string[]; y: number }
   items: AgendaItem[]
   pitch: number
@@ -48,6 +51,11 @@ export function plan(spec: AgendaSpec, ctx: FrameCtx, clock: Clock): Plan {
       if (k > 0 && a < spec.at![k - 1]) problems.push(`at[${k}]: пункты идут по порядку реплик, а реплика ${a} раньше реплики ${spec.at![k - 1]}`)
     })
   }
+
+  // Кикер — строка Martian Mono без переноса: ширина точная, знак за знаком
+  const kicker = chapters[0] ?? 'Что узнаете'
+  const kickerW = [...kicker].length * AGENDA.kicker.size * MONO.advance
+  if (kickerW > SAFE.w + 0.01) problems.push(`кикер «${fitText(kicker, 40)}»: шире строки (${Math.ceil(kickerW)} px при ${SAFE.w}) — сократите название первой главы урока`)
 
   const lines = fitWrap(ctx.lesson.title, AGENDA.title.size, SAFE.w)
   if (lines.length > AGENDA.title.maxLines) problems.push(`название урока занимает ${lines.length} строк, а нужно не больше ${AGENDA.title.maxLines}`)
@@ -74,7 +82,7 @@ export function plan(spec: AgendaSpec, ctx: FrameCtx, clock: Clock): Plan {
     }
   })
   return {
-    kicker: { text: chapters[0] ?? 'Что узнаете', y: top },
+    kicker: { text: kicker, y: top, w: kickerW },
     title: { lines, y: top + AGENDA.kicker.line + AGENDA.kicker.gap },
     items,
     pitch,

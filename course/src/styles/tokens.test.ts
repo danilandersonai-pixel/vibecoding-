@@ -218,11 +218,12 @@ describe('tokens.css', () => {
     expect(cssDecls('video.css', '.video-end .btn')['border-color']).toBe('var(--term-soft)')
     // Полоса глав под перемоткой: непройденная часть — --edge (3 : 1 к фону страницы), пройденная — --ink
     expect(cssDecls('video.css', '.video-seek-chapter').background).toBe('linear-gradient(90deg,var(--ink) var(--fill,0%),var(--edge) var(--fill,0%))')
-    // Рамка пояснения: на светлом кадре старых роликов тёмная, на тёмном кадре новых — светлая
-    expect(cssDecls('video.css', '.video-hotspot')['border']).toBe('3px solid #16181B')
-    expect(cssDecls('video.css', '.hotspot-layer.is-dark .video-hotspot')['border-color']).toBe('#E9EBEE')
+    // Рамка пояснения (outline снаружи зоны): на светлом кадре старых роликов тёмная, на тёмном кадре новых — светлая
+    expect(cssDecls('video.css', '.video-hotspot').outline).toBe('2px solid #16181B')
+    expect(cssDecls('video.css', '.hotspot-layer.is-dark .video-hotspot')['outline-color']).toBe('#E9EBEE')
     // Кольцо фокуса зоны на тёмном кадре — светлое в обеих темах страницы (общее кольцо в светлой теме тёмное и на кадре пропало бы)
     expect(cssDecls('video.css', '.hotspot-layer.is-dark .video-hotspot:focus-visible')['outline-color']).toBe('#E9EBEE')
+    expect(cssDecls('video.css', '.hotspot-layer.is-dark .video-hotspot:focus-visible')['box-shadow']).toBe('0 0 0 6px #141619,0 0 0 8px #E9EBEE')
     // Сцена до загрузки кода ролика: у новых — тёмный фон кадра (--desk тёмной темы), у старых — бумага роликов
     expect(cssDecls('video.css', '.video-stage.is-dark').background).toBe('#141619')
     // Название главы уходит на свою строку, если рядом с ним меньше 9em, а не сжимается до «2/…»

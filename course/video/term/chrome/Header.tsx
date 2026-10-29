@@ -1,9 +1,8 @@
 import { useCurrentFrame } from 'remotion'
 import { svgId } from '../ids'
-import { easeOut } from '../motion'
 import { fitText } from '../text'
 import { HEADER, MONO, MOTION, SAFE, T } from '../theme'
-import { BASELINE, CELL, LEFT, RIGHT, cellsFor, titleRoom } from './layout'
+import { BASELINE, CELL, LEFT, RIGHT, cellsFor, chapterIn, titleRoom } from './layout'
 
 type Props = {
   /** id ролика, например «ch-abc». */
@@ -14,7 +13,10 @@ type Props = {
   book: string
   /** Сколько px справа занято тем, что рисуется рядом с шапкой, а не ею (ссылка на книгу сцены — HeaderBook, метки ошибки), если book пуст. */
   reserve?: number
-  /** Кадр, на котором началась эта глава (в той же шкале, что useCurrentFrame): 12 кадров номер прокручивается, а полоса главы переезжает. */
+  /**
+   * Кадр, на котором началась эта глава (в той же шкале, что useCurrentFrame): 12 кадров номер прокручивается, полоса главы переезжает,
+   * название проявляется (chapterIn — по той же кривой правая часть шапки меняется в headerRight). До at смены ещё нет: глава стоит целиком.
+   */
   at: number
 }
 
@@ -30,8 +32,10 @@ const text = { fontFamily: T.mono, fontSize: MONO.size, fontWeight: 500, fontVar
 // Под текстом — полоса глав: по сегменту на главу, текущая ink. Рисуется <g> поверх общего <svg viewBox="0 0 1920 1080">.
 export function Header({ lessonId, chapter, book, reserve = 0, at }: Props) {
   const frame = useCurrentFrame()
-  const p = easeOut((frame - at) / MOTION.chapter)
-  const rolling = chapter.n > 1 && p < 1
+  const t = frame - at
+  // У первой главы смены нет: прежней главы нет
+  const rolling = chapter.n > 1 && t >= 0 && t < MOTION.chapter
+  const p = chapterIn(t)
 
   // Клип номера свой у каждого ролика: x клипа зависит от длины id, а на странице дня роликов несколько (см. ids.ts)
   const clip = svgId(lessonId, 'header-number')

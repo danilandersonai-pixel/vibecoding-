@@ -3,13 +3,13 @@ import { Agenda } from './Agenda'
 import { agendaLayout, agendaMoments, agendaProblems } from './agendaPlan'
 import type { AgendaSpec } from './agendaPlan'
 import { Agent } from './Agent'
-import { agentLayout, agentMoments, agentProblems } from './agentPlan'
+import { agentAppears, agentLayout, agentMoments, agentProblems } from './agentPlan'
 import type { AgentSpec } from './agentPlan'
 import { Board } from './Board'
 import { boardLayout, boardMoments, boardProblems } from './boardPlan'
 import type { BoardSpec } from './boardPlan'
 import { Browser } from './Browser'
-import { browserLayout, browserMoments, browserProblems } from './browserPlan'
+import { browserAppears, browserLayout, browserMoments, browserProblems } from './browserPlan'
 import type { BrowserSpec } from './browserPlan'
 import { Diff } from './Diff'
 import { diffLayout, diffMoments, diffProblems } from './diffPlan'
@@ -27,7 +27,7 @@ import { Recap } from './Recap'
 import { recapLayout, recapMoments, recapProblems } from './recapPlan'
 import type { RecapSpec } from './recapPlan'
 import { Terminal } from './Terminal'
-import { terminalLayout, terminalMoments, terminalProblems } from './terminalPlan'
+import { terminalAppears, terminalLayout, terminalMoments, terminalProblems } from './terminalPlan'
 import type { TerminalSpec } from './terminalPlan'
 
 // Кадры набора «Репозиторий»: по типу кадра в сцене — его описание (части, моменты, проверки, разметка).
@@ -36,12 +36,12 @@ export type { AgendaSpec, AgentSpec, BoardSpec, BrowserSpec, DiffSpec, EditorSpe
 export type FrameSpec = TerminalSpec | EditorSpec | DiffSpec | AgentSpec | GitLogSpec | BrowserSpec | FigureSpec | BoardSpec | AgendaSpec | RecapSpec
 
 export const FRAMES: { [K in FrameSpec['type']]: FrameDef<Extract<FrameSpec, { type: K }>> } = {
-  terminal: { layout: terminalLayout, moments: terminalMoments, problems: terminalProblems, Component: Terminal },
+  terminal: { layout: terminalLayout, moments: terminalMoments, appears: terminalAppears, problems: terminalProblems, Component: Terminal },
   editor: { layout: editorLayout, moments: editorMoments, problems: editorProblems, Component: Editor },
   diff: { layout: diffLayout, moments: diffMoments, problems: diffProblems, Component: Diff },
-  agent: { layout: agentLayout, moments: agentMoments, problems: agentProblems, Component: Agent },
+  agent: { layout: agentLayout, moments: agentMoments, appears: agentAppears, problems: agentProblems, Component: Agent },
   gitlog: { layout: gitLogLayout, moments: gitLogMoments, problems: gitLogProblems, Component: GitLog },
-  browser: { layout: browserLayout, moments: browserMoments, problems: browserProblems, Component: Browser },
+  browser: { layout: browserLayout, moments: browserMoments, appears: browserAppears, problems: browserProblems, Component: Browser },
   figure: { layout: figureLayout, moments: figureMoments, problems: figureProblems, Component: Figure },
   board: { layout: boardLayout, moments: boardMoments, problems: boardProblems, Component: Board },
   agenda: { layout: agendaLayout, moments: agendaMoments, problems: agendaProblems, Component: Agenda },

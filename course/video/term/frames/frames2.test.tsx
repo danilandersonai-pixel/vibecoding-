@@ -534,6 +534,44 @@ describe('Agent', () => {
       expect(m).toEqual([...new Set(m)].sort((a, b) => a - b))
     })
   })
+
+  describe('appears', () => {
+    it('запрос — когда набран целиком, шаг — со своей первой строки, ответ — с первого кадра проявления', () => {
+      const at = def.appears!(AG, CLOCK, ctx)
+      expect(at.get('prompt')).toBe(TYPED)
+      // шаги — на своих репликах или позже, когда кончился набор и предыдущий шаг (кадры — из комментария к AG)
+      expect(at.get('step:rd-page')).toBe(120)
+      expect(at.get('step:route')).toBe(122)
+      expect(at.get('step:page')).toBe(210)
+      expect(at.get('step:fail')).toBe(216)
+      expect(at.get('step:c2')).toBe(300)
+      // ответ на кадре 390 начинает проявляться: непрозрачность там 0, видно — кадром позже
+      expect(at.get('reply')).toBe(391)
+      // режим виден с начала сцены — его в карте нет
+      expect([...at.keys()].sort()).toEqual(['prompt', 'reply', 'step:c2', 'step:fail', 'step:page', 'step:rd-page', 'step:route'])
+      // шаги ждут конца набора: запрос длиннее реплики — первый шаг приходит позже своей реплики
+      const late = def.appears!({ ...AG, at: { ...AG.at, steps: [0, 1, 2, 2, 3] } }, CLOCK, ctx)
+      expect(late.get('step:rd-page')).toBe(TYPED + MOTION.stagger)
+      expect([...def.appears!(CHAT, CLOCK, ctx).keys()].sort()).toEqual(['code', 'prompt'])
+    })
+
+    it('совпадает с рисунком: за кадр до появления части её не видно (запрос ещё не набран), на кадре появления — видно', () => {
+      const seen = (html: string, name: string) => (part(html, name) ?? '').includes('<text')
+      for (const spec of [AG, CHAT]) {
+        const end = view(spec, END)
+        for (const [name, f] of def.appears!(spec, CLOCK, ctx)) {
+          if (name === 'prompt') {
+            // рамка ввода с «>» видна всегда, а запрос — набран целиком к кадру f
+            expect(part(view(spec, f), name), `${name} на кадре ${f}`).toBe(part(end, name))
+            expect(part(view(spec, f - 1), name), `${name} на кадре ${f - 1}`).not.toBe(part(end, name))
+          } else {
+            expect(seen(view(spec, f), name), `${name} на кадре ${f}`).toBe(true)
+            expect(seen(view(spec, f - 1), name), `${name} на кадре ${f - 1}`).toBe(false)
+          }
+        }
+      }
+    })
+  })
 })
 
 describe('GitLog', () => {
@@ -1223,6 +1261,62 @@ describe('Browser', () => {
       const m = def.moments(BR, CLOCK, ctx)
       expect(m).toEqual(expect.arrayContaining([0, PAGE_AT, PAGE_AT + MOTION.stagger, ACTION, CONSOLE, CONSOLE + MOTION.stagger, CONSOLE + 3 * MOTION.stagger]))
       expect(m).toEqual([...new Set(m)].sort((a, b) => a - b))
+    })
+  })
+
+  describe('appears', () => {
+    // Подсказка встаёт над полем: на action поле съезжает вниз, а кнопка «Ещё раз» есть только после action
+    const moved: BrowserEvent = {
+      id: 'moved',
+      kind: 'browser',
+      url: 'http://localhost:3000/',
+      title: 'Тренировка',
+      fields: [{ label: 'Вес, кг', value: '60' }],
+      buttons: ['Сохранить', 'Ещё раз'],
+      before: ['Тренировка', 'Вес, кг', 'Сохранить'],
+      after: ['Тренировка', 'Сначала введите вес', 'Вес, кг', 'Сохранить', 'Ещё раз'],
+      console: [],
+      network: [],
+      server: [],
+    }
+    const c2: FrameCtx = { ...ctx, find: makeFind([{ ...FIXTURE, events: [...FIXTURE.events, moved] }]) }
+    const MOVED: BrowserSpec = { type: 'browser', session: S, event: 'moved', at: { page: 0, action: 1 } }
+
+    it('поля и кнопки — с первого кадра проявления в очереди страницы, сообщения консоли — на своём кадре, панель — с первым', () => {
+      const at = def.appears!(BR, CLOCK, ctx)
+      // строки страницы идут очередью от at.page по MOTION.stagger (поле веса — вторая) и проявляются: на кадре начала непрозрачность 0
+      expect(at.get('field:Вес, кг')).toBe(PAGE_AT + MOTION.stagger + 1)
+      expect(at.get('field:Повторы')).toBe(PAGE_AT + 2 * MOTION.stagger + 1)
+      expect(at.get('button:Сохранить подход')).toBe(PAGE_AT + 3 * MOTION.stagger + 1)
+      expect(at.get('console:0')).toBe(CONSOLE)
+      expect(at.get('console:3')).toBe(CONSOLE + 3 * MOTION.stagger)
+      expect(at.get('console')).toBe(CONSOLE)
+      // строка адреса и область страницы видны с начала сцены
+      expect(at.has('url')).toBe(false)
+      expect(at.has('page')).toBe(false)
+    })
+
+    it('поле, которое action сдвигает, — когда пошло на своё место; новая кнопка — когда начала проявляться после action', () => {
+      const at = def.appears!(MOVED, CLOCK, c2)
+      expect(at.get('field:Вес, кг')).toBe(ACTION + 1)
+      expect(at.get('button:Ещё раз')).toBe(ACTION + 1)
+    })
+
+    it('совпадает с рисунком: за кадр до появления части её не видно (или она ещё на прежнем месте), на кадре появления — видно', () => {
+      // группа части целиком, с открывающим тегом: прозрачность полей и кнопок стоит на нём
+      const group = (html: string, name: string) => new RegExp(`<g data-part="${name.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}"[^>]*>.*?</g>`, 's').exec(html)?.[0] ?? null
+      for (const [name, f] of def.appears!(BR, CLOCK, ctx)) {
+        if (name === 'console') continue // панель с вкладкой видна всегда, её «появление» — первое сообщение
+        expect(group(view(BR, f), name), `${name} на кадре ${f}`).not.toBeNull()
+        expect(group(view(BR, f - 1), name), `${name} на кадре ${f - 1}`).toBeNull()
+      }
+      expect(group(view(BR, CONSOLE), 'console:0')).not.toBeNull()
+      // сдвинутое поле: на кадре action ещё на прежнем месте (как до action), кадром позже уже едет; новая кнопка — кадром позже action
+      const field = (f: number) => group(view(MOVED, f, CLOCK, c2), 'field:Вес, кг')
+      expect(field(ACTION)).toBe(field(ACTION - 1))
+      expect(field(ACTION + 1)).not.toBe(field(ACTION))
+      expect(group(view(MOVED, ACTION, CLOCK, c2), 'button:Ещё раз')).toBeNull()
+      expect(group(view(MOVED, ACTION + 1, CLOCK, c2), 'button:Ещё раз')).not.toBeNull()
     })
   })
 })

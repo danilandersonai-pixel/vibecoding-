@@ -198,8 +198,10 @@ function sceneProblems(lesson: Lesson, scenes: BuiltScene[], b: BuiltScene, ctx:
     if (k.target !== 'whole') target(`camera[${i}]`, k.target, 'камеры')
   })
   const keys = cameraKeys(b, parts)
+  // С какого кадра части видны (у кадров, где части приходят позже своей реплики); считается, только если данные кадра верны
+  const appears = frameBad.length === 0 ? def.appears?.(spec, clock, ctx) : undefined
 
-  // Пояснения: окно вне смены сцены, прямоугольник на экране внутри кадра, камера в окне стоит
+  // Пояснения: окно вне смены сцены, прямоугольник на экране внутри кадра, камера в окне стоит, цель к открытию уже видна
   ;(scene.spots ?? []).forEach((s, i) => {
     const who = `spots[${i}]`
     const why = beatProblem(s.at, clock.lines)
@@ -210,6 +212,12 @@ function sceneProblems(lesson: Lesson, scenes: BuiltScene[], b: BuiltScene, ctx:
     const w = spotWindow(b, s)
     if (w.from < SPOT_EDGE) out.push(`${S}: ${who}: начинается на кадре ${w.from} — это первые ${SPOT_EDGE} кадров сцены, там смена сцены`)
     if (w.to > b.duration - SPOT_EDGE) out.push(`${S}: ${who}: кончается на кадре ${w.to} — это последние ${SPOT_EDGE} кадров сцены (в ней ${b.duration}), там смена сцены`)
+    // На паузе зритель нажимает на то, что уже в кадре: строка вывода появляется после набора команды, шаг агента — после набора
+    // запроса; пояснение, открытое раньше, подсвечивает пустое место
+    const shown = part ? appears?.get(s.target) : undefined
+    if (shown !== undefined && w.from < shown) {
+      out.push(`${S}: ${who}: Пояснение «${s.title}» открывается на кадре ${w.from}, а «${s.target}» появляется на кадре ${shown} — поставьте пояснение на реплику позже или цель раньше`)
+    }
     const start = cameraAt(w.from, keys)
     for (let f = w.from; f < w.to; f++) {
       if (!sameShot(cameraAt(f, keys), start)) {
@@ -299,7 +307,7 @@ function verdictProblems(lesson: Lesson): string[] {
 
 /**
  * Проблемы урока: каркас (§6.2), разделы книги, длина (если checkLength не false; не короче minFrames), реплики и субтитры,
- * записи сессий (кадр ссылается только на подключённые к уроку), проблемы кадров, камера и пояснения, вердикты, шапка, шум песочницы, промежутки без изменений, сценарий (validateScript).
+ * записи сессий (кадр ссылается только на подключённые к уроку), проблемы кадров, камера и пояснения (не раньше появления своей цели — appears кадра), вердикты, шапка, шум песочницы, промежутки без изменений, сценарий (validateScript).
  */
 export function lessonProblems(lesson: Lesson, opts: { minFrames?: number; checkLength?: boolean; ctx?: FrameCtx } = {}): string[] {
   const ctx = opts.ctx ?? lessonCtx(lesson)

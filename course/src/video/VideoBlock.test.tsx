@@ -227,6 +227,39 @@ describe('VideoBlock', () => {
     expect(screen.getByRole('button', { name: 'Смотреть' })).toBeInTheDocument()
   })
 
+  it('пояснение по нажатию — панель рядом с кадром, а не внутри него: на узком экране она встаёт под кадр (video.css)', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<VideoBlock videoId="a" title="Ролик" />)
+    await act(async () => {})
+    const player = fake.players[0]
+    await user.click(cover()!)
+    const zone = pilotRlsScript.hotspots.find((h) => h.title === 'client/18')!
+    act(() => {
+      player.emit('play')
+      player.emit('frameupdate', { frame: zone.from + 5 })
+      player.emit('pause')
+    })
+    expect(screen.queryByRole('status')).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'client/18' }))
+    const note = screen.getByRole('status')
+    expect(note).toHaveTextContent(zone.text)
+    // панель — сразу за сценой кадра в общей обёртке: сама сцена (.video-stage) остаётся высотой кадра
+    const stage = container.querySelector('.video-stage')!
+    expect(stage.contains(note)).toBe(false)
+    expect(note.parentElement).toHaveClass('video-view')
+    expect(stage.nextElementSibling).toBe(note)
+    // повторное нажатие закрывает; другой кадр — тоже
+    await user.click(screen.getByRole('button', { name: 'client/18' }))
+    expect(screen.queryByRole('status')).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'client/18' }))
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    act(() => player.emit('frameupdate', { frame: zone.from + 6 }))
+    expect(screen.queryByRole('status')).toBeNull()
+    // и на тот же кадр после перемотки пояснение не возвращается само
+    act(() => player.emit('frameupdate', { frame: zone.from + 5 }))
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
   it('кнопка панели: до запуска — с начала, потом — пауза и продолжение', async () => {
     const user = userEvent.setup()
     render(<VideoBlock videoId="a" title="Ролик" />)
