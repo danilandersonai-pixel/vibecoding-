@@ -16,13 +16,16 @@ export async function asUser<T>(uid: string, fn: (db: PoolClient) => Promise<T>)
     await run("select set_config('request.jwt.claims', $1, true)", [
       JSON.stringify({ sub: uid, role: "authenticated" }),
     ]);
-    // на время запросов приложения подменяем db.query обёрткой: печатаем в журнал сервера каждый запрос — «[sql] …».
+    // Только в режиме разработки (next dev): на время запросов приложения подменяем db.query обёрткой и печатаем
+    // в журнал сервера каждый запрос — «[sql] …». В тестах (NODE_ENV=test), сборке и на сервере (production) журнал молчит.
     // Служебные команды транзакции и роли идут мимо (через run), в журнал не попадают — так видно число запросов на страницу.
-    db.query = ((text: unknown, ...args: unknown[]) => {
-      const sql = typeof text === "string" ? text : (text as { text: string }).text;
-      console.log(`[sql] ${String(sql).replace(/\s+/g, " ").trim()}`);
-      return (run as (...rest: unknown[]) => unknown)(text, ...args);
-    }) as PoolClient["query"];
+    if (process.env.NODE_ENV === "development") {
+      db.query = ((text: unknown, ...args: unknown[]) => {
+        const sql = typeof text === "string" ? text : (text as { text: string }).text;
+        console.log(`[sql] ${String(sql).replace(/\s+/g, " ").trim()}`);
+        return (run as (...rest: unknown[]) => unknown)(text, ...args);
+      }) as PoolClient["query"];
+    }
     const result = await fn(db);
     await run("commit");
     return result;

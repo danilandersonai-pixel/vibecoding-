@@ -35,7 +35,7 @@
     "- Local:         http://localhost:3000",
     "- Network:       http://192.0.2.2:3000",
     "- Environments: .env.local",
-    "✓ Ready in 432ms"
+    "✓ Ready in 491ms"
    ],
    "code": null
   },
@@ -178,7 +178,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 313ms"
+     "text": "[Fast Refresh] done in 348ms"
     },
     {
      "type": "log",
@@ -186,7 +186,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 459ms"
+     "text": "[Fast Refresh] done in 506ms"
     }
    ],
    "network": [],
@@ -194,9 +194,9 @@
     "- Cache Components enabled",
     "- Partial Prefetching enabled",
     "",
-    " GET /login 200 in 412ms (next.js: 213ms, application-code: 199ms)",
-    " POST /api/login 200 in 131ms (next.js: 64ms, application-code: 66ms)",
-    " GET /clients 200 in 94ms (next.js: 16ms, application-code: 79ms)"
+    " GET /login 200 in 486ms (next.js: 225ms, application-code: 262ms)",
+    " POST /api/login 200 in 136ms (next.js: 65ms, application-code: 71ms)",
+    " GET /clients 200 in 125ms (next.js: 18ms, application-code: 107ms)"
    ]
   },
   {
@@ -280,7 +280,7 @@
    ],
    "network": [],
    "server": [
-    " GET /clients/1 200 in 814ms (next.js: 26ms, generate-params: 597ms, application-code: 190ms)"
+    " GET /clients/1 200 in 904ms (next.js: 39ms, generate-params: 686ms, application-code: 179ms)"
    ]
   },
   {
@@ -572,7 +572,7 @@
   {
    "id": "ask-inject-fix",
    "kind": "agent",
-   "prompt": "Проверила поиск: curl -s -b ~/marina.txt -G --data-urlencode \"q=' or 1=1 --\" http://localhost:3000/api/clients/search вернул всех подопечных, включая чужую Свету. Параметры вместо склейки, запрос — от имени вошедшего тренера через asUser, без входа — 401",
+   "prompt": "Проверила поиск: curl -s -b ~/marina.txt -G --data-urlencode \"q=' or 1=1 --\" http://localhost:3000/api/clients/search ответил [{\"id\":\"1\",\"name\":\"Анна\"},{\"id\":\"2\",\"name\":\"Олег\"},{\"id\":\"3\",\"name\":\"Света\"}] — и чужая Света. Параметры вместо склейки, запрос — от имени вошедшего тренера через asUser, без входа — 401",
    "reply": "Исправил. Имя идёт параметром ($1) через ilike '%' || $1 || '%' — склеить SQL больше нельзя. Запрос теперь от имени вошедшего тренера (asUser), поэтому видно только его подопечных и RLS в силе; без входа маршрут отвечает 401 «Нужно войти».",
    "steps": [
     "search-fix"
@@ -1224,7 +1224,7 @@
     "npm error 404",
     "npm error 404 Note that you can also install from a",
     "npm error 404 tarball, folder, http url, or git url.",
-    "npm error A complete log of this run can be found in: ~/.npm/_logs/2026-10-29T11_22_03_113Z-debug-0.log"
+    "npm error A complete log of this run can be found in: ~/.npm/_logs/2026-10-29T11_39_01_304Z-debug-0.log"
    ],
    "code": 1
   },
@@ -1698,7 +1698,7 @@
    "id": "ask-last",
    "kind": "agent",
    "prompt": "В списке подопечных у каждого — дата последней тренировки. И печатай в журнал сервера каждый запрос к базе — «[sql] …», чтобы видеть, сколько их",
-   "reply": "Сделал два дела. Первое: lib/db.ts печатает в журнал сервера каждый запрос приложения — «[sql] …» (служебные команды транзакции и роли не считаю). Второе: в списке подопечных у каждого показываю дату последней тренировки — пока отдельным запросом на каждого подопечного.",
+   "reply": "Сделал два дела. Первое: в режиме разработки lib/db.ts печатает в журнал сервера каждый запрос приложения — «[sql] …» (служебные команды транзакции и роли не считаю; в тестах и в production журнал молчит). Второе: в списке подопечных у каждого показываю дату последней тренировки — пока отдельным запросом на каждого подопечного.",
    "steps": [
     "sql-log",
     "last-n1"
@@ -1709,13 +1709,13 @@
    "kind": "file",
    "path": "lib/db.ts",
    "before": "import { Pool, type PoolClient } from \"pg\";\n\n// Подключение к базе по DATABASE_URL из .env.local — от имени её владельца, и RLS на такие запросы не действует.\n// Напрямую через pool ходит только вход (app/api/login), как сервис входа в Supabase; остальное — через asUser.\nexport const pool = new Pool({ connectionString: process.env.DATABASE_URL });\n\n// Запросы от имени вошедшего — так их выполняет Supabase: роль authenticated, а auth.uid() в базе возвращает uid.\n// Всё внутри fn идёт одной транзакцией, и какие строки видны, решают политики RLS.\nexport async function asUser<T>(uid: string, fn: (db: PoolClient) => Promise<T>): Promise<T> {\n  const db = await pool.connect();\n  try {\n    await db.query(\"begin\");\n    await db.query(\"set local role authenticated\");\n    await db.query(\"select set_config('request.jwt.claims', $1, true)\", [\n      JSON.stringify({ sub: uid, role: \"authenticated\" }),\n    ]);\n    const result = await fn(db);\n    await db.query(\"commit\");\n    return result;\n  } catch (err) {\n    await db.query(\"rollback\");\n    throw err;\n  } finally {\n    db.release();\n  }\n}\n",
-   "after": "import { Pool, type PoolClient } from \"pg\";\n\n// Подключение к базе по DATABASE_URL из .env.local — от имени её владельца, и RLS на такие запросы не действует.\n// Напрямую через pool ходит только вход (app/api/login), как сервис входа в Supabase; остальное — через asUser.\nexport const pool = new Pool({ connectionString: process.env.DATABASE_URL });\n\n// Запросы от имени вошедшего — так их выполняет Supabase: роль authenticated, а auth.uid() в базе возвращает uid.\n// Всё внутри fn идёт одной транзакцией, и какие строки видны, решают политики RLS.\nexport async function asUser<T>(uid: string, fn: (db: PoolClient) => Promise<T>): Promise<T> {\n  const db = await pool.connect();\n  const original = db.query;\n  const run = original.bind(db);\n  try {\n    await run(\"begin\");\n    await run(\"set local role authenticated\");\n    await run(\"select set_config('request.jwt.claims', $1, true)\", [\n      JSON.stringify({ sub: uid, role: \"authenticated\" }),\n    ]);\n    // на время запросов приложения подменяем db.query обёрткой: печатаем в журнал сервера каждый запрос — «[sql] …».\n    // Служебные команды транзакции и роли идут мимо (через run), в журнал не попадают — так видно число запросов на страницу.\n    db.query = ((text: unknown, ...args: unknown[]) => {\n      const sql = typeof text === \"string\" ? text : (text as { text: string }).text;\n      console.log(`[sql] ${String(sql).replace(/\\s+/g, \" \").trim()}`);\n      return (run as (...rest: unknown[]) => unknown)(text, ...args);\n    }) as PoolClient[\"query\"];\n    const result = await fn(db);\n    await run(\"commit\");\n    return result;\n  } catch (err) {\n    await run(\"rollback\");\n    throw err;\n  } finally {\n    db.query = original;\n    db.release();\n  }\n}\n",
+   "after": "import { Pool, type PoolClient } from \"pg\";\n\n// Подключение к базе по DATABASE_URL из .env.local — от имени её владельца, и RLS на такие запросы не действует.\n// Напрямую через pool ходит только вход (app/api/login), как сервис входа в Supabase; остальное — через asUser.\nexport const pool = new Pool({ connectionString: process.env.DATABASE_URL });\n\n// Запросы от имени вошедшего — так их выполняет Supabase: роль authenticated, а auth.uid() в базе возвращает uid.\n// Всё внутри fn идёт одной транзакцией, и какие строки видны, решают политики RLS.\nexport async function asUser<T>(uid: string, fn: (db: PoolClient) => Promise<T>): Promise<T> {\n  const db = await pool.connect();\n  const original = db.query;\n  const run = original.bind(db);\n  try {\n    await run(\"begin\");\n    await run(\"set local role authenticated\");\n    await run(\"select set_config('request.jwt.claims', $1, true)\", [\n      JSON.stringify({ sub: uid, role: \"authenticated\" }),\n    ]);\n    // Только в режиме разработки (next dev): на время запросов приложения подменяем db.query обёрткой и печатаем\n    // в журнал сервера каждый запрос — «[sql] …». В тестах (NODE_ENV=test), сборке и на сервере (production) журнал молчит.\n    // Служебные команды транзакции и роли идут мимо (через run), в журнал не попадают — так видно число запросов на страницу.\n    if (process.env.NODE_ENV === \"development\") {\n      db.query = ((text: unknown, ...args: unknown[]) => {\n        const sql = typeof text === \"string\" ? text : (text as { text: string }).text;\n        console.log(`[sql] ${String(sql).replace(/\\s+/g, \" \").trim()}`);\n        return (run as (...rest: unknown[]) => unknown)(text, ...args);\n      }) as PoolClient[\"query\"];\n    }\n    const result = await fn(db);\n    await run(\"commit\");\n    return result;\n  } catch (err) {\n    await run(\"rollback\");\n    throw err;\n  } finally {\n    db.query = original;\n    db.release();\n  }\n}\n",
    "diff": [
     "diff --git a/lib/db.ts b/lib/db.ts",
-    "index 932f593..a30db0f 100644",
+    "index 932f593..bea1677 100644",
     "--- a/lib/db.ts",
     "+++ b/lib/db.ts",
-    "@@ -8,19 +8,29 @@ export const pool = new Pool({ connectionString: process.env.DATABASE_URL });",
+    "@@ -8,19 +8,32 @@ export const pool = new Pool({ connectionString: process.env.DATABASE_URL });",
     " // Всё внутри fn идёт одной транзакцией, и какие строки видны, решают политики RLS.",
     " export async function asUser<T>(uid: string, fn: (db: PoolClient) => Promise<T>): Promise<T> {",
     "   const db = await pool.connect();",
@@ -1730,13 +1730,16 @@
     "+    await run(\"select set_config('request.jwt.claims', $1, true)\", [",
     "       JSON.stringify({ sub: uid, role: \"authenticated\" }),",
     "     ]);",
-    "+    // на время запросов приложения подменяем db.query обёрткой: печатаем в журнал сервера каждый запрос — «[sql] …».",
+    "+    // Только в режиме разработки (next dev): на время запросов приложения подменяем db.query обёрткой и печатаем",
+    "+    // в журнал сервера каждый запрос — «[sql] …». В тестах (NODE_ENV=test), сборке и на сервере (production) журнал молчит.",
     "+    // Служебные команды транзакции и роли идут мимо (через run), в журнал не попадают — так видно число запросов на страницу.",
-    "+    db.query = ((text: unknown, ...args: unknown[]) => {",
-    "+      const sql = typeof text === \"string\" ? text : (text as { text: string }).text;",
-    "+      console.log(`[sql] ${String(sql).replace(/\\s+/g, \" \").trim()}`);",
-    "+      return (run as (...rest: unknown[]) => unknown)(text, ...args);",
-    "+    }) as PoolClient[\"query\"];",
+    "+    if (process.env.NODE_ENV === \"development\") {",
+    "+      db.query = ((text: unknown, ...args: unknown[]) => {",
+    "+        const sql = typeof text === \"string\" ? text : (text as { text: string }).text;",
+    "+        console.log(`[sql] ${String(sql).replace(/\\s+/g, \" \").trim()}`);",
+    "+        return (run as (...rest: unknown[]) => unknown)(text, ...args);",
+    "+      }) as PoolClient[\"query\"];",
+    "+    }",
     "     const result = await fn(db);",
     "-    await db.query(\"commit\");",
     "+    await run(\"commit\");",
@@ -1751,7 +1754,7 @@
     "   }",
     " }"
    ],
-   "blob": "a30db0fb83698192c5c42d772ac9f57d8329f030",
+   "blob": "bea1677f27da982934d297189b74b60017148c33",
    "by": "agent"
   },
   {
@@ -1942,8 +1945,7 @@
    ],
    "network": [],
    "server": [
-    "✓ Compiled in 13ms",
-    "✓ Compiled in 44ms",
+    "✓ Compiled in 45ms",
     "[sql] select id, name from clients where coach_id = $1 order by id",
     "[sql] select max(day) as last from workouts where client_id = $1",
     "[sql] select max(day) as last from workouts where client_id = $1",
@@ -1957,7 +1959,7 @@
     "[sql] select max(day) as last from workouts where client_id = $1",
     "[sql] select max(day) as last from workouts where client_id = $1",
     "[sql] select max(day) as last from workouts where client_id = $1",
-    " GET /clients 200 in 283ms (next.js: 44ms, application-code: 239ms)"
+    " GET /clients 200 in 301ms (next.js: 59ms, application-code: 242ms)"
    ]
   },
   {
@@ -2091,24 +2093,24 @@
    ],
    "network": [],
    "server": [
-    "✓ Compiled in 12ms",
+    "✓ Compiled in 11ms",
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
-    " GET /clients 200 in 90ms (next.js: 1.5ms, application-code: 89ms)"
+    " GET /clients 200 in 88ms (next.js: 1.5ms, application-code: 86ms)"
    ]
   },
   {
    "id": "c-n1",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"Список подопечных одним запросом\"",
-   "hash": "93dbd81",
+   "hash": "b99786f",
    "message": "Список подопечных одним запросом",
    "branch": "main",
    "parents": [
     "6a37293"
    ],
    "out": [
-    "[main 93dbd81] Список подопечных одним запросом",
-    " 4 files changed, 64 insertions(+), 10 deletions(-)",
+    "[main b99786f] Список подопечных одним запросом",
+    " 4 files changed, 67 insertions(+), 10 deletions(-)",
     " create mode 100644 supabase/seed-load.sql"
    ],
    "files": [
@@ -2230,7 +2232,7 @@
     },
     {
      "path": "lib/db.ts",
-     "blob": "a30db0fb83698192c5c42d772ac9f57d8329f030"
+     "blob": "bea1677f27da982934d297189b74b60017148c33"
     },
     {
      "path": "lib/payments.ts",
@@ -2369,23 +2371,14 @@
     "",
     " RUN  v5.0.5 ~/trainer-app",
     "",
-    " ✓ lib/volume.test.ts (2 tests) 5ms",
-    " ✓ lib/weight.test.ts (5 tests) 5ms",
-    "stdout | test/rls.test.ts > Марина видит своих подопечных и не видит Свету",
-    "[sql] select name from clients order by id",
-    "",
-    "stdout | test/rls.test.ts > Игорь не видит Анну и её тренировок",
-    "[sql] select name from clients order by id",
-    "",
-    "stdout | test/rls.test.ts > Игорь не видит Анну и её тренировок",
-    "[sql] select id from workouts where client_id = 1",
-    "",
-    " ✓ test/rls.test.ts (3 tests) 33ms",
+    " ✓ lib/volume.test.ts (2 tests) 4ms",
+    " ✓ lib/weight.test.ts (5 tests) 6ms",
+    " ✓ test/rls.test.ts (3 tests) 30ms",
     "",
     " Test Files  3 passed (3)",
     "      Tests  10 passed (10)",
-    "   Start at  11:22:17",
-    "   Duration  287ms (transform 57%, import 23%, tests 14%, worker 6%)",
+    "   Start at  11:39:15",
+    "   Duration  304ms (transform 66%, import 18%, tests 12%, worker 4%)",
     "",
     "",
     "> trainer-app@0.1.0 build",
@@ -2393,20 +2386,20 @@
     "",
     "▲ Next.js 16.4.3 (Turbopack)",
     "- Environments: .env.local",
-    "✓ Running next.config.ts took 40ms",
+    "✓ Running next.config.ts took 35ms",
     "- Cache Components enabled",
     "- Partial Prefetching enabled",
     "",
     "  Creating an optimized production build ...",
-    "✓ Compiled successfully in 5.1s",
+    "✓ Compiled successfully in 4.8s",
     "  Running TypeScript ...",
-    "  Finished TypeScript in 3.3s ...",
+    "  Finished TypeScript in 3.2s ...",
     "  Collecting page data using 3 workers ...",
     "  Generating static pages using 3 workers (0/12) ...",
     "  Generating static pages using 3 workers (3/12) ",
     "  Generating static pages using 3 workers (6/12) ",
     "  Generating static pages using 3 workers (9/12) ",
-    "✓ Generating static pages using 3 workers (12/12) in 463ms",
+    "✓ Generating static pages using 3 workers (12/12) in 442ms",
     "  Finalizing page optimization ...",
     "",
     "Route (app)",
@@ -2434,14 +2427,14 @@
    "id": "c-check",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"npm run check: линтер, типы, тесты и сборка\"",
-   "hash": "519c662",
+   "hash": "6fd1baa",
    "message": "npm run check: линтер, типы, тесты и сборка",
    "branch": "main",
    "parents": [
-    "93dbd81"
+    "b99786f"
    ],
    "out": [
-    "[main 519c662] npm run check: линтер, типы, тесты и сборка",
+    "[main 6fd1baa] npm run check: линтер, типы, тесты и сборка",
     " 1 file changed, 2 insertions(+), 1 deletion(-)"
    ],
    "files": [
@@ -2563,7 +2556,7 @@
     },
     {
      "path": "lib/db.ts",
-     "blob": "a30db0fb83698192c5c42d772ac9f57d8329f030"
+     "blob": "bea1677f27da982934d297189b74b60017148c33"
     },
     {
      "path": "lib/payments.ts",

@@ -809,9 +809,11 @@ test('s09: шаги по таблице; инъекцию и ограничит�
   expect(fix.after).toContain("ilike '%' || $1 || '%'")
   expect(fix.after).toContain('asUser(uid')
   expect(fix.after).toContain('Нужно войти')
-  // в запросе на исправление — команда инъекции и чужая Света
-  expect(agent('ask-inject-fix').prompt).toContain("q=' or 1=1 --")
-  expect(agent('ask-inject-fix').prompt).toContain('Свету')
+  // в запросе на исправление — команда и ответ шага inject дословно
+  const injected = run('inject')
+  expect(injected.out).toHaveLength(1)
+  expect(agent('ask-inject-fix').prompt).toContain(injected.cmd)
+  expect(agent('ask-inject-fix').prompt).toContain(injected.out[0])
   expect(commit('c-search').message).toBe('Поиск подопечных: параметры и права вошедшего')
 
   // ограничитель входа пишет агент: библиотека в памяти и правка маршрута
@@ -854,6 +856,9 @@ test('s09: шаги по таблице; инъекцию и ограничит�
   expect(agent('ask-last').steps).toEqual(['sql-log', 'last-n1'])
   expect(file('sql-log')).toMatchObject({ path: 'lib/db.ts', by: 'agent' })
   expect(file('sql-log').after).toContain('[sql] ')
+  // журнал запросов — только в режиме разработки: под vitest (test) и в сборке (production) он молчит
+  expect(file('sql-log').after).toContain('if (process.env.NODE_ENV === "development") {')
+  expect(run('check-run').out.filter((line) => line.includes('[sql]'))).toEqual([])
   expect(file('last-n1')).toMatchObject({ path: 'app/clients/page.tsx', by: 'agent' })
   expect(agent('ask-n1-fix').prompt).toContain('13')
   expect(agent('ask-n1-fix').steps).toEqual(['last-join'])
