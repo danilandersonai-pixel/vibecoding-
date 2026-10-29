@@ -19,7 +19,7 @@
 node scripts/record-session.mjs
 ```
 
-Рекордер по-настоящему проигрывает все сессии по порядку во временной папке: создаёт проект через `create-next-app`, ставит пакеты (кэш npm — `course/node_modules/.cache/session-npm`), выполняет команды и коммиты, запускает `npm run dev` и открывает страницу в Chromium. Запись идёт несколько минут. В конце рекордер пишет `course/video/sessions/<id>.json` и заменяет `app/`.
+Рекордер по-настоящему проигрывает все сессии по порядку во временной папке: создаёт проект через `create-next-app`, ставит пакеты (кэш npm — `course/node_modules/.cache/session-npm`), выполняет команды и коммиты, запускает `npm run dev` и открывает страницу в Chromium. Запись идёт несколько минут. В конце рекордер пишет `course/video/sessions/<id>.json` и заменяет `app/`. Команды идут как в терминале человека: без `NODE_ENV`, `NODE_OPTIONS`, меток тестов (`VITEST*`, `TEST`, `JEST_WORKER_ID`), меток ИИ-агента и `GIT_*` из окружения запуска — например, при `NODE_ENV=test` или `production` `next dev` дописывает в `tsconfig.json` лишнее, а `npm ci` при `production` не ставит devDependencies.
 
 После перезаписи — проверка записей:
 

@@ -299,6 +299,32 @@ describe('recordChain: вывод команд', () => {
       }
     }
   })
+
+  it('режим сборки и метки запуска тестов (NODE_ENV, VITEST*, TEST, JEST_WORKER_ID, NODE_OPTIONS) в команды не попадают', async () => {
+    // NODE_ENV=production заставляет `npm ci` пропустить devDependencies, а `next dev` под NODE_ENV=test и метками тестов ведёт себя иначе
+    const marks = {
+      NODE_ENV: 'production',
+      VITEST: 'true',
+      VITEST_POOL_ID: '1',
+      VITEST_WORKER_ID: '1',
+      VITEST_MODE: 'RUN',
+      TEST: 'true',
+      JEST_WORKER_ID: '1',
+      NODE_OPTIONS: '--max-old-space-size=512',
+    }
+    const saved = Object.fromEntries(Object.keys(marks).map((name) => [name, process.env[name]]))
+    Object.assign(process.env, marks)
+    try {
+      const pattern = '^(NODE_ENV|NODE_OPTIONS|TEST|JEST_WORKER_ID|VITEST.*)$'
+      const [e] = await outOf([{ id: 'env', run: `env | cut -d= -f1 | grep -E "${pattern}" | sort; echo конец` }])
+      expect(e).toMatchObject({ out: ['конец'] })
+    } finally {
+      for (const [name, value] of Object.entries(saved)) {
+        if (value === undefined) delete process.env[name]
+        else process.env[name] = value
+      }
+    }
+  })
 })
 
 describe('recordChain: браузер', () => {
@@ -731,11 +757,11 @@ describe('recordChain: состояние сессии и запись с сер
     // «npm» из PATH — заглушка: пишет в журнал аргументы и папку, а NPM_FAIL=1 заставляет её упасть
     let bin = ''
     let log = ''
-    const saved = { PATH: process.env.PATH, NPM_LOG: process.env.NPM_LOG, NPM_FAIL: process.env.NPM_FAIL }
+    const saved = { PATH: process.env.PATH, NPM_LOG: process.env.NPM_LOG, NPM_FAIL: process.env.NPM_FAIL, NODE_ENV: process.env.NODE_ENV }
     beforeAll(() => {
       bin = fresh()
       log = join(fresh(), 'npm.log')
-      writeFileSync(join(bin, 'npm'), '#!/bin/sh\nprintf "%s | %s\\n" "$*" "$(pwd)" >> "$NPM_LOG"\nif [ "$NPM_FAIL" = 1 ]; then echo "ERR! не вышло"; exit 1; fi\n')
+      writeFileSync(join(bin, 'npm'), '#!/bin/sh\nprintf "%s | %s | NODE_ENV=[%s]\\n" "$*" "$(pwd)" "$NODE_ENV" >> "$NPM_LOG"\nif [ "$NPM_FAIL" = 1 ]; then echo "ERR! не вышло"; exit 1; fi\n')
       chmodSync(join(bin, 'npm'), 0o755)
       Object.assign(process.env, { PATH: `${bin}:${process.env.PATH}`, NPM_LOG: log })
     })
@@ -764,8 +790,18 @@ describe('recordChain: состояние сессии и запись с сер
 
     it('есть package-lock.json — перед цепочкой выполняется npm ci --prefer-offline --no-audit --no-fund в папке проекта; в запись он не попадает', async () => {
       const { records, project } = await resume(true)
-      expect(readFileSync(log, 'utf8')).toBe(`ci --prefer-offline --no-audit --no-fund | ${project}\n`)
+      expect(readFileSync(log, 'utf8')).toBe(`ci --prefer-offline --no-audit --no-fund | ${project} | NODE_ENV=[]\n`)
       expect(records.map((r) => r.events.map((e) => e.id))).toEqual([['look']])
+    })
+
+    it('npm ci не наследует NODE_ENV=production: иначе devDependencies (eslint, typescript, tailwind) не поставились бы', async () => {
+      process.env.NODE_ENV = 'production'
+      try {
+        await resume(true)
+      } finally {
+        process.env.NODE_ENV = saved.NODE_ENV
+      }
+      expect(readFileSync(log, 'utf8')).toContain('| NODE_ENV=[]\n')
     })
 
     it('нет package-lock.json — npm не запускается', async () => {

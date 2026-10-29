@@ -35,11 +35,15 @@ async function within(promise, ms) {
 // «под агентом», и ведут себя иначе: `next dev` дописывает в проект AGENTS.md. Команды сессии идут как в терминале человека.
 const AGENT_ENV = /^(AI_AGENT|CLAUDECODE|CLAUDE_.*|CODEX_.*|CURSOR_.*|COPILOT_.*|GEMINI_CLI|OPENCODE_.*|AUGMENT_AGENT|ANTIGRAVITY_AGENT|REPL_ID)$/
 
-// Окружение команд без чужих настроек: ~ — это home/, переменные GIT_* родителя (хуки git) и метки агента не наследуются.
+// Режим сборки и метки запуска тестов, из которых запущен рекордер (npm test, vitest): NODE_ENV=production заставляет `npm ci` пропустить
+// devDependencies, а `next dev` под NODE_ENV=test и метками тестов ведёт себя иначе, чем в терминале человека. NODE_OPTIONS — чужие ключи node.
+const RUN_ENV = /^(NODE_ENV|NODE_OPTIONS|TEST|JEST_WORKER_ID|VITEST.*)$/
+
+// Окружение команд без чужих настроек: ~ — это home/, переменные GIT_* родителя (хуки git), метки агента, режим сборки и метки тестов не наследуются.
 // Язык и пояс заданы, чтобы вывод (сообщения git и npm, даты, русский текст в UTF-8) не зависел от машины.
 function baseEnv(home) {
   const vars = { ...process.env, HOME: home, XDG_CONFIG_HOME: join(home, '.config'), LC_ALL: 'C.UTF-8', TZ: 'UTC' } // настройки create-next-app и git пользователя не просачиваются
-  for (const name of Object.keys(vars)) if (name.startsWith('GIT_') || AGENT_ENV.test(name)) delete vars[name]
+  for (const name of Object.keys(vars)) if (name.startsWith('GIT_') || AGENT_ENV.test(name) || RUN_ENV.test(name)) delete vars[name]
   delete vars.NO_COLOR // вместе с FORCE_COLOR заставляет node печатать предупреждение
   delete vars.LANGUAGE // gettext берёт его раньше LC_ALL
   return vars
