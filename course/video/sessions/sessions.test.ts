@@ -731,3 +731,147 @@ test('s08: шаги идут по таблице; причину правят в
   expect(find('s08-debug', 'login-marina', 'browser').urlAfter).toBe('http://localhost:3000/clients')
   for (const id of ['login-marina', 'crash-ok']) expect(find('s08-debug', id, 'browser').console.filter((m) => m.type === 'error'), id).toEqual([])
 })
+
+// Сколько строк «[sql] …» в выводе сервера браузерного шага
+function sqlLines(session: string, id: string): number {
+  return find(session, id, 'browser').server.filter((line) => line.includes('[sql]')).length
+}
+
+test('s09: инъекция отдаёт чужих, после исправления — нет; пятый неудачный вход последний; секрет не проходит в коммит; N+1 → 1', () => {
+  // инъекция «\' or 1=1 --» в наивном поиске отдаёт всех подопечных, включая чужую Свету
+  expect(find('s09-audit', 'inject', 'run').out.join('\n')).toContain('Света')
+  // после правки (параметр + asUser вошедшего) та же команда от Марины — пусто, без входа — 401
+  expect(find('s09-audit', 'inject2', 'run').out).toEqual(['[]'])
+  expect(find('s09-audit', 'anon', 'run').out.join('\n')).toContain('Нужно войти')
+  // пять неудачных входов — 401, шестой — 429
+  expect(find('s09-audit', 'limit-curl', 'run').out).toEqual(['401', '401', '401', '401', '401', '429'])
+  // советованного пакета нет в реестре
+  const pkg = find('s09-audit', 'pkg-check', 'run')
+  expect(pkg.code).not.toBe(0)
+  expect(pkg.out.join('\n')).toContain('404')
+  // сканер секретов не пустил коммит с ключом в lib/payments.ts
+  const blocked = find('s09-audit', 'commit-blocked', 'run')
+  expect(blocked.code).not.toBe(0)
+  expect(blocked.out.join('\n')).toContain('Похоже на секрет')
+  expect(blocked.out.join('\n')).toContain('lib/payments.ts')
+  // список подопечных: отдельный запрос на каждого (1 + 12) — одним запросом стало 1
+  expect(sqlLines('s09-audit', 'clients-n1')).toBeGreaterThanOrEqual(11)
+  expect(sqlLines('s09-audit', 'clients-1')).toBe(1)
+  // проверка перед слиянием зелёная
+  expect(find('s09-audit', 'check-run', 'run').code).toBe(0)
+})
+
+test('s09: шаги по таблице; инъекцию и ограничитель пишет агент; vitest-warn и хук — человек; коммиты на main', () => {
+  expect(sessions['s09-audit'].events.map((e) => e.id)).toEqual([
+    ...['vitest-warn', 'dev', 'ask-chart', 'chart-comp', 'chart-use', 'login-marina', 'chart-view', 'c-chart'],
+    ...['ask-search', 'search-route', 'login-curl', 'search-ok', 'inject', 'ask-inject-fix', 'search-fix', 'inject2', 'anon', 'c-search'],
+    ...['ask-limit', 'limit-lib', 'limit-use', 'limit-curl', 'c-limit', 'ask-pkg', 'pkg-read', 'pkg-check'],
+    ...['hook-file', 'hook-exec', 'hook-on', 'ask-pay', 'pay-lib', 'commit-blocked', 'ask-pay-fix', 'pay-env', 'pay-lib-fix', 'c-pay'],
+    ...['seed-load-file', 'seed-load', 'rls-fix', 'ask-last', 'sql-log', 'last-n1', 'clients-n1', 'ask-n1-fix', 'last-join', 'clients-1', 'c-n1'],
+    ...['check-script', 'check-run', 'c-check'],
+  ])
+  const file = (id: string) => find('s09-audit', id, 'file')
+  const agent = (id: string) => find('s09-audit', id, 'agent')
+  const run = (id: string) => find('s09-audit', id, 'run')
+  const commit = (id: string) => find('s09-audit', id, 'commit')
+
+  // первый шаг убирает предупреждение Vite из s07: переименование vitest.config.ts → .mts, тип пакета не меняем
+  const warn = run('vitest-warn')
+  expect(warn.cmd).toBe('git mv vitest.config.ts vitest.config.mts')
+  expect(warn.by).toBeUndefined()
+  expect(warn.files).toEqual([
+    { path: 'vitest.config.mts', blob: expect.any(String) },
+    { path: 'vitest.config.ts', blob: null },
+  ])
+  // и в этой сессии запуск npm run check — без 3-строчного предупреждения Vite
+  expect(run('check-run').out.some((line) => line.includes('configLoader') || line.includes('unsupported by'))).toBe(false)
+
+  // график прогресса пишет агент: компонент и правка карточки
+  expect(agent('ask-chart').steps).toEqual(['chart-comp', 'chart-use'])
+  expect(file('chart-comp')).toMatchObject({ path: 'components/ProgressChart.tsx', before: null, by: 'agent' })
+  expect(file('chart-comp').after).toContain('<svg')
+  expect(file('chart-comp').after).toContain('Прогресс: объём по тренировкам')
+  expect(file('chart-use')).toMatchObject({ path: 'app/clients/[id]/page.tsx', by: 'agent' })
+  const chartView = find('s09-audit', 'chart-view', 'browser')
+  expect(chartView.url).toBe('http://localhost:3000/clients/1')
+  expect(chartView.after).toContain('Прогресс: объём по тренировкам')
+  expect(chartView.after).toContain('19 октября')
+
+  // наивный поиск пишет агент (общий пул, склейка), правка — параметр и asUser
+  expect(agent('ask-search').steps).toEqual(['search-route'])
+  const naive = file('search-route')
+  expect(naive).toMatchObject({ path: 'app/api/clients/search/route.ts', before: null, by: 'agent' })
+  expect(naive.after).toContain("ilike '%${q}%'")
+  expect(naive.after).toContain('pool.query')
+  expect(find('s09-audit', 'search-ok', 'run').out.join('\n')).toContain('Анна')
+  const fix = file('search-fix')
+  expect(fix).toMatchObject({ path: 'app/api/clients/search/route.ts', before: naive.after, by: 'agent' })
+  expect(fix.after).toContain("ilike '%' || $1 || '%'")
+  expect(fix.after).toContain('asUser(uid')
+  expect(fix.after).toContain('Нужно войти')
+  // в запросе на исправление — команда инъекции и чужая Света
+  expect(agent('ask-inject-fix').prompt).toContain("q=' or 1=1 --")
+  expect(agent('ask-inject-fix').prompt).toContain('Свету')
+  expect(commit('c-search').message).toBe('Поиск подопечных: параметры и права вошедшего')
+
+  // ограничитель входа пишет агент: библиотека в памяти и правка маршрута
+  expect(agent('ask-limit').steps).toEqual(['limit-lib', 'limit-use'])
+  expect(file('limit-lib')).toMatchObject({ path: 'lib/rate-limit.ts', before: null, by: 'agent' })
+  expect(file('limit-lib').after).toMatch(/в памяти/i)
+  expect(file('limit-use')).toMatchObject({ path: 'app/api/login/route.ts', by: 'agent' })
+  expect(file('limit-use').after).toContain('429')
+
+  // агент советует несуществующий пакет; человек проверяет npm view
+  expect(agent('ask-pkg').steps).toEqual(['pkg-read'])
+  expect(find('s09-audit', 'pkg-read', 'read')).toMatchObject({ path: 'package.json', by: 'agent' })
+  expect(run('pkg-check').cmd).toMatch(/^npm view /)
+  expect(run('pkg-check').by).toBeUndefined()
+
+  // сканер секретов — человек пишет хук, делает исполняемым и включает
+  expect(file('hook-file')).toMatchObject({ path: '.githooks/pre-commit', before: null })
+  expect(file('hook-file').by).toBeUndefined()
+  expect(file('hook-file').after).toContain('Похоже на секрет')
+  expect(run('hook-exec').cmd).toBe('chmod +x .githooks/pre-commit')
+  expect(run('hook-on').cmd).toBe('git config core.hooksPath .githooks')
+  // заготовку оплаты с секретом пишет агент; после блокировки секрет уходит в .env.local, в коде — process.env
+  expect(agent('ask-pay').steps).toEqual(['pay-lib'])
+  expect(file('pay-lib').after).toContain('demo-secret-not-real')
+  expect(run('commit-blocked').cmd).toBe("git add -A && git commit -m 'Оплата подписки'")
+  expect(agent('ask-pay-fix').steps).toEqual(['pay-env', 'pay-lib-fix'])
+  expect(file('pay-env')).toMatchObject({ path: '.env.local' })
+  expect(file('pay-env').after).toContain('PAY_SECRET=')
+  expect(file('pay-lib-fix').after).toContain('process.env.PAY_SECRET')
+  expect(file('pay-lib-fix').after).not.toContain('"demo-secret-not-real-payments-0001"')
+
+  // данные для замера пишет человек; жёсткий тест RLS ослаблен из-за них
+  expect(file('seed-load-file')).toMatchObject({ path: 'supabase/seed-load.sql', before: null })
+  expect(file('seed-load-file').by).toBeUndefined()
+  expect(run('seed-load').cmd).toBe('psql -f supabase/seed-load.sql')
+  expect(file('rls-fix')).toMatchObject({ path: 'test/rls.test.ts' })
+  expect(file('rls-fix').after).toContain('not.toContain("Света")')
+
+  // N+1 правит агент: журнал запросов и дата последней тренировки, затем один запрос
+  expect(agent('ask-last').steps).toEqual(['sql-log', 'last-n1'])
+  expect(file('sql-log')).toMatchObject({ path: 'lib/db.ts', by: 'agent' })
+  expect(file('sql-log').after).toContain('[sql] ')
+  expect(file('last-n1')).toMatchObject({ path: 'app/clients/page.tsx', by: 'agent' })
+  expect(agent('ask-n1-fix').prompt).toContain('13')
+  expect(agent('ask-n1-fix').steps).toEqual(['last-join'])
+  expect(file('last-join').after).toContain('left join workouts')
+
+  // проверка перед слиянием: npm pkg set и npm run check
+  expect(run('check-script').cmd).toContain('npm pkg set scripts.check=')
+  expect(run('check-run').cmd).toBe('npm run check')
+
+  // шесть коммитов цепочкой на main, начиная от s08
+  const chain = ['c-chart', 'c-search', 'c-limit', 'c-pay', 'c-n1', 'c-check'].map(commit)
+  for (const c of chain) expect(c.branch, c.id).toBe('main')
+  for (let i = 1; i < chain.length; i++) expect(chain[i].parents, chain[i].id).toEqual([chain[i - 1].hash])
+  expect(chain[0].parents).toEqual([find('s08-debug', 'c-mentor', 'commit').hash])
+  // vitest.config.ts переименован в .mts в дереве последнего коммита
+  const tree = commit('c-check').files.map((f) => f.path)
+  expect(tree).toContain('vitest.config.mts')
+  expect(tree).not.toContain('vitest.config.ts')
+  expect(tree).toContain('.githooks/pre-commit')
+  expect(tree).toContain('supabase/seed-load.sql')
+})

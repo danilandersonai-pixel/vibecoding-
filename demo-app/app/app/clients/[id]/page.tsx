@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import ProgressChart from "@/components/ProgressChart";
 import SetList from "@/components/SetList";
 import { formatDay } from "@/lib/dates";
 import { asUser } from "@/lib/db";
@@ -85,6 +86,8 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
           ))}
         </ul>
       )}
+
+      <ProgressChart data={card.workouts.map((workout) => ({ day: workout.day, volume: volume(workout.sets) }))} />
     </main>
   );
 }

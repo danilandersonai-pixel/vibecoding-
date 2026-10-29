@@ -18,8 +18,12 @@ function clientNames(uid: string): Promise<string[]> {
 
 afterAll(() => pool.end());
 
-test("Марина видит двух своих подопечных", async () => {
-  expect(await clientNames(MARINA)).toEqual(["Анна", "Олег"]);
+test("Марина видит своих подопечных и не видит Свету", async () => {
+  const names = await clientNames(MARINA);
+  // список мог пополниться данными для замера (seed-load.sql) — проверяем своих и чужую, а не точный состав
+  expect(names).toContain("Анна");
+  expect(names).toContain("Олег");
+  expect(names).not.toContain("Света");
 });
 
 test("Игорь не видит Анну и её тренировок", async () => {
