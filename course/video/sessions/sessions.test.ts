@@ -1100,3 +1100,167 @@ test('s11: шаги по таблице; манифест и иконку пиш
   const log = run('pass-log').out.join('\n')
   for (const c of chain) expect(log).toContain(`${c.hash} ${c.message}`)
 })
+
+test('s12: агент подогнал тест, приёмка это ловит, после исправления — зелёный по задаче', () => {
+  const run = (id: string) => find('s12-agent', id, 'run')
+  // по задаче рекорд — 62,5 кг; код агента считает по объёму подхода: тест красный, агент меняет ожидание — зелёный
+  expect(run('rec-run').code).not.toBe(0)
+  expect(run('rec-run2').code).toBe(0)
+  const changed = (sign: '-' | '+') =>
+    find('s12-agent', 'rec-tamper', 'file')
+      .diff.filter((line) => line.startsWith(sign) && !line.startsWith(sign.repeat(3)))
+      .join('\n')
+  expect(changed('-')).toContain('62.5')
+  expect(changed('+')).toContain('57.5')
+  expect(changed('+')).not.toContain('62.5')
+  // приёмка из main: тест в ветке агента ждёт 57.5, а в задаче — 62,5 кг
+  expect(run('accept-test').out.join('\n')).toContain('57.5')
+  // после возврата работы: ожидание из задачи, исправленный код — зелёный; ветка вливается в main
+  expect(run('rec-run3').code).toBe(0)
+  expect(run('merge-records').code).toBe(0)
+  expect(run('spec-run').code).toBe(0)
+  expect(run('log-final').out.join('\n')).toContain('Слияние: личные рекорды')
+})
+
+test('s12: шаги по таблице; задачу и токены пишет человек, рекорды, тесты и кнопки — агент; ветка агента влита в main', () => {
+  expect(sessions['s12-agent'].events.map((e) => e.id)).toEqual([
+    ...['task-file', 'c-task', 'agent-branch'],
+    ...['ask-records', 'rec-test', 'rec-lib', 'rec-run', 'rec-tamper', 'rec-run2', 'c-records'],
+    ...['main-back', 'accept-log', 'accept-stat', 'accept-test', 'agent-branch2'],
+    ...['ask-records-fix', 'rec-untamper', 'rec-fix', 'rec-run3', 'c-records2', 'merge-records'],
+    ...['ask-spec-tests', 'spec-test', 'spec-lib', 'spec-chart', 'spec-run', 'c-spec-tests'],
+    ...['design-file', 'ask-button', 'button-read', 'ask-button2', 'button-css', 'dev', 'login-anna', 'c-design', 'log-final'],
+  ])
+  const file = (id: string) => find('s12-agent', id, 'file')
+  const run = (id: string) => find('s12-agent', id, 'run')
+  const commit = (id: string) => find('s12-agent', id, 'commit')
+  const agent = (id: string) => find('s12-agent', id, 'agent')
+  const tree = (id: string) => commit(id).files.map((f) => f.path)
+  const byAgent = (id: string) => sessions['s12-agent'].events.find((e) => e.id === id) as { by?: string }
+  // все шаги внутри шагов агента — с by: "agent", остальные — человека
+  const inner = new Set(['ask-records', 'ask-records-fix', 'ask-spec-tests', 'ask-button', 'ask-button2'].flatMap((id) => agent(id).steps))
+  for (const e of sessions['s12-agent'].events) {
+    if (e.kind !== 'agent') expect((e as { by?: string }).by, e.id).toBe(inner.has(e.id) ? 'agent' : undefined)
+  }
+
+  // задача фоновому агенту в четыре части по шаблону книги — пишет человек и коммитит в main, продолжение s11
+  const task = file('task-file')
+  expect(task).toMatchObject({ path: 'docs/tasks/records.md', before: null })
+  for (const heading of ['## Задача', '## Контекст', '## Критерии готовности', '## Ограничения']) expect(task.after, heading).toContain(heading)
+  expect(task.after).toContain('среди подходов 60 × 8, 62,5 × 5 и 57,5 × 10 рекорд — 62,5 кг')
+  expect(task.after).toContain('Не трогать миграции')
+  expect(task.after).toContain('ветке `agent/records`')
+  expect(commit('c-task')).toMatchObject({ message: 'Задача фоновому агенту: личные рекорды', branch: 'main' })
+  expect(commit('c-task').parents).toEqual([find('s11-ship', 'c-plan', 'commit').hash])
+  expect(tree('c-task')).toContain('docs/tasks/records.md')
+  expect(run('agent-branch').cmd).toBe('git switch -c agent/records')
+
+  // агент: тест по задаче (62.5), код по объёму подхода — красный «expected 57.5 to be 62.5»; подгонка меняет одну строку теста
+  const ask = agent('ask-records')
+  expect(ask.prompt).toBe('Выполни задачу из docs/tasks/records.md')
+  expect(ask.reply.startsWith('Готово, тесты зелёные')).toBe(true)
+  expect(ask.steps).toEqual(['rec-test', 'rec-lib', 'rec-run', 'rec-tamper', 'rec-run2'])
+  expect(file('rec-test')).toMatchObject({ path: 'lib/records.test.ts', before: null })
+  expect(file('rec-test').after).toContain('toBe(62.5)')
+  expect(file('rec-lib')).toMatchObject({ path: 'lib/records.ts', before: null })
+  expect(file('rec-lib').after).toContain('set.weight * set.reps')
+  expect(run('rec-run').cmd).toBe('npx vitest run lib/records.test.ts')
+  expect(run('rec-run').out.join('\n')).toContain('expected 57.5 to be 62.5')
+  expect(file('rec-tamper').after).toBe(file('rec-test').after.replace('toBe(62.5)', 'toBe(57.5)'))
+  expect(run('rec-run2').out.join('\n')).toMatch(/Tests\s+3 passed/)
+  const records = commit('c-records')
+  expect(records).toMatchObject({ message: 'Личные рекорды', branch: 'agent/records', parents: [commit('c-task').hash] })
+  expect(tree('c-records')).toEqual(expect.arrayContaining(['lib/records.ts', 'lib/records.test.ts']))
+
+  // приёмка из main: в main файлов агента нет; один коммит ветки, два файла, тест ждёт 57.5
+  expect(run('main-back').cmd).toBe('git switch main')
+  expect(run('main-back').files).toEqual(
+    expect.arrayContaining([
+      { path: 'lib/records.ts', blob: null },
+      { path: 'lib/records.test.ts', blob: null },
+    ]),
+  )
+  expect(run('accept-log').cmd).toBe('git log main..agent/records --oneline')
+  expect(run('accept-log').out.filter(Boolean)).toEqual([`${records.hash} Личные рекорды`])
+  expect(run('accept-stat').cmd).toBe('git diff main agent/records --stat')
+  const stat = run('accept-stat').out.join('\n')
+  for (const path of ['lib/records.ts', 'lib/records.test.ts', '2 files changed']) expect(stat, path).toContain(path)
+  expect(run('accept-test').cmd).toBe('git show agent/records:lib/records.test.ts')
+  expect(run('accept-test').out.join('\n')).toContain('toBe(57.5)')
+  expect(run('accept-test').out.join('\n')).not.toContain('toBe(62.5)')
+
+  // возврат работы: в ветку агента, ожидание из задачи, рекорд по весу; тест после этого не менялся
+  expect(run('agent-branch2').cmd).toBe('git switch agent/records')
+  const fix = agent('ask-records-fix')
+  expect(fix.prompt).toBe('Тест подогнан под код: в задаче рекорд — 62,5 кг. Верни ожидание из задачи и исправь код, тест не трогай')
+  expect(fix.steps).toEqual(['rec-untamper', 'rec-fix', 'rec-run3'])
+  expect(file('rec-untamper').after).toBe(file('rec-test').after)
+  expect(file('rec-fix').path).toBe('lib/records.ts')
+  expect(file('rec-fix').after).not.toContain('set.weight * set.reps')
+  expect(file('rec-fix').after).toContain('Math.max(...sets.map((set) => set.weight))')
+  expect(run('rec-run3').out.join('\n')).toMatch(/Tests\s+3 passed/)
+  expect(commit('c-records2')).toMatchObject({ message: 'Рекорды по весу, как в задаче', branch: 'agent/records', parents: [records.hash] })
+
+  // слияние без перемотки; следующий коммит main — от коммита слияния (его хеш — в графе log-final)
+  expect(run('merge-records').cmd).toBe("git switch main && git merge --no-ff agent/records -m 'Слияние: личные рекорды'")
+  const log = run('log-final').out
+  const mergeHash = log.join('\n').match(/([0-9a-f]{7}) Слияние: личные рекорды/)?.[1]
+  expect(mergeHash).toBeDefined()
+  expect(commit('c-spec-tests').parents).toEqual([mergeHash])
+
+  // тесты из требований сценария 3: по тесту на требование, маленькая функция progress() и график карточки из неё
+  const spec = agent('ask-spec-tests')
+  expect(spec.prompt).toBe('Тесты из требований docs/spec.md, сценарий 3 (тренер видит прогресс): по тесту на каждое требование')
+  expect(spec.steps).toEqual(['spec-test', 'spec-lib', 'spec-chart', 'spec-run'])
+  const specTest = file('spec-test')
+  expect(specTest).toMatchObject({ path: 'lib/progress.test.ts', before: null })
+  expect(specTest.after.match(/^test\(/gm)).toHaveLength(3)
+  for (const name of ['тренер видит, как менялся вес', 'тренер видит, сколько всего поднято за тренировку', 'по неделям 50, 55 и 60 кг — три строки по порядку недель']) {
+    expect(specTest.after, name).toContain(`test("${name}"`)
+  }
+  expect(file('spec-lib')).toMatchObject({ path: 'lib/progress.ts', before: null })
+  expect(file('spec-chart').path).toBe('app/clients/[id]/page.tsx')
+  expect(file('spec-chart').after).toContain('<ProgressChart data={progress(card.workouts)} />')
+  expect(run('spec-run').cmd).toBe('npx vitest run lib/progress.test.ts')
+  expect(run('spec-run').out.join('\n')).toMatch(/Tests\s+3 passed/)
+  expect(commit('c-spec-tests')).toMatchObject({ message: 'Тесты прогресса из требований', branch: 'main' })
+  expect(tree('c-spec-tests')).toEqual(expect.arrayContaining(['lib/records.ts', 'lib/progress.ts', 'lib/progress.test.ts']))
+
+  // дизайн-токены: человек пишет, агент сначала читает и спрашивает (ничего не правит), после ответа — одно правило в globals.css
+  const design = file('design-file')
+  expect(design).toMatchObject({ path: 'docs/design.md', before: null })
+  for (const heading of ['## Цвета', '## Отступы', '## Кнопка', '## Шрифт']) expect(design.after, heading).toContain(heading)
+  expect(design.after).toContain('кнопка: высота 44 px — под палец')
+  const button = agent('ask-button')
+  expect(button.prompt).toBe('Сделай кнопку «Сохранить подход» побольше. Сначала спроси, если неясно')
+  expect(button.steps).toEqual(['button-read'])
+  expect(button.reply).toContain('Побольше — это высота 44 px из docs/design.md?')
+  expect(find('s12-agent', 'button-read', 'read')).toMatchObject({ path: 'docs/design.md', text: design.after })
+  const button2 = agent('ask-button2')
+  expect(button2.prompt).toBe('Да: все кнопки — 44 px по docs/design.md')
+  expect(button2.steps).toEqual(['button-css'])
+  expect(file('button-css').path).toBe('app/globals.css')
+  expect(file('button-css').after).toContain('--button-height: 44px;')
+  expect(file('button-css').after).toContain('min-height: var(--button-height);')
+
+  // приложение после правки: dev-сервер и вход Анны — на её тренировки
+  expect(run('dev')).toMatchObject({ cmd: 'npm run dev', code: null })
+  expect(run('dev').out.join('\n')).toContain('Ready')
+  const login = find('s12-agent', 'login-anna', 'browser')
+  expect(login.url).toBe('http://localhost:3000/login')
+  expect(login.fields).toEqual([
+    { label: 'Почта', value: 'anna@example.com' },
+    { label: 'Пароль', value: 'demo-password' },
+  ])
+  expect(login.urlAfter).toBe('http://localhost:3000/workouts')
+  expect(login.buttons).toContain('Войти')
+
+  // последний коммит недели — на main, от c-spec-tests; граф после него ничего не меняет и показывает ветку агента
+  const last = commit('c-design')
+  expect(last).toMatchObject({ message: 'Кнопки по дизайн-токенам', branch: 'main', parents: [commit('c-spec-tests').hash] })
+  expect(tree('c-design')).toEqual(expect.arrayContaining(['docs/design.md', 'app/globals.css', 'docs/tasks/records.md']))
+  expect(run('log-final').cmd).toBe('git log --oneline --graph -14')
+  expect(run('log-final').files).toBeUndefined()
+  for (const c of [last, commit('c-spec-tests'), commit('c-records2'), records, commit('c-task')]) expect(log.join('\n'), c.id).toContain(`${c.hash} ${c.message}`)
+  expect(byAgent('log-final').by).toBeUndefined()
+})

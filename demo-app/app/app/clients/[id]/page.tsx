@@ -5,6 +5,7 @@ import ProgressChart from "@/components/ProgressChart";
 import SetList from "@/components/SetList";
 import { formatDay } from "@/lib/dates";
 import { asUser } from "@/lib/db";
+import { progress } from "@/lib/progress";
 import { currentUser } from "@/lib/session";
 import { volume } from "@/lib/volume";
 import { assignWorkout } from "./actions";
@@ -87,7 +88,7 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
         </ul>
       )}
 
-      <ProgressChart data={card.workouts.map((workout) => ({ day: workout.day, volume: volume(workout.sets) }))} />
+      <ProgressChart data={progress(card.workouts)} />
     </main>
   );
 }

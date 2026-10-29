@@ -3,6 +3,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* кнопка: высота 44 px — под палец (docs/design.md) */
+  --button-height: 44px;
 }
 
 @theme inline {
@@ -23,4 +25,11 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+/* Высота всех кнопок — из токена: одно правило вместо классов на каждой странице */
+@layer base {
+  button {
+    min-height: var(--button-height);
+  }
 }
