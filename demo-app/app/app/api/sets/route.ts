@@ -1,3 +1,5 @@
+import { parseWeight } from "@/lib/weight";
+
 // Подходы пока живут в памяти сервера: после перезапуска npm run dev список снова пустой.
 type WorkoutSet = { weight: number; reps: number };
 
@@ -24,9 +26,10 @@ export async function POST(request: Request) {
   }
   const { weight, reps } = body;
 
-  const kg = toNumber(weight);
-  if (!Number.isFinite(kg)) {
-    return Response.json({ error: "Вес должен быть числом, например 60" }, { status: 400 });
+  // вес разбирает lib/weight.ts: число или текст ошибки
+  const kg = parseWeight(String(weight ?? ""));
+  if (typeof kg === "string") {
+    return Response.json({ error: kg }, { status: 400 });
   }
 
   const count = toNumber(reps);
