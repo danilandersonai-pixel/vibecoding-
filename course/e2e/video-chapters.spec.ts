@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 import { inflateSync } from 'node:zlib'
 import { chapterIndexAt, clock } from '../src/video/chapters'
 import type { VideoScript } from '../video/types'
@@ -15,6 +16,13 @@ import ch10Data from '../video/lessons/ch-10/script.gen.json' with { type: 'json
 import ch11Data from '../video/lessons/ch-11/script.gen.json' with { type: 'json' }
 import ch12Data from '../video/lessons/ch-12/script.gen.json' with { type: 'json' }
 import chAbcData from '../video/lessons/ch-abc/script.gen.json' with { type: 'json' }
+import day08Data from '../video/lessons/day-08/script.gen.json' with { type: 'json' }
+import day09Data from '../video/lessons/day-09/script.gen.json' with { type: 'json' }
+import day10Data from '../video/lessons/day-10/script.gen.json' with { type: 'json' }
+import day11Data from '../video/lessons/day-11/script.gen.json' with { type: 'json' }
+import day12Data from '../video/lessons/day-12/script.gen.json' with { type: 'json' }
+import day13Data from '../video/lessons/day-13/script.gen.json' with { type: 'json' }
+import day14Data from '../video/lessons/day-14/script.gen.json' with { type: 'json' }
 import pilotRlsData from '../video/lessons/pilot-rls/script.gen.json' with { type: 'json' }
 import day02 from '../content/days/day-02.json' with { type: 'json' }
 import day03 from '../content/days/day-03.json' with { type: 'json' }
@@ -22,10 +30,18 @@ import day04 from '../content/days/day-04.json' with { type: 'json' }
 import day05 from '../content/days/day-05.json' with { type: 'json' }
 import day06 from '../content/days/day-06.json' with { type: 'json' }
 import day07 from '../content/days/day-07.json' with { type: 'json' }
+import day08 from '../content/days/day-08.json' with { type: 'json' }
+import day09 from '../content/days/day-09.json' with { type: 'json' }
+import day10 from '../content/days/day-10.json' with { type: 'json' }
+import day11 from '../content/days/day-11.json' with { type: 'json' }
+import day12 from '../content/days/day-12.json' with { type: 'json' }
+import day13 from '../content/days/day-13.json' with { type: 'json' }
+import day14 from '../content/days/day-14.json' with { type: 'json' }
 import day15 from '../content/days/day-15.json' with { type: 'json' }
 
-// Главы новых роликов в плеере: список «Главы ролика», подпись текущей главы, переход по кнопке, телефон (дни 1–7 и 15),
-// светлая тема страницы, пояснения на паузе тёмного ролика и два новых ролика на одной странице (дни 1 и 2).
+// Главы новых роликов в плеере: список «Главы ролика», подпись текущей главы, переход по кнопке, телефон (дни 1–15),
+// светлая тема страницы, пояснения на паузе тёмного ролика, два новых ролика на одной странице (дни 1 и 2)
+// и ролик дня (день 8): четыре главы дня и план «Что строим сегодня».
 
 const PLAY = { name: 'Смотреть', exact: true }
 const PAUSE = { name: 'Пауза', exact: true }
@@ -42,7 +58,7 @@ const chAbcScript = chAbcData as VideoScript
 const ch01Script = ch01Data as VideoScript
 const chapters = chAbcScript.chapters!
 
-// Сценарии роликов дней 2–7 и 15 по id ролика (как в video/catalog.ts): новые — снимки script.gen.json, старый день 15 — его script.ts
+// Сценарии роликов дней 2–14 и 15 по id ролика (как в video/catalog.ts): новые — снимки script.gen.json, старый день 15 — его script.ts
 const SCRIPTS: Record<string, VideoScript> = {
   'ch-02': ch02Data as VideoScript,
   'ch-12': ch12Data as VideoScript,
@@ -55,10 +71,45 @@ const SCRIPTS: Record<string, VideoScript> = {
   'ch-09': ch09Data as VideoScript,
   'ch-10': ch10Data as VideoScript,
   'ch-11': ch11Data as VideoScript,
+  'day-08': day08Data as VideoScript,
+  'day-09': day09Data as VideoScript,
+  'day-10': day10Data as VideoScript,
+  'day-11': day11Data as VideoScript,
+  'day-12': day12Data as VideoScript,
+  'day-13': day13Data as VideoScript,
+  'day-14': day14Data as VideoScript,
   'day-15': day15Script,
 }
 type DayJson = { blocks: { type: string; videoId?: string; title?: string }[] }
-const DAYS: Record<number, DayJson> = { 2: day02, 3: day03, 4: day04, 5: day05, 6: day06, 7: day07, 15: day15 } as unknown as Record<number, DayJson>
+const DAYS: Record<number, DayJson> = {
+  2: day02,
+  3: day03,
+  4: day04,
+  5: day05,
+  6: day06,
+  7: day07,
+  8: day08,
+  9: day09,
+  10: day10,
+  11: day11,
+  12: day12,
+  13: day13,
+  14: day14,
+  15: day15,
+} as unknown as Record<number, DayJson>
+
+// Ролик дня (спецификация §6.2): главы — DAY_CHAPTERS из video/term/problems.ts, первая сцена — план agenda с items (что строим
+// сегодня) из lesson.ts урока. Ни problems.ts, ни lesson.ts Playwright не загрузит (JSON без атрибута, импорт схем ?raw — ловушка 7
+// README набора), поэтому названия глав и пункты плана читаются из исходников
+const source = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+const quoted = (list: string) => [...list.matchAll(/'([^']*)'/g)].map((m) => m[1])
+const dayChapters = /export const DAY_CHAPTERS\b[^=]*=\s*\[([\s\S]*?)\n\]/.exec(source('video/term/problems.ts'))![1]
+const DAY_TITLES = [...dayChapters.matchAll(/title: '([^']*)'/g)].map((m) => m[1])
+function agendaItems(id: string): string[] {
+  const m = /type: 'agenda',[\s\S]*?items: \[([^\]]*)\]/.exec(source(`video/lessons/${id}/lesson.ts`))
+  if (!m) throw new Error(`у урока ${id} нет плана agenda с items`)
+  return quoted(m[1])
+}
 
 // Ролики дня по порядку страницы: название блока из файла дня и сценарий ролика
 function dayVideos(day: number): { title: string; script: VideoScript }[] {
@@ -564,10 +615,46 @@ function chapterButtons(list: Locator) {
   )
 }
 
-// Review Focus 5: дни 2–7 и 15 на телефоне. Страница не шире экрана, списки «Главы ролика» видны и переносятся (длинное название —
-// в несколько строк внутри пункта, а не за край), а первое пояснение первого ролика дня открывается по нажатию на паузе
-// и встаёт под кадром, не закрывая его (как у дня 1 выше). День 15 — старый ролик 1280 × 720: глав у него нет, списка тоже
-for (const day of [2, 3, 4, 5, 6, 7, 15]) {
+// Перемотать ролик на конец сцены плана (agenda — первая сцена): все пункты появились, а смена сцены (последние 12 кадров) ещё не началась
+async function seekAgendaEnd(figure: Locator, script: VideoScript) {
+  const agenda = script.scenes[0]
+  expect(agenda.id).toBe('agenda')
+  const cover = figure.getByRole('button', { name: /^Смотреть ролик «/ })
+  if (await cover.count()) {
+    await cover.click()
+    await figure.getByRole('button', PAUSE).click()
+  }
+  await figure.getByRole('slider', { name: 'Перемотка' }).fill(String(agenda.durationInFrames - 20))
+}
+
+// Пункты плана в кадре (части item:<k>): номер, строки текста, прозрачность и место в SAFE кадра (x 96–1824, y 96–872 из 1920 × 1080)
+// по прямоугольнику на экране; кадр — первый svg в .video-frame (композиция 1920 × 1080)
+function agendaParts(figure: Locator) {
+  return figure.locator('.video-frame').evaluate((frame) => {
+    const root = frame.querySelector('svg')!.getBoundingClientRect()
+    const k = root.width / 1920
+    const safe = { left: root.left + 96 * k, right: root.left + 1824 * k, top: root.top + 96 * k, bottom: root.top + 872 * k }
+    return [...frame.querySelectorAll('[data-part^="item:"]')].map((el) => {
+      const [num, ...lines] = [...el.querySelectorAll('text')].map((t) => t.textContent ?? '')
+      const r = el.getBoundingClientRect()
+      return {
+        part: el.getAttribute('data-part'),
+        num,
+        name: lines.join(' '),
+        lines: lines.length,
+        opacity: el.getAttribute('opacity'),
+        inSafe: r.left >= safe.left - 0.5 && r.right <= safe.right + 0.5 && r.top >= safe.top - 0.5 && r.bottom <= safe.bottom + 0.5,
+      }
+    })
+  })
+}
+
+// Review Focus 5 недели 1 и Review Focus 3 недели 2: дни 2–14 и 15 на телефоне. Дни 2–7 — ролики глав, дни 8–14 — ролики дня,
+// день 15 — старый ролик 1280 × 720 (глав у него нет, списка тоже). Страница не шире экрана, списки «Главы ролика» видны
+// и переносятся (длинное название — в несколько строк внутри пункта, а не за край), а первое пояснение первого ролика дня открывается
+// по нажатию на паузе и встаёт под кадром, не закрывая его (как у дня 1 выше). У ролика дня план «Что строим сегодня» перечисляет
+// пункты из lesson.ts, и каждый пункт (перенесённый — обеими строками) стоит в SAFE кадра
+for (const day of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]) {
   test(`день ${day} на телефоне 390 px — без горизонтальной прокрутки, пояснение под кадром`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto(`/#/day/${day}`)
@@ -629,5 +716,59 @@ for (const day of [2, 3, 4, 5, 6, 7, 15]) {
     expect(frame).toEqual(before)
     await expect(spot).toBeVisible()
     expect(await fitsWidth(page)).toBe(true)
+
+    // ролик дня: план в конце своей сцены — пункты из lesson.ts по порядку, все видны и в SAFE кадра (длинный — переносом)
+    const dayLesson = script.chapters?.[0]?.title === DAY_TITLES[0]
+    expect(dayLesson).toBe(day >= 8 && day <= 14)
+    if (dayLesson) {
+      const items = agendaItems(script.id)
+      await seekAgendaEnd(figure, script)
+      await expect.poll(async () => (await agendaParts(figure)).map((p) => p.name)).toEqual(items)
+      for (const p of await agendaParts(figure)) {
+        expect(p.opacity, p.name).toBe('1')
+        expect(p.inSafe, p.name).toBe(true)
+      }
+      expect(await fitsWidth(page)).toBe(true)
+    }
   })
 }
+
+// Ролик дня по каркасу (спецификация §6.2): у дня 8 один ролик — day-08 (1920 × 1080). В списке «Главы ролика» четыре главы DAY_CHAPTERS
+// по порядку, со временем начала; первая сцена — план «Что строим сегодня»: кикер — название первой главы, пункты 01–03 — items урока
+test('день 8: ролик дня — четыре главы «Что строим сегодня» … «Проверьте у себя», план перечисляет, что строим', async ({ page }) => {
+  expect(DAY_TITLES).toEqual(['Что строим сегодня', 'Пример', 'Подводный камень', 'Проверьте у себя'])
+  const items = agendaItems('day-08')
+  expect(items).toEqual(['Отзывы — в три стопки', 'Задача агенту в четыре части', 'Приёмка без чтения кода'])
+
+  await page.goto('/#/day/8')
+  const videos = dayVideos(8)
+  expect(videos.map((v) => v.script.id)).toEqual(['day-08'])
+  const [{ title, script }] = videos
+  expect(script.width).toBe(1920)
+  expect(script.chapters!.map((c) => c.title)).toEqual(DAY_TITLES)
+
+  const figure = videoFigure(page, title)
+  const chapterItems = figure.getByRole('list', { name: 'Главы ролика' }).getByRole('listitem')
+  await expect(chapterItems).toHaveCount(DAY_TITLES.length)
+  for (const [i, c] of script.chapters!.entries()) {
+    await expect(chapterItems.nth(i)).toContainText(c.title)
+    await expect(chapterItems.nth(i)).toContainText(clock(c.from, script.fps))
+  }
+  // до запуска текущая — первая глава
+  await expect(chapterItems.nth(0).getByRole('button')).toHaveAttribute('aria-current', 'true')
+
+  // план: конец сцены agenda — подпись главы «1/4 · Что строим сегодня», кикер кадра — то же название, пункты 01–03 — items урока
+  await seekAgendaEnd(figure, script)
+  await expect(figure.getByTestId('video-chapter')).toHaveText(`1/${DAY_TITLES.length} · ${DAY_TITLES[0]}`)
+  await expect.poll(async () => (await agendaParts(figure)).map((p) => p.name)).toEqual(items)
+  const parts = await agendaParts(figure)
+  expect(parts.map((p) => p.part)).toEqual(['item:0', 'item:1', 'item:2'])
+  expect(parts.map((p) => p.num)).toEqual(['01', '02', '03'])
+  for (const p of parts) {
+    expect(p.opacity, p.name).toBe('1')
+    expect(p.inSafe, p.name).toBe(true)
+  }
+  const texts = await figure.locator('.video-frame svg text').allTextContents()
+  expect(texts).toContain(DAY_TITLES[0])
+  expect(texts).toContain(title)
+})
