@@ -1160,6 +1160,8 @@ describe('Browser', () => {
       expect(plain(part(html, 'field:Пароль')!)).toBe('Пароль•••••••••••••')
       expect(plain(part(html, 'field:Почта')!)).toBe('Почтаmarina@example.com')
       expect(plain(html)).not.toContain('demo-password')
+      // и в сырой разметке тоже: пароль не должен попасть ни в текст, ни в атрибут
+      expect(html).not.toContain('demo-password')
       // маска раскладку не меняет: поле пароля в той же колонке и той же ширины, что поле почты
       const layout = def.layout(spec, c2)
       expect(layout['field:Пароль'].x).toBe(layout['field:Почта'].x)

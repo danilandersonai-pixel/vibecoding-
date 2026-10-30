@@ -332,8 +332,9 @@ test('день 1: id внутри двух роликов не пересека�
   expect(found[0].ids.filter((id) => found[1].ids.includes(id))).toEqual([])
 })
 
-// Шапка кадра (data-header): номер главы, клип номера и сам клип, который применит браузер (первый элемент с этим id в документе).
-// left и right — запас от края цифр до краёв клипа в px кадра: оба не меньше нуля — номер виден целиком
+// Шапка кадра (data-header): номер главы и его клип. Главная защита — клип свой: id клипа содержит id ролика, а элемент, который
+// применит браузер (первый с этим id в документе), лежит в своём кадре (own). Геометрия вторична: left и right — запас от края цифр
+// до краёв клипа в px кадра (оба не меньше нуля — номер помещается в клип); у ch-02 и ch-12 id одной длины, и чужой клип цифру бы не срезал
 function headerNumber(figure: Locator) {
   return figure.locator('.video-frame [data-header]').evaluate((header) => {
     const frame = header.closest('.video-frame')!
@@ -573,7 +574,9 @@ for (const day of [2, 3, 4, 5, 6, 7, 8]) {
     const videos = dayVideos(day)
     expect(videos.length).toBeGreaterThan(0)
     await expect(page.locator('figure.video')).toHaveCount(videos.length)
-    // кадры нарисованы: ленивый код роликов загрузился (svg внутри плеера, а не только обложка)
+    // кадры нарисованы: ленивый код роликов загрузился (svg внутри плеера, а не только обложка); кадров столько же, сколько роликов,
+    // иначе цикл ниже мог бы не выполниться ни разу
+    await expect(page.locator('.video-frame')).toHaveCount(videos.length)
     for (const frame of await page.locator('.video-frame').all()) await expect(frame.locator('svg').first()).toBeVisible()
     expect(await fitsWidth(page)).toBe(true)
 
