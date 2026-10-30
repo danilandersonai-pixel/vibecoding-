@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { addComment } from "@/app/workouts/[id]/comments";
+import Comments, { type WorkoutComment } from "@/components/Comments";
 import ProgressChart from "@/components/ProgressChart";
 import SetList from "@/components/SetList";
 import { formatDay } from "@/lib/dates";
@@ -18,7 +20,7 @@ export const instant = false;
 // Тренировка подопечного с подходами: id подхода из json_agg — число
 type Workout = { id: string; title: string; day: Date; sets: { id: number; weight: number; reps: number }[] };
 
-// Карточка подопечного по id из адреса: имя, форма «Назначить» и тренировки с подходами и объёмом
+// Карточка подопечного по id из адреса: имя, форма «Назначить» и тренировки с подходами, объёмом и комментариями
 export default async function ClientPage({ params }: PageProps<"/clients/[id]">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
@@ -34,11 +36,25 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
         order by w.day`,
       [id],
     );
-    return client.rows.length > 0 ? { name: client.rows[0].name, workouts: workouts.rows } : null;
+    // комментарии к тренировкам подопечного одним запросом: автор — подопечный (его имя) или тренер
+    const comments = await db.query<WorkoutComment & { workout_id: string }>(
+      `select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author
+         from comments cm
+         join workouts w on w.id = cm.workout_id
+         join clients c on c.id = w.client_id
+        where w.client_id = $1
+        order by cm.id`,
+      [id],
+    );
+    return client.rows.length > 0
+      ? { name: client.rows[0].name, workouts: workouts.rows, comments: comments.rows }
+      : null;
   });
   if (!card) notFound();
   // поля приходят из формы, а id подопечного действие получает отсюда
   const assign = assignWorkout.bind(null, id);
+  // комментарии одной тренировки
+  const commentsOf = (workoutId: string) => card.comments.filter((comment) => comment.workout_id === workoutId);
 
   return (
     <main className="mx-auto w-full max-w-md p-8">
@@ -83,6 +99,14 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
               <p className="text-sm text-zinc-500">{formatDay(workout.day)}</p>
               <SetList sets={workout.sets} className="mt-1 text-sm" />
               <p className="text-sm font-medium">Объём, кг: {volume(workout.sets)}</p>
+              {/* под тренировкой, где подопечный написал, — его комментарии и ответ тренера; после отправки — снова эта карточка */}
+              {commentsOf(workout.id).length > 0 && (
+                <Comments
+                  comments={commentsOf(workout.id)}
+                  action={addComment.bind(null, workout.id, `/clients/${id}`)}
+                  className="mt-2 text-sm"
+                />
+              )}
             </li>
           ))}
         </ul>

@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import Comments, { type WorkoutComment } from "@/components/Comments";
 import SetList from "@/components/SetList";
 import { asUser } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 import { volume } from "@/lib/volume";
 import { saveSet } from "./actions";
+import { addComment } from "./comments";
 
 export const metadata: Metadata = { title: "Тренировка" };
 
 // Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки
 export const instant = false;
 
-// Тренировка по id из адреса: упражнения по программе, подходы, объём и форма нового подхода. Чужой тренировки база не отдаст (RLS) — будет 404
+// Тренировка по id из адреса: упражнения по программе, подходы, объём, форма нового подхода и комментарии. Чужой тренировки база не отдаст (RLS) — будет 404
 export default async function WorkoutPage({ params, searchParams }: PageProps<"/workouts/[id]">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
@@ -29,11 +31,25 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<"/
       "select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id",
       [id],
     );
-    return found.rows.length > 0 ? { title: found.rows[0].title, items: items.rows, sets: sets.rows } : null;
+    // комментарии к тренировке: автор — подопечный (его имя) или тренер
+    const comments = await db.query<WorkoutComment>(
+      `select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author
+         from comments cm
+         join workouts w on w.id = cm.workout_id
+         join clients c on c.id = w.client_id
+        where cm.workout_id = $1
+        order by cm.id`,
+      [id],
+    );
+    return found.rows.length > 0
+      ? { title: found.rows[0].title, items: items.rows, sets: sets.rows, comments: comments.rows }
+      : null;
   });
   if (!workout) notFound();
   // поля приходят из формы, а id тренировки действие получает отсюда
   const save = saveSet.bind(null, id);
+  // комментарий — к этой тренировке, после отправки — снова эта страница
+  const comment = addComment.bind(null, id, `/workouts/${id}`);
 
   return (
     <main className="mx-auto w-full max-w-md p-8">
@@ -94,6 +110,9 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<"/
           {error}
         </p>
       )}
+
+      <h2 className="mt-8 text-xl font-semibold">Комментарии</h2>
+      <Comments comments={workout.comments} action={comment} className="mt-2" />
     </main>
   );
 }

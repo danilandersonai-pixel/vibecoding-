@@ -1453,3 +1453,113 @@ test('s15: схема после 0004–0005 — копия; тесты до к�
   expect(last).toMatchObject({ message: 'Отчёт тренера за месяц по неделям', branch: 'main', parents: [commit('c-report-def').hash] })
   expect(last.files.map((f) => f.path)).toEqual(expect.arrayContaining(['docs/report.md', 'lib/report.ts', 'lib/report.test.ts', 'app/report/page.tsx']))
 })
+
+test('s16: таблица из SQL без RLS — Света видит колено Анны; с RLS — 0 строк; одно уведомление на тренировку', () => {
+  const events = sessions['s16-comments'].events
+  expect(events.map((e) => e.id)).toEqual([
+    ...['ask-comments', 'comments-sql', 'comments-apply', 'comments-action', 'comments-ui', 'comments-anna', 'comments-coach'],
+    ...['dev', 'login-anna', 'anna-comment', 'login-marina', 'marina-reply', 'as-sveta-file', 'as-sveta'],
+    ...['ask-comments-rls', 'rls-sql', 'rls-apply', 'comments-test', 'comments-run', 'as-sveta2'],
+    ...['ask-notify', 'notify-test', 'notify-lib', 'notify-run', 'c-comments'],
+  ])
+  const run = (id: string) => find('s16-comments', id, 'run')
+  const file = (id: string) => find('s16-comments', id, 'file')
+  const agent = (id: string) => find('s16-comments', id, 'agent')
+  const browser = (id: string) => find('s16-comments', id, 'browser')
+  // шаги внутри запросов — агента, остальные — человека: проверку от имени Светы пишет и запускает человек
+  const inner = new Set(['ask-comments', 'ask-comments-rls', 'ask-notify'].flatMap((id) => agent(id).steps))
+  for (const e of events) {
+    if (e.kind !== 'agent') expect((e as { by?: string }).by, e.id).toBe(inner.has(e.id) ? 'agent' : undefined)
+  }
+
+  // комментарии: таблица из SQL, миграция — с подтверждения; RLS агент не включил
+  expect(agent('ask-comments').prompt).toBe('Комментарии к тренировке: подопечный пишет под тренировкой, тренер отвечает. Миграцию применяй с моего подтверждения')
+  expect(agent('ask-comments').steps).toEqual(['comments-sql', 'comments-apply', 'comments-action', 'comments-ui', 'comments-anna', 'comments-coach'])
+  const table = file('comments-sql')
+  expect(table).toMatchObject({ path: 'supabase/migrations/0006_comments.sql', before: null })
+  for (const column of ['workout_id bigint', 'author_id uuid', 'body text', 'char_length(body) between 1 and 1000', 'created_at timestamptz']) expect(table.after, column).toContain(column)
+  expect(table.after).not.toMatch(/row level security|create policy/i)
+  expect(run('comments-apply')).toMatchObject({ cmd: 'psql -f supabase/migrations/0006_comments.sql', code: 0, out: ['CREATE TABLE'] })
+  expect(['comments-action', 'comments-ui', 'comments-anna', 'comments-coach'].map((id) => file(id).path)).toEqual([
+    'app/workouts/[id]/comments.ts',
+    'components/Comments.tsx',
+    'app/workouts/[id]/page.tsx',
+    'app/clients/[id]/page.tsx',
+  ])
+  expect(file('comments-anna').before).not.toBeNull()
+  expect(file('comments-coach').before).not.toBeNull()
+
+  // строки для кадра создаёт сама сессия: Анна пишет под «Ногами», Марина отвечает на карточке
+  const KNEE = 'Последний подход тяжело, ноет колено'
+  const THURSDAY = 'Тогда в четверг присед полегче'
+  expect(browser('login-anna').urlAfter).toBe('http://localhost:3000/workouts')
+  const anna = browser('anna-comment')
+  expect(anna.url).toBe('http://localhost:3000/workouts/1')
+  expect(anna.fields).toEqual([{ label: 'Комментарий', value: KNEE }])
+  expect(anna.before).toContain('Комментариев пока нет')
+  expect(anna.after).toContain(`Анна: ${KNEE}`)
+  expect(browser('login-marina').urlAfter).toBe('http://localhost:3000/clients')
+  const reply = browser('marina-reply')
+  expect(reply.url).toBe('http://localhost:3000/clients/1')
+  expect(reply.fields).toEqual([{ label: 'Комментарий', value: THURSDAY }])
+  // до ответа: комментарий Анны — под «Ногами», раньше следующей тренировки
+  const knee = reply.before.indexOf(`Анна: ${KNEE}`)
+  expect(knee).toBeGreaterThan(reply.before.indexOf('Ноги'))
+  expect(knee).toBeLessThan(reply.before.indexOf('Спина и бицепс'))
+  // после ответа — обе реплики
+  expect(reply.after.join('\n')).toContain(KNEE)
+  expect(reply.after.join('\n')).toContain(THURSDAY)
+  expect(reply.after.indexOf(`Тренер: ${THURSDAY}`)).toBe(reply.after.indexOf(`Анна: ${KNEE}`) + 1)
+
+  // подводный камень: запрос от имени Светы, подопечной Игоря, — она видит оба комментария
+  const sveta = file('as-sveta-file')
+  expect(sveta).toMatchObject({ path: 'supabase/tests/as-sveta.sql', before: null })
+  for (const line of ['set local role authenticated;', '"sub":"55555555-5555-5555-5555-555555555555"', 'select body from comments;', 'rollback;']) expect(sveta.after, line).toContain(line)
+  expect(run('as-sveta').cmd).toBe('psql -f supabase/tests/as-sveta.sql')
+  const seen = run('as-sveta').out.join('\n')
+  expect(seen).toContain('ноет колено')
+  expect(seen).toContain(THURSDAY)
+  expect(seen).toContain('(2 rows)')
+
+  // RLS: читают и пишут подопечный и тренер, автор — от своего имени; негативный тест зелёный
+  expect(agent('ask-comments-rls').prompt).toBe(
+    'Света, подопечная Игоря, видит комментарии чужой подопечной. Включи RLS на comments: читают и пишут подопечный тренировки и его тренер, от своего имени. И негативный тест',
+  )
+  expect(agent('ask-comments-rls').steps).toEqual(['rls-sql', 'rls-apply', 'comments-test', 'comments-run'])
+  const rls = file('rls-sql')
+  expect(rls).toMatchObject({ path: 'supabase/migrations/0007_comments_rls.sql', before: null })
+  expect(rls.after).toContain('alter table comments enable row level security;')
+  expect(rls.after).toContain('author_id = auth.uid()')
+  expect(rls.after.match(/create policy/g)).toHaveLength(2)
+  expect(run('rls-apply')).toMatchObject({ cmd: 'psql -f supabase/migrations/0007_comments_rls.sql', code: 0, out: ['ALTER TABLE', 'CREATE POLICY', 'CREATE POLICY'] })
+  expect(file('comments-test')).toMatchObject({ path: 'test/comments.test.ts', before: null })
+  for (const name of ['Света, подопечная Игоря, не видит комментарий Анны', 'Анна видит свой комментарий', 'Марина, тренер Анны, видит комментарий Анны']) {
+    expect(file('comments-test').after, name).toContain(`test("${name}"`)
+  }
+  expect(run('comments-run').cmd).toBe('npx vitest run test/comments.test.ts')
+  expect(run('comments-run').code).toBe(0)
+  expect(run('comments-run').out.join('\n')).toContain('3 passed (3)')
+  // тот же запрос от Светы после RLS — пусто
+  expect(run('as-sveta2').cmd).toBe('psql -f supabase/tests/as-sveta.sql')
+  const empty = run('as-sveta2').out.join('\n')
+  expect(empty).toContain('(0 rows)')
+  expect(empty).not.toContain('колено')
+
+  // уведомления: сначала тест, потом код; время в тесте фиксированное, настоящих часов нет ни в тесте, ни в коде
+  expect(agent('ask-notify').prompt).toBe('Уведомление тренеру — одно на тренировку, а не на каждый подход. Ночью с 22 до 8 по часовому поясу получателя — утром. Сначала тест')
+  expect(agent('ask-notify').steps).toEqual(['notify-test', 'notify-lib', 'notify-run'])
+  const notifyTest = file('notify-test')
+  expect(notifyTest).toMatchObject({ path: 'lib/notify.test.ts', before: null })
+  for (const words of ['length: 15', '"Europe/Moscow"', '2026-11-07T23:40:00+03:00', '2026-11-08T08:00:00+03:00']) expect(notifyTest.after, words).toContain(words)
+  expect(file('notify-lib')).toMatchObject({ path: 'lib/notify.ts', before: null })
+  for (const id of ['notify-test', 'notify-lib']) expect(file(id).after, id).not.toMatch(/Date\.now\(|new Date\(\)/)
+  expect(run('notify-run').cmd).toBe('npx vitest run lib/notify.test.ts')
+  expect(run('notify-run').code).toBe(0)
+  expect(run('notify-run').out.join('\n')).toContain('2 passed (2)')
+
+  // коммит — продолжение s15 на main, в нём всё новое
+  const last = find('s16-comments', 'c-comments', 'commit')
+  expect(last).toMatchObject({ message: 'Комментарии к тренировке с RLS; правила уведомлений', branch: 'main', parents: [find('s15-report', 'c-report', 'commit').hash] })
+  const paths = ['supabase/migrations/0006_comments.sql', 'supabase/migrations/0007_comments_rls.sql', 'supabase/tests/as-sveta.sql', 'components/Comments.tsx']
+  expect(last.files.map((f) => f.path)).toEqual(expect.arrayContaining([...paths, 'app/workouts/[id]/comments.ts', 'test/comments.test.ts', 'lib/notify.ts', 'lib/notify.test.ts']))
+})
