@@ -63,12 +63,15 @@ test('до запуска ролик не пустой: видна обложк�
   for (const r of rows) expect(Math.abs(r.width - grid)).toBeLessThan(2)
 })
 
-// день 7 — ch-10 и ch-11, оба ещё старые (1280 × 720) до своей переделки
-test('два старых ролика (1280 × 720) на компьютере — в один ряд', async ({ page }) => {
-  await page.goto('/#/day/7')
-  await expect(page.locator('.video-grid .video-stage')).toHaveCount(2)
-  const [a, b] = await page.locator('.video-grid .video-stage').evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top))
-  expect(a).toBe(b)
+// День 8 — один старый ролик day-08 (1280 × 720): дня с двумя старыми роликами в курсе больше нет (ch-10 переделан, на дне 7
+// рядом с ним старый ch-11). Одинокий ролик сетки — во всю её ширину (правило :only-child в video.css), а не в половину
+test('старый ролик (1280 × 720) один на дне — во всю ширину сетки', async ({ page }) => {
+  await page.goto('/#/day/8')
+  await expect(page.locator('.video-grid .video-stage')).toHaveCount(1)
+  await expect(page.locator('.video-grid .video-stage.is-dark')).toHaveCount(0)
+  const stage = await page.locator('.video-grid .video-stage').evaluate((el) => el.getBoundingClientRect().width)
+  const grid = await page.locator('.video-grid').evaluate((el) => el.getBoundingClientRect().width)
+  expect(Math.abs(stage - grid)).toBeLessThan(2)
 })
 
 test('на обложке субтитров нет, после запуска — идут', async ({ page }) => {

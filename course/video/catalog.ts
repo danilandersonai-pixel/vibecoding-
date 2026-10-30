@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react'
-import { ch10Script } from './ch-10/script'
 import { ch11Script } from './ch-11/script'
 import { day08Script } from './day-08/script'
 import { day09Script } from './day-09/script'
@@ -23,6 +22,7 @@ import { ch05Script } from './lessons/ch-05/script'
 import { ch06Script } from './lessons/ch-06/script'
 import { ch08Script } from './lessons/ch-08/script'
 import { ch09Script } from './lessons/ch-09/script'
+import { ch10Script } from './lessons/ch-10/script'
 import { ch12Script } from './lessons/ch-12/script'
 import { chAbcScript } from './lessons/ch-abc/script'
 import { pilotRlsScript } from './lessons/pilot-rls/script'
@@ -108,7 +108,7 @@ export const catalog: Record<string, CatalogEntry> = {
     title: 'Фоновые агенты',
     kind: 'chapter',
     script: ch10Script,
-    load: () => import('./ch-10/Video'),
+    load: () => import('./lessons/ch-10/Video'),
   },
   'ch-11': {
     title: 'Что дальше',
