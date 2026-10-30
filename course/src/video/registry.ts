@@ -6,7 +6,6 @@ export type VideoEntry = { script: VideoScript; load: () => Promise<{ default: C
 
 // Адреса MP4 в хранилище страницы: появляются после загрузки файла (asset: true).
 const MP4: Record<string, string> = {
-  'ch-11': '/_blob/70f7e50fd5dc41b419d9b05e2558ca2e',
   'day-08': '/_blob/611549ea3352c6a88b20bc46bb436cab',
   'day-09': '/_blob/ba704cf9fde447213a81f3ea3ddcca86',
   'day-10': '/_blob/1314ebce47ccbd8c73a8fcb3aa3de254',
