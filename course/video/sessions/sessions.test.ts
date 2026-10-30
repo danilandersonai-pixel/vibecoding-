@@ -1264,3 +1264,28 @@ test('s12: шаги по таблице; задачу и токены пишет
   for (const c of [last, commit('c-spec-tests'), commit('c-records2'), records, commit('c-task')]) expect(log.join('\n'), c.id).toContain(`${c.hash} ${c.message}`)
   expect(byAgent('log-final').by).toBeUndefined()
 })
+
+test('s13: расплывчатая задача трогает четыре файла, задача в четыре части — один; тренер видит заметку', () => {
+  const run = (id: string) => find('s13-feedback', id, 'run')
+  // «Покажи заметки к подходам получше»: в ветке agent/notes-vague четыре файла вместо одного, ветка удаляется
+  const vague = run('vague-stat').out.join('\n')
+  for (const path of ['components/SetList.tsx', 'app/workouts/[id]/page.tsx', 'app/globals.css', 'app/clients/page.tsx']) expect(vague, path).toContain(path)
+  expect(run('vague-drop').out.join('\n')).toContain('Deleted branch agent/notes-vague')
+
+  // задача в четыре части: приёмка из main — в ветке agent/notes один коммит и один файл
+  const notes = find('s13-feedback', 'c-notes', 'commit')
+  expect(run('accept-log').out.filter(Boolean)).toEqual([`${notes.hash} ${notes.message}`])
+  const stat = run('accept-stat').out.filter(Boolean)
+  expect(stat).toHaveLength(2)
+  expect(stat[0]).toContain('components/SetList.tsx')
+  expect(stat[1]).toContain('1 file changed')
+
+  // агент читает задачу, правит один файл и запускает проверку — она проходит
+  expect(find('s13-feedback', 'ask-notes', 'agent').steps).toEqual(['notes-read', 'notes-list', 'notes-check'])
+  expect(run('notes-check').code).toBe(0)
+
+  // руками: у Марины на карточке Анны под подходом «50 кг × 10» — заметка «болит колено»
+  const card = find('s13-feedback', 'card-note', 'browser').after
+  expect(card).toContain('болит колено')
+  expect(card[card.indexOf('болит колено') - 1]).toBe('50 кг × 10')
+})
