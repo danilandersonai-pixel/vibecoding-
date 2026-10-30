@@ -451,6 +451,31 @@ describe('recordChain: браузер', () => {
     expect(find('b01', 'see', 'browser').before).toEqual(['who=anna'])
     expect(find('b02', 'again', 'browser').before).toEqual(['нет cookie'])
   })
+
+  // Корень печатает ссылку со случайным числом (заранее его не знает никто), другие адреса — свой путь
+  const LINKS =
+    '<!doctype html><meta charset=utf-8><title>Тренер</title><p id=r></p>' +
+    "<script>r.textContent=location.pathname==='/'?'Ссылка: http://localhost:3000/go/'+String(Math.random()).slice(2,12)+' и /go/0':'Открыт '+location.pathname</script>"
+
+  it('url { from, match }: адрес со страницы прошлого шага — первое совпадение в её тексте, в событии — сам адрес', async () => {
+    const dev = { id: 'dev', run: `node -e ${sh(serverOf(LINKS))}`, until: 'Ready' }
+    const steps = [dev, { id: 'share', browser: { url: '/' } }, { id: 'open', browser: { url: { from: 'share', match: /\/go\/\d+/ } } }]
+    const { records } = await recordChain([session(steps)], { workdir: fresh() })
+    const find = makeFind(records)
+    const link = find('b01', 'share', 'browser').after.join('\n').match(/\/go\/\d+/)![0]
+    expect(link).not.toBe('/go/0')
+    expect(find('b01', 'open', 'browser')).toMatchObject({ url: `http://localhost:3000${link}`, before: [`Открыт ${link}`] })
+    expect(find('b01', 'open', 'browser')).not.toHaveProperty('urlAfter')
+  })
+
+  it('url { from, match }: на странице шага from нет такого адреса — ошибка шага', async () => {
+    const dev = { id: 'dev', run: `node -e ${sh(serverOf(LINKS))}`, until: 'Ready' }
+    const steps = [dev, { id: 'share', browser: { url: '/' } }, { id: 'open', browser: { url: { from: 'share', match: /\/join\/[0-9a-f]{32}/ } } }]
+    await expect(recordChain([session(steps)], { workdir: fresh() })).rejects.toThrow(
+      'Сессия «b01», шаг «open»: на странице шага «share» нет адреса по /\\/join\\/[0-9a-f]{32}/ (путь, который начинается с «/»)',
+    )
+    expect(await portFree()).toBe(true)
+  })
 })
 
 describe('recordChain: потолок обычной команды', () => {
@@ -642,6 +667,21 @@ describe('recordChain: ошибки цепочки', () => {
       const steps = [{ id: 'b', browser: { url: '/', fill } }]
       await expect(recordChain([session('s01', null, steps)], { workdir: fresh() })).rejects.toThrow(/Сессия «s01», шаг «b»: browser\.fill — объект/)
     }
+  })
+
+  it('browser.url { from, match }: from — только шаг browser раньше этого, match — регулярное выражение', async () => {
+    const link = (url: object) => [{ id: 'dev', run: 'true' }, { id: 'a', browser: { url: '/' } }, { id: 'b', browser: { url } }, { id: 'c', browser: { url: '/' } }]
+    for (const from of ['dev', 'b', 'c', 'нет']) {
+      await expect(recordChain([session('s01', null, link({ from, match: /\/go/ }))], { workdir: fresh() })).rejects.toThrow(
+        'Сессия «s01», шаг «b»: browser.url.from — id шага browser раньше этого',
+      )
+    }
+    await expect(recordChain([session('s01', null, link({ from: 'a', match: '/go' }))], { workdir: fresh() })).rejects.toThrow(
+      'Сессия «s01», шаг «b»: browser.url.match — регулярное выражение',
+    )
+    await expect(recordChain([session('s01', null, [{ id: 'b', browser: { url: 'go' } }])], { workdir: fresh() })).rejects.toThrow(
+      'Сессия «s01», шаг «b»: browser.url — путь, который начинается с «/», или { from, match }',
+    )
   })
 
   it('дата сессии без часового пояса — ошибка', async () => {

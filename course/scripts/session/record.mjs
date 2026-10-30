@@ -124,16 +124,17 @@ function check(ok, message) {
 }
 
 // Проверка шагов сессии до запуска: запись идёт минуты, поэтому опечатка в шаге должна всплыть сразу.
+// seen — уже проверенные шаги сессии: id → вид шага (run, browser…).
 function checkSteps(def, steps, seen, inAgent) {
   const at = `Сессия «${def.id}»`
   check(Array.isArray(steps), `${at}: steps должен быть списком`)
   for (const step of steps) {
     check(typeof step?.id === 'string' && step.id !== '', `${at}: у шага нет id`)
     check(!seen.has(step.id), `${at}: повторяется шаг «${step.id}»`)
-    seen.add(step.id)
     const here = `${at}, шаг «${step.id}»`
     const kinds = KINDS.filter((k) => step[k] !== undefined)
     check(kinds.length === 1, `${here}: нужен ровно один из ${KINDS.join(', ')}`)
+    seen.set(step.id, kinds[0])
     const str = (value, what) => check(typeof value === 'string', `${here}: ${what} — строка`)
     switch (kinds[0]) {
       case 'run':
@@ -164,7 +165,13 @@ function checkSteps(def, steps, seen, inAgent) {
         break
       case 'browser': {
         const { url, fill, click } = step.browser ?? {}
-        check(typeof url === 'string' && url.startsWith('/'), `${here}: browser.url — путь, который начинается с «/»`)
+        // url — путь или { from, match }: адрес со страницы прошлого шага browser этой сессии (linkFrom в playSession)
+        if (url !== null && typeof url === 'object') {
+          check(url.from !== step.id && seen.get(url.from) === 'browser', `${here}: browser.url.from — id шага browser раньше этого`)
+          check(url.match instanceof RegExp, `${here}: browser.url.match — регулярное выражение`)
+        } else {
+          check(typeof url === 'string' && url.startsWith('/'), `${here}: browser.url — путь, который начинается с «/», или { from, match }`)
+        }
         check(fill === undefined || (fill !== null && typeof fill === 'object' && !Array.isArray(fill) && Object.values(fill).every((v) => typeof v === 'string')), `${here}: browser.fill — объект «подпись поля → значение»`)
         check(click === undefined || typeof click === 'string' || (Array.isArray(click) && click.every((c) => typeof c === 'string')), `${here}: browser.click — текст кнопки или список`)
         break
@@ -184,7 +191,7 @@ function checkChain(defs) {
     check(def.from === prev, prev === null ? `Сессия «${def.id}»: from = «${def.from}», а она первая в цепочке` : `Сессия «${def.id}»: from = «${def.from}», а перед ней в цепочке «${prev}»`)
     check(typeof def.date === 'string' && DATE.test(def.date) && !Number.isNaN(Date.parse(def.date)), `Сессия «${def.id}»: date — ISO-время с часовым поясом (2026-10-28T10:00:00Z)`)
     check(def.db === undefined || def.db === true, `Сессия «${def.id}»: db — только true`)
-    checkSteps(def, def.steps, new Set(), false)
+    checkSteps(def, def.steps, new Map(), false)
   })
 }
 
@@ -684,10 +691,20 @@ async function playSession({ home, project, npmCache, runLimitMs }, def) {
     return context
   }
 
+  // Адрес со страницы прошлого шага browser: первое совпадение match в её тексте в конце того шага (after). Так открывают ссылку,
+  // которую знает только запись, — например, приглашение со случайным кодом; в событие попадает сам адрес, как у обычного url.
+  function linkFrom({ from, match }) {
+    const source = events.find((e) => e.id === from && e.kind === 'browser')
+    const found = source?.after.join('\n').match(match)?.[0]
+    check(typeof found === 'string' && found.startsWith('/'), `на странице шага «${from}» нет адреса по ${match} (путь, который начинается с «/»)`)
+    return found
+  }
+
   async function recordBrowser(step) {
     const server = procs.findLast((p) => !p.exited)
     check(server, 'browser нужен работающий шаг с until (dev-сервер)')
-    const { url, fill = {}, click = [] } = step.browser
+    const { fill = {}, click = [] } = step.browser
+    const url = typeof step.browser.url === 'string' ? step.browser.url : linkFrom(step.browser.url)
     const clicks = Array.isArray(click) ? click : [click]
     const mark = server.text.length // вывод сервера считаем с начала шага
     const page = await (await sessionContext()).newPage()
