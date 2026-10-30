@@ -5,8 +5,10 @@
 // не включил — правдоподобная ошибка (книга, s43): права роли authenticated на новые таблицы слой Supabase выдаёт по умолчанию.
 // Анна пишет под «Ногами» «Последний подход тяжело, ноет колено», Марина отвечает «Тогда в четверг присед полегче».
 // Подводный камень: человек пишет supabase/tests/as-sveta.sql по образцу as-marina.sql (s06) — запрос от имени Светы, подопечной Игоря, —
-// и psql показывает ей оба комментария. Исправление — в базе: 0007_comments_rls.sql (RLS и политики: читают и пишут подопечный тренировки
-// и его тренер, автор — от своего имени), негативный тест test/comments.test.ts; тот же запрос от Светы — (0 rows).
+// и psql показывает ей оба комментария. Вторая дверь — запись: supabase/tests/as-sveta-write.sql вставляет от имени Светы «Привет от Светы»
+// под «Ногами» Анны (INSERT 0 1), и Анна видит его с подписью «Тренер». Исправление — в базе: 0007_comments_rls.sql (RLS и политики: читают
+// и пишут подопечный тренировки и его тренер, автор — от своего имени), негативный тест test/comments.test.ts (Света не видит и не пишет,
+// Анна не пишет от имени Марины); тот же запрос от Светы — (0 rows), та же вставка — ошибка RLS.
 // Потом правила уведомлений тренеру — чистая функция lib/notify.ts, сначала тест: одно уведомление на тренировку, а не на каждый подход;
 // ночью, с 22:00 до 8:00 по поясу получателя, — в 8:00. Время в тесте фиксированное, настоящие часы не участвуют; отправки ещё нет.
 // Запись с середины цепочки: node scripts/record-session.mjs --from s16-comments (из course/). Id шагов постоянные: на них ссылаются уроки.
@@ -389,9 +391,30 @@ select body from comments;
 rollback;
 `
 
+// Проверка записи — человек, по образцу as-sveta.sql: вставка от имени Светы под «Ногами» Анны, затем от имени Анны — комментарии
+// к тренировке с подписью автора, как на странице. ON_ERROR_ROLLBACK: ошибка одной команды откатывает только её, и проверка идёт дальше
+// (без него после ошибки RLS psql пропускал бы всё до rollback). psql -f без ON_ERROR_STOP и с ошибкой выходит с кодом 0
+const AS_SVETA_WRITE = `-- Может ли Света, подопечная Игоря, написать под чужой тренировкой: вставка от её имени под «Ногами» Анны (тренировка 1),
+-- затем от имени Анны — комментарии к тренировке с подписью автора, как на странице. В конце rollback — ничего не меняется
+-- ON_ERROR_ROLLBACK: ошибка одной команды откатывает только её, и проверка идёт дальше
+\\set ON_ERROR_ROLLBACK on
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"${SVETA}"}', true);
+insert into comments (workout_id, author_id, body) values (1, '${SVETA}', 'Привет от Светы');
+select set_config('request.jwt.claims', '{"sub":"${ANNA}"}', true);
+select case when cm.author_id = c.user_id then c.name else 'Тренер' end as author, cm.body
+  from comments cm
+  join workouts w on w.id = cm.workout_id
+  join clients c on c.id = w.client_id
+ where cm.workout_id = 1
+ order by cm.id;
+rollback;
+`
+
 // RLS на comments — пишет агент. Политики смотрят на workouts и clients, а на comments не ссылается ни одна политика: круга нет
 // (в s14 круг program_items ↔ workout_items дал бы infinite recursion). Имена политик короче 63 байт
-const COMMENTS_RLS = `-- RLS на comments: в 0006 таблицу создали из SQL без неё, и любой вошедший читал все комментарии — Света видела комментарии Анны.
+const COMMENTS_RLS = `-- RLS на comments: в 0006 таблицу создали из SQL без неё, и любой вошедший читал и писал все комментарии — Света видела комментарии Анны.
 -- Политики смотрят на workouts и clients, а на comments не ссылается ни одна политика других таблиц: круга политик нет.
 
 alter table comments enable row level security;
@@ -414,10 +437,12 @@ create policy "подопечный и тренер пишут" on comments
 // Негативный тест — пишет агент: данные создаёт сам в транзакции с откатом, запросы — от имени разных людей, как asUser в lib/db.ts.
 // Импорт относительный, как у test/rls.test.ts: Vitest без настроек не знает алиаса @/
 const COMMENTS_TEST = `// @vitest-environment node
-// Негативный тест: комментарий Анны к её тренировке видят она и её тренер Марина, а Света, подопечная Игоря, — нет.
+// Негативный тест: комментарий Анны к её тренировке видят она и её тренер Марина, а Света, подопечная Игоря, — нет;
+// Света не может написать под тренировкой Анны, а Анна — от имени Марины.
 // Права проверяет база (RLS, supabase/migrations/0007_comments_rls.sql): запросы идут от имени разных людей, как в asUser из lib/db.ts.
 // Данные тест создаёт сам в одной транзакции и в конце откатывает (rollback): в базе после него ничего не остаётся.
 // Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения, как у test/rls.test.ts.
+import type { PoolClient } from "pg";
 import { afterAll, expect, test } from "vitest";
 import { pool } from "../lib/db";
 
@@ -427,29 +452,42 @@ const ANNA = "${ANNA}";
 const SVETA = "${SVETA}";
 const LEGS = 1;
 const KNEE = "Последний подход тяжело, ноет колено";
+const INSERT = "insert into comments (workout_id, author_id, body) values ($1, $2, $3)";
 
 afterAll(() => pool.end());
 
-// Анна пишет комментарий под «Ногами», затем reader читает комментарии к этой тренировке — всё в одной транзакции с откатом
-async function commentsSeenBy(reader: string): Promise<string[]> {
+// Запросы fn в одной транзакции с откатом; as(uid) — дальше от имени uid: роль authenticated и sub в request.jwt.claims
+async function rolledBack<T>(fn: (db: PoolClient, as: (uid: string) => Promise<void>) => Promise<T>): Promise<T> {
   const db = await pool.connect();
-  // дальше в транзакции — от имени uid: роль authenticated и sub в request.jwt.claims
   const as = async (uid: string) => {
     await db.query("set local role authenticated");
     await db.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify({ sub: uid, role: "authenticated" })]);
   };
   try {
     await db.query("begin");
-    await as(ANNA);
-    await db.query("insert into comments (workout_id, author_id, body) values ($1, $2, $3)", [LEGS, ANNA, KNEE]);
-    await as(reader);
-    const { rows } = await db.query<{ body: string }>("select body from comments where workout_id = $1", [LEGS]);
-    return rows.map((row) => row.body);
+    return await fn(db, as);
   } finally {
     await db.query("rollback");
     db.release();
   }
 }
+
+// Анна пишет комментарий под «Ногами», затем reader читает комментарии к этой тренировке
+const commentsSeenBy = (reader: string) =>
+  rolledBack(async (db, as) => {
+    await as(ANNA);
+    await db.query(INSERT, [LEGS, ANNA, KNEE]);
+    await as(reader);
+    const { rows } = await db.query<{ body: string }>("select body from comments where workout_id = $1", [LEGS]);
+    return rows.map((row) => row.body);
+  });
+
+// uid пишет комментарий под «Ногами», автор — author
+const write = (uid: string, author: string) =>
+  rolledBack(async (db, as) => {
+    await as(uid);
+    await db.query(INSERT, [LEGS, author, "Привет от Светы"]);
+  });
 
 test("Света, подопечная Игоря, не видит комментарий Анны", async () => {
   expect(await commentsSeenBy(SVETA)).toEqual([]);
@@ -462,6 +500,14 @@ test("Анна видит свой комментарий", async () => {
 test("Марина, тренер Анны, видит комментарий Анны", async () => {
   expect(await commentsSeenBy(MARINA)).toContain(KNEE);
 });
+
+test("Света не может написать под тренировкой Анны", async () => {
+  await expect(write(SVETA, SVETA)).rejects.toThrow("row-level security");
+});
+
+test("Анна не может написать от имени Марины", async () => {
+  await expect(write(ANNA, MARINA)).rejects.toThrow("row-level security");
+});
 `
 
 // Тест правил уведомлений — пишет агент до кода. Время фиксированное: 23:40 по Москве — это 20:40 по UTC (в записи сервер живёт в UTC),
@@ -472,12 +518,12 @@ import { coachNotices } from "./notify";
 // Получатель — тренер Марина, её пояс — Москва. Время в тестах фиксированное: настоящие часы не участвуют
 const MOSCOW = "Europe/Moscow";
 
-// «Ноги»: 5 упражнений × 3 подхода — 15 подходов одной тренировки, с 18:00 по Москве каждые 3 минуты
+// Тренировка из 5 упражнений по 3 подхода — 15 подходов, с 18:00 по Москве каждые 3 минуты
 const START = Date.parse("2026-11-07T18:00:00+03:00");
-const legs = Array.from({ length: 15 }, (_, i) => ({ workoutId: "1", savedAt: new Date(START + i * 3 * 60_000) }));
+const sets = Array.from({ length: 15 }, (_, i) => ({ workoutId: "1", savedAt: new Date(START + i * 3 * 60_000) }));
 
 test("15 подходов одной тренировки — одно уведомление", () => {
-  expect(coachNotices(legs, MOSCOW)).toEqual([{ workoutId: "1", sendAt: new Date("2026-11-07T18:00:00+03:00") }]);
+  expect(coachNotices(sets, MOSCOW)).toEqual([{ workoutId: "1", sendAt: new Date("2026-11-07T18:00:00+03:00") }]);
 });
 
 // По Москве 23:40, а по UTC — 20:40: тихие часы считаются по поясу получателя, а не сервера
@@ -592,6 +638,9 @@ export default {
     { id: 'as-sveta-file', write: 'supabase/tests/as-sveta.sql', content: AS_SVETA },
     // без RLS Света видит оба комментария: права authenticated на новую таблицу слой Supabase выдаёт по умолчанию
     { id: 'as-sveta', run: 'psql -f supabase/tests/as-sveta.sql' },
+    // вторая дверь — запись: вставка от имени Светы под «Ногами» проходит, и Анна видит её с подписью «Тренер»
+    { id: 'as-sveta-write-file', write: 'supabase/tests/as-sveta-write.sql', content: AS_SVETA_WRITE },
+    { id: 'as-sveta-write', run: 'psql -f supabase/tests/as-sveta-write.sql' },
     {
       id: 'ask-comments-rls',
       agent: {
@@ -599,8 +648,8 @@ export default {
           'Света, подопечная Игоря, видит комментарии чужой подопечной. Включи RLS на comments: читают и пишут подопечный тренировки и его тренер, ' +
           'от своего имени. И негативный тест',
         reply:
-          'RLS на comments включена: читают подопечный тренировки и его тренер, пишут они же, и автор — только сам вошедший (author_id = auth.uid()). ' +
-          'Тест: комментарий Анны Света не видит, Анна и Марина видят.',
+          'RLS на comments: читают и пишут подопечный тренировки и его тренер, автор — только сам вошедший. ' +
+          'Тесты: Света не видит и не пишет под тренировкой Анны, Анна — от имени Марины.',
       },
       steps: [
         { id: 'rls-sql', write: 'supabase/migrations/0007_comments_rls.sql', content: COMMENTS_RLS },
@@ -611,6 +660,8 @@ export default {
     },
     // тот же запрос от Светы после RLS — (0 rows)
     { id: 'as-sveta2', run: 'psql -f supabase/tests/as-sveta.sql' },
+    // та же вставка после RLS — ошибка политики; Анна видит только два комментария
+    { id: 'as-sveta-write2', run: 'psql -f supabase/tests/as-sveta-write.sql' },
     {
       // правила уведомлений: сначала тест, потом код; время в тесте фиксированное
       id: 'ask-notify',

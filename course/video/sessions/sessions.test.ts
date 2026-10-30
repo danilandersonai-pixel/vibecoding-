@@ -1458,8 +1458,8 @@ test('s16: таблица из SQL без RLS — Света видит коле
   const events = sessions['s16-comments'].events
   expect(events.map((e) => e.id)).toEqual([
     ...['ask-comments', 'comments-sql', 'comments-apply', 'comments-action', 'comments-ui', 'comments-anna', 'comments-coach'],
-    ...['dev', 'login-anna', 'anna-comment', 'login-marina', 'marina-reply', 'as-sveta-file', 'as-sveta'],
-    ...['ask-comments-rls', 'rls-sql', 'rls-apply', 'comments-test', 'comments-run', 'as-sveta2'],
+    ...['dev', 'login-anna', 'anna-comment', 'login-marina', 'marina-reply', 'as-sveta-file', 'as-sveta', 'as-sveta-write-file', 'as-sveta-write'],
+    ...['ask-comments-rls', 'rls-sql', 'rls-apply', 'comments-test', 'comments-run', 'as-sveta2', 'as-sveta-write2'],
     ...['ask-notify', 'notify-test', 'notify-lib', 'notify-run', 'c-comments'],
   ])
   const run = (id: string) => find('s16-comments', id, 'run')
@@ -1520,6 +1520,15 @@ test('s16: таблица из SQL без RLS — Света видит коле
   expect(seen).toContain('ноет колено')
   expect(seen).toContain(THURSDAY)
   expect(seen).toContain('(2 rows)')
+  // вторая дверь — запись: вставка от имени Светы под «Ногами» проходит, и Анна видит её с подписью «Тренер»
+  const write = file('as-sveta-write-file')
+  expect(write).toMatchObject({ path: 'supabase/tests/as-sveta-write.sql', before: null })
+  for (const line of ["values (1, '55555555-5555-5555-5555-555555555555', 'Привет от Светы');", '"sub":"33333333-3333-3333-3333-333333333333"', 'rollback;']) expect(write.after, line).toContain(line)
+  expect(run('as-sveta-write').cmd).toBe('psql -f supabase/tests/as-sveta-write.sql')
+  const wrote = run('as-sveta-write').out
+  expect(wrote).toContain('INSERT 0 1')
+  expect(wrote).toContain(' Тренер | Привет от Светы')
+  expect(wrote.join('\n')).not.toContain('ERROR')
 
   // RLS: читают и пишут подопечный и тренер, автор — от своего имени; негативный тест зелёный
   expect(agent('ask-comments-rls').prompt).toBe(
@@ -1533,17 +1542,24 @@ test('s16: таблица из SQL без RLS — Света видит коле
   expect(rls.after.match(/create policy/g)).toHaveLength(2)
   expect(run('rls-apply')).toMatchObject({ cmd: 'psql -f supabase/migrations/0007_comments_rls.sql', code: 0, out: ['ALTER TABLE', 'CREATE POLICY', 'CREATE POLICY'] })
   expect(file('comments-test')).toMatchObject({ path: 'test/comments.test.ts', before: null })
-  for (const name of ['Света, подопечная Игоря, не видит комментарий Анны', 'Анна видит свой комментарий', 'Марина, тренер Анны, видит комментарий Анны']) {
+  const names = ['Света, подопечная Игоря, не видит комментарий Анны', 'Анна видит свой комментарий', 'Марина, тренер Анны, видит комментарий Анны']
+  for (const name of [...names, 'Света не может написать под тренировкой Анны', 'Анна не может написать от имени Марины']) {
     expect(file('comments-test').after, name).toContain(`test("${name}"`)
   }
   expect(run('comments-run').cmd).toBe('npx vitest run test/comments.test.ts')
   expect(run('comments-run').code).toBe(0)
-  expect(run('comments-run').out.join('\n')).toContain('3 passed (3)')
+  expect(run('comments-run').out.join('\n')).toContain('5 passed (5)')
   // тот же запрос от Светы после RLS — пусто
   expect(run('as-sveta2').cmd).toBe('psql -f supabase/tests/as-sveta.sql')
   const empty = run('as-sveta2').out.join('\n')
   expect(empty).toContain('(0 rows)')
   expect(empty).not.toContain('колено')
+  // та же вставка после RLS — ошибка политики, у Анны комментария Светы нет
+  expect(run('as-sveta-write2').cmd).toBe('psql -f supabase/tests/as-sveta-write.sql')
+  const refused = run('as-sveta-write2').out.join('\n')
+  expect(refused).toContain('ERROR:  new row violates row-level security policy for table "comments"')
+  expect(refused).not.toContain('INSERT 0 1')
+  expect(refused).not.toContain('Привет от Светы')
 
   // уведомления: сначала тест, потом код; время в тесте фиксированное, настоящих часов нет ни в тесте, ни в коде
   expect(agent('ask-notify').prompt).toBe('Уведомление тренеру — одно на тренировку, а не на каждый подход. Ночью с 22 до 8 по часовому поясу получателя — утром. Сначала тест')
@@ -1551,6 +1567,8 @@ test('s16: таблица из SQL без RLS — Света видит коле
   const notifyTest = file('notify-test')
   expect(notifyTest).toMatchObject({ path: 'lib/notify.test.ts', before: null })
   for (const words of ['length: 15', '"Europe/Moscow"', '2026-11-07T23:40:00+03:00', '2026-11-08T08:00:00+03:00']) expect(notifyTest.after, words).toContain(words)
+  // 15 подходов — ровно одно уведомление: в ожидании один элемент
+  expect(notifyTest.after).toContain('expect(coachNotices(sets, MOSCOW)).toEqual([{ workoutId: "1", sendAt: new Date("2026-11-07T18:00:00+03:00") }]);')
   expect(file('notify-lib')).toMatchObject({ path: 'lib/notify.ts', before: null })
   for (const id of ['notify-test', 'notify-lib']) expect(file(id).after, id).not.toMatch(/Date\.now\(|new Date\(\)/)
   expect(run('notify-run').cmd).toBe('npx vitest run lib/notify.test.ts')
@@ -1560,6 +1578,6 @@ test('s16: таблица из SQL без RLS — Света видит коле
   // коммит — продолжение s15 на main, в нём всё новое
   const last = find('s16-comments', 'c-comments', 'commit')
   expect(last).toMatchObject({ message: 'Комментарии к тренировке с RLS; правила уведомлений', branch: 'main', parents: [find('s15-report', 'c-report', 'commit').hash] })
-  const paths = ['supabase/migrations/0006_comments.sql', 'supabase/migrations/0007_comments_rls.sql', 'supabase/tests/as-sveta.sql', 'components/Comments.tsx']
+  const paths = ['supabase/migrations/0006_comments.sql', 'supabase/migrations/0007_comments_rls.sql', 'supabase/tests/as-sveta.sql', 'supabase/tests/as-sveta-write.sql', 'components/Comments.tsx']
   expect(last.files.map((f) => f.path)).toEqual(expect.arrayContaining([...paths, 'app/workouts/[id]/comments.ts', 'test/comments.test.ts', 'lib/notify.ts', 'lib/notify.test.ts']))
 })
