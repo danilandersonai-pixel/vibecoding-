@@ -36,3 +36,19 @@ export async function saveSet(workoutId: string, form: FormData) {
   // та же страница заново — с новым подходом и без прежней ошибки в адресе
   redirect(page);
 }
+
+// Одно касание: ещё один подход в тренировку workoutId с весом и повторами её прошлого подхода. Прошлый подход берём из базы,
+// а не из формы — подставить в запрос свой вес нельзя. Подходов нет — вставлять нечего (кнопки на странице тогда и нет).
+// Запрос идёт от имени вошедшего: в чужую тренировку не даст вписать RLS.
+export async function repeatSet(workoutId: string) {
+  const uid = await currentUser();
+  if (!uid) redirect("/login");
+  await asUser(uid, (db) =>
+    db.query(
+      `insert into sets (workout_id, weight, reps)
+       select workout_id, weight, reps from sets where workout_id = $1 order by id desc limit 1`,
+      [workoutId],
+    ),
+  );
+  redirect(`/workouts/${workoutId}`);
+}

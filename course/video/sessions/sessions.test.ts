@@ -1738,3 +1738,102 @@ test('s17: вечная ссылка пускает Кирилла; однора
   expect(paths).toEqual(expect.arrayContaining(['supabase/migrations/0008_invites.sql', 'test/invites.test.ts', 'app/join/[code]/page.tsx', 'app/join/[code]/actions.ts', 'app/clients/page.tsx']))
   expect(paths.filter((path) => path.startsWith('app/join/[coach]'))).toEqual([])
 })
+
+test('s18: копия эталона — пять файлов и удалённая ветка; подход в одно касание — сквозной тест и тренер видит', () => {
+  const events = sessions['s18-quick-set'].events
+  expect(events.map((e) => e.id)).toEqual([
+    ...['complaints', 'c-complaints', 'copy-branch'],
+    ...['ask-copy', 'copy-chat', 'copy-timer', 'copy-timer-use', 'copy-pay', 'copy-pay-lib', 'c-copy', 'copy-stat', 'copy-drop', 'parity-edit'],
+    ...['ask-quick', 'quick-e2e', 'quick-page', 'quick-action', 'quick-clients', 'quick-run', 'c-quick'],
+    ...['dev', 'login-anna', 'quick-tap', 'login-marina', 'clients-last'],
+  ])
+  const run = (id: string) => find('s18-quick-set', id, 'run')
+  const file = (id: string) => find('s18-quick-set', id, 'file')
+  const agent = (id: string) => find('s18-quick-set', id, 'agent')
+  const browser = (id: string) => find('s18-quick-set', id, 'browser')
+  const commit = (id: string) => find('s18-quick-set', id, 'commit')
+  // шаги внутри запросов — агента, остальные — человека: документы, git, браузер
+  const inner = new Set(['ask-copy', 'ask-quick'].flatMap((id) => agent(id).steps))
+  for (const e of events) {
+    if (e.kind !== 'agent') expect((e as { by?: string }).by, e.id).toBe(inner.has(e.id) ? 'agent' : undefined)
+  }
+
+  // жалобы — в стопки, сверху «долго записывать подход» (А, Б) и «тренер не видит, что я сделал» (Б, В); названий продуктов нет
+  const complaints = file('complaints')
+  expect(complaints).toMatchObject({ path: 'docs/complaints.md', before: null })
+  const stacks = complaints.after.split('\n').filter((line) => line.startsWith('## '))
+  expect(stacks.slice(0, 2)).toEqual(['## Долго записывать подход — А, Б', '## Тренер не видит, что я сделал — Б, В'])
+  expect(complaints.after).toContain('«Тренер видит вес и повторы подопечного»')
+  expect(complaints.after).toContain('Отличие: подход в одно касание, и тренер сразу видит вес, повторы и рост.')
+  expect(commit('c-complaints')).toMatchObject({ message: 'Жалобы на эталоны в стопки', branch: 'main', parents: [find('s17-invite', 'c-invite', 'commit').hash] })
+
+  // «как у эталона Б» в ветке copy/etalon-b: пять файлов агента — и git diff --stat называет ровно их
+  expect(agent('ask-copy').prompt).toBe('Сделай как у эталона Б: чат, таймер отдыха, оплату подписки')
+  const copySteps = ['copy-chat', 'copy-timer', 'copy-timer-use', 'copy-pay', 'copy-pay-lib']
+  expect(agent('ask-copy').steps).toEqual(copySteps)
+  const copied = copySteps.map((id) => file(id).path)
+  expect(copied).toEqual(['app/chat/page.tsx', 'components/RestTimer.tsx', 'app/workouts/[id]/page.tsx', 'app/billing/page.tsx', 'lib/payments.ts'])
+  // три новых файла и две правки существующих (lib/payments.ts — заготовка s09)
+  expect(copySteps.map((id) => file(id).before === null)).toEqual([true, true, false, true, false])
+  expect(commit('c-copy')).toMatchObject({ message: 'Как у эталона Б', branch: 'copy/etalon-b', parents: [commit('c-complaints').hash] })
+  expect(run('copy-stat')).toMatchObject({ cmd: 'git diff main copy/etalon-b --stat', code: 0 })
+  const stat = run('copy-stat').out.filter(Boolean)
+  expect(stat).toHaveLength(6)
+  for (const path of copied) expect(stat.some((line) => line.trimStart().startsWith(`${path} `)), path).toBe(true)
+  expect(stat[5]).toContain('5 files changed')
+  expect(run('copy-drop')).toMatchObject({ cmd: 'git switch main && git branch -D copy/etalon-b', code: 0 })
+  expect(run('copy-drop').out.join('\n')).toContain('Deleted branch copy/etalon-b')
+
+  // паритет: четыре решения шага 5 в колонке «Наше», колонки эталонов — как в разборе
+  const parity = file('parity-edit')
+  expect(parity.path).toBe('docs/parity.md')
+  const rows = (text: string) => text.split('\n').filter((line) => line.startsWith('| ') && !line.startsWith('| Сценарий'))
+  const cells = (row: string) => row.split('|').slice(1, -1).map((cell) => cell.trim())
+  const was = new Map(rows(parity.before!).map((row) => [cells(row)[0], cells(row)]))
+  const now = new Map(rows(parity.after).map((row) => [cells(row)[0], cells(row)]))
+  const [first, ...rest] = was.keys()
+  expect([...now.keys()]).toEqual([first, 'Подход в одно касание', ...rest])
+  for (const [name, old] of was) expect(now.get(name)!.slice(1, 4), name).toEqual(old.slice(1, 4))
+  const decision = (name: string) => now.get(name)![4]
+  for (const name of now.keys()) expect(decision(name), name).toMatch(/^(готово|наше отличие|позже|не делаем)( — .+)?$/)
+  expect(decision('Подход в одно касание')).toBe('наше отличие')
+  expect(now.get('Подход в одно касание')!.slice(1, 4)).toEqual(['нет', 'нет', 'нет'])
+  for (const name of ['Чат тренера и подопечного', 'Таймер отдыха', 'Оплата и тарифы']) expect(decision(name), name).toMatch(/^(позже|не делаем) — /)
+  expect(decision('Чат тренера и подопечного')).toContain('комментарии к тренировке')
+  expect(parity.after).toContain('сегодня, 9 ноября')
+  for (const word of ['готово', 'наше отличие', 'позже', 'не делаем']) expect(parity.after, word).toContain(`- **${word}** — `)
+
+  // срез: сначала сквозной тест, потом страница, действие и список тренера; Playwright сам поднимает и гасит npm run dev
+  expect(agent('ask-quick').prompt).toBe(
+    'Подход в одно касание: на тренировке кнопка «Повторить подход» с весом и повторами прошлого подхода. У тренера в списке — последний подход каждого и «растёт / нет». Сначала сквозной тест',
+  )
+  expect(agent('ask-quick').steps).toEqual(['quick-e2e', 'quick-page', 'quick-action', 'quick-clients', 'quick-run'])
+  expect(file('quick-e2e')).toMatchObject({ path: 'e2e/quick-set.spec.ts', before: null })
+  expect(file('quick-page').path).toBe('app/workouts/[id]/page.tsx')
+  expect(file('quick-page').after).toContain('Повторить подход')
+  expect(file('quick-action').path).toBe('app/workouts/[id]/actions.ts')
+  expect(file('quick-action').after).toContain('export async function repeatSet(workoutId: string)')
+  expect(file('quick-clients').path).toBe('app/clients/page.tsx')
+  expect(run('quick-run')).toMatchObject({ cmd: 'npx playwright test e2e/quick-set.spec.ts', code: 0 })
+  expect(run('quick-run').out.join('\n')).toContain('1 passed')
+  expect(commit('c-quick')).toMatchObject({ message: 'Подход в одно касание; последний подход у тренера', branch: 'main', parents: [commit('c-complaints').hash] })
+  // в main нет файлов копии
+  const paths = commit('c-quick').files.map((f) => f.path)
+  expect(paths).toEqual(expect.arrayContaining(['docs/complaints.md', 'e2e/quick-set.spec.ts']))
+  for (const path of ['app/chat/page.tsx', 'components/RestTimer.tsx', 'app/billing/page.tsx']) expect(paths, path).not.toContain(path)
+
+  // одно касание: на «Ногах» на один подход «50 кг × 10» больше
+  const BASE = 'http://localhost:3000'
+  expect(browser('login-anna').urlAfter).toBe(`${BASE}/workouts`)
+  const tap = browser('quick-tap')
+  expect(tap.url).toBe(`${BASE}/workouts/1`)
+  const fifties = (lines: string[]) => lines.filter((line) => line === '50 кг × 10').length
+  expect(fifties(tap.before)).toBeGreaterThanOrEqual(3)
+  expect(fifties(tap.after)).toBe(fifties(tap.before) + 1)
+  expect(tap.network).toEqual([])
+  // тренер видит у Анны последний подход «50 кг × 10»
+  expect(browser('login-marina').urlAfter).toBe(`${BASE}/clients`)
+  const list = browser('clients-last').after
+  expect(list.some((line) => line.includes('50 кг × 10'))).toBe(true)
+  expect(list[list.indexOf('Анна') + 2]).toBe('Последний подход: 50 кг × 10')
+})

@@ -5,7 +5,7 @@ import SetList from "@/components/SetList";
 import { asUser } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 import { volume } from "@/lib/volume";
-import { saveSet } from "./actions";
+import { repeatSet, saveSet } from "./actions";
 import { addComment } from "./comments";
 
 export const metadata: Metadata = { title: "Тренировка" };
@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Тренировка" };
 // Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки
 export const instant = false;
 
-// Тренировка по id из адреса: упражнения по программе, подходы, объём, форма нового подхода и комментарии. Чужой тренировки база не отдаст (RLS) — будет 404
+// Тренировка по id из адреса: упражнения по программе, подходы, объём, «Повторить подход», форма нового подхода и комментарии. Чужой тренировки база не отдаст (RLS) — будет 404
 export default async function WorkoutPage({ params, searchParams }: PageProps<"/workouts/[id]">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
@@ -48,6 +48,9 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<"/
   if (!workout) notFound();
   // поля приходят из формы, а id тренировки действие получает отсюда
   const save = saveSet.bind(null, id);
+  // одно касание: ещё раз прошлый подход этой тренировки — вес и повторы действие возьмёт из базы
+  const last = workout.sets.at(-1);
+  const repeat = repeatSet.bind(null, id);
   // комментарий — к этой тренировке, после отправки — снова эта страница
   const comment = addComment.bind(null, id, `/workouts/${id}`);
 
@@ -70,6 +73,13 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<"/
         <SetList sets={workout.sets} className="mt-6 flex flex-col gap-1" />
       )}
       <p className="mt-2 font-medium">Объём: {volume(workout.sets)} кг</p>
+      {last && (
+        <form action={repeat} className="mt-6">
+          <button type="submit" className="w-full rounded bg-zinc-900 px-4 py-2 text-white">
+            Повторить подход: {last.weight} кг × {last.reps}
+          </button>
+        </form>
+      )}
 
       <form action={save} className="mt-6 flex flex-col gap-4">
         <div className="flex flex-col gap-1">

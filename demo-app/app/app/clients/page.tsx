@@ -14,6 +14,8 @@ export const instant = false;
 
 // Подопечный тренера с датой последней тренировки
 type Client = { id: string; name: string; last: Date | null };
+// Последний подход подопечного и растёт ли нагрузка; growing — null, если тренировок с подходами меньше двух: сравнивать не с чем
+type Latest = { id: string; weight: number; reps: number; growing: boolean | null };
 // Действующее приглашение тренера: не принято, не отозвано, срок не вышел
 type Invite = { id: string; code: string };
 
@@ -35,7 +37,7 @@ async function revokeInvite(id: string) {
   redirect("/clients");
 }
 
-// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного и приглашения
+// Подопечные вошедшего тренера, у каждого — дата последней тренировки, последний подход и растёт ли нагрузка; под списком форма нового подопечного и приглашения
 export default async function ClientsPage({ searchParams }: PageProps<"/clients">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
@@ -58,7 +60,26 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
         order by id`,
       [uid],
     );
-    return { clients: found.rows, invites: active.rows };
+    // последний подход каждого — по порядку записи; нагрузка растёт, если объём последней тренировки с подходами (по дню)
+    // больше, чем у предыдущей, — как на графике карточки. Подходы чужих подопечных база не отдаст (RLS)
+    const latest = await db.query<Latest>(
+      `with last_sets as (
+         select distinct on (w.client_id) w.client_id, s.weight::float8 as weight, s.reps
+           from sets s join workouts w on w.id = s.workout_id
+          order by w.client_id, s.id desc
+       ), volumes as (
+         select w.client_id, sum(s.weight * s.reps) as volume,
+                row_number() over (partition by w.client_id order by w.day desc, w.id desc) as n
+           from workouts w join sets s on s.workout_id = w.id
+          group by w.id
+       )
+       select l.client_id as id, l.weight, l.reps,
+              max(v.volume) filter (where v.n = 1) > max(v.volume) filter (where v.n = 2) as growing
+         from last_sets l join volumes v on v.client_id = l.client_id
+        group by l.client_id, l.weight, l.reps`,
+    );
+    const byClient = new Map(latest.rows.map((row) => [row.id, row]));
+    return { clients: found.rows.map((client) => ({ ...client, latest: byClient.get(client.id) })), invites: active.rows };
   });
   // адрес сайта для ссылки — из запроса: localhost:3000 при разработке, свой домен на сервере
   const head = await headers();
@@ -78,6 +99,16 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
               <span className="block text-sm font-normal text-zinc-500">
                 {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : "Тренировок пока нет"}
               </span>
+              {client.latest && (
+                <span className="block text-sm font-normal text-zinc-500">
+                  Последний подход: {client.latest.weight} кг × {client.latest.reps}
+                </span>
+              )}
+              {client.latest && client.latest.growing !== null && (
+                <span className="block text-sm font-normal text-zinc-500">
+                  {client.latest.growing ? "Нагрузка растёт" : "Нагрузка не растёт"}
+                </span>
+              )}
             </Link>
           </li>
         ))}
