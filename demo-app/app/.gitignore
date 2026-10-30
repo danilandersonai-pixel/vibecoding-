@@ -35,6 +35,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# копии базы (pg_dump): в них почты и хеши паролей
+/backups/
+
 # vercel
 .vercel
 

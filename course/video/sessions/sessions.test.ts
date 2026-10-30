@@ -1848,3 +1848,93 @@ test('s18: копия эталона — пять файлов и удалённ
   expect(list[list.indexOf('Анна') + 3]).toBe('Вес не растёт')
   expect(list.slice(list.indexOf('Олег') + 2, list.indexOf('Олег') + 4)).toEqual(['Последний подход: 55 кг × 8, Жим лёжа', 'Вес растёт'])
 })
+
+test('s19: проверки зелёные; индекс меняет план; копия без auth не восстанавливается, полная — да; backups не в git', () => {
+  const events = sessions['s19-reliability'].events
+  expect(events.map((e) => e.id)).toEqual([
+    ...['typegen', 'check-run', 'e2e-fix', 'e2e-all', 'c-e2e-fix'],
+    ...['speed-file', 'speed-load', 'explain', 'ask-index', 'index-sql', 'index-apply', 'explain2'],
+    ...['backup-ignore', 'dump-public', 'restore-try', 'restore-users', 'dump-all', 'restore-full', 'restore-count', 'restore-doc', 'c-reliability'],
+  ])
+  const run = (id: string) => find('s19-reliability', id, 'run')
+  const file = (id: string) => find('s19-reliability', id, 'file')
+  const agent = (id: string) => find('s19-reliability', id, 'agent')
+  const commit = (id: string) => find('s19-reliability', id, 'commit')
+  const at = (id: string) => events.findIndex((e) => e.id === id)
+  // шаги внутри запроса — агента, остальные — человека
+  const inner = new Set(agent('ask-index').steps)
+  for (const e of events) {
+    if (e.kind !== 'agent') expect((e as { by?: string }).by, e.id).toBe(inner.has(e.id) ? 'agent' : undefined)
+  }
+
+  // проверки: npm run check и оба сквозных теста — зелёные; до полного прогона — точная подпись «Дата» в cycle.spec.ts
+  expect(run('typegen')).toMatchObject({ cmd: 'npx next typegen', code: 0 })
+  expect(run('check-run')).toMatchObject({ cmd: 'npm run check', code: 0 })
+  const fix = file('e2e-fix')
+  expect(fix.path).toBe('e2e/cycle.spec.ts')
+  expect(fix.before).toContain('getByLabel("Дата").fill')
+  expect(fix.after).toContain('getByLabel("Дата", { exact: true }).fill')
+  expect(at('e2e-fix')).toBeLessThan(at('e2e-all'))
+  expect(run('e2e-all')).toMatchObject({ cmd: 'npx playwright test', code: 0 })
+  const e2e = run('e2e-all').out.join('\n')
+  for (const spec of ['cycle.spec.ts', 'quick-set.spec.ts']) expect(e2e, spec).toContain(spec)
+  expect(e2e).toContain('2 passed')
+  expect(commit('c-e2e-fix')).toMatchObject({ message: 'Сквозной тест: точная подпись «Дата»', branch: 'main', parents: [find('s18-quick-set', 'c-quick', 'commit').hash] })
+
+  // скорость: 2000 тренировок Анны по 20 подходов; без индекса — перебор таблицы, с индексом — поиск по нему
+  expect(file('speed-file')).toMatchObject({ path: 'supabase/seed-speed.sql', before: null })
+  expect(file('speed-file').after).toContain('generate_series')
+  expect(run('speed-load')).toMatchObject({ cmd: 'psql -f supabase/seed-speed.sql', code: 0 })
+  expect(run('speed-load').out).toEqual(['INSERT 0 2000', 'INSERT 0 40000'])
+  const query = 'psql -c "explain analyze select weight, reps from sets where workout_id = 1500"'
+  for (const id of ['explain', 'explain2']) expect(run(id), id).toMatchObject({ cmd: query, code: 0 })
+  expect(run('explain').out.join('\n')).toContain('Seq Scan on sets')
+  expect(agent('ask-index').prompt).toBe('Вот вывод EXPLAIN ANALYZE: Seq Scan on sets по workout_id. Добавь индекс миграцией, применяй с подтверждения')
+  expect(agent('ask-index').steps).toEqual(['index-sql', 'index-apply'])
+  expect(file('index-sql')).toMatchObject({ path: 'supabase/migrations/0009_sets_workout_index.sql', before: null })
+  expect(file('index-sql').after).toContain('create index sets_workout_id_idx on sets (workout_id);')
+  expect(run('index-apply')).toMatchObject({ cmd: 'psql -f supabase/migrations/0009_sets_workout_index.sql', code: 0, out: ['CREATE INDEX'] })
+  const plan2 = run('explain2').out.join('\n')
+  expect(plan2).toContain('Index Scan')
+  expect(plan2).toContain('sets_workout_id_idx')
+  expect(plan2).not.toContain('Seq Scan')
+
+  // копия только public: auth в неё не входит — pg_restore с ошибками, пользователей в копии нет
+  expect(file('backup-ignore').path).toBe('.gitignore')
+  expect(file('backup-ignore').after).toContain('/backups/\n')
+  expect(at('backup-ignore')).toBeLessThan(at('dump-public'))
+  expect(run('dump-public')).toMatchObject({ cmd: 'mkdir -p backups && pg_dump -n public -Fc -f backups/trainer.dump', code: 0 })
+  expect(run('restore-try').cmd).toBe('createdb restore_check && pg_restore -d restore_check backups/trainer.dump')
+  expect(run('restore-try').code).not.toBe(0)
+  const tried = [...run('restore-try').out, ...run('restore-users').out].join('\n')
+  expect(tried).toContain('auth')
+  expect(run('restore-try').out.join('\n')).toContain('schema "auth" does not exist')
+  expect(run('restore-users').cmd).toBe('psql -d restore_check -c "select count(*) from auth.users"')
+  expect(run('restore-users').out.join('\n')).toContain('relation "auth.users" does not exist')
+
+  // копия всей базы восстанавливается: подходов в рабочей базе и в копии поровну
+  expect(run('dump-all')).toMatchObject({ cmd: 'pg_dump -Fc -f backups/trainer-full.dump', code: 0 })
+  expect(run('restore-full')).toMatchObject({ cmd: 'createdb restore_full && pg_restore -d restore_full backups/trainer-full.dump', code: 0 })
+  expect(run('restore-count').code).toBe(0)
+  const counts = run('restore-count').out.filter(Boolean)
+  expect(counts).toHaveLength(2)
+  expect(counts[0]).toMatch(/^\d+$/)
+  expect(counts[1]).toBe(counts[0])
+  expect(Number(counts[0])).toBeGreaterThanOrEqual(40000)
+
+  // учения записаны: шаги, что сверять, где лежит копия
+  const doc = file('restore-doc')
+  expect(doc).toMatchObject({ path: 'docs/restore.md', before: null })
+  for (const word of ['backups/trainer-full.dump', 'pg_restore', 'count(*) from sets', 'auth.users', 'Вход']) expect(doc.after, word).toContain(word)
+  expect(doc.after).not.toMatch(/Анн/)
+  expect(commit('c-reliability')).toMatchObject({ message: 'Индекс подходов; учения по восстановлению', branch: 'main', parents: [commit('c-e2e-fix').hash] })
+  expect(commit('c-reliability').files.map((f) => f.path)).toEqual(
+    expect.arrayContaining(['.gitignore', 'docs/restore.md', 'supabase/seed-speed.sql', 'supabase/migrations/0009_sets_workout_index.sql']),
+  )
+
+  // копии базы — ни в одном коммите сессии и ни в одном изменении команд
+  for (const e of events) {
+    if (e.kind === 'commit') expect(e.files.filter((f) => f.path.startsWith('backups/')), e.id).toEqual([])
+    if (e.kind === 'run') expect((e.files ?? []).filter((f) => f.path.startsWith('backups/')), e.id).toEqual([])
+  }
+})

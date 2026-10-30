@@ -18,7 +18,7 @@ test("Марина назначает тренировку, Анна вписы�
   await login(marina, "marina@example.com", /\/clients$/);
   await marina.getByRole("link", { name: "Анна" }).click();
   await marina.getByLabel("Название").fill(title);
-  await marina.getByLabel("Дата").fill("2026-11-09");
+  await marina.getByLabel("Дата", { exact: true }).fill("2026-11-09");
   await marina.getByRole("button", { name: "Назначить" }).click();
   await expect(marina.getByRole("link", { name: title })).toBeVisible();
 
