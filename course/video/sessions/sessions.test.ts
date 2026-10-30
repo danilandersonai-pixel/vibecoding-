@@ -1270,6 +1270,7 @@ test('s13: расплывчатая задача трогает четыре ф�
   // «Покажи заметки к подходам получше»: в ветке agent/notes-vague четыре файла вместо одного, ветка удаляется
   const vague = run('vague-stat').out.join('\n')
   for (const path of ['components/SetList.tsx', 'app/workouts/[id]/page.tsx', 'app/globals.css', 'app/clients/page.tsx']) expect(vague, path).toContain(path)
+  expect(vague).toContain('4 files changed')
   expect(run('vague-drop').out.join('\n')).toContain('Deleted branch agent/notes-vague')
 
   // задача в четыре части: приёмка из main — в ветке agent/notes один коммит и один файл
@@ -1288,4 +1289,6 @@ test('s13: расплывчатая задача трогает четыре ф�
   const card = find('s13-feedback', 'card-note', 'browser').after
   expect(card).toContain('болит колено')
   expect(card[card.indexOf('болит колено') - 1]).toBe('50 кг × 10')
+  // кадр тренера: форма назначения тренировки есть только у Марины
+  expect(card).toContain('Назначить')
 })
