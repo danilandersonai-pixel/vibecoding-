@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import { chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createServer as createHttpServer } from 'node:http'
 import { connect, createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -392,6 +393,33 @@ describe('recordChain: браузер', () => {
     expect(find('b01', 'b', 'browser')).toMatchObject({ url: 'http://localhost:3000/done', before: ['/done'] })
     expect(find('b01', 'b', 'browser')).not.toHaveProperty('urlAfter')
     expect(find('b01', 'ru', 'browser')).not.toHaveProperty('urlAfter')
+  })
+
+  it('порт 3000 занят (остаток прошлой записи после kill -9): команда с until не запускается, ошибка с причиной, чужой сервер не тронут', async () => {
+    // Старый dev-сервер, переживший рекордер: слушает 3000 и отдаёт свою страницу
+    const stale = createHttpServer((_q, s) => {
+      s.setHeader('content-type', 'text/html;charset=utf-8')
+      s.end('<!doctype html><meta charset=utf-8><title>Старый</title><p>старый сервер</p>')
+    })
+    await new Promise<void>((done) => stale.listen(3000, done))
+    // Как next dev: 3000 занят — берёт 3001 и всё равно пишет Ready; браузерные шаги при этом ушли бы на старый сервер
+    const nextLike =
+      "const h=require('http');const go=(p)=>{const srv=h.createServer((q,s)=>{s.setHeader('content-type','text/html;charset=utf-8');" +
+      "s.end('<!doctype html><meta charset=utf-8><title>Новый</title><p>новый сервер</p>')});" +
+      "srv.once('error',()=>go(p+1));srv.listen(p,()=>console.log((p===3000?'':'Port 3000 is in use, using '+p+'\\n')+'Ready'))};go(3000)"
+    const workdir = fresh()
+    const dev = { id: 'dev', run: `echo запущен > ~/dev.txt; node -e ${sh(nextLike)}`, until: 'Ready' }
+    try {
+      await expect(recordChain([session([dev, { id: 'b', browser: { url: '/' } }])], { workdir })).rejects.toThrow(
+        'Сессия «b01», шаг «dev»: порт 3000 занят (остаток прошлой записи?) — остановите процесс и запустите снова',
+      )
+      expect(existsSync(join(workdir, 'home', 'dev.txt'))).toBe(false) // команду даже не запускали
+      expect(await portFree()).toBe(false) // чужой процесс рекордер не останавливает
+    } finally {
+      stale.closeAllConnections()
+      await new Promise((done) => stale.close(done))
+    }
+    expect(await portFree()).toBe(true)
   })
 
   it('браузер: локаль ru-RU и пояс Europe/Moscow', async () => {

@@ -3,6 +3,7 @@
 // Сам ничего не пишет в курс: записи и demo-app/app/ кладёт скрипт record-session.mjs.
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { connect } from 'node:net'
 import { constants, tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -210,6 +211,22 @@ function launch(cmd, { cwd, env, group }) {
   proc.closed.catch(() => {}) // ошибка запуска всплывёт у того, кто ждёт closed
   if (group) trackGroup(child.pid)
   return proc
+}
+
+// Порт занят: к нему подключается клиент по IPv4 или IPv6 (next dev слушает оба). Ничего не останавливает.
+function portBusy(port) {
+  const busyOn = (host) =>
+    new Promise((done) => {
+      const socket = connect({ port, host })
+      const finish = (busy) => {
+        socket.destroy()
+        done(busy)
+      }
+      socket.setTimeout(2000, () => finish(false))
+      socket.once('connect', () => finish(true))
+      socket.once('error', () => finish(false)) // отказ или нет IPv6 — на этом адресе порт свободен
+    })
+  return Promise.all([busyOn('127.0.0.1'), busyOn('::1')]).then((answers) => answers.includes(true))
 }
 
 // Остановить команду вместе со всей группой процессов.
@@ -573,6 +590,10 @@ async function playSession({ home, project, npmCache, runLimitMs }, def) {
     const { id } = step
     if (step.run !== undefined) {
       const long = step.until !== undefined
+      // Команда с until — dev-сервер, а шаги browser идут на BASE. Рекордер, убитый kill -9, оставляет свой сервер работать (он в своей
+      // группе процессов): next dev тогда берёт следующий порт и всё равно пишет Ready, а браузер попадает на старый сервер со старым кодом.
+      // Postgres такие остатки подметает сам (sweepDatabases), сервер — нет: чужой процесс на порту может быть чем угодно, его не трогаем.
+      if (long) check(!(await portBusy(PORT)), `порт ${PORT} занят (остаток прошлой записи?) — остановите процесс и запустите снова`)
       const was = await projectBlobs(project, { cwd: project, env: env() }) // файлы проекта до команды
       const proc = launch(step.run, { cwd: step.cwd === '~' ? home : project, env: env(), group: true })
       const cwd = step.cwd === '~' ? '~' : '~/trainer-app'
