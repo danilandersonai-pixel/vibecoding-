@@ -1124,6 +1124,24 @@ describe('Agenda', () => {
     expect(plain(dayHtml)).toContain('Сохранить подход')
   })
 
+  it('items: пункты — свои тексты с номерами 01…; длинный — двумя строками Golos 36 px одна под другой, номер у первой', () => {
+    const long = 'Задача агенту в четыре части: цель, контекст, ограничения и как проверить, что всё готово.'
+    const spec: AgendaSpec = { type: 'agenda', items: ['Отзывы — в три стопки', long] }
+    const html = view(spec, beat(0) + 60, CLOCK, four)
+    expect(plain(part(html, 'item:0')!)).toBe('01Отзывы — в три стопки')
+    const item = part(html, 'item:1')!
+    const rows = [...item.matchAll(/<text [^>]*font-size:36px[^>]*>([^<]*)<\/text>/g)]
+    expect(rows.map((m) => m[1])).toEqual(agendaPlan(spec, four, CLOCK).items[1].lines)
+    expect(rows).toHaveLength(2)
+    expect(rows.map((m) => m[1]).join(' ')).toBe(long)
+    const ys = rows.map((m) => number(m[0], /\by="([\d.]+)"/))
+    expect(ys[1] - ys[0]).toBe(48)
+    const num = /<text [^>]*>02<\/text>/.exec(item)![0]
+    expect(number(num, /\by="([\d.]+)"/)).toBeLessThan(ys[1])
+    // без items — главы, как раньше
+    expect(plain(part(view(SPEC, beat(0) + 60, CLOCK, four), 'item:0')!)).toBe('02А')
+  })
+
   it('кикер и название появляются вместе с кадром, до реплики 0', () => {
     expect(plain(view(SPEC, 3, CLOCK, four))).toContain('Фикстура')
     expect(opacityOf(/<g opacity="[\d.]+">/.exec(view(SPEC, 3, CLOCK, four))![0])).toBeCloseTo(appear(3, 0), 4)
@@ -1402,6 +1420,7 @@ describe('размер текста и безопасная область (Boar
     { type: 'board', cards: [{ title: 'Раз', text: ['коротко'], at: 0 }, { title: 'Два', text: ['ещё короче'], at: 1, tone: 'err' }] },
     { type: 'board', scale: { left: 'мало', right: 'много', items: [{ label: 'Раз', pos: 0.2, at: 0 }, { label: 'Два', pos: 0.8, at: 1 }], marker: [{ at: 2, pos: 0.2 }] } },
     { type: 'agenda' },
+    { type: 'agenda', items: ['Отзывы — в три стопки', 'Задача агенту в четыре части: цель, контекст, ограничения и как проверить, что всё готово.', 'Приёмка'] },
     { type: 'recap', items: [{ text: 'Первое', at: 0 }, { text: 'Второе', at: 1 }] },
   ]
 

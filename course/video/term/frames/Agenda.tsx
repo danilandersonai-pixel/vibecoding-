@@ -35,9 +35,11 @@ export function Agenda({ spec, clock, ctx }: Props): JSX.Element {
             <text x={SAFE.x} y={it.y + AGENDA.num.base} fill={T.faint} style={{ ...MONO_STYLE, fontSize: AGENDA.num.size }}>
               {it.num}
             </text>
-            <text x={NAME_X} y={it.y + AGENDA.name.base} fill={T.ink} style={golos(AGENDA.name.size)}>
-              {it.name}
-            </text>
+            {it.lines.map((line, j) => (
+              <text key={j} x={NAME_X} y={it.y + j * AGENDA.name.line + AGENDA.name.base} fill={T.ink} style={golos(AGENDA.name.size)}>
+                {line}
+              </text>
+            ))}
           </g>
         )
       })}

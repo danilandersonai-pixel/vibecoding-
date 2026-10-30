@@ -33,6 +33,8 @@ export const DAY_CHAPTERS: { title: string; role: Role }[] = [
   { title: 'Подводный камень', role: 'mistake' },
   { title: 'Проверьте у себя', role: 'summary' },
 ]
+/** План ролика дня (сцена agenda первой главы) перечисляет, что строим сегодня: items, пунктов столько. */
+export const DAY_ITEMS = [2, 4] as const
 /** Субтитры не быстрее, знаков в секунду. */
 export const MAX_CPS = 15
 /** Тематических глав у ролика главы и из них с кадром записи — не меньше. */
@@ -103,6 +105,15 @@ function structureProblems(lesson: Lesson): string[] {
     const need = Math.min(THEMES.records, themes.length)
     if (withRecord < need) out.push(`${L}: кадр записи (${RECORD_FRAMES.join(', ')}) есть в ${withRecord} тематических главах, а нужен не меньше чем в ${need}`)
   } else {
+    // План ролика дня — не главы (они у дня всегда одни и те же), а то, что строим сегодня: items
+    const agenda = chapters[0].scenes.find((s) => s.frame.type === 'agenda')
+    if (agenda?.frame.type === 'agenda') {
+      const items = agenda.frame.items
+      const [lo, hi] = DAY_ITEMS
+      if (!items || items.length < lo || items.length > hi) {
+        out.push(`сцена «${agenda.id}»: у ролика дня план перечисляет, что строим сегодня — items: ${lo}–${hi} пункта, а ${items ? `здесь ${items.length}` : 'их нет'}`)
+      }
+    }
     if (chapters.length !== DAY_CHAPTERS.length) {
       out.push(`${L}: у ролика дня ${DAY_CHAPTERS.length} главы — ${DAY_CHAPTERS.map((d) => `«${d.title}»`).join(' → ')}, а здесь ${chapters.length}`)
     } else {

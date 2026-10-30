@@ -222,6 +222,36 @@ describe('lessonProblems: поломки по одной', () => {
     has(titles, /глава «site»: у ролика дня глава 2 — «Пример»/)
   })
 
+  it('урок дня без items в плане — проблема «у ролика дня план перечисляет, что строим сегодня»', () => {
+    const RE = /^сцена «agenda»: у ролика дня план перечисляет, что строим сегодня/
+    const plan = (kind: Lesson['kind'], items?: string[]) =>
+      broken((l, s) => {
+        l.kind = kind
+        s('agenda').frame = items ? { type: 'agenda', items } : { type: 'agenda', at: [0, 1, 2] }
+      }).filter((p) => RE.test(p))
+    // урок дня: без items, с одним пунктом и с пятью — проблема; 2–4 пункта — нет
+    expect(plan('day')).toEqual([expect.stringMatching(/items: 2–4 пункта, а их нет/)])
+    expect(plan('day', ['Раз'])).toEqual([expect.stringMatching(/items: 2–4 пункта, а здесь 1/)])
+    expect(plan('day', ['Раз', 'Два', 'Три', 'Четыре', 'Пять'])).toEqual([expect.stringMatching(/items: 2–4 пункта, а здесь 5/)])
+    for (const n of [2, 3, 4]) expect(plan('day', ['Раз', 'Два', 'Три', 'Четыре'].slice(0, n))).toEqual([])
+    // урок главы без items — план перечисляет главы, проблемы нет
+    expect(plan('chapter')).toEqual([])
+    expect(short(fixtureLesson)).toEqual([])
+  })
+
+  it('урок дня по каркасу с items в плане — без проблем', () => {
+    const l = structuredClone(fixtureLesson)
+    const scene = (id: string) => l.chapters.flatMap((c) => c.scenes).find((s) => s.id === id)!
+    l.kind = 'day'
+    l.chapters = [
+      { id: 'intro', title: 'Что строим сегодня', scenes: [{ ...scene('agenda'), frame: { type: 'agenda', at: [0, 1, 2], items: ['Части приложения', 'Сайт у себя', 'Ошибка целиком'] } }] },
+      { id: 'example', title: 'Пример', book: ['sa1', 'sa4'], scenes: [scene('parts-route'), scene('site-dev')] },
+      { id: 'mistake', title: 'Подводный камень', book: ['sa1', 'sa4'], scenes: [scene('parts-key'), scene('site-local')] },
+      { id: 'check', title: 'Проверьте у себя', scenes: [scene('recap')] },
+    ]
+    expect(short(l)).toEqual([])
+  })
+
   it('id сцены повторяется', () => {
     const p = broken((_, s) => (s('site-local').id = 'site-dev'))
     has(p, /сцена «site-dev»: id сцены повторяется/)
