@@ -19,6 +19,7 @@
 
 // id из supabase/seed.sql
 const MARINA = '11111111-1111-1111-1111-111111111111'
+const IGOR = '22222222-2222-2222-2222-222222222222'
 const ANNA = '33333333-3333-3333-3333-333333333333'
 
 // Ссылка-приглашение на странице подопечных: путь /join/ и код из 32 шестнадцатеричных знаков
@@ -112,14 +113,17 @@ function checkAccount(email: string, password: string): string | null {
 // Начало регистрации — одно у обеих версий: поля формы, проверка, пользователь в auth.users (пароль — хешем) и профиль подопечного.
 // back — назад на страницу ссылки с ошибкой под формой; segment — параметр с частью адреса после /join/
 const joinStart = (segment) => `  const name = String(form.get("name") ?? "").trim();
-  // почта — без пробелов и строчными: по ней входят, и в auth.users она одна на человека (unique)
-  const email = String(form.get("email") ?? "").trim().toLowerCase();
+  // почта — без пробелов по краям, буквы как ввели: так её ищет вход (app/api/login)
+  const email = String(form.get("email") ?? "").trim();
   const password = String(form.get("password") ?? "");
   // ошибку страница покажет под формой
   const back = (error: string): never =>
     redirect(\`/join/\${encodeURIComponent(${segment})}?error=\${encodeURIComponent(error)}\`);
   const invalid = checkName(name) ?? checkAccount(email, password);
   if (invalid) back(invalid);
+  // та же почта другими буквами — тоже занята: unique в auth.users различает заглавные и строчные
+  const taken = await pool.query("select 1 from auth.users where lower(email) = lower($1)", [email]);
+  if (taken.rows.length > 0) back(TAKEN);
 
   const db = await pool.connect();
   let uid: string;
@@ -149,6 +153,9 @@ import { redirect } from "next/navigation";
 import { pool } from "@/lib/db";
 import { checkName } from "@/lib/names";
 import { startSession } from "@/lib/session";
+
+// Ответ на занятую почту: та же почта другими буквами или повтор, который поймал unique в auth.users
+const TAKEN = "Эта почта уже зарегистрирована — войдите";
 `
 
 // Наивная регистрация — пишет агент: подопечный того тренера, чей id в адресе
@@ -162,7 +169,7 @@ ${joinStart('coach')}    await db.query("insert into clients (coach_id, user_id,
   } catch (err) {
     await db.query("rollback");
     // такая почта уже есть (unique в auth.users) — понятная ошибка, а не 500
-    if ((err as { code?: string }).code === "23505") back("Эта почта уже зарегистрирована — войдите");
+    if ((err as { code?: string }).code === "23505") back(TAKEN);
     throw err;
 ${JOIN_END}
 ${CHECK_ACCOUNT}`
@@ -277,8 +284,9 @@ import type { PoolClient } from "pg";
 import { afterAll, expect, test } from "vitest";
 import { pool } from "../lib/db";
 
-// id из supabase/seed.sql: Марина — тренер, Анна — её подопечная
+// id из supabase/seed.sql: Марина и Игорь — тренеры, Анна — подопечная Марины
 const MARINA = "${MARINA}";
+const IGOR = "${IGOR}";
 const ANNA = "${ANNA}";
 
 afterAll(() => pool.end());
@@ -305,9 +313,14 @@ async function newUser(db: PoolClient, email: string): Promise<string> {
   return rows[0].id;
 }
 
-// Приглашение Марины, код и срок ставит база; insert — другая вставка, например «из прошлого». Возвращает код
-async function newInvite(db: PoolClient, insert = "insert into invites (coach_id) values ($1) returning code"): Promise<string> {
-  return (await db.query<{ code: string }>(insert, [MARINA])).rows[0].code;
+// Приглашение тренера coach, код и срок ставит база; insert — другая вставка, например «из прошлого». Возвращает код
+async function newInvite(db: PoolClient, coach: string, insert = "insert into invites (coach_id) values ($1) returning code") {
+  return (await db.query<{ code: string }>(insert, [coach])).rows[0].code;
+}
+
+// Тренер подопечного user
+async function coachOf(db: PoolClient, user: string): Promise<string> {
+  return (await db.query<{ coach_id: string }>("select coach_id from clients where user_id = $1", [user])).rows[0].coach_id;
 }
 
 const accept = (db: PoolClient, code: string, user: string) =>
@@ -327,18 +340,22 @@ test("код — 32 шестнадцатеричных знака, срок — 
 });
 
 test("принятое приглашение — подопечный тренера из записи приглашения", async () => {
-  const coach = await rolledBack(async (db) => {
-    const code = await newInvite(db);
-    const user = await newUser(db, "new@example.com");
-    await accept(db, code, user);
-    return (await db.query<{ coach_id: string }>("select coach_id from clients where user_id = $1", [user])).rows[0].coach_id;
+  // приглашения двух тренеров: принявший — подопечный того, чьё приглашение принял, а не первого попавшегося
+  const coaches = await rolledBack(async (db) => {
+    const fromMarina = await newInvite(db, MARINA);
+    const fromIgor = await newInvite(db, IGOR);
+    const toIgor = await newUser(db, "to-igor@example.com");
+    const toMarina = await newUser(db, "to-marina@example.com");
+    await accept(db, fromIgor, toIgor);
+    await accept(db, fromMarina, toMarina);
+    return [await coachOf(db, toIgor), await coachOf(db, toMarina)];
   });
-  expect(coach).toBe(MARINA);
+  expect(coaches).toEqual([IGOR, MARINA]);
 });
 
 test("второй раз — «уже использовано»", async () => {
   const twice = rolledBack(async (db) => {
-    const code = await newInvite(db);
+    const code = await newInvite(db, MARINA);
     await accept(db, code, await newUser(db, "first@example.com"));
     await accept(db, code, await newUser(db, "second@example.com"));
   });
@@ -347,7 +364,7 @@ test("второй раз — «уже использовано»", async () => 
 
 test("отозванное приглашение — отказ", async () => {
   const revoked = rolledBack(async (db) => {
-    const code = await newInvite(db);
+    const code = await newInvite(db, MARINA);
     await db.query("update invites set revoked_at = now() where code = $1", [code]);
     await accept(db, code, await newUser(db, "new@example.com"));
   });
@@ -359,7 +376,7 @@ test("созданное 49 часов назад — «срок истёк»", 
   const old =
     "insert into invites (coach_id, created_at, expires_at) values ($1, now() - interval '49 hours', now() - interval '1 hour') returning code";
   const expired = rolledBack(async (db) => {
-    const code = await newInvite(db, old);
+    const code = await newInvite(db, MARINA, old);
     await accept(db, code, await newUser(db, "new@example.com"));
   });
   await expect(expired).rejects.toThrow("Срок приглашения истёк");
@@ -516,7 +533,7 @@ ${JOIN_END}
 // Понятная ошибка вместо 500: такая почта уже есть (unique в auth.users) или приглашение не принято (raise exception в accept_invite)
 function refusal(err: unknown): string | null {
   const { code, message } = err as { code?: string; message?: string };
-  if (code === "23505") return "Эта почта уже зарегистрирована — войдите";
+  if (code === "23505") return TAKEN;
   if (code === "P0001" && message) return message;
   return null;
 }
@@ -663,8 +680,8 @@ export default {
           'Ссылка вечная и многоразовая: её переслали — и Кирилл стал подопечным Марины. Сделай приглашение одноразовым: ' +
           'длинный случайный код, срок 48 часов, тренер — из записи приглашения, отзыв. Сначала тесты',
         reply:
-          'Приглашение — строка invites: случайный код, срок 48 часов, отзыв; тренера и повтор проверяет база (accept_invite). ' +
-          'Ольга и Кирилл остались у Марины: прошлые регистрации я не трогал.',
+          'Приглашение — строка invites: случайный код, срок 48 часов, отзыв; тренера база берёт из записи приглашения ' +
+          '(accept_invite). Ольга и Кирилл остались у Марины: прошлые регистрации я не трогал.',
       },
       steps: [
         { id: 'inv-test', write: 'test/invites.test.ts', content: INVITES_TEST },
@@ -695,13 +712,14 @@ export default {
         reply:
           '1. Данные: код из адреса, имя, почта и пароль из формы — недоверенные; в SQL идут только параметрами, имя и почта проверены. ' +
           '2. Зарегистрироваться может любой по ссылке, без входа; тренер — из записи приглашения, создаёт её только тренер. ' +
-          '3. Злоумышленник: 32 знака не угадать; повтор, отзыв и срок отсекает accept_invite, строка — под замком. ' +
+          '3. Злоумышленник: 32 знака не угадать; повтор, отзыв и срок отсекает accept_invite, строка — под замком; ' +
+          'но лимита попыток на /join нет — регистрациями можно заваливать. ' +
           '4. Журналы: код — в адресе, значит, и в журнале запросов сервера; пароль не печатается, в базе — только хеш. ' +
           '5. Права: регистрация — от владельца базы, мимо RLS, как вход; тренер пишет только coach_id и revoked_at, ' +
-          'accept_invite пользователям закрыта. 6. Вне задачи: пакетов нет, проверки не ослаблены; но мимо RLS через pool ' +
-          'теперь ходит и /join, а lib/db.ts пишет, что только вход. ' +
-          'Не уверен: лимита попыток на /join нет; пользователя создаём раньше, чем принимаем приглашение, — ' +
-          'по ответу «почта уже зарегистрирована» можно проверить чужую почту.',
+          'accept_invite пользователям закрыта. 6. Вне задачи: пакетов нет, проверки не ослаблены; мимо RLS через pool ' +
+          'теперь ходит и /join — стоит сверить, что об этом сказано в lib/db.ts. ' +
+          'Не уверен, важно ли: почту проверяем раньше приглашения — по ответу «почта уже зарегистрирована» ' +
+          'можно узнать, есть ли чужая почта.',
       },
       steps: [
         { id: 'a-action', read: 'app/join/[code]/actions.ts' },

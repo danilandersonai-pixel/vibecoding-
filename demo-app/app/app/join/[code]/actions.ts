@@ -5,20 +5,26 @@ import { pool } from "@/lib/db";
 import { checkName } from "@/lib/names";
 import { startSession } from "@/lib/session";
 
+// Ответ на занятую почту: та же почта другими буквами или повтор, который поймал unique в auth.users
+const TAKEN = "Эта почта уже зарегистрирована — войдите";
+
 // Регистрация по приглашению /join/<код>: новый пользователь в auth.users и профиль подопечного, затем база принимает приглашение
 // (accept_invite, 0008_invites.sql): тренер — из записи приглашения, а не из адреса; использованное, отозванное и просроченное — отказ.
 // Потом вход. Запросы — от владельца базы одной транзакцией, как вход (app/api/login): пользователям таблица auth.users закрыта,
 // а отказ откатывает и нового пользователя.
 export async function join(code: string, form: FormData) {
   const name = String(form.get("name") ?? "").trim();
-  // почта — без пробелов и строчными: по ней входят, и в auth.users она одна на человека (unique)
-  const email = String(form.get("email") ?? "").trim().toLowerCase();
+  // почта — без пробелов по краям, буквы как ввели: так её ищет вход (app/api/login)
+  const email = String(form.get("email") ?? "").trim();
   const password = String(form.get("password") ?? "");
   // ошибку страница покажет под формой
   const back = (error: string): never =>
     redirect(`/join/${encodeURIComponent(code)}?error=${encodeURIComponent(error)}`);
   const invalid = checkName(name) ?? checkAccount(email, password);
   if (invalid) back(invalid);
+  // та же почта другими буквами — тоже занята: unique в auth.users различает заглавные и строчные
+  const taken = await pool.query("select 1 from auth.users where lower(email) = lower($1)", [email]);
+  if (taken.rows.length > 0) back(TAKEN);
 
   const db = await pool.connect();
   let uid: string;
@@ -49,7 +55,7 @@ export async function join(code: string, form: FormData) {
 // Понятная ошибка вместо 500: такая почта уже есть (unique в auth.users) или приглашение не принято (raise exception в accept_invite)
 function refusal(err: unknown): string | null {
   const { code, message } = err as { code?: string; message?: string };
-  if (code === "23505") return "Эта почта уже зарегистрирована — войдите";
+  if (code === "23505") return TAKEN;
   if (code === "P0001" && message) return message;
   return null;
 }

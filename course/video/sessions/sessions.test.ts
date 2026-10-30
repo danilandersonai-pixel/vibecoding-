@@ -1616,6 +1616,10 @@ test('s17: вечная ссылка пускает Кирилла; однора
     'await startSession(uid);',
     '=== "23505"',
   ]) expect(naive.after, words).toContain(words)
+  // почта хранится так, как её ищет вход (app/api/login): без пробелов по краям, буквы как ввели; та же почта другими буквами — занята
+  expect(naive.after).toContain('const email = String(form.get("email") ?? "").trim();')
+  expect(naive.after).not.toContain('toLowerCase')
+  expect(naive.after).toContain('select 1 from auth.users where lower(email) = lower($1)')
   expect(file('invite-link')).toMatchObject({ path: 'app/clients/page.tsx' })
   expect(file('invite-link').before).not.toBeNull()
   expect(file('invite-link').after).toContain('/join/${uid}')
@@ -1641,6 +1645,7 @@ test('s17: вечная ссылка пускает Кирилла; однора
   expect(agent('ask-invite').prompt).toBe(
     'Ссылка вечная и многоразовая: её переслали — и Кирилл стал подопечным Марины. Сделай приглашение одноразовым: длинный случайный код, срок 48 часов, тренер — из записи приглашения, отзыв. Сначала тесты',
   )
+  expect(agent('ask-invite').reply).toContain('тренера база берёт из записи приглашения')
   expect(agent('ask-invite').steps).toEqual(['inv-test', 'inv-sql', 'inv-apply', 'inv-old', 'inv-page', 'inv-action', 'inv-link', 'inv-run'])
   const test = file('inv-test')
   expect(test).toMatchObject({ path: 'test/invites.test.ts', before: null })
@@ -1652,6 +1657,8 @@ test('s17: вечная ссылка пускает Кирилла; однора
     'подопечный приглашений не создаёт',
   ]
   for (const name of names) expect(test.after, name).toContain(`test("${name}"`)
+  // тренер из записи: приглашения Марины и Игоря, принявший приглашение Игоря — подопечный Игоря
+  expect(test.after).toContain('expect(coaches).toEqual([IGOR, MARINA]);')
   // просроченное — вставка «из прошлого», настоящие часы тест не ждёт
   expect(test.after).toContain("now() - interval '49 hours'")
   expect(test.after).not.toMatch(/Date\.now\(|new Date\(|setTimeout|useFakeTimers/)
@@ -1717,7 +1724,12 @@ test('s17: вечная ссылка пускает Кирилла; однора
   expect(agent('ask-audit').steps).toEqual(['a-action', 'a-sql'])
   expect(read('a-action')).toMatchObject({ path: 'app/join/[code]/actions.ts', blob: action.blob })
   expect(read('a-sql')).toMatchObject({ path: 'supabase/migrations/0008_invites.sql', blob: sql.blob })
-  for (const n of ['1.', '2.', '3.', '4.', '5.', '6.']) expect(agent('ask-audit').reply, n).toContain(n)
+  const audit = agent('ask-audit').reply
+  for (const n of ['1.', '2.', '3.', '4.', '5.', '6.']) expect(audit, n).toContain(n)
+  // нет лимита попыток — находка в пункте 3 («что сделает злоумышленник»); lib/db.ts агент не читал — только «стоит сверить»
+  expect(audit.indexOf('лимита попыток на /join нет')).toBeGreaterThan(audit.indexOf('3.'))
+  expect(audit.indexOf('лимита попыток на /join нет')).toBeLessThan(audit.indexOf('4.'))
+  expect(audit).toContain('стоит сверить, что об этом сказано в lib/db.ts')
 
   // коммит — продолжение s16 на main: приглашения есть, наивной папки нет
   const last = find('s17-invite', 'c-invite', 'commit')

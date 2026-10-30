@@ -8,8 +8,9 @@ import type { PoolClient } from "pg";
 import { afterAll, expect, test } from "vitest";
 import { pool } from "../lib/db";
 
-// id из supabase/seed.sql: Марина — тренер, Анна — её подопечная
+// id из supabase/seed.sql: Марина и Игорь — тренеры, Анна — подопечная Марины
 const MARINA = "11111111-1111-1111-1111-111111111111";
+const IGOR = "22222222-2222-2222-2222-222222222222";
 const ANNA = "33333333-3333-3333-3333-333333333333";
 
 afterAll(() => pool.end());
@@ -36,9 +37,14 @@ async function newUser(db: PoolClient, email: string): Promise<string> {
   return rows[0].id;
 }
 
-// Приглашение Марины, код и срок ставит база; insert — другая вставка, например «из прошлого». Возвращает код
-async function newInvite(db: PoolClient, insert = "insert into invites (coach_id) values ($1) returning code"): Promise<string> {
-  return (await db.query<{ code: string }>(insert, [MARINA])).rows[0].code;
+// Приглашение тренера coach, код и срок ставит база; insert — другая вставка, например «из прошлого». Возвращает код
+async function newInvite(db: PoolClient, coach: string, insert = "insert into invites (coach_id) values ($1) returning code") {
+  return (await db.query<{ code: string }>(insert, [coach])).rows[0].code;
+}
+
+// Тренер подопечного user
+async function coachOf(db: PoolClient, user: string): Promise<string> {
+  return (await db.query<{ coach_id: string }>("select coach_id from clients where user_id = $1", [user])).rows[0].coach_id;
 }
 
 const accept = (db: PoolClient, code: string, user: string) =>
@@ -58,18 +64,22 @@ test("код — 32 шестнадцатеричных знака, срок — 
 });
 
 test("принятое приглашение — подопечный тренера из записи приглашения", async () => {
-  const coach = await rolledBack(async (db) => {
-    const code = await newInvite(db);
-    const user = await newUser(db, "new@example.com");
-    await accept(db, code, user);
-    return (await db.query<{ coach_id: string }>("select coach_id from clients where user_id = $1", [user])).rows[0].coach_id;
+  // приглашения двух тренеров: принявший — подопечный того, чьё приглашение принял, а не первого попавшегося
+  const coaches = await rolledBack(async (db) => {
+    const fromMarina = await newInvite(db, MARINA);
+    const fromIgor = await newInvite(db, IGOR);
+    const toIgor = await newUser(db, "to-igor@example.com");
+    const toMarina = await newUser(db, "to-marina@example.com");
+    await accept(db, fromIgor, toIgor);
+    await accept(db, fromMarina, toMarina);
+    return [await coachOf(db, toIgor), await coachOf(db, toMarina)];
   });
-  expect(coach).toBe(MARINA);
+  expect(coaches).toEqual([IGOR, MARINA]);
 });
 
 test("второй раз — «уже использовано»", async () => {
   const twice = rolledBack(async (db) => {
-    const code = await newInvite(db);
+    const code = await newInvite(db, MARINA);
     await accept(db, code, await newUser(db, "first@example.com"));
     await accept(db, code, await newUser(db, "second@example.com"));
   });
@@ -78,7 +88,7 @@ test("второй раз — «уже использовано»", async () => 
 
 test("отозванное приглашение — отказ", async () => {
   const revoked = rolledBack(async (db) => {
-    const code = await newInvite(db);
+    const code = await newInvite(db, MARINA);
     await db.query("update invites set revoked_at = now() where code = $1", [code]);
     await accept(db, code, await newUser(db, "new@example.com"));
   });
@@ -90,7 +100,7 @@ test("созданное 49 часов назад — «срок истёк»", 
   const old =
     "insert into invites (coach_id, created_at, expires_at) values ($1, now() - interval '49 hours', now() - interval '1 hour') returning code";
   const expired = rolledBack(async (db) => {
-    const code = await newInvite(db, old);
+    const code = await newInvite(db, MARINA, old);
     await accept(db, code, await newUser(db, "new@example.com"));
   });
   await expect(expired).rejects.toThrow("Срок приглашения истёк");
