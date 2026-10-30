@@ -17,7 +17,7 @@ type Program = { id: string; title: string; items: { id: number; exercise: strin
 export default async function ProgramsPage({ searchParams }: PageProps<"/programs">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
-  const { error } = await searchParams;
+  const { error, assigned } = await searchParams;
   const data = await asUser(uid, async (db) => {
     // программы со строками одним запросом: json_agg собирает строки шаблона в массив, у программы без строк — []
     const programs = await db.query<Program>(
@@ -131,6 +131,12 @@ export default async function ProgramsPage({ searchParams }: PageProps<"/program
         ))}
       </datalist>
 
+      {/* после назначения — сколько тренировок назначено (число — в адресе) */}
+      {typeof assigned === "string" && (
+        <p role="status" className="mt-4 text-green-700">
+          Назначено тренировок: {assigned}
+        </p>
+      )}
       {typeof error === "string" && (
         <p role="alert" className="mt-4 text-red-600">
           {error}

@@ -66,19 +66,25 @@ create policy "тренер ведёт строки программ" on program
   for all to authenticated
   using (program_id in (select id from programs where coach_id = auth.uid()))
   with check (program_id in (select id from programs where coach_id = auth.uid()));
--- подопечный видит строки шаблона своих тренировок: из них берутся его упражнения
+-- подопечный видит программы своего тренера и их строки: из строк шаблона берутся его упражнения.
+-- Через тренера, а не через workout_items: политика строк тренировок сама читает program_items, и круг политик Postgres не примет
+create policy "подопечный видит программы" on programs
+  for select to authenticated using (coach_id in (select coach_id from clients where user_id = auth.uid()));
 create policy "подопечный видит строки шаблона" on program_items
-  for select to authenticated using (id in (
-    select wi.program_item_id from workout_items wi join workouts w on w.id = wi.workout_id
-      join clients c on c.id = w.client_id where c.user_id = auth.uid()));
+  for select to authenticated using (program_id in (
+    select p.id from programs p join clients c on c.coach_id = p.coach_id where c.user_id = auth.uid()));
 
 -- Строки тренировок: тренер — у своих подопечных, подопечный — свои
 create policy "тренер видит строки тренировок" on workout_items
   for select to authenticated using (workout_id in (
     select w.id from workouts w join clients c on c.id = w.client_id where c.coach_id = auth.uid()));
+-- тренер добавляет строки в тренировки своих подопечных — и только из своих программ
 create policy "тренер добавляет строки" on workout_items
-  for insert to authenticated with check (workout_id in (
-    select w.id from workouts w join clients c on c.id = w.client_id where c.coach_id = auth.uid()));
+  for insert to authenticated with check (
+    workout_id in (
+      select w.id from workouts w join clients c on c.id = w.client_id where c.coach_id = auth.uid())
+    and program_item_id in (
+      select pi.id from program_items pi join programs p on p.id = pi.program_id where p.coach_id = auth.uid()));
 create policy "подопечный видит свои строки" on workout_items
   for select to authenticated using (workout_id in (
     select w.id from workouts w join clients c on c.id = w.client_id where c.user_id = auth.uid()));

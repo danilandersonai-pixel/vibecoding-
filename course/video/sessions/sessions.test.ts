@@ -1307,6 +1307,8 @@ test('s14: ссылка с каскадом стирает подходы — т
   expect(file('ref-sql').path).toBe('supabase/migrations/0004_programs.sql')
   expect(file('ref-sql').after).toContain('program_item_id bigint not null references program_items (id) on delete cascade')
   expect(file('ref-sql').after).toContain('workout_item_id bigint references workout_items (id) on delete cascade')
+  // ошибка 0004 — только каскад: строку тренировки тренер вставляет лишь из своей программы
+  expect(file('ref-sql').after).toMatch(/and program_item_id in \(\s+select pi\.id from program_items pi join programs p on p\.id = pi\.program_id where p\.coach_id = auth\.uid\(\)\)/)
   expect(run('ref-apply').cmd).toBe('psql -f supabase/migrations/0004_programs.sql')
   expect(run('ref-apply').code).toBe(0)
   expect(run('ref-apply').out.join('\n')).not.toContain('ERROR')
@@ -1319,6 +1321,14 @@ test('s14: ссылка с каскадом стирает подходы — т
   // копия вместо ссылки: тот же тест зелёный
   expect(file('copy-sql').path).toBe('supabase/migrations/0005_programs_copy.sql')
   expect(file('copy-sql').after).toContain('on delete set null')
+  // копия в строке тренировки — свои столбцы упражнения, подходов и повторов
+  for (const column of ['add column exercise_id bigint references exercises (id)', 'add column sets int', 'add column reps int']) {
+    expect(file('copy-sql').after, column).toContain(column)
+  }
+  expect(file('copy-sql').after).toContain('set search_path = public')
+  // красный и зелёный прогоны — на одном тесте: файл теста пишет только prog-test
+  const testWrites = sessions['s14-programs'].events.filter((e) => e.kind === 'file' && e.path === 'test/programs.test.ts')
+  expect(testWrites.map((e) => e.id)).toEqual(['prog-test'])
   expect(run('copy-apply').code).toBe(0)
   expect(run('copy-apply').out.join('\n')).not.toContain('ERROR')
   expect(run('prog-green').cmd).toBe('npx vitest run test/programs.test.ts')
@@ -1326,7 +1336,12 @@ test('s14: ссылка с каскадом стирает подходы — т
   expect(find('s14-programs', 'ask-copy', 'agent').steps).toEqual(['copy-sql', 'copy-apply', 'prog-green'])
 
   // программа на 4 недели с введённой даты: у Анны четыре тренировки «Ноги, 4 недели», в первой — присед 3 × 10
-  expect(find('s14-programs', 'program-assign', 'browser').fields).toContainEqual({ label: 'С даты', value: '2026-11-09' })
+  const assign = find('s14-programs', 'program-assign', 'browser')
+  expect(assign.fields).toContainEqual({ label: 'С даты', value: '2026-11-09' })
+  // после «Назначить» кадр меняется: подтверждение на странице программ
+  expect(assign.urlAfter).toBe('http://localhost:3000/programs?assigned=4')
+  expect(assign.before).not.toContain('Назначено тренировок: 4')
+  expect(assign.after).toContain('Назначено тренировок: 4')
   const week = find('s14-programs', 'anna-week', 'browser').after
   for (const day of ['9 ноября', '16 ноября', '23 ноября', '30 ноября']) expect(week, day).toContain(day)
   expect(week.filter((line) => line === 'Ноги, 4 недели')).toHaveLength(4)

@@ -34,6 +34,7 @@ alter table sets
 -- Функция работает с правами того, кто вставляет: чужую строку шаблона ей не прочитать (RLS), и строка без упражнения не вставится
 create function copy_program_item() returns trigger
   language plpgsql
+  set search_path = public
 as $$
 begin
   if new.exercise_id is null then

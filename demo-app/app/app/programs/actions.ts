@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { asUser } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 
+// Программа назначается на 4 недели: тренировка раз в неделю
+const WEEKS = 4;
+
 // Ошибку страница покажет под формами: её текст — в адресе
 const fail = (error: string) => `/programs?error=${encodeURIComponent(error)}`;
 
@@ -61,7 +64,7 @@ export async function assignProgram(programId: string, form: FormData) {
     if (clients.rows.length > 1) return "Подопечных с таким именем несколько";
     const program = await db.query<{ title: string }>("select title from programs where id = $1", [programId]);
     if (program.rows.length === 0) return "Программа не найдена";
-    for (let week = 0; week < 4; week++) {
+    for (let week = 0; week < WEEKS; week++) {
       // день тренировки считает база: дата начала + 7 дней × неделя
       const workout = await db.query<{ id: string }>(
         "insert into workouts (client_id, title, day) values ($1, $2, $3::date + 7 * $4::int) returning id",
@@ -75,5 +78,6 @@ export async function assignProgram(programId: string, form: FormData) {
     return null;
   });
   if (error) redirect(fail(error));
-  redirect("/programs");
+  // страница подтвердит назначение: «Назначено тренировок: 4»
+  redirect(`/programs?assigned=${WEEKS}`);
 }

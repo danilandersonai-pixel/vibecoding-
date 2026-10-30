@@ -3,14 +3,15 @@
 // при назначении делается копия, версии шаблона; у первой правка или удаление шаблона меняет прошлое. Берём первую — «она проще»:
 // 0004_programs.sql — библиотека упражнений (присед, жим лёжа, тяга, подтягивания вставляет та же миграция), программы, строки шаблона,
 // строки тренировок со ссылкой на строку шаблона on delete cascade, у подхода ссылка на строку тренировки — тоже с каскадом; вид
-// workout_exercises и RLS на новых таблицах; применяется psql -f с подтверждения. Подводный камень — тест из требования
-// test/programs.test.ts (с базой, как test/rls.test.ts; данные — в транзакции, в конце rollback): удаление строки шаблона не стирает
-// подходы прошлой тренировки, замена упражнения не меняет её упражнений. После 0004 он красный: подходов 0 — каскад стёр их.
-// Исправление — 0005_programs_copy.sql: копия упражнения, подходов и повторов в строке тренировки (при вставке её делает база),
-// ссылка на шаблон on delete set null, у подходов каскада нет; тот же тест зелёный. Затем экран /programs: Марина создаёт программу
-// «Ноги, 4 недели» (присед 3 × 10) и назначает Анне с 2026-11-09 — дату вводят в форме, настоящие часы в кадр не попадают. У Анны четыре
-// тренировки 9, 16, 23 и 30 ноября (даты пишет formatDay из lib/dates.ts), в первой (/workouts/6: seed даёт тренировки 1–5) —
-// «Присед — 3 × 10». С s15 миграции 0004 и 0005 применяет рекордер: подряд на чистой базе, затем seed.sql.
+// workout_exercises и RLS на новых таблицах (строку тренировки тренер вставляет только из своей программы); применяется psql -f
+// с подтверждения. Подводный камень — тест из требования test/programs.test.ts (с базой, как test/rls.test.ts; данные — в транзакции,
+// в конце rollback): удаление строки шаблона не стирает подходы прошлой тренировки, замена упражнения не меняет её упражнений.
+// После 0004 он красный: подходов 0 — каскад стёр их. Исправление — 0005_programs_copy.sql: копия упражнения, подходов и повторов
+// в строке тренировки (при вставке её делает база), ссылка на шаблон on delete set null, у подходов каскада нет; тот же тест зелёный.
+// Затем экран /programs: Марина создаёт программу «Ноги, 4 недели» (присед 3 × 10) и назначает Анне с 2026-11-09 — дату вводят в форме,
+// настоящие часы в кадр не попадают; страница подтверждает: «Назначено тренировок: 4». У Анны четыре тренировки 9, 16, 23 и 30 ноября
+// (даты пишет formatDay из lib/dates.ts), в первой (/workouts/6: seed даёт тренировки 1–5) — «Присед — 3 × 10».
+// С s15 миграции 0004 и 0005 применяет рекордер: подряд на чистой базе, затем seed.sql.
 // Запись с середины цепочки: node scripts/record-session.mjs --from s14-programs (из course/). Id шагов постоянные: на них ссылаются уроки.
 // Режимы в ролике: ask-model — Plan (только чтение и ответ), остальные запросы — Accept edits (команды агента с вопросом [y / n]).
 // Разработчица в репликах агента и в комментариях по имени не названа: подопечная тоже Анна.
@@ -85,19 +86,25 @@ create policy "тренер ведёт строки программ" on program
   for all to authenticated
   using (program_id in (select id from programs where coach_id = auth.uid()))
   with check (program_id in (select id from programs where coach_id = auth.uid()));
--- подопечный видит строки шаблона своих тренировок: из них берутся его упражнения
+-- подопечный видит программы своего тренера и их строки: из строк шаблона берутся его упражнения.
+-- Через тренера, а не через workout_items: политика строк тренировок сама читает program_items, и круг политик Postgres не примет
+create policy "подопечный видит программы" on programs
+  for select to authenticated using (coach_id in (select coach_id from clients where user_id = auth.uid()));
 create policy "подопечный видит строки шаблона" on program_items
-  for select to authenticated using (id in (
-    select wi.program_item_id from workout_items wi join workouts w on w.id = wi.workout_id
-      join clients c on c.id = w.client_id where c.user_id = auth.uid()));
+  for select to authenticated using (program_id in (
+    select p.id from programs p join clients c on c.coach_id = p.coach_id where c.user_id = auth.uid()));
 
 -- Строки тренировок: тренер — у своих подопечных, подопечный — свои
 create policy "тренер видит строки тренировок" on workout_items
   for select to authenticated using (workout_id in (
     select w.id from workouts w join clients c on c.id = w.client_id where c.coach_id = auth.uid()));
+-- тренер добавляет строки в тренировки своих подопечных — и только из своих программ
 create policy "тренер добавляет строки" on workout_items
-  for insert to authenticated with check (workout_id in (
-    select w.id from workouts w join clients c on c.id = w.client_id where c.coach_id = auth.uid()));
+  for insert to authenticated with check (
+    workout_id in (
+      select w.id from workouts w join clients c on c.id = w.client_id where c.coach_id = auth.uid())
+    and program_item_id in (
+      select pi.id from program_items pi join programs p on p.id = pi.program_id where p.coach_id = auth.uid()));
 create policy "подопечный видит свои строки" on workout_items
   for select to authenticated using (workout_id in (
     select w.id from workouts w join clients c on c.id = w.client_id where c.user_id = auth.uid()));
@@ -203,6 +210,7 @@ alter table sets
 -- Функция работает с правами того, кто вставляет: чужую строку шаблона ей не прочитать (RLS), и строка без упражнения не вставится
 create function copy_program_item() returns trigger
   language plpgsql
+  set search_path = public
 as $$
 begin
   if new.exercise_id is null then
@@ -247,7 +255,7 @@ type Program = { id: string; title: string; items: { id: number; exercise: strin
 export default async function ProgramsPage({ searchParams }: PageProps<"/programs">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
-  const { error } = await searchParams;
+  const { error, assigned } = await searchParams;
   const data = await asUser(uid, async (db) => {
     // программы со строками одним запросом: json_agg собирает строки шаблона в массив, у программы без строк — []
     const programs = await db.query<Program>(
@@ -361,6 +369,12 @@ export default async function ProgramsPage({ searchParams }: PageProps<"/program
         ))}
       </datalist>
 
+      {/* после назначения — сколько тренировок назначено (число — в адресе) */}
+      {typeof assigned === "string" && (
+        <p role="status" className="mt-4 text-green-700">
+          Назначено тренировок: {assigned}
+        </p>
+      )}
       {typeof error === "string" && (
         <p role="alert" className="mt-4 text-red-600">
           {error}
@@ -378,6 +392,9 @@ const PROGRAMS_ACTIONS = `"use server";
 import { redirect } from "next/navigation";
 import { asUser } from "@/lib/db";
 import { currentUser } from "@/lib/session";
+
+// Программа назначается на 4 недели: тренировка раз в неделю
+const WEEKS = 4;
 
 // Ошибку страница покажет под формами: её текст — в адресе
 const fail = (error: string) => \`/programs?error=\${encodeURIComponent(error)}\`;
@@ -436,7 +453,7 @@ export async function assignProgram(programId: string, form: FormData) {
     if (clients.rows.length > 1) return "Подопечных с таким именем несколько";
     const program = await db.query<{ title: string }>("select title from programs where id = $1", [programId]);
     if (program.rows.length === 0) return "Программа не найдена";
-    for (let week = 0; week < 4; week++) {
+    for (let week = 0; week < WEEKS; week++) {
       // день тренировки считает база: дата начала + 7 дней × неделя
       const workout = await db.query<{ id: string }>(
         "insert into workouts (client_id, title, day) values ($1, $2, $3::date + 7 * $4::int) returning id",
@@ -450,7 +467,8 @@ export async function assignProgram(programId: string, form: FormData) {
     return null;
   });
   if (error) redirect(fail(error));
-  redirect("/programs");
+  // страница подтвердит назначение: «Назначено тренировок: 4»
+  redirect(\`/programs?assigned=\${WEEKS}\`);
 }
 `
 
@@ -535,12 +553,12 @@ export default {
           'Нужны упражнения и программы: библиотека упражнений, шаблон программы (упражнение, подходы × повторы), назначение подопечному на 4 недели. ' +
           'Предложи два-три варианта модели данных и чем каждый рискует для прошлых тренировок. Код не меняй',
         reply:
-          'Прочитал supabase/migrations/0001_init.sql и docs/plan-weeks-2-3.md. Сейчас тренировка — только название и день, а подходы и вес Марина пишет в сообщении. ' +
-          'Во всех вариантах — библиотека exercises, программа programs и её строки program_items (упражнение, подходы × повторы); ' +
-          'назначение на 4 недели — четыре тренировки раз в неделю от даты. Разница — в том, что хранит тренировка. ' +
+          'Сейчас тренер назначает только название и день, а сколько подходов и какой вес — Марина пишет в сообщении. ' +
+          'Во всех вариантах есть библиотека exercises, программы programs и их строки program_items; назначение на 4 недели — ' +
+          'четыре тренировки раз в неделю. Разница — что хранит тренировка. ' +
           '1. Тренировка ссылается на строку шаблона. Проще всего: шаблон хранится один раз. Риск: правка или удаление шаблона меняет прошлое — ' +
           'поменяли упражнение, и у прошлых тренировок оно другое; удалили строку — с каскадом пропадут и строки прошлых тренировок, и их подходы. ' +
-          '2. При назначении делается копия: упражнение, подходы и повторы копируются в тренировку, ссылка на шаблон — только чтобы знать, откуда они. ' +
+          '2. При назначении делается копия: упражнение, подходы и повторы копируются в тренировку, ссылка на шаблон — для справки. ' +
           'Прошлое не меняется; риск — правка шаблона не доходит до уже назначенных тренировок. ' +
           '3. Версии шаблона: правка создаёт новую версию, тренировка ссылается на свою. Прошлое не меняется, но таблиц и правил больше всех, ' +
           'а версию нельзя удалить, пока на неё ссылаются. Код не менял. Какой берём?',
@@ -560,7 +578,7 @@ export default {
           'programs — программа тренера: название. program_items — строка шаблона: упражнение, подходы и повторы. ' +
           'workout_items — строка тренировки: ссылка на строку шаблона с on delete cascade, чтобы не оставалось строк без шаблона; ' +
           'у подхода — ссылка на строку тренировки, тоже с каскадом. Вид workout_exercises — упражнения тренировки из строк шаблона. ' +
-          'RLS на новых таблицах: библиотеку видят все вошедшие, программы и их строки — их тренер, строки тренировок — тренер подопечного и сам подопечный. ' +
+          'RLS на новых таблицах: библиотеку видят все вошедшие, программы и их строки — тренер и его подопечные, меняет — тренер; строки тренировок — тренер подопечного и сам подопечный. ' +
           'Применил после твоего подтверждения: psql -f supabase/migrations/0004_programs.sql.',
       },
       steps: [
@@ -595,7 +613,7 @@ export default {
           'Копию при назначении делает база: триггер copy_program_item заполняет её из строки шаблона, когда строку тренировки вставляют. ' +
           'Связь со шаблоном осталась, но program_item_id — on delete set null: удалили строку шаблона — у тренировки пропадает только ссылка. ' +
           'У подходов каскада больше нет. Вид workout_exercises читает копию, а не шаблон. ' +
-          'Применил после твоего подтверждения: psql -f supabase/migrations/0005_programs_copy.sql. Тест не трогал: npx vitest run test/programs.test.ts — зелёный.',
+          'Тест не трогал: npx vitest run test/programs.test.ts — зелёный.',
       },
       steps: [
         { id: 'copy-sql', write: 'supabase/migrations/0005_programs_copy.sql', content: COPY_SQL },
@@ -609,7 +627,7 @@ export default {
         prompt:
           'Экран программ у тренера: создать программу из библиотеки и назначить подопечному на 4 недели с даты; у подопечного — упражнения в тренировке',
         reply:
-          'Сделал экран программ. app/programs/page.tsx — программы тренера строками «Присед — 3 × 10», под каждой — «Назначить»: подопечный и дата начала. ' +
+          'Сделал экран программ. app/programs/page.tsx — программы тренера строками «Присед — 3 × 10», под каждой — «Назначить»: подопечный и дата начала, после назначения — «Назначено тренировок: 4». ' +
           'Ниже — «Новая программа»: название, упражнение из библиотеки (подсказки — из exercises), подходы и повторы, кнопка «Создать». ' +
           'app/programs/actions.ts — создание программы и назначение: четыре тренировки раз в неделю от введённой даты, с названием программы, ' +
           'в каждую — строки шаблона; упражнение, подходы и повторы база кладёт в них копией. ' +
@@ -627,7 +645,7 @@ export default {
       id: 'program-new',
       browser: { url: '/programs', fill: { Название: 'Ноги, 4 недели', Упражнение: 'Присед', Подходы: '3', Повторы: '10' }, click: 'Создать' },
     },
-    // дата начала вводится в форме: тренировки 9, 16, 23 и 30 ноября при любой дате записи
+    // дата начала вводится в форме: тренировки 9, 16, 23 и 30 ноября при любой дате записи; после нажатия — «Назначено тренировок: 4»
     { id: 'program-assign', browser: { url: '/programs', fill: { Подопечный: 'Анна', 'С даты': '2026-11-09' }, click: 'Назначить' } },
     { id: 'login-anna', browser: { url: '/login', fill: { Почта: 'anna@example.com', Пароль: 'demo-password' }, click: 'Войти' } },
     { id: 'anna-week', browser: { url: '/workouts' } },
