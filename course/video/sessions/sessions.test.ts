@@ -1854,7 +1854,8 @@ test('s19: проверки зелёные; индекс меняет план; 
   expect(events.map((e) => e.id)).toEqual([
     ...['typegen', 'check-run', 'e2e-fix', 'e2e-all', 'c-e2e-fix'],
     ...['speed-file', 'speed-load', 'explain', 'ask-index', 'index-sql', 'index-apply', 'explain2'],
-    ...['backup-ignore', 'dump-public', 'restore-try', 'restore-users', 'dump-all', 'restore-full', 'restore-count', 'restore-doc', 'c-reliability'],
+    ...['backup-ignore', 'dump-public', 'restore-try', 'restore-users', 'dump-all', 'restore-full', 'restore-count'],
+    ...['restore-login', 'restore-path', 'restore-login2', 'restore-doc', 'c-reliability'],
   ])
   const run = (id: string) => find('s19-reliability', id, 'run')
   const file = (id: string) => find('s19-reliability', id, 'file')
@@ -1886,6 +1887,8 @@ test('s19: проверки зелёные; индекс меняет план; 
   expect(file('speed-file').after).toContain('generate_series')
   expect(run('speed-load')).toMatchObject({ cmd: 'psql -f supabase/seed-speed.sql', code: 0 })
   expect(run('speed-load').out).toEqual(['INSERT 0 2000', 'INSERT 0 40000'])
+  // повторный запуск ничего не добавит: обе вставки — только чего ещё нет
+  expect(file('speed-file').after.match(/and not exists/g)).toHaveLength(2)
   const query = 'psql -c "explain analyze select weight, reps from sets where workout_id = 1500"'
   for (const id of ['explain', 'explain2']) expect(run(id), id).toMatchObject({ cmd: query, code: 0 })
   expect(run('explain').out.join('\n')).toContain('Seq Scan on sets')
@@ -1922,10 +1925,41 @@ test('s19: проверки зелёные; индекс меняет план; 
   expect(counts[1]).toBe(counts[0])
   expect(Number(counts[0])).toBeGreaterThanOrEqual(40000)
 
-  // учения записаны: шаги, что сверять, где лежит копия
+  // учения до входа: проверка пароля, как в app/api/login (crypt() без схемы), на копии падает — search_path базы в копию не перешёл
+  const login = `select count(*) from auth.users where email = 'anna@example.com' and encrypted_password = crypt('demo-password', encrypted_password)`
+  expect(run('restore-login').cmd).toBe(`psql -At -d restore_full -c "${login}"`)
+  expect(run('restore-login').code).not.toBe(0)
+  expect(run('restore-login').out.join('\n')).toMatch(/function crypt\(.*\) does not exist/)
+  // тот же search_path, что задаёт рабочей базе слой Supabase
+  const path = 'set search_path to "$user", public, extensions'
+  expect(readFileSync(join(COURSE, 'scripts/session/supabase-local.sql'), 'utf8')).toContain(path)
+  expect(run('restore-path')).toMatchObject({ cmd: `psql -c 'alter database restore_full ${path}'`, code: 0, out: ['ALTER DATABASE'] })
+  // пользователей в рабочей базе и в копии поровну, пароль на копии подходит
+  const login2 = run('restore-login2')
+  expect(login2.cmd).toBe(`psql -At -c "select count(*) from auth.users" && psql -At -d restore_full -c "select count(*) from auth.users" -c "${login}"`)
+  expect(login2.code).toBe(0)
+  const users = login2.out.filter(Boolean)
+  expect(users).toHaveLength(3)
+  expect(users[0]).toMatch(/^\d+$/)
+  expect(users[1]).toBe(users[0])
+  expect(users[2]).toBe('1')
+  expect(at('restore-count')).toBeLessThan(at('restore-login'))
+  expect(at('restore-login2')).toBeLessThan(at('restore-doc'))
+
+  // учения записаны по записи: шаги, что сверять (подходы, пользователи, вход), где лежит копия, журнал
   const doc = file('restore-doc')
   expect(doc).toMatchObject({ path: 'docs/restore.md', before: null })
-  for (const word of ['backups/trainer-full.dump', 'pg_restore', 'count(*) from sets', 'auth.users', 'Вход']) expect(doc.after, word).toContain(word)
+  for (const word of ['mkdir -p backups && pg_dump -Fc -f backups/trainer-full.dump', 'pg_restore', 'count(*) from sets', 'count(*) from auth.users', 'Вход']) {
+    expect(doc.after, word).toContain(word)
+  }
+  // что показали шаги: таблицы invites в копии public нет, число ошибок — из записи, crypt() и search_path — как в командах
+  expect(doc.after).toContain('invites')
+  const errors = run('restore-try').out.join('\n').match(/errors ignored on restore: (\d+)/)![1]
+  expect(doc.after).toContain(`${errors} ошибки`)
+  expect(doc.after).toContain(login)
+  expect(doc.after).toContain('function crypt(unknown, text) does not exist')
+  expect(run('restore-login').out.join('\n')).toContain('function crypt(unknown, text) does not exist')
+  expect(doc.after).toContain(run('restore-path').cmd)
   expect(doc.after).not.toMatch(/Анн/)
   expect(commit('c-reliability')).toMatchObject({ message: 'Индекс подходов; учения по восстановлению', branch: 'main', parents: [commit('c-e2e-fix').hash] })
   expect(commit('c-reliability').files.map((f) => f.path)).toEqual(

@@ -35,25 +35,25 @@
     "",
     " RUN  v5.0.5 ~/trainer-app",
     "",
-    " ✓ test/programs.test.ts (1 test) 32ms",
-    " ✓ test/comments.test.ts (5 tests) 56ms",
-    " ✓ test/invites.test.ts (6 tests) 94ms",
-    " ✓ lib/report.test.ts (3 tests) 5ms",
-    " ✓ test/rls.test.ts (3 tests) 33ms",
+    " ✓ test/programs.test.ts (1 test) 34ms",
+    " ✓ test/comments.test.ts (5 tests) 58ms",
+    " ✓ test/invites.test.ts (6 tests) 89ms",
+    " ✓ test/rls.test.ts (3 tests) 34ms",
     " ✓ lib/progress.test.ts (3 tests) 4ms",
-    " ✓ lib/names.test.ts (9 tests) 8ms",
-    " ✓ lib/notify.test.ts (2 tests) 21ms",
-    " ✓ lib/records.test.ts (3 tests) 6ms",
-    " ✓ lib/volume.test.ts (2 tests) 3ms",
-    " ✓ lib/weight.test.ts (5 tests) 5ms",
+    " ✓ lib/report.test.ts (3 tests) 7ms",
+    " ✓ lib/names.test.ts (9 tests) 7ms",
+    " ✓ lib/records.test.ts (3 tests) 4ms",
+    " ✓ lib/notify.test.ts (2 tests) 29ms",
+    " ✓ lib/weight.test.ts (5 tests) 4ms",
+    " ✓ lib/volume.test.ts (2 tests) 4ms",
     "",
     " Test Files  11 passed (11)",
     "      Tests  42 passed (42)",
-    "   Start at  14:29:54",
-    "   Duration  877ms (transform 47%, tests 25%, import 23%, worker 5%)",
+    "   Start at  14:49:56",
+    "   Duration  827ms (transform 49%, tests 27%, import 20%, worker 4%)",
     "",
-    "    Isolate  11 workers spawned · ~112ms startup each (spawn + environment, per file)",
-    "             at least ~299ms faster with isolate: false — reuses workers across files instead of one per file",
+    "    Isolate  11 workers spawned · ~106ms startup each (spawn + environment, per file)",
+    "             at least ~283ms faster with isolate: false — reuses workers across files instead of one per file",
     "",
     "",
     "> trainer-app@0.1.0 build",
@@ -61,20 +61,20 @@
     "",
     "▲ Next.js 16.4.3 (Turbopack)",
     "- Environments: .env.local",
-    "✓ Running next.config.ts took 27ms",
+    "✓ Running next.config.ts took 32ms",
     "- Cache Components enabled",
     "- Partial Prefetching enabled",
     "",
     "  Creating an optimized production build ...",
-    "✓ Compiled successfully in 4.7s",
+    "✓ Compiled successfully in 4.0s",
     "  Running TypeScript ...",
-    "  Finished TypeScript in 3.5s ...",
+    "  Finished TypeScript in 4.0s ...",
     "  Collecting page data using 3 workers ...",
     "  Generating static pages using 3 workers (0/17) ...",
     "  Generating static pages using 3 workers (4/17) ",
     "  Generating static pages using 3 workers (8/17) ",
     "  Generating static pages using 3 workers (12/17) ",
-    "✓ Generating static pages using 3 workers (17/17) in 723ms",
+    "✓ Generating static pages using 3 workers (17/17) in 706ms",
     "  Finalizing page optimization ...",
     "",
     "Route (app)",
@@ -136,10 +136,10 @@
     "",
     "Running 2 tests using 2 workers",
     "",
-    "  ✓  2 [chromium] › e2e/quick-set.spec.ts:15:5 › Анна повторяет подход одним касанием, Марина видит его в списке подопечных (6.6s)",
-    "  ✓  1 [chromium] › e2e/cycle.spec.ts:15:5 › Марина назначает тренировку, Анна вписывает подход, Марина видит объём (7.6s)",
+    "  ✓  2 [chromium] › e2e/quick-set.spec.ts:15:5 › Анна повторяет подход одним касанием, Марина видит его в списке подопечных (7.5s)",
+    "  ✓  1 [chromium] › e2e/cycle.spec.ts:15:5 › Марина назначает тренировку, Анна вписывает подход, Марина видит объём (8.7s)",
     "",
-    "  2 passed (12.5s)"
+    "  2 passed (13.8s)"
    ],
    "code": 0
   },
@@ -541,30 +541,33 @@
    "kind": "file",
    "path": "supabase/seed-speed.sql",
    "before": null,
-   "after": "-- Данные для замера скорости: у Анны 2000 тренировок, в каждой по 20 подходов — 40 000 строк в sets.\n-- Это не демо-данные и не миграция: запускается вручную (psql -f), чтобы EXPLAIN ANALYZE показал план на настоящем объёме.\n\n-- 2000 тренировок Анны, по одной в день, в прошлом\ninsert into workouts (client_id, title, day)\nselect c.id, 'Замер ' || n, date '2026-10-01' - n\nfrom clients c, generate_series(1, 2000) as n\nwhere c.user_id = '33333333-3333-3333-3333-333333333333';\n\n-- В каждой — 20 подходов: вес 40–60 кг, 6–12 повторов\ninsert into sets (workout_id, weight, reps)\nselect w.id, 40 + s % 5 * 5, 6 + s % 7\nfrom workouts w, generate_series(1, 20) as s\nwhere w.title like 'Замер %';\n",
+   "after": "-- Данные для замера скорости: у Анны 2000 тренировок, в каждой по 20 подходов — 40 000 строк в sets.\n-- Это не демо-данные и не миграция: запускается вручную (psql -f), чтобы EXPLAIN ANALYZE показал план на настоящем объёме.\n-- Повторный запуск ничего не добавит: тренировки — только если их ещё нет, подходы — только в тренировки без подходов.\n\n-- 2000 тренировок Анны, по одной в день, в прошлом\ninsert into workouts (client_id, title, day)\nselect c.id, 'Замер ' || n, date '2026-10-01' - n\nfrom clients c, generate_series(1, 2000) as n\nwhere c.user_id = '33333333-3333-3333-3333-333333333333'\n  and not exists (select 1 from workouts where title like 'Замер %');\n\n-- В каждой — 20 подходов: вес 40–60 кг, 6–12 повторов\ninsert into sets (workout_id, weight, reps)\nselect w.id, 40 + s % 5 * 5, 6 + s % 7\nfrom workouts w, generate_series(1, 20) as s\nwhere w.title like 'Замер %'\n  and not exists (select 1 from sets where sets.workout_id = w.id);\n",
    "diff": [
     "diff --git a/supabase/seed-speed.sql b/supabase/seed-speed.sql",
     "new file mode 100644",
-    "index 0000000..fbfa711",
+    "index 0000000..5acc829",
     "--- /dev/null",
     "+++ b/supabase/seed-speed.sql",
-    "@@ -0,0 +1,14 @@",
+    "@@ -0,0 +1,17 @@",
     "+-- Данные для замера скорости: у Анны 2000 тренировок, в каждой по 20 подходов — 40 000 строк в sets.",
     "+-- Это не демо-данные и не миграция: запускается вручную (psql -f), чтобы EXPLAIN ANALYZE показал план на настоящем объёме.",
+    "+-- Повторный запуск ничего не добавит: тренировки — только если их ещё нет, подходы — только в тренировки без подходов.",
     "+",
     "+-- 2000 тренировок Анны, по одной в день, в прошлом",
     "+insert into workouts (client_id, title, day)",
     "+select c.id, 'Замер ' || n, date '2026-10-01' - n",
     "+from clients c, generate_series(1, 2000) as n",
-    "+where c.user_id = '33333333-3333-3333-3333-333333333333';",
+    "+where c.user_id = '33333333-3333-3333-3333-333333333333'",
+    "+  and not exists (select 1 from workouts where title like 'Замер %');",
     "+",
     "+-- В каждой — 20 подходов: вес 40–60 кг, 6–12 повторов",
     "+insert into sets (workout_id, weight, reps)",
     "+select w.id, 40 + s % 5 * 5, 6 + s % 7",
     "+from workouts w, generate_series(1, 20) as s",
-    "+where w.title like 'Замер %';"
+    "+where w.title like 'Замер %'",
+    "+  and not exists (select 1 from sets where sets.workout_id = w.id);"
    ],
-   "blob": "fbfa71183d27bb49db6bc842be7b08d170ab7afa"
+   "blob": "5acc829666b75e864de50280eeb936f913854a3a"
   },
   {
    "id": "speed-load",
@@ -585,11 +588,11 @@
    "out": [
     "                                             QUERY PLAN                                             ",
     "----------------------------------------------------------------------------------------------------",
-    " Seq Scan on sets  (cost=0.00..545.75 rows=100 width=36) (actual time=0.163..3.553 rows=20 loops=1)",
+    " Seq Scan on sets  (cost=0.00..545.75 rows=100 width=36) (actual time=0.135..2.313 rows=20 loops=1)",
     "   Filter: (workout_id = 1500)",
     "   Rows Removed by Filter: 39996",
-    " Planning Time: 0.424 ms",
-    " Execution Time: 3.600 ms",
+    " Planning Time: 0.276 ms",
+    " Execution Time: 2.354 ms",
     "(5 rows)"
    ],
    "code": 0
@@ -644,13 +647,13 @@
    "out": [
     "                                                          QUERY PLAN                                                           ",
     "-------------------------------------------------------------------------------------------------------------------------------",
-    " Bitmap Heap Scan on sets  (cost=5.84..287.46 rows=200 width=36) (actual time=0.110..0.261 rows=20 loops=1)",
+    " Bitmap Heap Scan on sets  (cost=5.84..287.46 rows=200 width=36) (actual time=0.086..0.233 rows=20 loops=1)",
     "   Recheck Cond: (workout_id = 1500)",
     "   Heap Blocks: exact=20",
-    "   ->  Bitmap Index Scan on sets_workout_id_idx  (cost=0.00..5.79 rows=200 width=0) (actual time=0.085..0.086 rows=20 loops=1)",
+    "   ->  Bitmap Index Scan on sets_workout_id_idx  (cost=0.00..5.79 rows=200 width=0) (actual time=0.065..0.065 rows=20 loops=1)",
     "         Index Cond: (workout_id = 1500)",
-    " Planning Time: 0.680 ms",
-    " Execution Time: 0.337 ms",
+    " Planning Time: 0.663 ms",
+    " Execution Time: 0.321 ms",
     "(7 rows)"
    ],
    "code": 0
@@ -980,18 +983,53 @@
    "code": 0
   },
   {
+   "id": "restore-login",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "psql -At -d restore_full -c \"select count(*) from auth.users where email = 'anna@example.com' and encrypted_password = crypt('demo-password', encrypted_password)\"",
+   "out": [
+    "ERROR:  function crypt(unknown, text) does not exist",
+    "LINE 1: ...ail = 'anna@example.com' and encrypted_password = crypt('dem...",
+    "                                                             ^",
+    "HINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+   ],
+   "code": 1
+  },
+  {
+   "id": "restore-path",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "psql -c 'alter database restore_full set search_path to \"$user\", public, extensions'",
+   "out": [
+    "ALTER DATABASE"
+   ],
+   "code": 0
+  },
+  {
+   "id": "restore-login2",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "psql -At -c \"select count(*) from auth.users\" && psql -At -d restore_full -c \"select count(*) from auth.users\" -c \"select count(*) from auth.users where email = 'anna@example.com' and encrypted_password = crypt('demo-password', encrypted_password)\"",
+   "out": [
+    "5",
+    "5",
+    "1"
+   ],
+   "code": 0
+  },
+  {
    "id": "restore-doc",
    "kind": "file",
    "path": "docs/restore.md",
    "before": null,
-   "after": "# Учения: восстановление из копии\n\nКопия, из которой ни разу не восстанавливались, — не копия. Поэтому копию базы мы не только делаем, но и восстанавливаем — в отдельную учебную базу — и сверяем с рабочей. Рабочую базу учения не трогают.\n\n## Где лежит копия\n\n- `backups/trainer-full.dump` в папке проекта — копия всей базы (`pg_dump -Fc`).\n- В git её нет: `/backups/` в `.gitignore`. В копии — почты пользователей и хеши паролей.\n- Папка проекта годится только для учений: пропадёт компьютер — пропадёт и копия. Копию на случай беды держат там, куда не дотянутся ни агент, ни его команды.\n\n## Шаги\n\n1. Копия всей базы: `pg_dump -Fc -f backups/trainer-full.dump`.\n   Копия одной схемы `public` (`pg_dump -n public`) не годится: `profiles` и политики RLS ссылаются на схему `auth`, а её в такой копии нет. `pg_restore` кончается ошибками, `auth.users` в копии нет — войти некому.\n2. Пустая учебная база и восстановление в неё: `createdb restore_full && pg_restore -d restore_full backups/trainer-full.dump` — без ошибок.\n3. Сверить копию с рабочей базой — список ниже.\n4. Записать дату и что не сошлось. Учебную базу удалить: `dropdb restore_full`.\n\n## Что сверять\n\n- Подходы: `select count(*) from sets` — в рабочей базе и в копии одно число.\n- Пользователи: `select count(*) from auth.users` — тоже одно число. Без них в приложение никто не войдёт.\n- Вход: приложение с `DATABASE_URL` на `restore_full` — войти тренером и подопечным. Числа этого не покажут: настройки самой базы `pg_restore -d` не переносит, а среди них `search_path` со схемой `extensions`. В ней лежит `crypt()`, которым вход сверяет пароль. На копии его задают заново: `alter database restore_full set search_path to \"$user\", public, extensions`.\n\n## Журнал\n\n- 10 ноября: копия одной `public` не восстановилась — нет схемы `auth`. Копия всей базы восстановилась, подходов в рабочей базе и в копии поровну. Пользователей и вход ещё не сверяли.\n",
+   "after": "# Учения: восстановление из копии\n\nКопия, из которой ни разу не восстанавливались, — не копия. Поэтому копию базы мы не только делаем, но и восстанавливаем — в отдельную учебную базу — и сверяем с рабочей. Рабочую базу учения не трогают.\n\n## Где лежит копия\n\n- `backups/trainer-full.dump` в папке проекта — копия всей базы (`pg_dump -Fc`).\n- В git её нет: `/backups/` в `.gitignore`. В копии — почты пользователей и хеши паролей.\n- Папка проекта годится только для учений: пропадёт компьютер — пропадёт и копия. Копию на случай беды держат там, куда не дотянутся ни агент, ни его команды.\n\n## Шаги\n\n1. Копия всей базы: `mkdir -p backups && pg_dump -Fc -f backups/trainer-full.dump`.\n   Копия одной схемы `public` (`pg_dump -n public`) не годится: `profiles` и политики RLS ссылаются на схему `auth`, а её в такой копии нет, как и схемы `extensions` (из неё `invites` берёт код приглашения). `pg_restore` кончается ошибками, таблиц `invites` и `auth.users` в копии нет — войти некому.\n2. Пустая учебная база и восстановление в неё: `createdb restore_full && pg_restore -d restore_full backups/trainer-full.dump` — без ошибок.\n3. Настройки самой базы `pg_restore -d` не переносит, а `search_path` со схемой `extensions` задан именно в них. В `extensions` лежит `crypt()`, которым вход сверяет пароль, поэтому копии задать тот же `search_path`, что у рабочей: `psql -c 'alter database restore_full set search_path to \"$user\", public, extensions'`.\n4. Сверить копию с рабочей базой — список ниже.\n5. Записать дату и что не сошлось. Учебную базу удалить: `dropdb restore_full`.\n\n## Что сверять\n\n- Подходы: `select count(*) from sets` — в рабочей базе и в копии одно число.\n- Пользователи: `select count(*) from auth.users` — тоже одно число. Без них в приложение никто не войдёт.\n- Вход: проверка пароля, как в `app/api/login`, на копии — `select count(*) from auth.users where email = 'anna@example.com' and encrypted_password = crypt('demo-password', encrypted_password)` — 1. Без шага 3 она падает: `function crypt(unknown, text) does not exist`.\n\n## Журнал\n\n- 10 ноября: копия одной `public` не восстановилась — 42 ошибки: нет схем `auth` и `extensions`, в копии нет таблиц `invites` и `auth.users`. Копия всей базы восстановилась без ошибок, подходов в рабочей базе и в копии поровну. Вход на копии сначала упал — `crypt()` не нашлась: `search_path` базы в копию не перешёл. После шага 3 пользователей в рабочей базе и в копии поровну, пароль `anna@example.com` подходит.\n",
    "diff": [
     "diff --git a/docs/restore.md b/docs/restore.md",
     "new file mode 100644",
-    "index 0000000..03b2956",
+    "index 0000000..44d8cee",
     "--- /dev/null",
     "+++ b/docs/restore.md",
-    "@@ -0,0 +1,27 @@",
+    "@@ -0,0 +1,28 @@",
     "+# Учения: восстановление из копии",
     "+",
     "+Копия, из которой ни разу не восстанавливались, — не копия. Поэтому копию базы мы не только делаем, но и восстанавливаем — в отдельную учебную базу — и сверяем с рабочей. Рабочую базу учения не трогают.",
@@ -1004,37 +1042,38 @@
     "+",
     "+## Шаги",
     "+",
-    "+1. Копия всей базы: `pg_dump -Fc -f backups/trainer-full.dump`.",
-    "+   Копия одной схемы `public` (`pg_dump -n public`) не годится: `profiles` и политики RLS ссылаются на схему `auth`, а её в такой копии нет. `pg_restore` кончается ошибками, `auth.users` в копии нет — войти некому.",
+    "+1. Копия всей базы: `mkdir -p backups && pg_dump -Fc -f backups/trainer-full.dump`.",
+    "+   Копия одной схемы `public` (`pg_dump -n public`) не годится: `profiles` и политики RLS ссылаются на схему `auth`, а её в такой копии нет, как и схемы `extensions` (из неё `invites` берёт код приглашения). `pg_restore` кончается ошибками, таблиц `invites` и `auth.users` в копии нет — войти некому.",
     "+2. Пустая учебная база и восстановление в неё: `createdb restore_full && pg_restore -d restore_full backups/trainer-full.dump` — без ошибок.",
-    "+3. Сверить копию с рабочей базой — список ниже.",
-    "+4. Записать дату и что не сошлось. Учебную базу удалить: `dropdb restore_full`.",
+    "+3. Настройки самой базы `pg_restore -d` не переносит, а `search_path` со схемой `extensions` задан именно в них. В `extensions` лежит `crypt()`, которым вход сверяет пароль, поэтому копии задать тот же `search_path`, что у рабочей: `psql -c 'alter database restore_full set search_path to \"$user\", public, extensions'`.",
+    "+4. Сверить копию с рабочей базой — список ниже.",
+    "+5. Записать дату и что не сошлось. Учебную базу удалить: `dropdb restore_full`.",
     "+",
     "+## Что сверять",
     "+",
     "+- Подходы: `select count(*) from sets` — в рабочей базе и в копии одно число.",
     "+- Пользователи: `select count(*) from auth.users` — тоже одно число. Без них в приложение никто не войдёт.",
-    "+- Вход: приложение с `DATABASE_URL` на `restore_full` — войти тренером и подопечным. Числа этого не покажут: настройки самой базы `pg_restore -d` не переносит, а среди них `search_path` со схемой `extensions`. В ней лежит `crypt()`, которым вход сверяет пароль. На копии его задают заново: `alter database restore_full set search_path to \"$user\", public, extensions`.",
+    "+- Вход: проверка пароля, как в `app/api/login`, на копии — `select count(*) from auth.users where email = 'anna@example.com' and encrypted_password = crypt('demo-password', encrypted_password)` — 1. Без шага 3 она падает: `function crypt(unknown, text) does not exist`.",
     "+",
     "+## Журнал",
     "+",
-    "+- 10 ноября: копия одной `public` не восстановилась — нет схемы `auth`. Копия всей базы восстановилась, подходов в рабочей базе и в копии поровну. Пользователей и вход ещё не сверяли."
+    "+- 10 ноября: копия одной `public` не восстановилась — 42 ошибки: нет схем `auth` и `extensions`, в копии нет таблиц `invites` и `auth.users`. Копия всей базы восстановилась без ошибок, подходов в рабочей базе и в копии поровну. Вход на копии сначала упал — `crypt()` не нашлась: `search_path` базы в копию не перешёл. После шага 3 пользователей в рабочей базе и в копии поровну, пароль `anna@example.com` подходит."
    ],
-   "blob": "03b2956abb0b5b4d09b4c0941276ad5dc7bbcda2"
+   "blob": "44d8ceeca859f71b1ce581c111bdfdc7962a0c60"
   },
   {
    "id": "c-reliability",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"Индекс подходов; учения по восстановлению\"",
-   "hash": "f2e37d0",
+   "hash": "ea6a757",
    "message": "Индекс подходов; учения по восстановлению",
    "branch": "main",
    "parents": [
     "89822a8"
    ],
    "out": [
-    "[main f2e37d0] Индекс подходов; учения по восстановлению",
-    " 4 files changed, 48 insertions(+)",
+    "[main ea6a757] Индекс подходов; учения по восстановлению",
+    " 4 files changed, 52 insertions(+)",
     " create mode 100644 docs/restore.md",
     " create mode 100644 supabase/migrations/0009_sets_workout_index.sql",
     " create mode 100644 supabase/seed-speed.sql"
@@ -1206,7 +1245,7 @@
     },
     {
      "path": "docs/restore.md",
-     "blob": "03b2956abb0b5b4d09b4c0941276ad5dc7bbcda2"
+     "blob": "44d8ceeca859f71b1ce581c111bdfdc7962a0c60"
     },
     {
      "path": "docs/spec.md",
@@ -1386,7 +1425,7 @@
     },
     {
      "path": "supabase/seed-speed.sql",
-     "blob": "fbfa71183d27bb49db6bc842be7b08d170ab7afa"
+     "blob": "5acc829666b75e864de50280eeb936f913854a3a"
     },
     {
      "path": "supabase/seed.sql",

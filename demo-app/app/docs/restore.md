@@ -10,18 +10,19 @@
 
 ## Шаги
 
-1. Копия всей базы: `pg_dump -Fc -f backups/trainer-full.dump`.
-   Копия одной схемы `public` (`pg_dump -n public`) не годится: `profiles` и политики RLS ссылаются на схему `auth`, а её в такой копии нет. `pg_restore` кончается ошибками, `auth.users` в копии нет — войти некому.
+1. Копия всей базы: `mkdir -p backups && pg_dump -Fc -f backups/trainer-full.dump`.
+   Копия одной схемы `public` (`pg_dump -n public`) не годится: `profiles` и политики RLS ссылаются на схему `auth`, а её в такой копии нет, как и схемы `extensions` (из неё `invites` берёт код приглашения). `pg_restore` кончается ошибками, таблиц `invites` и `auth.users` в копии нет — войти некому.
 2. Пустая учебная база и восстановление в неё: `createdb restore_full && pg_restore -d restore_full backups/trainer-full.dump` — без ошибок.
-3. Сверить копию с рабочей базой — список ниже.
-4. Записать дату и что не сошлось. Учебную базу удалить: `dropdb restore_full`.
+3. Настройки самой базы `pg_restore -d` не переносит, а `search_path` со схемой `extensions` задан именно в них. В `extensions` лежит `crypt()`, которым вход сверяет пароль, поэтому копии задать тот же `search_path`, что у рабочей: `psql -c 'alter database restore_full set search_path to "$user", public, extensions'`.
+4. Сверить копию с рабочей базой — список ниже.
+5. Записать дату и что не сошлось. Учебную базу удалить: `dropdb restore_full`.
 
 ## Что сверять
 
 - Подходы: `select count(*) from sets` — в рабочей базе и в копии одно число.
 - Пользователи: `select count(*) from auth.users` — тоже одно число. Без них в приложение никто не войдёт.
-- Вход: приложение с `DATABASE_URL` на `restore_full` — войти тренером и подопечным. Числа этого не покажут: настройки самой базы `pg_restore -d` не переносит, а среди них `search_path` со схемой `extensions`. В ней лежит `crypt()`, которым вход сверяет пароль. На копии его задают заново: `alter database restore_full set search_path to "$user", public, extensions`.
+- Вход: проверка пароля, как в `app/api/login`, на копии — `select count(*) from auth.users where email = 'anna@example.com' and encrypted_password = crypt('demo-password', encrypted_password)` — 1. Без шага 3 она падает: `function crypt(unknown, text) does not exist`.
 
 ## Журнал
 
-- 10 ноября: копия одной `public` не восстановилась — нет схемы `auth`. Копия всей базы восстановилась, подходов в рабочей базе и в копии поровну. Пользователей и вход ещё не сверяли.
+- 10 ноября: копия одной `public` не восстановилась — 42 ошибки: нет схем `auth` и `extensions`, в копии нет таблиц `invites` и `auth.users`. Копия всей базы восстановилась без ошибок, подходов в рабочей базе и в копии поровну. Вход на копии сначала упал — `crypt()` не нашлась: `search_path` базы в копию не перешёл. После шага 3 пользователей в рабочей базе и в копии поровну, пароль `anna@example.com` подходит.
