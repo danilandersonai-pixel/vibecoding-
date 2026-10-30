@@ -1745,7 +1745,7 @@ test('s18: копия эталона — пять файлов и удалённ
     ...['complaints', 'c-complaints', 'copy-branch'],
     ...['ask-copy', 'copy-chat', 'copy-timer', 'copy-timer-use', 'copy-pay', 'copy-pay-lib', 'c-copy', 'copy-stat', 'copy-drop', 'parity-edit'],
     ...['ask-quick', 'quick-e2e', 'quick-page', 'quick-action', 'quick-clients', 'quick-run', 'c-quick'],
-    ...['dev', 'login-anna', 'quick-tap', 'login-marina', 'clients-last'],
+    ...['dev', 'login-anna', 'quick-tap', 'quick-after', 'login-marina', 'clients-last'],
   ])
   const run = (id: string) => find('s18-quick-set', id, 'run')
   const file = (id: string) => find('s18-quick-set', id, 'file')
@@ -1838,6 +1838,14 @@ test('s18: копия эталона — пять файлов и удалённ
   // на кнопке — вес и повторы прошлого подхода, но не «50 кг × 10»: getByText("50 кг × 10") в e2e/cycle.spec.ts находит только подход
   expect(tap.buttons).toContain('Повторить подход (50 кг, 10 повторов)')
   expect(tap.buttons.filter((name) => name.includes('кг ×'))).toEqual([])
+  // та же страница после касания, без нажатия: на подход больше, чем до касания, — для кадра с прокруткой (pageLines)
+  const again = browser('quick-after')
+  expect(again.url).toBe(`${BASE}/workouts/1`)
+  expect(again.urlAfter).toBeUndefined()
+  expect(again.before).toEqual(again.after)
+  expect(fifties(again.before)).toBe(fifties(tap.before) + 1)
+  expect(again.before).toEqual(tap.after)
+  expect(again.buttons).toContain('Повторить подход (50 кг, 10 повторов)')
   // тренер видит у Анны последний подход «50 кг × 10»
   expect(browser('login-marina').urlAfter).toBe(`${BASE}/clients`)
   const list = browser('clients-last').after

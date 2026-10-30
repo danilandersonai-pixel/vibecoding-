@@ -1488,9 +1488,9 @@
     "",
     "Running 1 test using 1 worker",
     "",
-    "  ✓  1 [chromium] › e2e/quick-set.spec.ts:15:5 › Анна повторяет подход одним касанием, Марина видит его в списке подопечных (6.3s)",
+    "  ✓  1 [chromium] › e2e/quick-set.spec.ts:15:5 › Анна повторяет подход одним касанием, Марина видит его в списке подопечных (5.9s)",
     "",
-    "  1 passed (10.8s)"
+    "  1 passed (10.3s)"
    ],
    "code": 0,
    "by": "agent"
@@ -1903,7 +1903,7 @@
     "- Local:         http://localhost:3000",
     "- Network:       http://192.0.2.2:3000",
     "- Environments: .env.local",
-    "✓ Ready in 509ms"
+    "✓ Ready in 309ms"
    ],
    "code": null
   },
@@ -1956,7 +1956,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 259ms"
+     "text": "[Fast Refresh] done in 291ms"
     },
     {
      "type": "log",
@@ -1964,7 +1964,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 454ms"
+     "text": "[Fast Refresh] done in 386ms"
     },
     {
      "type": "log",
@@ -1976,10 +1976,10 @@
     "- Cache Components enabled",
     "- Partial Prefetching enabled",
     "",
-    " GET /login 200 in 350ms (next.js: 196ms, application-code: 154ms)",
-    " POST /api/login 200 in 101ms (next.js: 47ms, application-code: 55ms)",
+    " GET /login 200 in 282ms (next.js: 142ms, application-code: 140ms)",
+    " POST /api/login 200 in 107ms (next.js: 55ms, application-code: 52ms)",
     "[sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day",
-    " GET /workouts 200 in 99ms (next.js: 11ms, application-code: 88ms)"
+    " GET /workouts 200 in 109ms (next.js: 16ms, application-code: 93ms)"
    ]
   },
   {
@@ -2076,15 +2076,97 @@
     "[sql] select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id",
     "[sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id",
     "[sql] select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author from comments cm join workouts w on w.id = cm.workout_id join clients c on c.id = w.client_id where cm.workout_id = $1 order by cm.id",
-    " GET /workouts/1 200 in 636ms (next.js: 19ms, generate-params: 471ms, application-code: 147ms)",
+    " GET /workouts/1 200 in 598ms (next.js: 15ms, generate-params: 478ms, application-code: 105ms)",
     "[sql] insert into sets (workout_id, weight, reps) select workout_id, weight, reps from sets where id = $2 and workout_id = $1",
     "[sql] select title from workouts where id = $1",
     "[sql] select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id",
     "[sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id",
     "[sql] select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author from comments cm join workouts w on w.id = cm.workout_id join clients c on c.id = w.client_id where cm.workout_id = $1 order by cm.id",
-    " GET /workouts/1 200 in 112ms (next.js: 1.4ms, generate-params: 0.0ms, application-code: 110ms)",
-    " POST /workouts/1 200 in 169ms (next.js: 2ms, generate-params: 18ms, application-code: 149ms)",
-    "  └─ ƒ repeatSet(\"1\", \"15\") in 13ms app/workouts/[id]/actions.ts"
+    " GET /workouts/1 200 in 84ms (next.js: 1.8ms, generate-params: 0.0ms, application-code: 82ms)",
+    " POST /workouts/1 200 in 144ms (next.js: 2ms, generate-params: 19ms, application-code: 122ms)",
+    "  └─ ƒ repeatSet(\"1\", \"15\") in 12ms app/workouts/[id]/actions.ts"
+   ]
+  },
+  {
+   "id": "quick-after",
+   "kind": "browser",
+   "url": "http://localhost:3000/workouts/1",
+   "title": "Тренировка",
+   "fields": [],
+   "buttons": [
+    "Повторить подход (50 кг, 10 повторов)",
+    "Сохранить подход",
+    "Отправить"
+   ],
+   "before": [
+    "Ноги",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "Объём: 2500 кг",
+    "Повторить подход (50 кг, 10 повторов)",
+    "Вес, кг",
+    "Повторы",
+    "Заметка",
+    "Сохранить подход",
+    "Комментарии",
+    "Комментариев пока нет",
+    "Комментарий",
+    "Отправить"
+   ],
+   "after": [
+    "Ноги",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "Объём: 2500 кг",
+    "Повторить подход (50 кг, 10 повторов)",
+    "Вес, кг",
+    "Повторы",
+    "Заметка",
+    "Сохранить подход",
+    "Комментарии",
+    "Комментариев пока нет",
+    "Комментарий",
+    "Отправить"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select title from workouts where id = $1 background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author from comments cm join workouts w on w.id = cm.workout_id join clients c on c.id = w.client_id where cm.workout_id = $1 order by cm.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    "[sql] select title from workouts where id = $1",
+    "[sql] select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id",
+    "[sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id",
+    "[sql] select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author from comments cm join workouts w on w.id = cm.workout_id join clients c on c.id = w.client_id where cm.workout_id = $1 order by cm.id",
+    " GET /workouts/1 200 in 84ms (next.js: 1.2ms, generate-params: 16ms, application-code: 67ms)"
    ]
   },
   {
@@ -2144,7 +2226,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 276ms"
+     "text": "[Fast Refresh] done in 246ms"
     },
     {
      "type": "log",
@@ -2161,12 +2243,12 @@
    ],
    "network": [],
    "server": [
-    " GET /login 200 in 45ms (next.js: 1.5ms, application-code: 43ms)",
-    " POST /api/login 200 in 19ms (next.js: 1.1ms, application-code: 18ms)",
+    " GET /login 200 in 35ms (next.js: 1.9ms, application-code: 33ms)",
+    " POST /api/login 200 in 16ms (next.js: 4ms, application-code: 13ms)",
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
     "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
     "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
-    " GET /clients 200 in 61ms (next.js: 16ms, application-code: 45ms)"
+    " GET /clients 200 in 59ms (next.js: 11ms, application-code: 47ms)"
    ]
   },
   {
@@ -2240,7 +2322,7 @@
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
     "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
     "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
-    " GET /clients 200 in 116ms (next.js: 1.7ms, application-code: 114ms)"
+    " GET /clients 200 in 108ms (next.js: 2ms, application-code: 106ms)"
    ]
   }
  ]
