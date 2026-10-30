@@ -1767,8 +1767,8 @@ test('s18: копия эталона — пять файлов и удалённ
   expect(complaints.after).toContain('Отличие: подход в одно касание, и тренер сразу видит вес, повторы и рост.')
   expect(commit('c-complaints')).toMatchObject({ message: 'Жалобы на эталоны в стопки', branch: 'main', parents: [find('s17-invite', 'c-invite', 'commit').hash] })
 
-  // «как у эталона Б» в ветке copy/etalon-b: пять файлов агента — и git diff --stat называет ровно их
-  expect(agent('ask-copy').prompt).toBe('Сделай как у эталона Б: чат, таймер отдыха, оплату подписки')
+  // «как у эталонов» (чат и оплата — Б, таймер — А) в ветке copy/etalon-b: пять файлов агента — и git diff --stat называет ровно их
+  expect(agent('ask-copy').prompt).toBe('Сделай как у эталонов: чат и оплату как у Б, таймер отдыха как у А')
   const copySteps = ['copy-chat', 'copy-timer', 'copy-timer-use', 'copy-pay', 'copy-pay-lib']
   expect(agent('ask-copy').steps).toEqual(copySteps)
   const copied = copySteps.map((id) => file(id).path)
@@ -1812,8 +1812,12 @@ test('s18: копия эталона — пять файлов и удалённ
   expect(file('quick-page').path).toBe('app/workouts/[id]/page.tsx')
   expect(file('quick-page').after).toContain('Повторить подход')
   expect(file('quick-action').path).toBe('app/workouts/[id]/actions.ts')
-  expect(file('quick-action').after).toContain('export async function repeatSet(workoutId: string)')
+  // повторяется подход с кнопки (его id), вес и повторы — из базы; список тренера — только его подопечные
+  expect(file('quick-page').after).toContain('repeatSet.bind(null, id, last.id)')
+  expect(file('quick-action').after).toContain('export async function repeatSet(workoutId: string, setId: string)')
+  expect(file('quick-action').after).toContain('select workout_id, weight, reps from sets where id = $2 and workout_id = $1')
   expect(file('quick-clients').path).toBe('app/clients/page.tsx')
+  expect(file('quick-clients').after).toContain('where c.coach_id = $1')
   expect(run('quick-run')).toMatchObject({ cmd: 'npx playwright test e2e/quick-set.spec.ts', code: 0 })
   expect(run('quick-run').out.join('\n')).toContain('1 passed')
   expect(commit('c-quick')).toMatchObject({ message: 'Подход в одно касание; последний подход у тренера', branch: 'main', parents: [commit('c-complaints').hash] })
@@ -1831,9 +1835,16 @@ test('s18: копия эталона — пять файлов и удалённ
   expect(fifties(tap.before)).toBeGreaterThanOrEqual(3)
   expect(fifties(tap.after)).toBe(fifties(tap.before) + 1)
   expect(tap.network).toEqual([])
+  // на кнопке — вес и повторы прошлого подхода, но не «50 кг × 10»: getByText("50 кг × 10") в e2e/cycle.spec.ts находит только подход
+  expect(tap.buttons).toContain('Повторить подход (50 кг, 10 повторов)')
+  expect(tap.buttons.filter((name) => name.includes('кг ×'))).toEqual([])
   // тренер видит у Анны последний подход «50 кг × 10»
   expect(browser('login-marina').urlAfter).toBe(`${BASE}/clients`)
   const list = browser('clients-last').after
   expect(list.some((line) => line.includes('50 кг × 10'))).toBe(true)
-  expect(list[list.indexOf('Анна') + 2]).toBe('Последний подход: 50 кг × 10')
+  expect(list[list.indexOf('Анна') + 2]).toBe('Последний подход: 50 кг × 10, Ноги')
+  // рост — против прошлого подхода той же тренировки: Анна повторила 50 × 10 — не растёт; у Олега 55 × 8 после 50 × 10 — растёт
+  expect(list[list.indexOf('Анна') + 3]).toMatch(/^Вес (не )?растёт$/)
+  expect(list[list.indexOf('Анна') + 3]).toBe('Вес не растёт')
+  expect(list.slice(list.indexOf('Олег') + 2, list.indexOf('Олег') + 4)).toEqual(['Последний подход: 55 кг × 8, Жим лёжа', 'Вес растёт'])
 })

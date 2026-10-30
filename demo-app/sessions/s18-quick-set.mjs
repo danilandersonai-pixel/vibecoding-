@@ -3,17 +3,21 @@
 // отзывов, без названий продуктов (как docs/etalons.md). Выше всех — «долго записывать подход» (А, Б) и «тренер не видит, что я сделал»
 // (Б, В); вторая у нас уже закрыта строкой паритета «Тренер видит вес и повторы подопечного». Вывод — отличие: подход в одно касание,
 // и тренер сразу видит вес, повторы и рост.
-// Подводный камень — гонка за эталоном: в ветке copy/etalon-b на «Сделай как у эталона Б: чат, таймер отдыха, оплату подписки» агент
-// пишет чат, таймер отдыха и подписку (цена — за каждого подопечного: так копируется и жалоба на Б) и правит lib/payments.ts;
+// Подводный камень — гонка за эталонами: в ветке copy/etalon-b (Б — главный образец) на «Сделай как у эталонов: чат и оплату как у Б,
+// таймер отдыха как у А» агент пишет чат и подписку, как у Б (цена — за каждого подопечного: так копируется и жалоба на Б), таймер
+// отдыха, как у А, и правит lib/payments.ts;
 // git diff main copy/etalon-b --stat — пять файлов, и ни один не нужен главным сценариям. Ветка удаляется без слияния. Потом человек
 // приводит docs/parity.md к четырём решениям шага 5 книги — готово, наше отличие, позже, не делаем: легенда и колонка «Наше»; чат —
 // «не делаем» (его заменили комментарии к тренировке), таймер и оплата — «позже», у каждого причина; новая строка «Подход в одно
 // касание» — «наше отличие». Колонки эталонов остаются «есть / нет»: они описывают разбор.
-// Срез: сначала сквозной тест e2e/quick-set.spec.ts, потом на /workouts/[id] кнопка «Повторить подход» — ещё один подход с весом и
-// повторами прошлого подхода тренировки (их действие берёт из базы, а не из формы); подходов нет — нет и кнопки. На /clients у Марины —
-// последний подход каждого и растёт ли нагрузка: объём последней тренировки с подходами против предыдущей, как на графике карточки.
+// Срез: сначала сквозной тест e2e/quick-set.spec.ts, потом на /workouts/[id] кнопка «Повторить подход (50 кг, 10 повторов)» — ещё один
+// подход с весом и повторами прошлого подхода тренировки: на кнопке — его id, вес и повторы действие берёт из базы, а не из формы;
+// подходов нет — нет и кнопки. В подписи нет «50 кг × 10»: так getByText("50 кг × 10") старого e2e/cycle.spec.ts находит только подход.
+// На /clients у Марины — последний подход каждого (по порядку записи) с названием его тренировки и растёт ли вес: он тяжелее прошлого
+// подхода той же тренировки или с тем же весом повторов больше — «Вес растёт», иначе «Вес не растёт»; подход в тренировке один — строки нет.
 // Playwright идёт до npm run dev: playwright.config.ts (s07) сам поднимает npm run dev и сам его останавливает, поэтому шаг dev потом
-// находит порт 3000 свободным. Запускается только e2e/quick-set.spec.ts: e2e/cycle.spec.ts сломан с s09, его чинит s19.
+// находит порт 3000 свободным. Запускается только e2e/quick-set.spec.ts: e2e/cycle.spec.ts с s09 падает на getByLabel("Дата") (её находит
+// и подпись графика «Объём тренировок по датам») — точную подпись ставит s19.
 // Строк для кадра сессия не создаёт: в seed у «Ног» (тренировка 1 Анны) уже три подхода 50 × 10. Сквозной тест оставляет в базе свой
 // подход, quick-tap считает подходы до и после нажатия.
 // Запись с середины цепочки: node scripts/record-session.mjs --from s18-quick-set (из course/). Id шагов постоянные: на них ссылаются уроки.
@@ -37,6 +41,8 @@ const COMPLAINTS = `# Жалобы на эталоны
 - «Вижу у подопечных только отметки: растёт ли вес, не понять» — Б.
 - «Есть только отметка „был“. Что я делал на тренировке, никто не видит» — В.
 
+Сюда же жалоба на А, где тренера нет вовсе: «Свои записи тренеру не показать».
+
 ## Пропадает история — А, В
 
 - «Сменила телефон — история тренировок пропала» — А.
@@ -51,6 +57,7 @@ const COMPLAINTS = `# Жалобы на эталоны
 
 - «Одно и то же упражнение вбиваю в программу каждому подопечному заново» — Б.
 - «Программу клуба под себя не изменить» — В.
+- «Работает только в одном клубе: перешла в другой — и приложение не нужно» — В.
 
 ## Дорого — Б
 
@@ -184,7 +191,7 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<"/
 }
 `
 
-// --- Копия эталона Б (ветка copy/etalon-b, удаляется без слияния). Пишет агент; код правдоподобный и короткий ---
+// --- Копия эталонов: чат и оплата — Б, таймер — А (ветка copy/etalon-b, удаляется без слияния). Пишет агент; код правдоподобный и короткий ---
 
 // Чат — пишет агент. Таблицы messages в базе нет: миграцию агент не написал (так и говорит в ответе)
 const COPY_CHAT = `import type { Metadata } from "next";
@@ -247,12 +254,12 @@ export default async function ChatPage() {
 }
 `
 
-// Таймер отдыха — пишет агент: обратный отсчёт на 60, 90 или 120 секунд
+// Таймер отдыха — пишет агент, как у эталона А: обратный отсчёт на 60, 90 или 120 секунд
 const COPY_TIMER = `"use client";
 
 import { useEffect, useState } from "react";
 
-// Таймер отдыха между подходами: кнопки 60, 90 и 120 секунд и обратный отсчёт
+// Таймер отдыха между подходами, как у эталона А: кнопки 60, 90 и 120 секунд и обратный отсчёт
 export default function RestTimer() {
   const [left, setLeft] = useState(0);
 
@@ -484,7 +491,7 @@ const PARITY_DECIDED = chain(PARITY, [
   ],
   [
     'Не гонюсь за полным повторением: у эталонов сотни возможностей за годы. Пока не закрыты упражнения с программами и общение (чат, напоминания, уведомления), к видео, расписанию клуба и оплате не прикасаюсь.\n',
-    'Не гонюсь за полным повторением: у эталонов сотни возможностей за годы. 9 ноября попросила агента сделать «как у эталона Б» — чат, таймер отдыха, оплату подписки — в отдельной ветке: пять файлов, ни один не нужен главным сценариям, а цена за каждого подопечного повторила жалобу на Б. Ветку удалила. Делаю одно отличие: подход в одно касание, и тренер сразу видит вес, повторы и рост.\n',
+    'Не гонюсь за полным повторением: у эталонов сотни возможностей за годы. 9 ноября попросила агента сделать «как у эталонов» — чат и оплату подписки как у Б, таймер отдыха как у А — в отдельной ветке: пять файлов, ни один не нужен главным сценариям, а цена за каждого подопечного повторила жалобу на Б. Ветку удалила. Делаю одно отличие: подход в одно касание, и тренер сразу видит вес, повторы и рост.\n',
   ],
 ])
 
@@ -521,9 +528,21 @@ test("Анна повторяет подход одним касанием, Ма
 });
 `
 
-// «Повторить подход» на странице тренировки — правка агента: кнопка с весом и повторами прошлого подхода, без подходов её нет
+// «Повторить подход» на странице тренировки — правка агента: кнопка с весом и повторами прошлого подхода, без подходов её нет.
+// Подпись «Повторить подход (50 кг, 10 повторов)», без «50 кг × 10»: строку подхода и кнопку тесты различают по тексту
 const WORKOUT_PAGE_QUICK = chain(WORKOUT_PAGE, [
   ['import { saveSet } from "./actions";\n', 'import { repeatSet, saveSet } from "./actions";\n'],
+  [
+    'export const instant = false;\n',
+    `export const instant = false;
+
+// Повторы словом по правилам русского языка: «1 повтор», «2 повтора», «10 повторов»
+const REPS: Record<string, string> = { one: "повтор", few: "повтора", many: "повторов", other: "повтора" };
+function repsText(reps: number): string {
+  return \`\${reps} \${REPS[new Intl.PluralRules("ru").select(reps)]}\`;
+}
+`,
+  ],
   [
     '// Тренировка по id из адреса: упражнения по программе, подходы, объём, форма нового подхода и комментарии.',
     '// Тренировка по id из адреса: упражнения по программе, подходы, объём, «Повторить подход», форма нового подхода и комментарии.',
@@ -531,18 +550,17 @@ const WORKOUT_PAGE_QUICK = chain(WORKOUT_PAGE, [
   [
     '  const save = saveSet.bind(null, id);\n',
     `  const save = saveSet.bind(null, id);
-  // одно касание: ещё раз прошлый подход этой тренировки — вес и повторы действие возьмёт из базы
+  // одно касание: ещё раз прошлый подход этой тренировки — тот, что на кнопке; вес и повторы действие возьмёт из базы
   const last = workout.sets.at(-1);
-  const repeat = repeatSet.bind(null, id);
 `,
   ],
   [
     '      <p className="mt-2 font-medium">Объём: {volume(workout.sets)} кг</p>\n',
     `      <p className="mt-2 font-medium">Объём: {volume(workout.sets)} кг</p>
       {last && (
-        <form action={repeat} className="mt-6">
+        <form action={repeatSet.bind(null, id, last.id)} className="mt-6">
           <button type="submit" className="w-full rounded bg-zinc-900 px-4 py-2 text-white">
-            Повторить подход: {last.weight} кг × {last.reps}
+            Повторить подход ({last.weight} кг, {repsText(last.reps)})
           </button>
         </form>
       )}
@@ -556,19 +574,19 @@ const SAVE_SET_END = `  // та же страница заново — с нов
 }
 `
 
-// Действие «Повторить подход» — правка агента: прошлый подход берётся из базы, а не из формы
+// Действие «Повторить подход» — правка агента: подход с кнопки (его id), вес и повторы — из базы, а не из формы
 const REPEAT_SET = `${SAVE_SET_END}
-// Одно касание: ещё один подход в тренировку workoutId с весом и повторами её прошлого подхода. Прошлый подход берём из базы,
-// а не из формы — подставить в запрос свой вес нельзя. Подходов нет — вставлять нечего (кнопки на странице тогда и нет).
+// Одно касание: ещё один подход в тренировку workoutId с весом и повторами подхода setId — того, что на кнопке. Вес и повторы
+// берём из базы, а не из формы: подставить в запрос свой вес нельзя; подход другой тренировки не повторится (workout_id = $1).
 // Запрос идёт от имени вошедшего: в чужую тренировку не даст вписать RLS.
-export async function repeatSet(workoutId: string) {
+export async function repeatSet(workoutId: string, setId: string) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
   await asUser(uid, (db) =>
     db.query(
       \`insert into sets (workout_id, weight, reps)
-       select workout_id, weight, reps from sets where workout_id = $1 order by id desc limit 1\`,
-      [workoutId],
+       select workout_id, weight, reps from sets where id = $2 and workout_id = $1\`,
+      [workoutId, setId],
     ),
   );
   redirect(\`/workouts/\${workoutId}\`);
@@ -705,38 +723,41 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
 }
 `
 
-// Последний подход и рост нагрузки в списке подопечных — правка агента (quick-clients): один запрос на всех, без N+1
+// Последний подход и рост веса в списке подопечных — правка агента (quick-clients): один запрос на всех, без N+1
 const CLIENTS_LAST = chain(CLIENTS_PAGE, [
   [
     'type Client = { id: string; name: string; last: Date | null };\n',
     `type Client = { id: string; name: string; last: Date | null };
-// Последний подход подопечного и растёт ли нагрузка; growing — null, если тренировок с подходами меньше двух: сравнивать не с чем
-type Latest = { id: string; weight: number; reps: number; growing: boolean | null };
+// Последний подход подопечного, его тренировка и растёт ли вес; growing — null, если подход в тренировке один: сравнивать не с чем
+type Latest = { id: string; workout: string; weight: number; reps: number; growing: boolean | null };
 `,
   ],
   [
     '// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком',
-    '// Подопечные вошедшего тренера, у каждого — дата последней тренировки, последний подход и растёт ли нагрузка; под списком',
+    '// Подопечные вошедшего тренера, у каждого — дата последней тренировки, последний подход и растёт ли вес; под списком',
   ],
   [
     '    return { clients: found.rows, invites: active.rows };\n',
-    `    // последний подход каждого — по порядку записи; нагрузка растёт, если объём последней тренировки с подходами (по дню)
-    // больше, чем у предыдущей, — как на графике карточки. Подходы чужих подопечных база не отдаст (RLS)
+    `    // последний подход каждого — по порядку записи, с названием его тренировки. Вес растёт, если этот подход тяжелее прошлого
+    // подхода той же тренировки или с тем же весом повторов больше; подход в тренировке один — сравнивать не с чем (null).
+    // Только подопечные этого тренера — как в запросах выше; чужих база не отдаст и так (RLS)
     const latest = await db.query<Latest>(
-      \`with last_sets as (
-         select distinct on (w.client_id) w.client_id, s.weight::float8 as weight, s.reps
-           from sets s join workouts w on w.id = s.workout_id
-          order by w.client_id, s.id desc
-       ), volumes as (
-         select w.client_id, sum(s.weight * s.reps) as volume,
-                row_number() over (partition by w.client_id order by w.day desc, w.id desc) as n
-           from workouts w join sets s on s.workout_id = w.id
-          group by w.id
+      \`with ranked as (
+         select w.client_id, w.title, s.weight, s.reps,
+                lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps,
+                row_number() over (partition by w.client_id order by s.id desc) as n
+           from sets s
+           join workouts w on w.id = s.workout_id
+           join clients c on c.id = w.client_id
+          where c.coach_id = $1
+         window by_workout as (partition by s.workout_id order by s.id)
        )
-       select l.client_id as id, l.weight, l.reps,
-              max(v.volume) filter (where v.n = 1) > max(v.volume) filter (where v.n = 2) as growing
-         from last_sets l join volumes v on v.client_id = l.client_id
-        group by l.client_id, l.weight, l.reps\`,
+       select client_id as id, title as workout, weight::float8 as weight, reps,
+              case when prev_weight is null then null
+                   else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing
+         from ranked
+        where n = 1\`,
+      [uid],
     );
     const byClient = new Map(latest.rows.map((row) => [row.id, row]));
     return { clients: found.rows.map((client) => ({ ...client, latest: byClient.get(client.id) })), invites: active.rows };
@@ -750,12 +771,12 @@ type Latest = { id: string; weight: number; reps: number; growing: boolean | nul
               </span>
               {client.latest && (
                 <span className="block text-sm font-normal text-zinc-500">
-                  Последний подход: {client.latest.weight} кг × {client.latest.reps}
+                  Последний подход: {client.latest.weight} кг × {client.latest.reps}, {client.latest.workout}
                 </span>
               )}
               {client.latest && client.latest.growing !== null && (
                 <span className="block text-sm font-normal text-zinc-500">
-                  {client.latest.growing ? "Нагрузка растёт" : "Нагрузка не растёт"}
+                  {client.latest.growing ? "Вес растёт" : "Вес не растёт"}
                 </span>
               )}
 `,
@@ -785,16 +806,16 @@ export default {
     // жалобы на эталоны — пишет человек: стопки по смыслу, сверху самые большие
     { id: 'complaints', write: 'docs/complaints.md', content: COMPLAINTS },
     { id: 'c-complaints', commit: 'Жалобы на эталоны в стопки' },
-    // подводный камень: «как у эталона Б» — в отдельной ветке
+    // подводный камень: «как у эталонов» — в отдельной ветке (Б — главный образец: чат и оплата)
     { id: 'copy-branch', run: 'git switch -c copy/etalon-b' },
     {
       // Accept edits: файлы — без вопроса
       id: 'ask-copy',
       agent: {
-        prompt: 'Сделай как у эталона Б: чат, таймер отдыха, оплату подписки',
+        prompt: 'Сделай как у эталонов: чат и оплату как у Б, таймер отдыха как у А',
         reply:
-          'Как у эталона Б: чат на /chat, таймер отдыха на 60, 90 и 120 секунд под формой подхода, подписка на /billing — ' +
-          'цена за каждого подопечного. Чату нужна таблица messages: миграцию я не писал.',
+          'Как у Б: чат на /chat и подписка на /billing — цена за каждого подопечного. Как у А: таймер отдыха на 60, 90 ' +
+          'и 120 секунд под формой подхода. Чату нужна таблица messages: миграцию я не писал.',
       },
       steps: [
         { id: 'copy-chat', write: 'app/chat/page.tsx', content: COPY_CHAT },
@@ -819,15 +840,15 @@ export default {
           'Подход в одно касание: на тренировке кнопка «Повторить подход» с весом и повторами прошлого подхода. ' +
           'У тренера в списке — последний подход каждого и «растёт / нет». Сначала сквозной тест',
         reply:
-          '«Повторить подход» — ещё один подход с весом и повторами прошлого, их действие берёт из базы. ' +
-          'Тренер в списке видит последний подход каждого и растёт ли нагрузка: объём последней тренировки против прошлой.',
+          '«Повторить подход» берёт вес и повторы из базы. Тренер видит последний подход каждого с тренировкой; ' +
+          'вес растёт, если подход тяжелее прошлого в той же тренировке или вес тот же, а повторов больше.',
       },
       steps: [
         { id: 'quick-e2e', write: 'e2e/quick-set.spec.ts', content: QUICK_E2E },
         { id: 'quick-page', edit: 'app/workouts/[id]/page.tsx', find: WORKOUT_PAGE, replace: WORKOUT_PAGE_QUICK },
         { id: 'quick-action', edit: 'app/workouts/[id]/actions.ts', find: SAVE_SET_END, replace: REPEAT_SET },
         { id: 'quick-clients', edit: 'app/clients/page.tsx', find: CLIENTS_PAGE, replace: CLIENTS_LAST },
-        // до npm run dev: сервер поднимает и останавливает playwright.config.ts; cycle.spec.ts сломан с s09 — только свой тест
+        // до npm run dev: сервер поднимает и останавливает playwright.config.ts; cycle.spec.ts падает с s09 на «Дата» — только свой тест
         { id: 'quick-run', run: 'npx playwright test e2e/quick-set.spec.ts' },
       ],
     },
@@ -837,7 +858,7 @@ export default {
     // «Ноги»: подходы 50 × 10 из seed и подход сквозного теста; одно касание — ещё один
     { id: 'quick-tap', browser: { url: '/workouts/1', click: 'Повторить подход' } },
     { id: 'login-marina', browser: login('marina@example.com') },
-    // у Анны — последний подход «50 кг × 10» и растёт ли нагрузка
+    // у Анны — последний подход «50 кг × 10, Ноги» и растёт ли вес
     { id: 'clients-last', browser: { url: '/clients' } },
   ],
 }

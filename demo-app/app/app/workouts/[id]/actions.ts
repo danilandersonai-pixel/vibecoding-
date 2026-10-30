@@ -37,17 +37,17 @@ export async function saveSet(workoutId: string, form: FormData) {
   redirect(page);
 }
 
-// Одно касание: ещё один подход в тренировку workoutId с весом и повторами её прошлого подхода. Прошлый подход берём из базы,
-// а не из формы — подставить в запрос свой вес нельзя. Подходов нет — вставлять нечего (кнопки на странице тогда и нет).
+// Одно касание: ещё один подход в тренировку workoutId с весом и повторами подхода setId — того, что на кнопке. Вес и повторы
+// берём из базы, а не из формы: подставить в запрос свой вес нельзя; подход другой тренировки не повторится (workout_id = $1).
 // Запрос идёт от имени вошедшего: в чужую тренировку не даст вписать RLS.
-export async function repeatSet(workoutId: string) {
+export async function repeatSet(workoutId: string, setId: string) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
   await asUser(uid, (db) =>
     db.query(
       `insert into sets (workout_id, weight, reps)
-       select workout_id, weight, reps from sets where workout_id = $1 order by id desc limit 1`,
-      [workoutId],
+       select workout_id, weight, reps from sets where id = $2 and workout_id = $1`,
+      [workoutId, setId],
     ),
   );
   redirect(`/workouts/${workoutId}`);

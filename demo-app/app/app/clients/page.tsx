@@ -14,8 +14,8 @@ export const instant = false;
 
 // Подопечный тренера с датой последней тренировки
 type Client = { id: string; name: string; last: Date | null };
-// Последний подход подопечного и растёт ли нагрузка; growing — null, если тренировок с подходами меньше двух: сравнивать не с чем
-type Latest = { id: string; weight: number; reps: number; growing: boolean | null };
+// Последний подход подопечного, его тренировка и растёт ли вес; growing — null, если подход в тренировке один: сравнивать не с чем
+type Latest = { id: string; workout: string; weight: number; reps: number; growing: boolean | null };
 // Действующее приглашение тренера: не принято, не отозвано, срок не вышел
 type Invite = { id: string; code: string };
 
@@ -37,7 +37,7 @@ async function revokeInvite(id: string) {
   redirect("/clients");
 }
 
-// Подопечные вошедшего тренера, у каждого — дата последней тренировки, последний подход и растёт ли нагрузка; под списком форма нового подопечного и приглашения
+// Подопечные вошедшего тренера, у каждого — дата последней тренировки, последний подход и растёт ли вес; под списком форма нового подопечного и приглашения
 export default async function ClientsPage({ searchParams }: PageProps<"/clients">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
@@ -60,23 +60,26 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
         order by id`,
       [uid],
     );
-    // последний подход каждого — по порядку записи; нагрузка растёт, если объём последней тренировки с подходами (по дню)
-    // больше, чем у предыдущей, — как на графике карточки. Подходы чужих подопечных база не отдаст (RLS)
+    // последний подход каждого — по порядку записи, с названием его тренировки. Вес растёт, если этот подход тяжелее прошлого
+    // подхода той же тренировки или с тем же весом повторов больше; подход в тренировке один — сравнивать не с чем (null).
+    // Только подопечные этого тренера — как в запросах выше; чужих база не отдаст и так (RLS)
     const latest = await db.query<Latest>(
-      `with last_sets as (
-         select distinct on (w.client_id) w.client_id, s.weight::float8 as weight, s.reps
-           from sets s join workouts w on w.id = s.workout_id
-          order by w.client_id, s.id desc
-       ), volumes as (
-         select w.client_id, sum(s.weight * s.reps) as volume,
-                row_number() over (partition by w.client_id order by w.day desc, w.id desc) as n
-           from workouts w join sets s on s.workout_id = w.id
-          group by w.id
+      `with ranked as (
+         select w.client_id, w.title, s.weight, s.reps,
+                lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps,
+                row_number() over (partition by w.client_id order by s.id desc) as n
+           from sets s
+           join workouts w on w.id = s.workout_id
+           join clients c on c.id = w.client_id
+          where c.coach_id = $1
+         window by_workout as (partition by s.workout_id order by s.id)
        )
-       select l.client_id as id, l.weight, l.reps,
-              max(v.volume) filter (where v.n = 1) > max(v.volume) filter (where v.n = 2) as growing
-         from last_sets l join volumes v on v.client_id = l.client_id
-        group by l.client_id, l.weight, l.reps`,
+       select client_id as id, title as workout, weight::float8 as weight, reps,
+              case when prev_weight is null then null
+                   else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing
+         from ranked
+        where n = 1`,
+      [uid],
     );
     const byClient = new Map(latest.rows.map((row) => [row.id, row]));
     return { clients: found.rows.map((client) => ({ ...client, latest: byClient.get(client.id) })), invites: active.rows };
@@ -101,12 +104,12 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
               </span>
               {client.latest && (
                 <span className="block text-sm font-normal text-zinc-500">
-                  Последний подход: {client.latest.weight} кг × {client.latest.reps}
+                  Последний подход: {client.latest.weight} кг × {client.latest.reps}, {client.latest.workout}
                 </span>
               )}
               {client.latest && client.latest.growing !== null && (
                 <span className="block text-sm font-normal text-zinc-500">
-                  {client.latest.growing ? "Нагрузка растёт" : "Нагрузка не растёт"}
+                  {client.latest.growing ? "Вес растёт" : "Вес не растёт"}
                 </span>
               )}
             </Link>
