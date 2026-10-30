@@ -65,6 +65,9 @@ describe('Agenda: пункты items', () => {
     const long = p.items[1]
     expect(long.lines).toHaveLength(2)
     expect(long.lines.join(' ')).toBe(LONG)
+    // строки выровнены по длине: последняя не короче 40 % первой (жадный перенос дал бы 78 + 11 знаков, висячий хвост)
+    const [head, tail] = long.lines.map((l) => [...l].length)
+    expect(tail).toBeGreaterThanOrEqual(0.4 * head)
     // каждая строка — от NAME_X и не дальше правого края SAFE (по ширине с запасом FIT), и часть — тоже
     for (const line of long.lines) expect(NAME_X + fitWidth(line, AGENDA.name.size)).toBeLessThanOrEqual(SAFE.x + SAFE.w)
     for (const it of p.items) expect(it.rect.x + it.rect.w).toBeLessThanOrEqual(SAFE.x + SAFE.w)
@@ -90,6 +93,24 @@ describe('Agenda: пункты items', () => {
     expect(bad).toHaveLength(1)
     expect(bad[0]).toMatch(/^at: 2 реплик на 3 пунктов — у каждого пункта своя реплика/)
     expect(agendaProblems({ type: 'agenda', items, at: [0, 1, 2] }, day, CLOCK)).toEqual([])
+  })
+
+  test('agenda: пункт без текста — проблема', () => {
+    const bad = agendaProblems({ type: 'agenda', items: ['Отзывы — в три стопки', '', '  '] }, day, CLOCK)
+    expect(bad).toEqual([expect.stringMatching(/^item:1: пункт без текста/), expect.stringMatching(/^item:2: пункт без текста/)])
+  })
+
+  test('agenda: глава из нескольких слов в 85 знаков — две строки без проблемы; слово в 120 букв — шире строки', () => {
+    const chapter = 'Как устроено приложение тренера: от кнопки на экране до записей в базе данных и назад'
+    expect([...chapter].length).toBe(85)
+    const two: FrameCtx = { ...ctx, lesson: { ...ctx.lesson, chapters: ['Что узнаете', chapter, 'Итог'] } }
+    const p = plan({ type: 'agenda' }, two, CLOCK)
+    expect(p.items[0].num).toBe('02')
+    expect(p.items[0].lines).toHaveLength(2)
+    expect(p.items[0].lines.join(' ')).toBe(chapter)
+    expect(agendaProblems({ type: 'agenda' }, two, CLOCK)).toEqual([])
+    const word: FrameCtx = { ...ctx, lesson: { ...ctx.lesson, chapters: ['Что узнаете', 'д'.repeat(120), 'Итог'] } }
+    expect(agendaProblems({ type: 'agenda' }, word, CLOCK)).toEqual([expect.stringMatching(/^item:0 «д+…»: слово «д+…» шире строки \(\d+ px при 1728\)/)])
   })
 
   test('agenda: items без пунктов — проблема', () => {
