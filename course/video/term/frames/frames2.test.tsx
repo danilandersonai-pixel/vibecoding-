@@ -16,7 +16,7 @@ import { easeOut } from '../motion'
 import { textWidth, wrapText } from '../text'
 import { alpha, MIN_TEXT, MOTION, SAFE, T } from '../theme'
 import { CLOCK, ctx, FIXTURE, makeClock } from './fixture'
-import { URL_BAR, URL_CHARS } from './browserPlan'
+import { maskField, URL_BAR, URL_CHARS } from './browserPlan'
 import { cells, wrapWords } from './geometry'
 import { consoleText } from './source'
 import { FRAMES, frameDef } from './index'
@@ -1138,6 +1138,41 @@ describe('Browser', () => {
       expect(weight).toContain('Martian Mono')
       expect(weight).toContain('Golos Text')
       expect(plain(part(html, 'field:Повторы')!)).toContain('8')
+    })
+
+    it('поле пароля (по подписи) — точками по числу знаков, как type=password в браузере; почта — как есть', () => {
+      const login: BrowserEvent = {
+        ...(FIXTURE.events.find((e) => e.id === 'form') as BrowserEvent),
+        id: 'login',
+        url: 'http://localhost:3000/login',
+        fields: [
+          { label: 'Почта', value: 'marina@example.com' },
+          { label: 'Пароль', value: 'demo-password' },
+        ],
+        buttons: ['Войти'],
+        before: ['Вход', 'Почта', 'Пароль', 'Войти'],
+        after: [],
+        console: [],
+      }
+      const c2 = { ...ctx, find: makeFind([{ ...FIXTURE, events: [...FIXTURE.events, login] }]) }
+      const spec: BrowserSpec = { type: 'browser', session: S, event: 'login', at: { page: 0 } }
+      const html = view(spec, PAGE_AT + 60, CLOCK, c2)
+      expect(plain(part(html, 'field:Пароль')!)).toBe('Пароль•••••••••••••')
+      expect(plain(part(html, 'field:Почта')!)).toBe('Почтаmarina@example.com')
+      expect(plain(html)).not.toContain('demo-password')
+      // маска раскладку не меняет: поле пароля в той же колонке и той же ширины, что поле почты
+      const layout = def.layout(spec, c2)
+      expect(layout['field:Пароль'].x).toBe(layout['field:Почта'].x)
+      expect(layout['field:Пароль'].w).toBe(layout['field:Почта'].w)
+      expect(problems(spec, CLOCK, c2)).toEqual([])
+    })
+
+    it('маска по подписи: «Новый пароль», «Password» — точками, «Почта» и «Вес, кг» — нет; знаки считаются по символам', () => {
+      expect(maskField('Новый пароль', 'абв12')).toBe('•••••')
+      expect(maskField('Password', 'secret')).toBe('••••••')
+      expect(maskField('Почта', 'anna@example.com')).toBe('anna@example.com')
+      expect(maskField('Вес, кг', '60')).toBe('60')
+      expect(maskField('Пароль', 'ё🔑')).toBe('••')
     })
 
     it('кнопка — инверсия: фон ink, текст desk', () => {

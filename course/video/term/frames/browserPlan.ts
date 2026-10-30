@@ -9,7 +9,8 @@ import type { Range } from './source'
 /**
  * Браузер: окно со вкладкой (title записи), строкой адреса `localhost:3000<путь>` и страницей, нарисованной векторно, Golos Text.
  * event — browser. Страница — строки `before` (до реплики at.action) и `after` (с неё) по порядку: первая — заголовок
- * (40 px, 600); строка, совпадающая с подписью поля из fields, — подпись и поле ввода со значением (Martian Mono);
+ * (40 px, 600); строка, совпадающая с подписью поля из fields, — подпись и поле ввода со значением (Martian Mono;
+ * у поля пароля, по подписи, — точки по числу знаков, как type=password в браузере: maskField);
  * строка, совпадающая с текстом из buttons, — кнопка (инверсия: фон ink, текст desk); остальные — текст 28 px.
  * Строки появляются очередью от реплики at.page; новые строки `after` — за MOTION.appear на реплике at.action,
  * нижние строки при этом сдвигаются, пропавшие растворяются. Без at.action страница остаётся такой, как `before`.
@@ -51,6 +52,14 @@ export const CONSOLE = { rows: 7, bar: 48, row0: WIN.rows - 7 }
 export const CONSOLE_TOP = rowTop(CONSOLE.row0) - CONSOLE.bar
 /** Знаков в строке сообщения: окно за вычетом полей и колонки значка. */
 export const CONSOLE_COLS = monoChars(SAFE.w - 2 * WIN.pad - cells(2))
+
+/** Подпись поля пароля: такое поле браузер (type=password) показывает точками. Тип поля в записи не хранится — узнаём по подписи. */
+export const PASSWORD_LABEL = /парол|password/iu
+
+/** Значение поля, как его показывает браузер: у поля пароля — «•» по числу знаков, у остальных — как в записи. */
+export function maskField(label: string, value: string): string {
+  return PASSWORD_LABEL.test(label) ? '•'.repeat([...value].length) : value
+}
 
 type Kind = 'title' | 'field' | 'button' | 'text'
 /** Строка страницы: вид, текст после переноса, положение сверху и высота (px), ширина по оценке Golos Text. */
@@ -142,7 +151,8 @@ export function plan(spec: BrowserSpec, ctx: FrameCtx): Plan {
   const host = address(ev.url)
   const hostAfter = ev.urlAfter === undefined ? host : address(ev.urlAfter)
 
-  const fields = new Map(ev.fields.map((f) => [f.label, f.value]))
+  // Значения полей — как на экране браузера: пароль точками (maskField), запись при этом не меняется
+  const fields = new Map(ev.fields.map((f) => [f.label, maskField(f.label, f.value)]))
   const buttons = new Set(ev.buttons)
   const tones = new Map((spec.marks ?? []).map((m) => [m.line, m.tone]))
   const labelW = Math.max(PAGE.labelMin, ...ev.fields.map((f) => Math.ceil(textWidth(f.label, 28)) + 40))
