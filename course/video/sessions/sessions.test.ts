@@ -1374,8 +1374,8 @@ test('s15: схема после 0004–0005 — копия; тесты до к�
   expect(run('schema').code).toBe(0)
   const schema = run('schema').out.join('\n')
   for (const column of ['exercise_id', 'sets', 'reps', 'program_item_id']) expect(schema, column).toMatch(new RegExp(`^ ${column} +\\|`, 'm'))
-  expect(schema).toContain('exercise_id')
-  expect(schema).toContain('ON DELETE SET NULL')
+  // set null — именно у связи строки тренировки со строкой шаблона
+  expect(schema).toMatch(/FOREIGN KEY \(program_item_id\) REFERENCES program_items\(id\) ON DELETE SET NULL$/m)
 
   // определения словами — до тестов и кода; месяц — в адресе; про пустую неделю ничего не сказано
   const def = file('report-def')
@@ -1396,7 +1396,7 @@ test('s15: схема после 0004–0005 — копия; тесты до к�
   expect(file('report-test').after).toContain('volume: 1500 + 1240')
   for (const id of ['report-red', 'report-green', 'empty-red', 'empty-green']) expect(run(id).cmd, id).toBe('npx vitest run lib/report.test.ts')
   expect(run('report-red').code).not.toBe(0)
-  expect(run('report-red').out.join('\n')).toContain('./report')
+  expect(run('report-red').out.join('\n')).toContain("Cannot find module './report'")
   expect(agent('ask-report-code').prompt).toBe('Теперь код: lib/report.ts и страница /report?month=2026-10 у тренера')
   expect(agent('ask-report-code').steps).toEqual(['report-lib', 'report-page', 'report-green'])
   expect(file('report-lib').path).toBe('lib/report.ts')
@@ -1418,8 +1418,12 @@ test('s15: схема после 0004–0005 — копия; тесты до к�
     'Тренировок: 2',
     'Объём: 2740 кг',
     'Средний объём: 1370 кг',
-    'Рекорды: Ноги — 50 кг, Спина и бицепс — 45 кг',
+    'Рекорды на конец недели: Ноги — 50 кг, Спина и бицепс — 45 кг',
   ])
+  // неделя 26 октября — 1 ноября тоже с числами: у Анны одна тренировка, «Грудь и плечи» 26 октября
+  const nextWeek = view.after.indexOf('26 октября — 1 ноября')
+  expect(nextWeek).toBeGreaterThan(anna)
+  expect(view.after.slice(nextWeek, nextWeek + 4)).toEqual(['26 октября — 1 ноября', 'Тренировок: 1', 'Объём: 880 кг', 'Средний объём: 880 кг'])
   // подводный камень: у пустых недель 0 / 0 — на экране NaN
   expect(view.after.join('\n')).toContain('NaN')
   expect(view.after.filter((line) => line === 'Средний объём: NaN кг')).toHaveLength(6)

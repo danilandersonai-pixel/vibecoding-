@@ -61,11 +61,11 @@
    "kind": "file",
    "path": "docs/report.md",
    "before": null,
-   "after": "# Отчёт тренера за месяц\n\nТренер открывает отчёт по адресу `/report?month=2026-10`: месяц — в адресе, от сегодняшней даты отчёт не зависит. В отчёте — все подопечные тренера, у каждого — по неделям месяца.\n\n## Недели\n\n- Неделя — с понедельника по воскресенье.\n- В отчёт месяца входят все недели, где есть хотя бы один день этого месяца. Неделя на стыке месяцев входит целиком, все семь дней, — и в отчёт обоих месяцев.\n- У октября 2026 пять недель: 28 сентября — 4 октября, 5–11, 12–18, 19–25 октября и 26 октября — 1 ноября.\n\n## Что в неделе\n\n- **Тренировок** — сколько тренировок с днём в этой неделе.\n- **Объём** — сумма «вес × повторы» по всем подходам этих тренировок, кг, до целых.\n- **Средний объём** — на тренировку: объём недели, делённый на число тренировок, кг, до целых.\n- **Рекорды** — как `lib/records.ts`: у каждого названия тренировки самый большой вес подхода за всё время до конца недели.\n\n## Пример: октябрь 2026, Анна, неделя 19–25 октября\n\nИз `supabase/seed.sql`:\n\n- «Ноги», 19 октября: 50 × 10 три раза — 1500 кг;\n- «Спина и бицепс», 21 октября: 40 × 12, 40 × 10, 45 × 8 — 480 + 400 + 360 = 1240 кг;\n- «Грудь и плечи», 26 октября, — уже следующая неделя.\n\nТренировок — 2, объём — 2740 кг, средний объём — 1370 кг. Рекорды: «Ноги» — 50 кг, «Спина и бицепс» — 45 кг.\n",
+   "after": "# Отчёт тренера за месяц\n\nТренер открывает отчёт по адресу `/report?month=2026-10`: месяц — в адресе, от сегодняшней даты отчёт не зависит. В отчёте — все подопечные тренера, у каждого — по неделям месяца.\n\n## Недели\n\n- Неделя — с понедельника по воскресенье.\n- В отчёт месяца входят все недели, где есть хотя бы один день этого месяца. Неделя на стыке месяцев входит целиком, все семь дней, — и в отчёт обоих месяцев.\n- У октября 2026 пять недель: 28 сентября — 4 октября, 5–11, 12–18, 19–25 октября и 26 октября — 1 ноября.\n\n## Что в неделе\n\n- **Тренировок** — сколько тренировок пришлось на эту неделю.\n- **Объём** — сумма «вес × повторы» по всем подходам этих тренировок, кг, до целых.\n- **Средний объём** — на тренировку: объём недели, делённый на число тренировок, кг, до целых.\n- **Рекорды** — как `lib/records.ts`: у каждого названия тренировки самый большой вес подхода за всё время до конца недели.\n\n## Пример: октябрь 2026, Анна, неделя 19–25 октября\n\nИз `supabase/seed.sql`:\n\n- «Ноги», 19 октября: 50 × 10 три раза — 1500 кг;\n- «Спина и бицепс», 21 октября: 40 × 12, 40 × 10, 45 × 8 — 480 + 400 + 360 = 1240 кг;\n- «Грудь и плечи», 26 октября, — уже следующая неделя.\n\nТренировок — 2, объём — 2740 кг, средний объём — 1370 кг. Рекорды на конец недели: «Ноги» — 50 кг, «Спина и бицепс» — 45 кг.\n",
    "diff": [
     "diff --git a/docs/report.md b/docs/report.md",
     "new file mode 100644",
-    "index 0000000..d407118",
+    "index 0000000..23a18d5",
     "--- /dev/null",
     "+++ b/docs/report.md",
     "@@ -0,0 +1,26 @@",
@@ -81,7 +81,7 @@
     "+",
     "+## Что в неделе",
     "+",
-    "+- **Тренировок** — сколько тренировок с днём в этой неделе.",
+    "+- **Тренировок** — сколько тренировок пришлось на эту неделю.",
     "+- **Объём** — сумма «вес × повторы» по всем подходам этих тренировок, кг, до целых.",
     "+- **Средний объём** — на тренировку: объём недели, делённый на число тренировок, кг, до целых.",
     "+- **Рекорды** — как `lib/records.ts`: у каждого названия тренировки самый большой вес подхода за всё время до конца недели.",
@@ -94,22 +94,22 @@
     "+- «Спина и бицепс», 21 октября: 40 × 12, 40 × 10, 45 × 8 — 480 + 400 + 360 = 1240 кг;",
     "+- «Грудь и плечи», 26 октября, — уже следующая неделя.",
     "+",
-    "+Тренировок — 2, объём — 2740 кг, средний объём — 1370 кг. Рекорды: «Ноги» — 50 кг, «Спина и бицепс» — 45 кг."
+    "+Тренировок — 2, объём — 2740 кг, средний объём — 1370 кг. Рекорды на конец недели: «Ноги» — 50 кг, «Спина и бицепс» — 45 кг."
    ],
-   "blob": "d407118eba6c475e77c5fb152b68c7960cb4f090"
+   "blob": "23a18d5d63fb83cd509c87d5508c076cd93bb96d"
   },
   {
    "id": "c-report-def",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"Отчёт тренера словами\"",
-   "hash": "b58e045",
+   "hash": "ce7d403",
    "message": "Отчёт тренера словами",
    "branch": "main",
    "parents": [
     "d4ec119"
    ],
    "out": [
-    "[main b58e045] Отчёт тренера словами",
+    "[main ce7d403] Отчёт тренера словами",
     " 1 file changed, 26 insertions(+)",
     " create mode 100644 docs/report.md"
    ],
@@ -252,7 +252,7 @@
     },
     {
      "path": "docs/report.md",
-     "blob": "d407118eba6c475e77c5fb152b68c7960cb4f090"
+     "blob": "23a18d5d63fb83cd509c87d5508c076cd93bb96d"
     },
     {
      "path": "docs/spec.md",
@@ -424,7 +424,7 @@
    "id": "ask-report-tests",
    "kind": "agent",
    "prompt": "Сначала тесты из docs/report.md, код потом",
-   "reply": "Тесты — по docs/report.md: недели октября идут с понедельника 28 сентября по воскресенье 1 ноября; неделя Анны 19–25 октября по seed.sql — 2 тренировки, объём 1500 + 1240 = 2740 кг, средний 1370 кг, рекорды «Ноги» — 50 кг и «Спина и бицепс» — 45 кг. Красные, как и должны: lib/report.ts ещё нет.",
+   "reply": "Тесты — по docs/report.md: недели октября идут с понедельника 28 сентября по воскресенье 1 ноября; неделя Анны 19–25 октября по seed.sql — 2 тренировки, объём 1500 + 1240 = 2740 кг, средний 1370 кг, рекорды «Ноги» — 50 кг и «Спина и бицепс» — 45 кг. Красные — так и должно быть: lib/report.ts ещё нет.",
    "steps": [
     "report-test",
     "report-red"
@@ -517,8 +517,8 @@
     "",
     " Test Files  1 failed (1)",
     "      Tests  no tests",
-    "   Start at  11:25:44",
-    "   Duration  227ms (worker 97%, environment 3%)"
+    "   Start at  11:41:19",
+    "   Duration  205ms (worker 97%, environment 3%)"
    ],
    "code": 1,
    "by": "agent"
@@ -611,11 +611,11 @@
    "kind": "file",
    "path": "app/report/page.tsx",
    "before": null,
-   "after": "import type { Metadata } from \"next\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { monthReport, type ReportWorkout } from \"@/lib/report\";\nimport { currentUser } from \"@/lib/session\";\n\nexport const metadata: Metadata = { title: \"Отчёт\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Месяц отчёта — из адреса, ГГГГ-ММ: от сегодняшней даты отчёт не зависит\nconst MONTH = /^\\d{4}-(0[1-9]|1[0-2])$/;\n\n// День «ГГГГ-ММ-ДД» по-русски: «19 октября» (полночь по времени сервера — formatDay покажет тот же день)\nconst dayOf = (day: string) => formatDay(new Date(`${day}T00:00`));\n\n// Неделя по-русски: «19–25 октября», на стыке месяцев — «28 сентября — 4 октября»\nfunction weekLabel(start: string, end: string): string {\n  if (start.slice(0, 7) === end.slice(0, 7)) return `${Number(start.slice(8))}–${dayOf(end)}`;\n  return `${dayOf(start)} — ${dayOf(end)}`;\n}\n\n// Отчёт тренера за месяц по неделям (docs/report.md): у каждого подопечного по неделе — тренировок, объём, средний объём и рекорды.\n// Подопечных и тренировки база отдаёт от имени тренера: чужих не будет (RLS)\nexport default async function ReportPage({ searchParams }: PageProps<\"/report\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { month } = await searchParams;\n  if (typeof month !== \"string\" || !MONTH.test(month)) {\n    return (\n      <main className=\"mx-auto w-full max-w-md p-8\">\n        <h1 className=\"text-3xl font-semibold\">Отчёт</h1>\n        <p className=\"mt-6 text-zinc-500\">Месяц — в адресе: /report?month=2026-10</p>\n      </main>\n    );\n  }\n  const data = await asUser(uid, async (db) => {\n    const clients = await db.query<{ id: string; name: string }>(\n      \"select id, name from clients where coach_id = $1 order by id\",\n      [uid],\n    );\n    // тренировки подопечных с подходами одним запросом: день — строкой ГГГГ-ММ-ДД, вес из json — числом\n    const workouts = await db.query<ReportWorkout & { client_id: string }>(\n      `select w.client_id, w.title, w.day::text as day,\n              coalesce(json_agg(json_build_object('weight', s.weight, 'reps', s.reps) order by s.id)\n                filter (where s.id is not null), '[]') as sets\n         from workouts w\n         join clients c on c.id = w.client_id\n         left join sets s on s.workout_id = w.id\n        where c.coach_id = $1\n        group by w.id\n        order by w.day`,\n      [uid],\n    );\n    return { clients: clients.rows, workouts: workouts.rows };\n  });\n  // «октябрь»: название месяца без числа\n  const name = new Date(`${month}-01T00:00`).toLocaleDateString(\"ru-RU\", { month: \"long\" });\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">\n        Отчёт за {name} {month.slice(0, 4)}\n      </h1>\n\n      {data.clients.length === 0 && <p className=\"mt-6 text-zinc-500\">Подопечных пока нет</p>}\n      {data.clients.map((client) => (\n        <section key={client.id} className=\"mt-8\">\n          <h2 className=\"text-xl font-semibold\">{client.name}</h2>\n          <ul className=\"mt-2 flex flex-col gap-3\">\n            {monthReport(\n              month,\n              data.workouts.filter((workout) => workout.client_id === client.id),\n            ).map((week) => (\n              <li key={week.start}>\n                <h3 className=\"font-semibold\">{weekLabel(week.start, week.end)}</h3>\n                <p>Тренировок: {week.workouts}</p>\n                <p>Объём: {week.volume} кг</p>\n                <p>Средний объём: {week.average} кг</p>\n                {week.records.size > 0 && (\n                  <p className=\"text-sm text-zinc-500\">\n                    Рекорды: {[...week.records].map(([title, weight]) => `${title} — ${weight} кг`).join(\", \")}\n                  </p>\n                )}\n              </li>\n            ))}\n          </ul>\n        </section>\n      ))}\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { monthReport, type ReportWorkout } from \"@/lib/report\";\nimport { currentUser } from \"@/lib/session\";\n\nexport const metadata: Metadata = { title: \"Отчёт\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Месяц отчёта — из адреса, ГГГГ-ММ: от сегодняшней даты отчёт не зависит\nconst MONTH = /^\\d{4}-(0[1-9]|1[0-2])$/;\n\n// День «ГГГГ-ММ-ДД» по-русски: «19 октября» (полночь по времени сервера — formatDay покажет тот же день)\nconst dayOf = (day: string) => formatDay(new Date(`${day}T00:00`));\n\n// Неделя по-русски: «19–25 октября», на стыке месяцев — «28 сентября — 4 октября»\nfunction weekLabel(start: string, end: string): string {\n  if (start.slice(0, 7) === end.slice(0, 7)) return `${Number(start.slice(8))}–${dayOf(end)}`;\n  return `${dayOf(start)} — ${dayOf(end)}`;\n}\n\n// Отчёт тренера за месяц по неделям (docs/report.md): у каждого подопечного по неделе — тренировок, объём, средний объём и рекорды.\n// Подопечных и тренировки база отдаёт от имени тренера: чужих не будет (RLS)\nexport default async function ReportPage({ searchParams }: PageProps<\"/report\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { month } = await searchParams;\n  if (typeof month !== \"string\" || !MONTH.test(month)) {\n    return (\n      <main className=\"mx-auto w-full max-w-md p-8\">\n        <h1 className=\"text-3xl font-semibold\">Отчёт</h1>\n        <p className=\"mt-6 text-zinc-500\">Месяц — в адресе: /report?month=2026-10</p>\n      </main>\n    );\n  }\n  const data = await asUser(uid, async (db) => {\n    const clients = await db.query<{ id: string; name: string }>(\n      \"select id, name from clients where coach_id = $1 order by id\",\n      [uid],\n    );\n    // тренировки подопечных с подходами одним запросом: день — строкой ГГГГ-ММ-ДД, вес из json — числом\n    const workouts = await db.query<ReportWorkout & { client_id: string }>(\n      `select w.client_id, w.title, w.day::text as day,\n              coalesce(json_agg(json_build_object('weight', s.weight, 'reps', s.reps) order by s.id)\n                filter (where s.id is not null), '[]') as sets\n         from workouts w\n         join clients c on c.id = w.client_id\n         left join sets s on s.workout_id = w.id\n        where c.coach_id = $1\n        group by w.id\n        order by w.day`,\n      [uid],\n    );\n    return { clients: clients.rows, workouts: workouts.rows };\n  });\n  // «октябрь»: название месяца без числа\n  const name = new Date(`${month}-01T00:00`).toLocaleDateString(\"ru-RU\", { month: \"long\" });\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">\n        Отчёт за {name} {month.slice(0, 4)}\n      </h1>\n\n      {data.clients.length === 0 && <p className=\"mt-6 text-zinc-500\">Подопечных пока нет</p>}\n      {data.clients.map((client) => (\n        <section key={client.id} className=\"mt-8\">\n          <h2 className=\"text-xl font-semibold\">{client.name}</h2>\n          <ul className=\"mt-2 flex flex-col gap-3\">\n            {monthReport(\n              month,\n              data.workouts.filter((workout) => workout.client_id === client.id),\n            ).map((week) => (\n              <li key={week.start}>\n                <h3 className=\"font-semibold\">{weekLabel(week.start, week.end)}</h3>\n                <p>Тренировок: {week.workouts}</p>\n                <p>Объём: {week.volume} кг</p>\n                <p>Средний объём: {week.average} кг</p>\n                {week.records.size > 0 && (\n                  <p className=\"text-sm text-zinc-500\">\n                    Рекорды на конец недели: {[...week.records].map(([title, weight]) => `${title} — ${weight} кг`).join(\", \")}\n                  </p>\n                )}\n              </li>\n            ))}\n          </ul>\n        </section>\n      ))}\n    </main>\n  );\n}\n",
    "diff": [
     "diff --git a/app/report/page.tsx b/app/report/page.tsx",
     "new file mode 100644",
-    "index 0000000..5976f94",
+    "index 0000000..f041706",
     "--- /dev/null",
     "+++ b/app/report/page.tsx",
     "@@ -0,0 +1,94 @@",
@@ -702,7 +702,7 @@
     "+                <p>Средний объём: {week.average} кг</p>",
     "+                {week.records.size > 0 && (",
     "+                  <p className=\"text-sm text-zinc-500\">",
-    "+                    Рекорды: {[...week.records].map(([title, weight]) => `${title} — ${weight} кг`).join(\", \")}",
+    "+                    Рекорды на конец недели: {[...week.records].map(([title, weight]) => `${title} — ${weight} кг`).join(\", \")}",
     "+                  </p>",
     "+                )}",
     "+              </li>",
@@ -714,7 +714,7 @@
     "+  );",
     "+}"
    ],
-   "blob": "5976f9472b56592ef302bd6b3848b36510194ef9",
+   "blob": "f04170664bad10c53e5e2e04faa6c1f2d570347b",
    "by": "agent"
   },
   {
@@ -730,8 +730,8 @@
     "",
     " Test Files  1 passed (1)",
     "      Tests  2 passed (2)",
-    "   Start at  11:25:45",
-    "   Duration  172ms (transform 67%, import 21%, tests 6%, worker 5%)"
+    "   Start at  11:41:20",
+    "   Duration  195ms (transform 72%, import 17%, tests 5%, worker 5%)"
    ],
    "code": 0,
    "by": "agent"
@@ -750,7 +750,7 @@
     "- Local:         http://localhost:3000",
     "- Network:       http://192.0.2.2:3000",
     "- Environments: .env.local",
-    "✓ Ready in 430ms"
+    "✓ Ready in 464ms"
    ],
    "code": null
   },
@@ -803,7 +803,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 299ms"
+     "text": "[Fast Refresh] done in 351ms"
     },
     {
      "type": "log",
@@ -811,7 +811,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 549ms"
+     "text": "[Fast Refresh] done in 518ms"
     },
     {
      "type": "log",
@@ -823,10 +823,10 @@
     "- Cache Components enabled",
     "- Partial Prefetching enabled",
     "",
-    " GET /login 200 in 474ms (next.js: 254ms, application-code: 219ms)",
-    " POST /api/login 200 in 116ms (next.js: 49ms, application-code: 67ms)",
+    " GET /login 200 in 366ms (next.js: 181ms, application-code: 186ms)",
+    " POST /api/login 200 in 178ms (next.js: 100ms, application-code: 78ms)",
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
-    " GET /clients 200 in 86ms (next.js: 13ms, application-code: 72ms)"
+    " GET /clients 200 in 206ms (next.js: 19ms, application-code: 187ms)"
    ]
   },
   {
@@ -855,12 +855,12 @@
     "Тренировок: 2",
     "Объём: 2740 кг",
     "Средний объём: 1370 кг",
-    "Рекорды: Ноги — 50 кг, Спина и бицепс — 45 кг",
+    "Рекорды на конец недели: Ноги — 50 кг, Спина и бицепс — 45 кг",
     "26 октября — 1 ноября",
     "Тренировок: 1",
     "Объём: 880 кг",
     "Средний объём: 880 кг",
-    "Рекорды: Ноги — 50 кг, Спина и бицепс — 45 кг, Грудь и плечи — 35 кг",
+    "Рекорды на конец недели: Ноги — 50 кг, Спина и бицепс — 45 кг, Грудь и плечи — 35 кг",
     "Олег",
     "28 сентября — 4 октября",
     "Тренировок: 0",
@@ -878,12 +878,12 @@
     "Тренировок: 1",
     "Объём: 1350 кг",
     "Средний объём: 1350 кг",
-    "Рекорды: Присед и тяга — 65 кг",
+    "Рекорды на конец недели: Присед и тяга — 65 кг",
     "26 октября — 1 ноября",
     "Тренировок: 1",
     "Объём: 940 кг",
     "Средний объём: 940 кг",
-    "Рекорды: Присед и тяга — 65 кг, Жим лёжа — 55 кг"
+    "Рекорды на конец недели: Присед и тяга — 65 кг, Жим лёжа — 55 кг"
    ],
    "after": [
     "Отчёт за октябрь 2026",
@@ -904,12 +904,12 @@
     "Тренировок: 2",
     "Объём: 2740 кг",
     "Средний объём: 1370 кг",
-    "Рекорды: Ноги — 50 кг, Спина и бицепс — 45 кг",
+    "Рекорды на конец недели: Ноги — 50 кг, Спина и бицепс — 45 кг",
     "26 октября — 1 ноября",
     "Тренировок: 1",
     "Объём: 880 кг",
     "Средний объём: 880 кг",
-    "Рекорды: Ноги — 50 кг, Спина и бицепс — 45 кг, Грудь и плечи — 35 кг",
+    "Рекорды на конец недели: Ноги — 50 кг, Спина и бицепс — 45 кг, Грудь и плечи — 35 кг",
     "Олег",
     "28 сентября — 4 октября",
     "Тренировок: 0",
@@ -927,12 +927,12 @@
     "Тренировок: 1",
     "Объём: 1350 кг",
     "Средний объём: 1350 кг",
-    "Рекорды: Присед и тяга — 65 кг",
+    "Рекорды на конец недели: Присед и тяга — 65 кг",
     "26 октября — 1 ноября",
     "Тренировок: 1",
     "Объём: 940 кг",
     "Средний объём: 940 кг",
-    "Рекорды: Присед и тяга — 65 кг, Жим лёжа — 55 кг"
+    "Рекорды на конец недели: Присед и тяга — 65 кг, Жим лёжа — 55 кг"
    ],
    "console": [
     {
@@ -956,30 +956,30 @@
    "server": [
     "[sql] select id, name from clients where coach_id = $1 order by id",
     "[sql] select w.client_id, w.title, w.day::text as day, coalesce(json_agg(json_build_object('weight', s.weight, 'reps', s.reps) order by s.id) filter (where s.id is not null), '[]') as sets from workouts w join clients c on c.id = w.client_id left join sets s on s.workout_id = w.id where c.coach_id = $1 group by w.id order by w.day",
-    " GET /report?month=2026-10 200 in 99ms (next.js: 9ms, application-code: 90ms)"
+    " GET /report?month=2026-10 200 in 151ms (next.js: 17ms, application-code: 133ms)"
    ]
   },
   {
    "id": "report-rule",
    "kind": "file",
    "path": "docs/report.md",
-   "before": "# Отчёт тренера за месяц\n\nТренер открывает отчёт по адресу `/report?month=2026-10`: месяц — в адресе, от сегодняшней даты отчёт не зависит. В отчёте — все подопечные тренера, у каждого — по неделям месяца.\n\n## Недели\n\n- Неделя — с понедельника по воскресенье.\n- В отчёт месяца входят все недели, где есть хотя бы один день этого месяца. Неделя на стыке месяцев входит целиком, все семь дней, — и в отчёт обоих месяцев.\n- У октября 2026 пять недель: 28 сентября — 4 октября, 5–11, 12–18, 19–25 октября и 26 октября — 1 ноября.\n\n## Что в неделе\n\n- **Тренировок** — сколько тренировок с днём в этой неделе.\n- **Объём** — сумма «вес × повторы» по всем подходам этих тренировок, кг, до целых.\n- **Средний объём** — на тренировку: объём недели, делённый на число тренировок, кг, до целых.\n- **Рекорды** — как `lib/records.ts`: у каждого названия тренировки самый большой вес подхода за всё время до конца недели.\n\n## Пример: октябрь 2026, Анна, неделя 19–25 октября\n\nИз `supabase/seed.sql`:\n\n- «Ноги», 19 октября: 50 × 10 три раза — 1500 кг;\n- «Спина и бицепс», 21 октября: 40 × 12, 40 × 10, 45 × 8 — 480 + 400 + 360 = 1240 кг;\n- «Грудь и плечи», 26 октября, — уже следующая неделя.\n\nТренировок — 2, объём — 2740 кг, средний объём — 1370 кг. Рекорды: «Ноги» — 50 кг, «Спина и бицепс» — 45 кг.\n",
-   "after": "# Отчёт тренера за месяц\n\nТренер открывает отчёт по адресу `/report?month=2026-10`: месяц — в адресе, от сегодняшней даты отчёт не зависит. В отчёте — все подопечные тренера, у каждого — по неделям месяца.\n\n## Недели\n\n- Неделя — с понедельника по воскресенье.\n- В отчёт месяца входят все недели, где есть хотя бы один день этого месяца. Неделя на стыке месяцев входит целиком, все семь дней, — и в отчёт обоих месяцев.\n- У октября 2026 пять недель: 28 сентября — 4 октября, 5–11, 12–18, 19–25 октября и 26 октября — 1 ноября.\n\n## Что в неделе\n\n- **Тренировок** — сколько тренировок с днём в этой неделе.\n- **Объём** — сумма «вес × повторы» по всем подходам этих тренировок, кг, до целых.\n- **Средний объём** — на тренировку: объём недели, делённый на число тренировок, кг, до целых.\n- **Рекорды** — как `lib/records.ts`: у каждого названия тренировки самый большой вес подхода за всё время до конца недели.\n\n## Пример: октябрь 2026, Анна, неделя 19–25 октября\n\nИз `supabase/seed.sql`:\n\n- «Ноги», 19 октября: 50 × 10 три раза — 1500 кг;\n- «Спина и бицепс», 21 октября: 40 × 12, 40 × 10, 45 × 8 — 480 + 400 + 360 = 1240 кг;\n- «Грудь и плечи», 26 октября, — уже следующая неделя.\n\nТренировок — 2, объём — 2740 кг, средний объём — 1370 кг. Рекорды: «Ноги» — 50 кг, «Спина и бицепс» — 45 кг.\n\n## Неделя без тренировок\n\nВместо числа тренировок, объёма и среднего — «тренировок не было». Среднего у такой недели нет: делить не на что, а 0 кг выглядел бы как тренировки с нулевым объёмом. Рекорды — как у любой недели.\n",
+   "before": "# Отчёт тренера за месяц\n\nТренер открывает отчёт по адресу `/report?month=2026-10`: месяц — в адресе, от сегодняшней даты отчёт не зависит. В отчёте — все подопечные тренера, у каждого — по неделям месяца.\n\n## Недели\n\n- Неделя — с понедельника по воскресенье.\n- В отчёт месяца входят все недели, где есть хотя бы один день этого месяца. Неделя на стыке месяцев входит целиком, все семь дней, — и в отчёт обоих месяцев.\n- У октября 2026 пять недель: 28 сентября — 4 октября, 5–11, 12–18, 19–25 октября и 26 октября — 1 ноября.\n\n## Что в неделе\n\n- **Тренировок** — сколько тренировок пришлось на эту неделю.\n- **Объём** — сумма «вес × повторы» по всем подходам этих тренировок, кг, до целых.\n- **Средний объём** — на тренировку: объём недели, делённый на число тренировок, кг, до целых.\n- **Рекорды** — как `lib/records.ts`: у каждого названия тренировки самый большой вес подхода за всё время до конца недели.\n\n## Пример: октябрь 2026, Анна, неделя 19–25 октября\n\nИз `supabase/seed.sql`:\n\n- «Ноги», 19 октября: 50 × 10 три раза — 1500 кг;\n- «Спина и бицепс», 21 октября: 40 × 12, 40 × 10, 45 × 8 — 480 + 400 + 360 = 1240 кг;\n- «Грудь и плечи», 26 октября, — уже следующая неделя.\n\nТренировок — 2, объём — 2740 кг, средний объём — 1370 кг. Рекорды на конец недели: «Ноги» — 50 кг, «Спина и бицепс» — 45 кг.\n",
+   "after": "# Отчёт тренера за месяц\n\nТренер открывает отчёт по адресу `/report?month=2026-10`: месяц — в адресе, от сегодняшней даты отчёт не зависит. В отчёте — все подопечные тренера, у каждого — по неделям месяца.\n\n## Недели\n\n- Неделя — с понедельника по воскресенье.\n- В отчёт месяца входят все недели, где есть хотя бы один день этого месяца. Неделя на стыке месяцев входит целиком, все семь дней, — и в отчёт обоих месяцев.\n- У октября 2026 пять недель: 28 сентября — 4 октября, 5–11, 12–18, 19–25 октября и 26 октября — 1 ноября.\n\n## Что в неделе\n\n- **Тренировок** — сколько тренировок пришлось на эту неделю.\n- **Объём** — сумма «вес × повторы» по всем подходам этих тренировок, кг, до целых.\n- **Средний объём** — на тренировку: объём недели, делённый на число тренировок, кг, до целых.\n- **Рекорды** — как `lib/records.ts`: у каждого названия тренировки самый большой вес подхода за всё время до конца недели.\n\n## Пример: октябрь 2026, Анна, неделя 19–25 октября\n\nИз `supabase/seed.sql`:\n\n- «Ноги», 19 октября: 50 × 10 три раза — 1500 кг;\n- «Спина и бицепс», 21 октября: 40 × 12, 40 × 10, 45 × 8 — 480 + 400 + 360 = 1240 кг;\n- «Грудь и плечи», 26 октября, — уже следующая неделя.\n\nТренировок — 2, объём — 2740 кг, средний объём — 1370 кг. Рекорды на конец недели: «Ноги» — 50 кг, «Спина и бицепс» — 45 кг.\n\n## Неделя без тренировок\n\nВместо числа тренировок, объёма и среднего — «тренировок не было». Среднего у такой недели нет: делить не на что, а 0 кг выглядел бы как тренировки с нулевым объёмом. Рекорды — как у любой недели.\n",
    "diff": [
     "diff --git a/docs/report.md b/docs/report.md",
-    "index d407118..d57ca12 100644",
+    "index 23a18d5..a656275 100644",
     "--- a/docs/report.md",
     "+++ b/docs/report.md",
     "@@ -24,3 +24,7 @@",
     " - «Грудь и плечи», 26 октября, — уже следующая неделя.",
     " ",
-    " Тренировок — 2, объём — 2740 кг, средний объём — 1370 кг. Рекорды: «Ноги» — 50 кг, «Спина и бицепс» — 45 кг.",
+    " Тренировок — 2, объём — 2740 кг, средний объём — 1370 кг. Рекорды на конец недели: «Ноги» — 50 кг, «Спина и бицепс» — 45 кг.",
     "+",
     "+## Неделя без тренировок",
     "+",
     "+Вместо числа тренировок, объёма и среднего — «тренировок не было». Среднего у такой недели нет: делить не на что, а 0 кг выглядел бы как тренировки с нулевым объёмом. Рекорды — как у любой недели."
    ],
-   "blob": "d57ca12047cfe9a471e9b7ef51b0302c8385048c"
+   "blob": "a6562754e58b0e8fbeb0ed59013c66c9b8e541e2"
   },
   {
    "id": "ask-empty",
@@ -1030,10 +1030,10 @@
     "",
     " RUN  v5.0.5 ~/trainer-app",
     "",
-    " ❯ lib/report.test.ts (3 tests | 1 failed) 8ms",
-    "   ✓ недели октября — с понедельника 28 сентября по воскресенье 1 ноября 2ms",
-    "   ✓ неделя Анны 19–25 октября: 2 тренировки, 2740 кг, средний 1370 0ms",
-    "   × неделя 5–11 октября без тренировок — среднего нет 4ms",
+    " ❯ lib/report.test.ts (3 tests | 1 failed) 12ms",
+    "   ✓ недели октября — с понедельника 28 сентября по воскресенье 1 ноября 3ms",
+    "   ✓ неделя Анны 19–25 октября: 2 тренировки, 2740 кг, средний 1370 1ms",
+    "   × неделя 5–11 октября без тренировок — среднего нет 6ms",
     "",
     "⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
     "",
@@ -1059,8 +1059,8 @@
     "",
     " Test Files  1 failed (1)",
     "      Tests  1 failed | 2 passed (3)",
-    "   Start at  11:25:55",
-    "   Duration  179ms (transform 58%, import 23%, tests 13%, worker 6%)"
+    "   Start at  11:41:30",
+    "   Duration  414ms (transform 61%, import 19%, tests 14%, worker 5%)"
    ],
    "code": 1,
    "by": "agent"
@@ -1109,11 +1109,11 @@
    "id": "empty-page",
    "kind": "file",
    "path": "app/report/page.tsx",
-   "before": "import type { Metadata } from \"next\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { monthReport, type ReportWorkout } from \"@/lib/report\";\nimport { currentUser } from \"@/lib/session\";\n\nexport const metadata: Metadata = { title: \"Отчёт\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Месяц отчёта — из адреса, ГГГГ-ММ: от сегодняшней даты отчёт не зависит\nconst MONTH = /^\\d{4}-(0[1-9]|1[0-2])$/;\n\n// День «ГГГГ-ММ-ДД» по-русски: «19 октября» (полночь по времени сервера — formatDay покажет тот же день)\nconst dayOf = (day: string) => formatDay(new Date(`${day}T00:00`));\n\n// Неделя по-русски: «19–25 октября», на стыке месяцев — «28 сентября — 4 октября»\nfunction weekLabel(start: string, end: string): string {\n  if (start.slice(0, 7) === end.slice(0, 7)) return `${Number(start.slice(8))}–${dayOf(end)}`;\n  return `${dayOf(start)} — ${dayOf(end)}`;\n}\n\n// Отчёт тренера за месяц по неделям (docs/report.md): у каждого подопечного по неделе — тренировок, объём, средний объём и рекорды.\n// Подопечных и тренировки база отдаёт от имени тренера: чужих не будет (RLS)\nexport default async function ReportPage({ searchParams }: PageProps<\"/report\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { month } = await searchParams;\n  if (typeof month !== \"string\" || !MONTH.test(month)) {\n    return (\n      <main className=\"mx-auto w-full max-w-md p-8\">\n        <h1 className=\"text-3xl font-semibold\">Отчёт</h1>\n        <p className=\"mt-6 text-zinc-500\">Месяц — в адресе: /report?month=2026-10</p>\n      </main>\n    );\n  }\n  const data = await asUser(uid, async (db) => {\n    const clients = await db.query<{ id: string; name: string }>(\n      \"select id, name from clients where coach_id = $1 order by id\",\n      [uid],\n    );\n    // тренировки подопечных с подходами одним запросом: день — строкой ГГГГ-ММ-ДД, вес из json — числом\n    const workouts = await db.query<ReportWorkout & { client_id: string }>(\n      `select w.client_id, w.title, w.day::text as day,\n              coalesce(json_agg(json_build_object('weight', s.weight, 'reps', s.reps) order by s.id)\n                filter (where s.id is not null), '[]') as sets\n         from workouts w\n         join clients c on c.id = w.client_id\n         left join sets s on s.workout_id = w.id\n        where c.coach_id = $1\n        group by w.id\n        order by w.day`,\n      [uid],\n    );\n    return { clients: clients.rows, workouts: workouts.rows };\n  });\n  // «октябрь»: название месяца без числа\n  const name = new Date(`${month}-01T00:00`).toLocaleDateString(\"ru-RU\", { month: \"long\" });\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">\n        Отчёт за {name} {month.slice(0, 4)}\n      </h1>\n\n      {data.clients.length === 0 && <p className=\"mt-6 text-zinc-500\">Подопечных пока нет</p>}\n      {data.clients.map((client) => (\n        <section key={client.id} className=\"mt-8\">\n          <h2 className=\"text-xl font-semibold\">{client.name}</h2>\n          <ul className=\"mt-2 flex flex-col gap-3\">\n            {monthReport(\n              month,\n              data.workouts.filter((workout) => workout.client_id === client.id),\n            ).map((week) => (\n              <li key={week.start}>\n                <h3 className=\"font-semibold\">{weekLabel(week.start, week.end)}</h3>\n                <p>Тренировок: {week.workouts}</p>\n                <p>Объём: {week.volume} кг</p>\n                <p>Средний объём: {week.average} кг</p>\n                {week.records.size > 0 && (\n                  <p className=\"text-sm text-zinc-500\">\n                    Рекорды: {[...week.records].map(([title, weight]) => `${title} — ${weight} кг`).join(\", \")}\n                  </p>\n                )}\n              </li>\n            ))}\n          </ul>\n        </section>\n      ))}\n    </main>\n  );\n}\n",
-   "after": "import type { Metadata } from \"next\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { monthReport, type ReportWorkout } from \"@/lib/report\";\nimport { currentUser } from \"@/lib/session\";\n\nexport const metadata: Metadata = { title: \"Отчёт\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Месяц отчёта — из адреса, ГГГГ-ММ: от сегодняшней даты отчёт не зависит\nconst MONTH = /^\\d{4}-(0[1-9]|1[0-2])$/;\n\n// День «ГГГГ-ММ-ДД» по-русски: «19 октября» (полночь по времени сервера — formatDay покажет тот же день)\nconst dayOf = (day: string) => formatDay(new Date(`${day}T00:00`));\n\n// Неделя по-русски: «19–25 октября», на стыке месяцев — «28 сентября — 4 октября»\nfunction weekLabel(start: string, end: string): string {\n  if (start.slice(0, 7) === end.slice(0, 7)) return `${Number(start.slice(8))}–${dayOf(end)}`;\n  return `${dayOf(start)} — ${dayOf(end)}`;\n}\n\n// Отчёт тренера за месяц по неделям (docs/report.md): у каждого подопечного по неделе — тренировок, объём, средний объём и рекорды.\n// Подопечных и тренировки база отдаёт от имени тренера: чужих не будет (RLS)\nexport default async function ReportPage({ searchParams }: PageProps<\"/report\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { month } = await searchParams;\n  if (typeof month !== \"string\" || !MONTH.test(month)) {\n    return (\n      <main className=\"mx-auto w-full max-w-md p-8\">\n        <h1 className=\"text-3xl font-semibold\">Отчёт</h1>\n        <p className=\"mt-6 text-zinc-500\">Месяц — в адресе: /report?month=2026-10</p>\n      </main>\n    );\n  }\n  const data = await asUser(uid, async (db) => {\n    const clients = await db.query<{ id: string; name: string }>(\n      \"select id, name from clients where coach_id = $1 order by id\",\n      [uid],\n    );\n    // тренировки подопечных с подходами одним запросом: день — строкой ГГГГ-ММ-ДД, вес из json — числом\n    const workouts = await db.query<ReportWorkout & { client_id: string }>(\n      `select w.client_id, w.title, w.day::text as day,\n              coalesce(json_agg(json_build_object('weight', s.weight, 'reps', s.reps) order by s.id)\n                filter (where s.id is not null), '[]') as sets\n         from workouts w\n         join clients c on c.id = w.client_id\n         left join sets s on s.workout_id = w.id\n        where c.coach_id = $1\n        group by w.id\n        order by w.day`,\n      [uid],\n    );\n    return { clients: clients.rows, workouts: workouts.rows };\n  });\n  // «октябрь»: название месяца без числа\n  const name = new Date(`${month}-01T00:00`).toLocaleDateString(\"ru-RU\", { month: \"long\" });\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">\n        Отчёт за {name} {month.slice(0, 4)}\n      </h1>\n\n      {data.clients.length === 0 && <p className=\"mt-6 text-zinc-500\">Подопечных пока нет</p>}\n      {data.clients.map((client) => (\n        <section key={client.id} className=\"mt-8\">\n          <h2 className=\"text-xl font-semibold\">{client.name}</h2>\n          <ul className=\"mt-2 flex flex-col gap-3\">\n            {monthReport(\n              month,\n              data.workouts.filter((workout) => workout.client_id === client.id),\n            ).map((week) => (\n              <li key={week.start}>\n                <h3 className=\"font-semibold\">{weekLabel(week.start, week.end)}</h3>\n                {week.workouts === 0 ? (\n                  <p className=\"text-zinc-500\">тренировок не было</p>\n                ) : (\n                  <>\n                    <p>Тренировок: {week.workouts}</p>\n                    <p>Объём: {week.volume} кг</p>\n                    <p>Средний объём: {week.average} кг</p>\n                  </>\n                )}\n                {week.records.size > 0 && (\n                  <p className=\"text-sm text-zinc-500\">\n                    Рекорды: {[...week.records].map(([title, weight]) => `${title} — ${weight} кг`).join(\", \")}\n                  </p>\n                )}\n              </li>\n            ))}\n          </ul>\n        </section>\n      ))}\n    </main>\n  );\n}\n",
+   "before": "import type { Metadata } from \"next\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { monthReport, type ReportWorkout } from \"@/lib/report\";\nimport { currentUser } from \"@/lib/session\";\n\nexport const metadata: Metadata = { title: \"Отчёт\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Месяц отчёта — из адреса, ГГГГ-ММ: от сегодняшней даты отчёт не зависит\nconst MONTH = /^\\d{4}-(0[1-9]|1[0-2])$/;\n\n// День «ГГГГ-ММ-ДД» по-русски: «19 октября» (полночь по времени сервера — formatDay покажет тот же день)\nconst dayOf = (day: string) => formatDay(new Date(`${day}T00:00`));\n\n// Неделя по-русски: «19–25 октября», на стыке месяцев — «28 сентября — 4 октября»\nfunction weekLabel(start: string, end: string): string {\n  if (start.slice(0, 7) === end.slice(0, 7)) return `${Number(start.slice(8))}–${dayOf(end)}`;\n  return `${dayOf(start)} — ${dayOf(end)}`;\n}\n\n// Отчёт тренера за месяц по неделям (docs/report.md): у каждого подопечного по неделе — тренировок, объём, средний объём и рекорды.\n// Подопечных и тренировки база отдаёт от имени тренера: чужих не будет (RLS)\nexport default async function ReportPage({ searchParams }: PageProps<\"/report\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { month } = await searchParams;\n  if (typeof month !== \"string\" || !MONTH.test(month)) {\n    return (\n      <main className=\"mx-auto w-full max-w-md p-8\">\n        <h1 className=\"text-3xl font-semibold\">Отчёт</h1>\n        <p className=\"mt-6 text-zinc-500\">Месяц — в адресе: /report?month=2026-10</p>\n      </main>\n    );\n  }\n  const data = await asUser(uid, async (db) => {\n    const clients = await db.query<{ id: string; name: string }>(\n      \"select id, name from clients where coach_id = $1 order by id\",\n      [uid],\n    );\n    // тренировки подопечных с подходами одним запросом: день — строкой ГГГГ-ММ-ДД, вес из json — числом\n    const workouts = await db.query<ReportWorkout & { client_id: string }>(\n      `select w.client_id, w.title, w.day::text as day,\n              coalesce(json_agg(json_build_object('weight', s.weight, 'reps', s.reps) order by s.id)\n                filter (where s.id is not null), '[]') as sets\n         from workouts w\n         join clients c on c.id = w.client_id\n         left join sets s on s.workout_id = w.id\n        where c.coach_id = $1\n        group by w.id\n        order by w.day`,\n      [uid],\n    );\n    return { clients: clients.rows, workouts: workouts.rows };\n  });\n  // «октябрь»: название месяца без числа\n  const name = new Date(`${month}-01T00:00`).toLocaleDateString(\"ru-RU\", { month: \"long\" });\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">\n        Отчёт за {name} {month.slice(0, 4)}\n      </h1>\n\n      {data.clients.length === 0 && <p className=\"mt-6 text-zinc-500\">Подопечных пока нет</p>}\n      {data.clients.map((client) => (\n        <section key={client.id} className=\"mt-8\">\n          <h2 className=\"text-xl font-semibold\">{client.name}</h2>\n          <ul className=\"mt-2 flex flex-col gap-3\">\n            {monthReport(\n              month,\n              data.workouts.filter((workout) => workout.client_id === client.id),\n            ).map((week) => (\n              <li key={week.start}>\n                <h3 className=\"font-semibold\">{weekLabel(week.start, week.end)}</h3>\n                <p>Тренировок: {week.workouts}</p>\n                <p>Объём: {week.volume} кг</p>\n                <p>Средний объём: {week.average} кг</p>\n                {week.records.size > 0 && (\n                  <p className=\"text-sm text-zinc-500\">\n                    Рекорды на конец недели: {[...week.records].map(([title, weight]) => `${title} — ${weight} кг`).join(\", \")}\n                  </p>\n                )}\n              </li>\n            ))}\n          </ul>\n        </section>\n      ))}\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { monthReport, type ReportWorkout } from \"@/lib/report\";\nimport { currentUser } from \"@/lib/session\";\n\nexport const metadata: Metadata = { title: \"Отчёт\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Месяц отчёта — из адреса, ГГГГ-ММ: от сегодняшней даты отчёт не зависит\nconst MONTH = /^\\d{4}-(0[1-9]|1[0-2])$/;\n\n// День «ГГГГ-ММ-ДД» по-русски: «19 октября» (полночь по времени сервера — formatDay покажет тот же день)\nconst dayOf = (day: string) => formatDay(new Date(`${day}T00:00`));\n\n// Неделя по-русски: «19–25 октября», на стыке месяцев — «28 сентября — 4 октября»\nfunction weekLabel(start: string, end: string): string {\n  if (start.slice(0, 7) === end.slice(0, 7)) return `${Number(start.slice(8))}–${dayOf(end)}`;\n  return `${dayOf(start)} — ${dayOf(end)}`;\n}\n\n// Отчёт тренера за месяц по неделям (docs/report.md): у каждого подопечного по неделе — тренировок, объём, средний объём и рекорды.\n// Подопечных и тренировки база отдаёт от имени тренера: чужих не будет (RLS)\nexport default async function ReportPage({ searchParams }: PageProps<\"/report\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { month } = await searchParams;\n  if (typeof month !== \"string\" || !MONTH.test(month)) {\n    return (\n      <main className=\"mx-auto w-full max-w-md p-8\">\n        <h1 className=\"text-3xl font-semibold\">Отчёт</h1>\n        <p className=\"mt-6 text-zinc-500\">Месяц — в адресе: /report?month=2026-10</p>\n      </main>\n    );\n  }\n  const data = await asUser(uid, async (db) => {\n    const clients = await db.query<{ id: string; name: string }>(\n      \"select id, name from clients where coach_id = $1 order by id\",\n      [uid],\n    );\n    // тренировки подопечных с подходами одним запросом: день — строкой ГГГГ-ММ-ДД, вес из json — числом\n    const workouts = await db.query<ReportWorkout & { client_id: string }>(\n      `select w.client_id, w.title, w.day::text as day,\n              coalesce(json_agg(json_build_object('weight', s.weight, 'reps', s.reps) order by s.id)\n                filter (where s.id is not null), '[]') as sets\n         from workouts w\n         join clients c on c.id = w.client_id\n         left join sets s on s.workout_id = w.id\n        where c.coach_id = $1\n        group by w.id\n        order by w.day`,\n      [uid],\n    );\n    return { clients: clients.rows, workouts: workouts.rows };\n  });\n  // «октябрь»: название месяца без числа\n  const name = new Date(`${month}-01T00:00`).toLocaleDateString(\"ru-RU\", { month: \"long\" });\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">\n        Отчёт за {name} {month.slice(0, 4)}\n      </h1>\n\n      {data.clients.length === 0 && <p className=\"mt-6 text-zinc-500\">Подопечных пока нет</p>}\n      {data.clients.map((client) => (\n        <section key={client.id} className=\"mt-8\">\n          <h2 className=\"text-xl font-semibold\">{client.name}</h2>\n          <ul className=\"mt-2 flex flex-col gap-3\">\n            {monthReport(\n              month,\n              data.workouts.filter((workout) => workout.client_id === client.id),\n            ).map((week) => (\n              <li key={week.start}>\n                <h3 className=\"font-semibold\">{weekLabel(week.start, week.end)}</h3>\n                {week.workouts === 0 ? (\n                  <p className=\"text-zinc-500\">тренировок не было</p>\n                ) : (\n                  <>\n                    <p>Тренировок: {week.workouts}</p>\n                    <p>Объём: {week.volume} кг</p>\n                    <p>Средний объём: {week.average} кг</p>\n                  </>\n                )}\n                {week.records.size > 0 && (\n                  <p className=\"text-sm text-zinc-500\">\n                    Рекорды на конец недели: {[...week.records].map(([title, weight]) => `${title} — ${weight} кг`).join(\", \")}\n                  </p>\n                )}\n              </li>\n            ))}\n          </ul>\n        </section>\n      ))}\n    </main>\n  );\n}\n",
    "diff": [
     "diff --git a/app/report/page.tsx b/app/report/page.tsx",
-    "index 5976f94..c7e55b4 100644",
+    "index f041706..f10ded0 100644",
     "--- a/app/report/page.tsx",
     "+++ b/app/report/page.tsx",
     "@@ -76,9 +76,15 @@ export default async function ReportPage({ searchParams }: PageProps<\"/report\">)",
@@ -1134,9 +1134,9 @@
     "+                )}",
     "                 {week.records.size > 0 && (",
     "                   <p className=\"text-sm text-zinc-500\">",
-    "                     Рекорды: {[...week.records].map(([title, weight]) => `${title} — ${weight} кг`).join(\", \")}"
+    "                     Рекорды на конец недели: {[...week.records].map(([title, weight]) => `${title} — ${weight} кг`).join(\", \")}"
    ],
-   "blob": "c7e55b44ca9d838a3aeb342f7b3e14325b6e7aad",
+   "blob": "f10ded0acd8bd2ac60b7f3c31449bfb298aaf94d",
    "by": "agent"
   },
   {
@@ -1152,8 +1152,8 @@
     "",
     " Test Files  1 passed (1)",
     "      Tests  3 passed (3)",
-    "   Start at  11:25:56",
-    "   Duration  184ms (transform 65%, import 23%, tests 7%, worker 5%)"
+    "   Start at  11:41:31",
+    "   Duration  269ms (transform 57%, import 27%, worker 8%, tests 8%)"
    ],
    "code": 0,
    "by": "agent"
@@ -1178,12 +1178,12 @@
     "Тренировок: 2",
     "Объём: 2740 кг",
     "Средний объём: 1370 кг",
-    "Рекорды: Ноги — 50 кг, Спина и бицепс — 45 кг",
+    "Рекорды на конец недели: Ноги — 50 кг, Спина и бицепс — 45 кг",
     "26 октября — 1 ноября",
     "Тренировок: 1",
     "Объём: 880 кг",
     "Средний объём: 880 кг",
-    "Рекорды: Ноги — 50 кг, Спина и бицепс — 45 кг, Грудь и плечи — 35 кг",
+    "Рекорды на конец недели: Ноги — 50 кг, Спина и бицепс — 45 кг, Грудь и плечи — 35 кг",
     "Олег",
     "28 сентября — 4 октября",
     "тренировок не было",
@@ -1195,12 +1195,12 @@
     "Тренировок: 1",
     "Объём: 1350 кг",
     "Средний объём: 1350 кг",
-    "Рекорды: Присед и тяга — 65 кг",
+    "Рекорды на конец недели: Присед и тяга — 65 кг",
     "26 октября — 1 ноября",
     "Тренировок: 1",
     "Объём: 940 кг",
     "Средний объём: 940 кг",
-    "Рекорды: Присед и тяга — 65 кг, Жим лёжа — 55 кг"
+    "Рекорды на конец недели: Присед и тяга — 65 кг, Жим лёжа — 55 кг"
    ],
    "after": [
     "Отчёт за октябрь 2026",
@@ -1215,12 +1215,12 @@
     "Тренировок: 2",
     "Объём: 2740 кг",
     "Средний объём: 1370 кг",
-    "Рекорды: Ноги — 50 кг, Спина и бицепс — 45 кг",
+    "Рекорды на конец недели: Ноги — 50 кг, Спина и бицепс — 45 кг",
     "26 октября — 1 ноября",
     "Тренировок: 1",
     "Объём: 880 кг",
     "Средний объём: 880 кг",
-    "Рекорды: Ноги — 50 кг, Спина и бицепс — 45 кг, Грудь и плечи — 35 кг",
+    "Рекорды на конец недели: Ноги — 50 кг, Спина и бицепс — 45 кг, Грудь и плечи — 35 кг",
     "Олег",
     "28 сентября — 4 октября",
     "тренировок не было",
@@ -1232,12 +1232,12 @@
     "Тренировок: 1",
     "Объём: 1350 кг",
     "Средний объём: 1350 кг",
-    "Рекорды: Присед и тяга — 65 кг",
+    "Рекорды на конец недели: Присед и тяга — 65 кг",
     "26 октября — 1 ноября",
     "Тренировок: 1",
     "Объём: 940 кг",
     "Средний объём: 940 кг",
-    "Рекорды: Присед и тяга — 65 кг, Жим лёжа — 55 кг"
+    "Рекорды на конец недели: Присед и тяга — 65 кг, Жим лёжа — 55 кг"
    ],
    "console": [
     {
@@ -1261,21 +1261,21 @@
    "server": [
     "[sql] select id, name from clients where coach_id = $1 order by id",
     "[sql] select w.client_id, w.title, w.day::text as day, coalesce(json_agg(json_build_object('weight', s.weight, 'reps', s.reps) order by s.id) filter (where s.id is not null), '[]') as sets from workouts w join clients c on c.id = w.client_id left join sets s on s.workout_id = w.id where c.coach_id = $1 group by w.id order by w.day",
-    " GET /report?month=2026-10 200 in 103ms (next.js: 3ms, application-code: 100ms)"
+    " GET /report?month=2026-10 200 in 99ms (next.js: 3ms, application-code: 96ms)"
    ]
   },
   {
    "id": "c-report",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"Отчёт тренера за месяц по неделям\"",
-   "hash": "16cc8e9",
+   "hash": "fd3cdc7",
    "message": "Отчёт тренера за месяц по неделям",
    "branch": "main",
    "parents": [
-    "b58e045"
+    "ce7d403"
    ],
    "out": [
-    "[main 16cc8e9] Отчёт тренера за месяц по неделям",
+    "[main fd3cdc7] Отчёт тренера за месяц по неделям",
     " 4 files changed, 210 insertions(+)",
     " create mode 100644 app/report/page.tsx",
     " create mode 100644 lib/report.test.ts",
@@ -1368,7 +1368,7 @@
     },
     {
      "path": "app/report/page.tsx",
-     "blob": "c7e55b44ca9d838a3aeb342f7b3e14325b6e7aad"
+     "blob": "f10ded0acd8bd2ac60b7f3c31449bfb298aaf94d"
     },
     {
      "path": "app/workouts/[id]/actions.ts",
@@ -1424,7 +1424,7 @@
     },
     {
      "path": "docs/report.md",
-     "blob": "d57ca12047cfe9a471e9b7ef51b0302c8385048c"
+     "blob": "a6562754e58b0e8fbeb0ed59013c66c9b8e541e2"
     },
     {
      "path": "docs/spec.md",

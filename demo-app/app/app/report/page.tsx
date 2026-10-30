@@ -87,7 +87,7 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
                 )}
                 {week.records.size > 0 && (
                   <p className="text-sm text-zinc-500">
-                    Рекорды: {[...week.records].map(([title, weight]) => `${title} — ${weight} кг`).join(", ")}
+                    Рекорды на конец недели: {[...week.records].map(([title, weight]) => `${title} — ${weight} кг`).join(", ")}
                   </p>
                 )}
               </li>
