@@ -1350,3 +1350,102 @@ test('s14: ссылка с каскадом стирает подходы — т
   expect(items.after).toContain('Ноги, 4 недели')
   expect(items.after).toContain('Присед — 3 × 10')
 })
+
+test('s15: схема после 0004–0005 — копия; тесты до кода; пустая неделя NaN, затем «тренировок не было»', () => {
+  const events = sessions['s15-report'].events
+  expect(events.map((e) => e.id)).toEqual([
+    ...['schema', 'report-def', 'c-report-def'],
+    ...['ask-report-tests', 'report-test', 'report-red', 'ask-report-code', 'report-lib', 'report-page', 'report-green'],
+    ...['dev', 'login-marina', 'report-view', 'report-rule'],
+    ...['ask-empty', 'empty-test', 'empty-red', 'empty-fix', 'empty-page', 'empty-green', 'report-view2', 'c-report'],
+  ])
+  const run = (id: string) => find('s15-report', id, 'run')
+  const file = (id: string) => find('s15-report', id, 'file')
+  const agent = (id: string) => find('s15-report', id, 'agent')
+  const commit = (id: string) => find('s15-report', id, 'commit')
+  // шаги внутри запросов — агента, остальные — человека: определения и правило пишет человек
+  const inner = new Set(['ask-report-tests', 'ask-report-code', 'ask-empty'].flatMap((id) => agent(id).steps))
+  for (const e of events) {
+    if (e.kind !== 'agent') expect((e as { by?: string }).by, e.id).toBe(inner.has(e.id) ? 'agent' : undefined)
+  }
+
+  // Review Focus 1: миграции 0001–0005 рекордер применил подряд на чистой базе — в строке тренировки копия, связь со шаблоном set null
+  expect(run('schema').cmd).toBe('psql -c "\\d workout_items"')
+  expect(run('schema').code).toBe(0)
+  const schema = run('schema').out.join('\n')
+  for (const column of ['exercise_id', 'sets', 'reps', 'program_item_id']) expect(schema, column).toMatch(new RegExp(`^ ${column} +\\|`, 'm'))
+  expect(schema).toContain('exercise_id')
+  expect(schema).toContain('ON DELETE SET NULL')
+
+  // определения словами — до тестов и кода; месяц — в адресе; про пустую неделю ничего не сказано
+  const def = file('report-def')
+  expect(def).toMatchObject({ path: 'docs/report.md', before: null })
+  for (const words of ['с понедельника по воскресенье', '28 сентября — 4 октября', 'lib/records.ts', '/report?month=2026-10']) expect(def.after, words).toContain(words)
+  expect(def.after).toContain('Тренировок — 2, объём — 2740 кг, средний объём — 1370 кг')
+  expect(def.after).not.toContain('тренировок не было')
+  expect(commit('c-report-def').message).toBe('Отчёт тренера словами')
+  // в коммите определений — документ, а тестов и кода отчёта ещё нет (files коммита — всё дерево)
+  const defTree = commit('c-report-def').files.map((f) => f.path)
+  expect(defTree).toContain('docs/report.md')
+  for (const path of ['lib/report.test.ts', 'lib/report.ts', 'app/report/page.tsx']) expect(defTree, path).not.toContain(path)
+
+  // тесты до кода: сначала красный — модуля нет, после кода — зелёный
+  expect(agent('ask-report-tests').prompt).toBe('Сначала тесты из docs/report.md, код потом')
+  expect(agent('ask-report-tests').steps).toEqual(['report-test', 'report-red'])
+  expect(file('report-test')).toMatchObject({ path: 'lib/report.test.ts', before: null })
+  expect(file('report-test').after).toContain('volume: 1500 + 1240')
+  for (const id of ['report-red', 'report-green', 'empty-red', 'empty-green']) expect(run(id).cmd, id).toBe('npx vitest run lib/report.test.ts')
+  expect(run('report-red').code).not.toBe(0)
+  expect(run('report-red').out.join('\n')).toContain('./report')
+  expect(agent('ask-report-code').prompt).toBe('Теперь код: lib/report.ts и страница /report?month=2026-10 у тренера')
+  expect(agent('ask-report-code').steps).toEqual(['report-lib', 'report-page', 'report-green'])
+  expect(file('report-lib').path).toBe('lib/report.ts')
+  expect(file('report-lib').after).toContain('import { records } from "./records";')
+  expect(file('report-page').path).toBe('app/report/page.tsx')
+  expect(run('report-green').code).toBe(0)
+
+  // отчёт за октябрь по неделям у Марины: месяц — из адреса, у обоих подопечных пять недель
+  const view = find('s15-report', 'report-view', 'browser')
+  expect(view.url).toBe('http://localhost:3000/report?month=2026-10')
+  expect(view.after[0]).toBe('Отчёт за октябрь 2026')
+  const weeks = ['28 сентября — 4 октября', '5–11 октября', '12–18 октября', '19–25 октября', '26 октября — 1 ноября']
+  for (const week of weeks) expect(view.after.filter((line) => line === week), week).toHaveLength(2)
+  // неделя Анны 19–25 октября — как в примере docs/report.md
+  const anna = view.after.indexOf('19–25 октября')
+  expect(view.after.indexOf('Анна')).toBeLessThan(anna)
+  expect(view.after.slice(anna, anna + 5)).toEqual([
+    '19–25 октября',
+    'Тренировок: 2',
+    'Объём: 2740 кг',
+    'Средний объём: 1370 кг',
+    'Рекорды: Ноги — 50 кг, Спина и бицепс — 45 кг',
+  ])
+  // подводный камень: у пустых недель 0 / 0 — на экране NaN
+  expect(view.after.join('\n')).toContain('NaN')
+  expect(view.after.filter((line) => line === 'Средний объём: NaN кг')).toHaveLength(6)
+
+  // правило решает человек, дальше — тест красный, код, тест зелёный
+  expect(file('report-rule').path).toBe('docs/report.md')
+  expect(file('report-rule').after).toContain('## Неделя без тренировок')
+  expect(file('report-rule').after).toContain('«тренировок не было»')
+  expect(agent('ask-empty').prompt).toBe('В docs/report.md новое правило про пустую неделю. Сначала тест, потом код')
+  expect(agent('ask-empty').steps).toEqual(['empty-test', 'empty-red', 'empty-fix', 'empty-page', 'empty-green'])
+  expect(file('empty-test').after).toContain('"2026-10-05"')
+  expect(run('empty-red').code).not.toBe(0)
+  expect(run('empty-red').out.join('\n')).toContain('средний: expected NaN to be null')
+  expect(file('empty-fix').path).toBe('lib/report.ts')
+  expect(file('empty-page').path).toBe('app/report/page.tsx')
+  expect(run('empty-green').code).toBe(0)
+
+  // после правила: «тренировок не было», NaN нет
+  const view2 = find('s15-report', 'report-view2', 'browser').after
+  expect(view2.join('\n')).toContain('тренировок не было')
+  expect(view2.join('\n')).not.toContain('NaN')
+  expect(view2.filter((line) => line === 'тренировок не было')).toHaveLength(6)
+  expect(view2).toContain('Средний объём: 1370 кг')
+
+  // коммит — продолжение c-report-def на main
+  const last = commit('c-report')
+  expect(last).toMatchObject({ message: 'Отчёт тренера за месяц по неделям', branch: 'main', parents: [commit('c-report-def').hash] })
+  expect(last.files.map((f) => f.path)).toEqual(expect.arrayContaining(['docs/report.md', 'lib/report.ts', 'lib/report.test.ts', 'app/report/page.tsx']))
+})
