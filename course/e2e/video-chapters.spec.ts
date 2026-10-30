@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { inflateSync } from 'node:zlib'
 import { chapterIndexAt, clock } from '../src/video/chapters'
 import type { VideoScript } from '../video/types'
-import { day08Script } from '../video/day-08/script'
+import { day15Script } from '../video/day-15/script'
 import ch01Data from '../video/lessons/ch-01/script.gen.json' with { type: 'json' }
 import ch02Data from '../video/lessons/ch-02/script.gen.json' with { type: 'json' }
 import ch03Data from '../video/lessons/ch-03/script.gen.json' with { type: 'json' }
@@ -22,9 +22,9 @@ import day04 from '../content/days/day-04.json' with { type: 'json' }
 import day05 from '../content/days/day-05.json' with { type: 'json' }
 import day06 from '../content/days/day-06.json' with { type: 'json' }
 import day07 from '../content/days/day-07.json' with { type: 'json' }
-import day08 from '../content/days/day-08.json' with { type: 'json' }
+import day15 from '../content/days/day-15.json' with { type: 'json' }
 
-// Главы новых роликов в плеере: список «Главы ролика», подпись текущей главы, переход по кнопке, телефон (дни 1–8),
+// Главы новых роликов в плеере: список «Главы ролика», подпись текущей главы, переход по кнопке, телефон (дни 1–7 и 15),
 // светлая тема страницы, пояснения на паузе тёмного ролика и два новых ролика на одной странице (дни 1 и 2).
 
 const PLAY = { name: 'Смотреть', exact: true }
@@ -42,7 +42,7 @@ const chAbcScript = chAbcData as VideoScript
 const ch01Script = ch01Data as VideoScript
 const chapters = chAbcScript.chapters!
 
-// Сценарии роликов дней 2–8 по id ролика (как в video/catalog.ts): новые — снимки script.gen.json, старый день 8 — его script.ts
+// Сценарии роликов дней 2–7 и 15 по id ролика (как в video/catalog.ts): новые — снимки script.gen.json, старый день 15 — его script.ts
 const SCRIPTS: Record<string, VideoScript> = {
   'ch-02': ch02Data as VideoScript,
   'ch-12': ch12Data as VideoScript,
@@ -55,10 +55,10 @@ const SCRIPTS: Record<string, VideoScript> = {
   'ch-09': ch09Data as VideoScript,
   'ch-10': ch10Data as VideoScript,
   'ch-11': ch11Data as VideoScript,
-  'day-08': day08Script,
+  'day-15': day15Script,
 }
 type DayJson = { blocks: { type: string; videoId?: string; title?: string }[] }
-const DAYS: Record<number, DayJson> = { 2: day02, 3: day03, 4: day04, 5: day05, 6: day06, 7: day07, 8: day08 } as unknown as Record<number, DayJson>
+const DAYS: Record<number, DayJson> = { 2: day02, 3: day03, 4: day04, 5: day05, 6: day06, 7: day07, 15: day15 } as unknown as Record<number, DayJson>
 
 // Ролики дня по порядку страницы: название блока из файла дня и сценарий ролика
 function dayVideos(day: number): { title: string; script: VideoScript }[] {
@@ -564,10 +564,10 @@ function chapterButtons(list: Locator) {
   )
 }
 
-// Review Focus 5: дни 2–8 на телефоне. Страница не шире экрана, списки «Главы ролика» видны и переносятся (длинное название —
+// Review Focus 5: дни 2–7 и 15 на телефоне. Страница не шире экрана, списки «Главы ролика» видны и переносятся (длинное название —
 // в несколько строк внутри пункта, а не за край), а первое пояснение первого ролика дня открывается по нажатию на паузе
-// и встаёт под кадром, не закрывая его (как у дня 1 выше). День 8 — старый ролик 1280 × 720: глав у него нет, списка тоже
-for (const day of [2, 3, 4, 5, 6, 7, 8]) {
+// и встаёт под кадром, не закрывая его (как у дня 1 выше). День 15 — старый ролик 1280 × 720: глав у него нет, списка тоже
+for (const day of [2, 3, 4, 5, 6, 7, 15]) {
   test(`день ${day} на телефоне 390 px — без горизонтальной прокрутки, пояснение под кадром`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto(`/#/day/${day}`)
@@ -581,7 +581,7 @@ for (const day of [2, 3, 4, 5, 6, 7, 8]) {
     expect(await fitsWidth(page)).toBe(true)
 
     const withChapters = videos.filter((v) => v.script.chapters?.length)
-    if (day === 8) expect(withChapters).toEqual([])
+    if (day === 15) expect(withChapters).toEqual([])
     else expect(withChapters).toHaveLength(videos.length)
     await expect(page.getByRole('list', { name: 'Главы ролика' })).toHaveCount(withChapters.length)
     for (const { title, script } of withChapters) {

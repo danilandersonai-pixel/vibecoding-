@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { day08Script } from '../../video/day-08/script'
+import { day15Script } from '../../video/day-15/script'
 import { videos } from './registry'
 import { VideoBlock } from './VideoBlock'
 
@@ -55,14 +55,14 @@ vi.mock('remotion', async (importOriginal) => ({ ...(await importOriginal<typeof
 
 vi.mock('./registry', async () => {
   const { createElement } = await import('react')
-  const { day08Script } = await import('../../video/day-08/script')
+  const { day15Script } = await import('../../video/day-15/script')
   const { Subtitles } = await import('../../video/lib/Subtitles')
   const ok = () => Promise.resolve({ default: () => null })
   // Ролик с настоящими субтитрами: реплика идёт с первого кадра
   const withSubtitles = () => Promise.resolve({ default: () => createElement(Subtitles, { cues: [{ from: 0, to: 6000, text: 'Первая реплика' }] }) })
   // Ролик набора «Репозиторий»: кадр 1920 × 1080, три главы (1800 / 2400 / 1800 кадров из 6000), адреса MP4 нет
   const chaptered = {
-    ...day08Script,
+    ...day15Script,
     id: 'chaptered',
     width: 1920,
     height: 1080,
@@ -82,13 +82,13 @@ vi.mock('./registry', async () => {
       // Тот же ролик с пустым списком глав — для плеера это ролик без глав
       unchaptered: { script: { ...chaptered, chapters: [] }, load: ok },
       // Старый ролик с адресом MP4 в хранилище страницы
-      withMp4: { script: day08Script, load: ok, mp4Url: '/_blob/00000000000000000000000000000000' },
-      a: { script: day08Script, load: ok },
-      b: { script: day08Script, load: ok },
-      subs: { script: day08Script, load: withSubtitles },
+      withMp4: { script: day15Script, load: ok, mp4Url: '/_blob/00000000000000000000000000000000' },
+      a: { script: day15Script, load: ok },
+      b: { script: day15Script, load: ok },
+      subs: { script: day15Script, load: withSubtitles },
       // 7789 кадров = 259,6 с: полная длительность округляется до 4:20, последний кадр — 4:19 целых секунд
-      long: { script: { ...day08Script, scenes: [{ id: 'всё', durationInFrames: 7789 }] }, load: ok },
-      broken: { script: day08Script, load: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) },
+      long: { script: { ...day15Script, scenes: [{ id: 'всё', durationInFrames: 7789 }] }, load: ok },
+      broken: { script: day15Script, load: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) },
       brokenWide: { script: chaptered, load: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) },
     },
   }
@@ -96,7 +96,7 @@ vi.mock('./registry', async () => {
 
 const play = (id: string, instance: string) => window.dispatchEvent(new CustomEvent('vibecourse:video-play', { detail: { videoId: id, instance } }))
 const cover = (title = 'Ролик') => screen.queryByRole('button', { name: `Смотреть ролик «${title}»` })
-const poster = day08Script.hotspots[0].from
+const poster = day15Script.hotspots[0].from
 
 // Полноэкранный режим jsdom не умеет — подменяем его: вход и выход сообщают fullscreenchange, как браузер
 function stubFullscreen() {
@@ -179,11 +179,11 @@ describe('VideoBlock', () => {
     act(() => player.emit('frameupdate', { frame: poster }))
     expect(cover()).toBeInTheDocument()
     expect(screen.getByText('Видеоурок 2')).toBeInTheDocument()
-    expect(screen.getByText('2:30')).toBeInTheDocument()
-    for (const h of day08Script.hotspots) expect(screen.queryByRole('button', { name: h.title })).toBeNull()
+    expect(screen.getByText('2:36')).toBeInTheDocument()
+    for (const h of day15Script.hotspots) expect(screen.queryByRole('button', { name: h.title })).toBeNull()
     expect(screen.queryByText(/Нажмите на подсвеченное/)).toBeNull()
     // время в панели — с начала ролика, полная длительность — та же, что на обложке
-    expect(screen.getByTestId('video-time')).toHaveTextContent('0:00 / 2:30')
+    expect(screen.getByTestId('video-time')).toHaveTextContent('0:00 / 2:36')
   })
 
   it('субтитры ролика: на обложке их нет, после запуска — есть', async () => {
@@ -214,15 +214,15 @@ describe('VideoBlock', () => {
     await act(async () => {})
     const player = fake.players[0]
     await user.click(cover()!)
-    const zone = day08Script.hotspots.find((h) => h.title === 'Задача в четыре части')!
+    const zone = day15Script.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
     act(() => {
       player.emit('play')
       player.emit('frameupdate', { frame: zone.from + 5 })
     })
     expect(screen.getByRole('button', { name: 'Пауза' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Задача в четыре части' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Пустой экран с подсказкой' })).toBeNull()
     act(() => player.emit('pause'))
-    expect(screen.getByRole('button', { name: 'Задача в четыре части' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Пустой экран с подсказкой' })).toBeInTheDocument()
     expect(screen.getByText('Нажмите на подсвеченное, чтобы узнать подробнее')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Смотреть' })).toBeInTheDocument()
   })
@@ -233,14 +233,14 @@ describe('VideoBlock', () => {
     await act(async () => {})
     const player = fake.players[0]
     await user.click(cover()!)
-    const zone = day08Script.hotspots.find((h) => h.title === 'Задача в четыре части')!
+    const zone = day15Script.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
     act(() => {
       player.emit('play')
       player.emit('frameupdate', { frame: zone.from + 5 })
       player.emit('pause')
     })
     expect(screen.queryByRole('status')).toBeNull()
-    await user.click(screen.getByRole('button', { name: 'Задача в четыре части' }))
+    await user.click(screen.getByRole('button', { name: 'Пустой экран с подсказкой' }))
     const note = screen.getByRole('status')
     expect(note).toHaveTextContent(zone.text)
     // панель — сразу за сценой кадра в общей обёртке: сама сцена (.video-stage) остаётся высотой кадра
@@ -249,9 +249,9 @@ describe('VideoBlock', () => {
     expect(note.parentElement).toHaveClass('video-view')
     expect(stage.nextElementSibling).toBe(note)
     // повторное нажатие закрывает; другой кадр — тоже
-    await user.click(screen.getByRole('button', { name: 'Задача в четыре части' }))
+    await user.click(screen.getByRole('button', { name: 'Пустой экран с подсказкой' }))
     expect(screen.queryByRole('status')).toBeNull()
-    await user.click(screen.getByRole('button', { name: 'Задача в четыре части' }))
+    await user.click(screen.getByRole('button', { name: 'Пустой экран с подсказкой' }))
     expect(screen.getByRole('status')).toBeInTheDocument()
     act(() => player.emit('frameupdate', { frame: zone.from + 6 }))
     expect(screen.queryByRole('status')).toBeNull()
@@ -281,7 +281,7 @@ describe('VideoBlock', () => {
     fireEvent.change(screen.getByRole('slider', { name: 'Перемотка' }), { target: { value: '900' } })
     expect(player.seekTo).toHaveBeenCalledWith(900)
     expect(cover()).toBeNull()
-    expect(screen.getByTestId('video-time')).toHaveTextContent('0:30 / 2:30')
+    expect(screen.getByTestId('video-time')).toHaveTextContent('0:30 / 2:36')
   })
 
   it('после конца — «Смотреть ещё раз» и «Дальше»', async () => {
@@ -309,7 +309,7 @@ describe('VideoBlock', () => {
     const [againFirst] = screen.getAllByRole('button', { name: 'Смотреть ещё раз' })
     const [nextFirst, nextSecond] = screen.getAllByRole('button', { name: 'Дальше' })
     // на экране конца рамок точек нет
-    for (const h of day08Script.hotspots) expect(screen.queryByRole('button', { name: h.title })).toBeNull()
+    for (const h of day15Script.hotspots) expect(screen.queryByRole('button', { name: h.title })).toBeNull()
 
     // «Дальше» — к следующему материалу: после первого ролика второй, после последнего — то, что идёт за сеткой
     await user.click(nextFirst)
@@ -361,7 +361,7 @@ describe('VideoBlock', () => {
     render(<VideoBlock videoId="a" title="Ролик" />)
     await act(async () => {})
     expect(screen.getByRole('heading', { name: 'Ролик' })).toBeInTheDocument()
-    expect(screen.getByText('2:30 · 3 пояснения по нажатию')).toBeInTheDocument()
+    expect(screen.getByText('2:36 · 3 пояснения по нажатию')).toBeInTheDocument()
   })
 
   it('«Во весь экран» — только если браузер умеет; подпись меняется, выход — той же кнопкой и по Esc', async () => {
@@ -604,7 +604,7 @@ describe('VideoBlock: главы ролика', () => {
 
     const old = render(<VideoBlock videoId="a" title="Старый" />)
     await act(async () => {})
-    const zone = day08Script.hotspots.find((h) => h.title === 'Задача в четыре части')!
+    const zone = day15Script.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
     playTo(fake.players[0], zone.from + 5)
     act(() => fake.players[0].emit('pause'))
     expect(old.container.querySelector('.hotspot-layer')).not.toBeNull()
@@ -649,10 +649,10 @@ describe('VideoBlock: главы ролика', () => {
     render(<VideoBlock videoId="a" title="Ролик" />)
     await act(async () => {})
     const player = fake.players[0]
-    const zone = day08Script.hotspots.find((h) => h.title === 'Задача в четыре части')!
+    const zone = day15Script.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
     playTo(player, zone.from + 5)
     act(() => player.emit('pause'))
-    expect(screen.getByRole('button', { name: 'Задача в четыре части' })).toHaveStyle({
+    expect(screen.getByRole('button', { name: 'Пустой экран с подсказкой' })).toHaveStyle({
       left: `${(zone.x / 1280) * 100}%`,
       top: `${(zone.y / 720) * 100}%`,
       width: `${(zone.w / 1280) * 100}%`,
