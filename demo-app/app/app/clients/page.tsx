@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { formatDay } from "@/lib/dates";
@@ -13,15 +14,35 @@ export const instant = false;
 
 // Подопечный тренера с датой последней тренировки
 type Client = { id: string; name: string; last: Date | null };
+// Действующее приглашение тренера: не принято, не отозвано, срок не вышел
+type Invite = { id: string; code: string };
 
-// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного
+// Тренер создаёт приглашение на себя: код и срок ставит база (0008_invites.sql), записать приглашение чужому не даст RLS
+async function createInvite() {
+  "use server";
+  const uid = await currentUser();
+  if (!uid) redirect("/login");
+  await asUser(uid, (db) => db.query("insert into invites (coach_id) values ($1)", [uid]));
+  redirect("/clients");
+}
+
+// Тренер отзывает приглашение: по ссылке больше не зарегистрироваться. Чужое приглашение отозвать не даст RLS
+async function revokeInvite(id: string) {
+  "use server";
+  const uid = await currentUser();
+  if (!uid) redirect("/login");
+  await asUser(uid, (db) => db.query("update invites set revoked_at = now() where id = $1", [id]));
+  redirect("/clients");
+}
+
+// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного и приглашения
 export default async function ClientsPage({ searchParams }: PageProps<"/clients">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
   const { error } = await searchParams;
-  const clients = await asUser(uid, async (db) => {
+  const { clients, invites } = await asUser(uid, async (db) => {
     // подопечные и дата последней тренировки — одним запросом: left join и max(day)
-    const { rows } = await db.query<Client>(
+    const found = await db.query<Client>(
       `select c.id, c.name, max(w.day) as last
          from clients c
          left join workouts w on w.client_id = c.id
@@ -30,8 +51,18 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
         order by c.id`,
       [uid],
     );
-    return rows;
+    // действующие приглашения: срок сверяют часы базы, на странице дат нет
+    const active = await db.query<Invite>(
+      `select id, code from invites
+        where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now()
+        order by id`,
+      [uid],
+    );
+    return { clients: found.rows, invites: active.rows };
   });
+  // адрес сайта для ссылки — из запроса: localhost:3000 при разработке, свой домен на сервере
+  const head = await headers();
+  const origin = `${head.get("x-forwarded-proto") ?? "http"}://${head.get("host")}`;
 
   return (
     <main className="mx-auto w-full max-w-md p-8">
@@ -67,6 +98,30 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
           {error}
         </p>
       )}
+
+      <h2 className="mt-8 text-xl font-semibold">Приглашения</h2>
+      <p className="mt-2 text-zinc-500">Ссылка действует 48 часов, по ней регистрируются один раз.</p>
+      {invites.length === 0 ? (
+        <p className="mt-2 text-zinc-500">Приглашений пока нет</p>
+      ) : (
+        <ul className="mt-2 flex flex-col gap-2">
+          {invites.map((invite) => (
+            <li key={invite.id} className="flex items-center gap-2">
+              <span className="break-all font-mono text-sm">{`${origin}/join/${invite.code}`}</span>
+              <form action={revokeInvite.bind(null, invite.id)}>
+                <button type="submit" className="rounded border border-zinc-300 px-3 py-1 text-sm">
+                  Отозвать
+                </button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form action={createInvite} className="mt-4">
+        <button type="submit" className="rounded bg-zinc-900 px-4 py-2 text-white">
+          Создать приглашение
+        </button>
+      </form>
     </main>
   );
 }

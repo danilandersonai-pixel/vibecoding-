@@ -1581,3 +1581,148 @@ test('s16: таблица из SQL без RLS — Света видит коле
   const paths = ['supabase/migrations/0006_comments.sql', 'supabase/migrations/0007_comments_rls.sql', 'supabase/tests/as-sveta.sql', 'supabase/tests/as-sveta-write.sql', 'components/Comments.tsx']
   expect(last.files.map((f) => f.path)).toEqual(expect.arrayContaining([...paths, 'app/workouts/[id]/comments.ts', 'test/comments.test.ts', 'lib/notify.ts', 'lib/notify.test.ts']))
 })
+
+test('s17: вечная ссылка пускает Кирилла; одноразовое приглашение — второй раз нельзя; аудит только читает', () => {
+  const events = sessions['s17-invite'].events
+  expect(events.map((e) => e.id)).toEqual([
+    ...['ask-join', 'join-page', 'join-action', 'invite-link', 'dev', 'login-marina', 'marina-link', 'olga-join', 'kirill-join', 'clients-db'],
+    ...['ask-invite', 'inv-test', 'inv-sql', 'inv-apply', 'inv-old', 'inv-page', 'inv-action', 'inv-link', 'inv-run'],
+    ...['login-marina2', 'invite-new', 'vera-join', 'invite-reuse', 'ask-audit', 'a-action', 'a-sql', 'c-invite'],
+  ])
+  const run = (id: string) => find('s17-invite', id, 'run')
+  const file = (id: string) => find('s17-invite', id, 'file')
+  const read = (id: string) => find('s17-invite', id, 'read')
+  const agent = (id: string) => find('s17-invite', id, 'agent')
+  const browser = (id: string) => find('s17-invite', id, 'browser')
+  // шаги внутри запросов — агента, остальные — человека: браузер и psql
+  const inner = new Set(['ask-join', 'ask-invite', 'ask-audit'].flatMap((id) => agent(id).steps))
+  for (const e of events) {
+    if (e.kind !== 'agent') expect((e as { by?: string }).by, e.id).toBe(inner.has(e.id) ? 'agent' : undefined)
+  }
+  const MARINA = '11111111-1111-1111-1111-111111111111'
+  const BASE = 'http://localhost:3000'
+
+  // наивно: тренер из адреса /join/<id тренера>; регистрация — auth.users с crypt(), профиль подопечного, подопечный, вход
+  expect(agent('ask-join').prompt).toBe('Приглашение по ссылке: тренер даёт ссылку /join/…, человек вводит имя, почту и пароль и становится его подопечным')
+  expect(agent('ask-join').steps).toEqual(['join-page', 'join-action', 'invite-link'])
+  expect(file('join-page')).toMatchObject({ path: 'app/join/[coach]/page.tsx', before: null })
+  expect(file('join-page').after).toContain('PageProps<"/join/[coach]">')
+  const naive = file('join-action')
+  expect(naive).toMatchObject({ path: 'app/join/[coach]/actions.ts', before: null })
+  for (const words of [
+    "insert into auth.users (email, encrypted_password) values ($1, crypt($2, gen_salt('bf')))",
+    "insert into profiles (id, role, name) values ($1, 'client', $2)",
+    'insert into clients (coach_id, user_id, name) values ($1, $2, $3)", [coach, uid, name]',
+    'await startSession(uid);',
+    '=== "23505"',
+  ]) expect(naive.after, words).toContain(words)
+  expect(file('invite-link')).toMatchObject({ path: 'app/clients/page.tsx' })
+  expect(file('invite-link').before).not.toBeNull()
+  expect(file('invite-link').after).toContain('/join/${uid}')
+
+  // Марина видит вечную ссылку; по ней Ольга, а по пересланной — Кирилл становятся её подопечными
+  expect(browser('login-marina').urlAfter).toBe(`${BASE}/clients`)
+  const link = browser('marina-link')
+  expect(link.url).toBe(`${BASE}/clients`)
+  expect(link.after).toContain('Ссылка-приглашение')
+  expect(link.after).toContain(`${BASE}/join/${MARINA}`)
+  for (const [id, name, email] of [['olga-join', 'Ольга', 'olga@example.com'], ['kirill-join', 'Кирилл', 'kirill@example.com']]) {
+    const join = browser(id)
+    expect(join.url, id).toBe(`${BASE}/join/${MARINA}`)
+    expect(join.fields, id).toEqual([{ label: 'Имя', value: name }, { label: 'Почта', value: email }, { label: 'Пароль', value: 'demo-password' }])
+    expect(join.before, id).toContain('Тренер Марина приглашает вас в дневник тренировок.')
+    expect(join.urlAfter, id).toBe(`${BASE}/workouts`)
+    expect(join.network, id).toEqual([])
+  }
+  expect(run('clients-db')).toMatchObject({ cmd: `psql -c "select name from clients where coach_id = '${MARINA}' order by id"`, code: 0 })
+  expect(run('clients-db').out).toEqual(['  name  ', '--------', ' Анна', ' Олег', ' Ольга', ' Кирилл', '(4 rows)'])
+
+  // исправление: сначала тест, затем таблица и функция базы, старая папка — rm (наивный код не коммитился), страница, действие, ссылка
+  expect(agent('ask-invite').prompt).toBe(
+    'Ссылка вечная и многоразовая: её переслали — и Кирилл стал подопечным Марины. Сделай приглашение одноразовым: длинный случайный код, срок 48 часов, тренер — из записи приглашения, отзыв. Сначала тесты',
+  )
+  expect(agent('ask-invite').steps).toEqual(['inv-test', 'inv-sql', 'inv-apply', 'inv-old', 'inv-page', 'inv-action', 'inv-link', 'inv-run'])
+  const test = file('inv-test')
+  expect(test).toMatchObject({ path: 'test/invites.test.ts', before: null })
+  const names = [
+    'принятое приглашение — подопечный тренера из записи приглашения',
+    'второй раз — «уже использовано»',
+    'отозванное приглашение — отказ',
+    'созданное 49 часов назад — «срок истёк»',
+    'подопечный приглашений не создаёт',
+  ]
+  for (const name of names) expect(test.after, name).toContain(`test("${name}"`)
+  // просроченное — вставка «из прошлого», настоящие часы тест не ждёт
+  expect(test.after).toContain("now() - interval '49 hours'")
+  expect(test.after).not.toMatch(/Date\.now\(|new Date\(|setTimeout|useFakeTimers/)
+  const sql = file('inv-sql')
+  expect(sql).toMatchObject({ path: 'supabase/migrations/0008_invites.sql', before: null })
+  for (const words of [
+    "code text not null unique default encode(gen_random_bytes(16), 'hex')",
+    'coach_id uuid not null references profiles (id)',
+    "expires_at timestamptz not null default now() + interval '48 hours'",
+    'accepted_by uuid references profiles (id)',
+    'revoked_at timestamptz',
+    'alter table invites enable row level security;',
+    'for update;',
+    'insert into clients (coach_id, user_id, name) values (invite.coach_id, new_user, client_name);',
+    'revoke execute on function accept_invite(text, uuid, text) from public, anon, authenticated;',
+  ]) expect(sql.after, words).toContain(words)
+  expect(sql.after.match(/create policy/g)).toHaveLength(3)
+  // создаёт приглашение только тренер: подопечный не пригласит к себе
+  expect(sql.after).toContain("coach_id = auth.uid() and auth.uid() in (select id from profiles where role = 'coach')")
+  // -q: без строк CREATE TABLE… (иначе восемь шагов не помещаются в окно агента); ошибок нет — вывод пустой
+  expect(run('inv-apply')).toMatchObject({ cmd: 'psql -q -f supabase/migrations/0008_invites.sql', code: 0, out: [] })
+  expect(run('inv-old')).toMatchObject({ cmd: "rm -r 'app/join/[coach]'", code: 0, out: [] })
+  expect(run('inv-old').files).toEqual([{ path: 'app/join/[coach]/actions.ts', blob: null }, { path: 'app/join/[coach]/page.tsx', blob: null }])
+  expect(file('inv-page')).toMatchObject({ path: 'app/join/[code]/page.tsx', before: null })
+  for (const words of ['Приглашение уже использовано', 'Приглашение отозвано', 'Срок приглашения истёк']) expect(file('inv-page').after, words).toContain(words)
+  const action = file('inv-action')
+  expect(action).toMatchObject({ path: 'app/join/[code]/actions.ts', before: null })
+  // тренер — из записи приглашения: подопечного записывает accept_invite в базе, а не действие по адресу
+  expect(action.after).toContain('select accept_invite($1, $2, $3)')
+  expect(action.after).not.toContain('insert into clients')
+  const links = file('inv-link')
+  expect(links.path).toBe('app/clients/page.tsx')
+  for (const words of ['Создать приглашение', 'Отозвать', 'insert into invites (coach_id) values ($1)', 'update invites set revoked_at = now()']) expect(links.after, words).toContain(words)
+  expect(links.after).not.toContain('/join/${uid}')
+  expect(run('inv-run')).toMatchObject({ cmd: 'npx vitest run test/invites.test.ts', code: 0 })
+  expect(run('inv-run').out.join('\n')).toContain('6 passed (6)')
+
+  // одноразовое приглашение: Марина создаёт, Вера регистрируется, второй раз — «уже использовано»
+  expect(browser('login-marina2').urlAfter).toBe(`${BASE}/clients`)
+  const created = browser('invite-new')
+  expect(created.url).toBe(`${BASE}/clients`)
+  expect(created.before).toContain('Приглашений пока нет')
+  expect(created.after.join('\n')).toMatch(/\/join\/[0-9a-f]{32}/)
+  const invite = created.after.join('\n').match(/\/join\/[0-9a-f]{32}/)![0]
+  const vera = browser('vera-join')
+  expect(vera.url).toBe(BASE + invite)
+  expect(vera.fields).toEqual([{ label: 'Имя', value: 'Вера' }, { label: 'Почта', value: 'vera@example.com' }, { label: 'Пароль', value: 'demo-password' }])
+  expect(vera.before).toContain('Тренер Марина приглашает вас в дневник тренировок. Ссылка одноразовая.')
+  expect(vera.urlAfter).toBe(`${BASE}/workouts`)
+  const reuse = browser('invite-reuse')
+  expect(reuse.url).toBe(BASE + invite)
+  expect(reuse.after).toContain('Приглашение уже использовано')
+  expect(reuse.buttons).not.toContain('Присоединиться')
+  // на страницах нет настоящих дат: у Анны и Олега — дни тренировок из seed.sql, у приглашения дат нет
+  const DATES = /\d{4}-\d\d-\d\d|\d\d?\.\d\d?\.\d{2,4}|\d\d?:\d\d|\d\d? (?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)/g
+  expect(created.after.join('\n').match(DATES)).toEqual(['26 октября', '27 октября'])
+  expect(reuse.after.join('\n').match(DATES)).toBeNull()
+
+  // аудит в Plan: только два чтения и отчёт, код не меняется
+  expect(agent('ask-audit').prompt).toBe(
+    'Проверь приглашения по шести вопросам главы 8: откуда данные, кто может вызвать, что сделает злоумышленник, что в журналах, какие права у процесса, что изменилось вне задачи. Код не меняй — только отчёт и места, где не уверен',
+  )
+  expect(agent('ask-audit').steps).toEqual(['a-action', 'a-sql'])
+  expect(read('a-action')).toMatchObject({ path: 'app/join/[code]/actions.ts', blob: action.blob })
+  expect(read('a-sql')).toMatchObject({ path: 'supabase/migrations/0008_invites.sql', blob: sql.blob })
+  for (const n of ['1.', '2.', '3.', '4.', '5.', '6.']) expect(agent('ask-audit').reply, n).toContain(n)
+
+  // коммит — продолжение s16 на main: приглашения есть, наивной папки нет
+  const last = find('s17-invite', 'c-invite', 'commit')
+  expect(last).toMatchObject({ message: 'Приглашение по одноразовой ссылке', branch: 'main', parents: [find('s16-comments', 'c-comments', 'commit').hash] })
+  const paths = last.files.map((f) => f.path)
+  expect(paths).toEqual(expect.arrayContaining(['supabase/migrations/0008_invites.sql', 'test/invites.test.ts', 'app/join/[code]/page.tsx', 'app/join/[code]/actions.ts', 'app/clients/page.tsx']))
+  expect(paths.filter((path) => path.startsWith('app/join/[coach]'))).toEqual([])
+})
