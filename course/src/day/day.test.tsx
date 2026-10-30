@@ -197,7 +197,7 @@ describe('страница дня', () => {
     expect(screen.queryByText('Результат дня')).toBeNull()
     const hero = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
     expect(hero.getAllByRole('term').map((dt) => dt.textContent)).toEqual(['видеоуроки'])
-    expect(hero.getAllByRole('definition').map((dd) => dd.textContent)).toEqual(['1 (2:44)'])
+    expect(hero.getAllByRole('definition').map((dd) => dd.textContent)).toEqual(['1 (2:48)'])
     // строка в пунктирной рамке, без «бумаги» и без героя
     const notice = screen.getByText(/Остальное готовится/).closest('.draft-notice')!
     expect(notice).not.toBeNull()
