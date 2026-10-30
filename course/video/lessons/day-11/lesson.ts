@@ -107,7 +107,7 @@ export const day11: Lesson = {
             marks: [{ line: 'Анна: Последний подход тяжело, ноет колено', tone: 'ok' }],
             at: { page: 0, action: 1 },
           },
-          lines: ['Анна пишет под «Ногами»: ноет колено.', 'Отправила — он уже под тренировкой.'],
+          lines: ['Анна пишет комментарий под «Ногами».', 'Отправила — он уже под тренировкой.'],
         },
         {
           id: 'marina-reply',
@@ -162,7 +162,7 @@ export const day11: Lesson = {
           lines: [
             'Время в тесте задано: 15 подходов с 18:00.',
             'Тренировка одна — и уведомление одно.',
-            'Второй тест — подход в 23:40 по Москве.',
+            'Второй — 23:40 по Москве, по поясу тренера.',
             'Ночью — уведомление в 8:00 утра.',
           ],
           spots: [
@@ -256,9 +256,9 @@ export const day11: Lesson = {
           role: 'mistake',
           frame: { type: 'terminal', title: DB, items: [{ session: S16, event: 'as-sveta-write', at: 0, lines: [8, 19] }] },
           lines: ['Вторая дверь — запись от имени Светы.', 'Вставка прошла. Смотрим от имени Анны.', 'Подпись — «Тренер», как у Марины.'],
-          // наезд на «INSERT 0 1» вверху окна, затем весь кадр — таблица Анны с «Тренер | Привет от Светы»
+          // наезд на весь вывод (≈ 1,57): «INSERT 0 1» вверху, таблица Анны с «Тренер | Привет от Светы» и «(3 rows)» целиком; затем весь кадр
           camera: [
-            { at: 1, target: 'line:as-sveta-write:0' },
+            { at: 1, target: 'out:as-sveta-write' },
             { at: 2, target: 'whole' },
           ],
         },
@@ -302,7 +302,7 @@ export const day11: Lesson = {
           book: ['s43'],
           frame: {
             type: 'diff',
-            items: [{ session: S16, event: 'rls-sql', at: 0, lines: [4, 19] }],
+            items: [{ session: S16, event: 'rls-sql', at: 0, lines: [5, 19] }],
             highlight: [
               { at: 0, event: 'rls-sql', lines: [5, 5] },
               { at: 1, event: 'rls-sql', lines: [8, 11] },
@@ -313,7 +313,7 @@ export const day11: Lesson = {
           spots: [
             {
               at: 2,
-              target: 'line:rls-sql:12',
+              target: 'line:rls-sql:11',
               title: 'auth.uid()',
               text: 'id того, кто вошёл. author_id = auth.uid(): автором комментария может быть только сам вошедший — написать от чужого имени нельзя.',
             },
@@ -337,7 +337,8 @@ export const day11: Lesson = {
           lines: ['Тест: Света не видит комментарий Анны.', 'Света не пишет, Анна — не от Марины.'],
         },
         {
-          // Наша проверка после RLS: тот же запрос от Светы — (0 rows), та же вставка — ошибка политики, у Анны два комментария
+          // Наша проверка после RLS: тот же запрос от Светы — (0 rows), та же вставка — ошибка политики, у Анны два комментария.
+          // «Верно» в шапке — с прогона теста в ask-comments-rls (своего вердикта у сцены нет: повтор того же вида build.ts отбрасывает)
           id: 'as-sveta-again',
           role: 'mistake',
           book: ['s43'],
@@ -360,7 +361,6 @@ export const day11: Lesson = {
             { at: 1, target: 'out:as-sveta2' },
             { at: 2, target: 'whole' },
           ],
-          verdict: [{ at: 1, kind: 'right' }],
         },
       ],
     },
