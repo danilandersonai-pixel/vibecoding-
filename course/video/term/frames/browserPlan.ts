@@ -10,7 +10,9 @@ import type { Range } from './source'
  * Браузер: окно со вкладкой (title записи), строкой адреса `localhost:3000<путь>` и страницей, нарисованной векторно, Golos Text.
  * event — browser. Страница — строки `before` (до реплики at.action) и `after` (с неё) по порядку: первая — заголовок
  * (40 px, 600); строка, совпадающая с подписью поля из fields, — подпись и поле ввода со значением (Martian Mono;
- * у поля пароля, по подписи, — точки по числу знаков, как type=password в браузере: maskField);
+ * у поля пароля, по подписи, — точки по числу знаков, как type=password в браузере: maskField; поле ввода шириной PAGE.input,
+ * а длинное значение (комментарий) поле расширяет до края колонки страницы — fieldWidth; что и туда не входит, обрезано с «…»,
+ * как адрес в строке адреса: valueChars);
  * строка, совпадающая с текстом из buttons, — кнопка (инверсия: фон ink, текст desk); остальные — текст 28 px.
  * Строки появляются очередью от реплики at.page; новые строки `after` — за MOTION.appear на реплике at.action,
  * нижние строки при этом сдвигаются, пропавшие растворяются. Без at.action страница остаётся такой, как `before`.
@@ -41,6 +43,12 @@ export type BrowserSpec = {
 /** Поля страницы и размеры её частей, px. */
 export const PAGE = { width: 960, top: 20, bottom: 12, input: 520, labelMin: 160 }
 export const FIELD_H = 52
+/** Поле ввода: PAGE.input, а длинное значение (Martian Mono, поле 16 px с обеих сторон) расширяет его до края колонки страницы. */
+export function fieldWidth(value: string, labelW: number): number {
+  return Math.min(PAGE.width - labelW, Math.max(PAGE.input, cells([...value].length) + 32))
+}
+/** Сколько знаков значения помещается в самое широкое поле при этой ширине подписей: длиннее — обрезается с «…», как адрес, а не вылезает за рамку. */
+export const valueChars = (labelW: number): number => monoChars(PAGE.width - labelW - 32)
 /** Строка адреса в полосе окна: правее вкладки, на всю оставшуюся ширину. */
 export const URL_BAR: Rect = { x: SAFE.x + 480, y: SAFE.y + 6, w: SAFE.w - 480 - WIN.pad, h: 36 }
 /** Знаков адреса в строке адреса (Martian Mono 24 px, поле 16 px с обеих сторон): длинный адрес обрезается с «…», как в браузере. */
@@ -104,7 +112,8 @@ function stack(lines: string[], fields: Map<string, string>, buttons: Set<string
       item = { text, kind, lines: wrapped, y, h: wrapped.length * 52, w: Math.max(...wrapped.map((l) => textWidth(l, 40))), order }
       y += item.h + 8
     } else if (kind === 'field') {
-      item = { text, kind, lines: [text], y, h: FIELD_H, w: labelW + PAGE.input, value: fields.get(text), order }
+      const value = fields.get(text) ?? ''
+      item = { text, kind, lines: [text], y, h: FIELD_H, w: labelW + fieldWidth(value, labelW), value, order }
       y += FIELD_H + 8
     } else if (kind === 'button') {
       item = { text, kind, lines: [text], y, h: FIELD_H, w: textWidth(text, 28) + 64, order }
@@ -152,10 +161,10 @@ export function plan(spec: BrowserSpec, ctx: FrameCtx): Plan {
   const hostAfter = ev.urlAfter === undefined ? host : address(ev.urlAfter)
 
   // Значения полей — как на экране браузера: пароль точками (maskField), запись при этом не меняется
-  const fields = new Map(ev.fields.map((f) => [f.label, maskField(f.label, f.value)]))
+  const labelW = Math.max(PAGE.labelMin, ...ev.fields.map((f) => Math.ceil(textWidth(f.label, 28)) + 40))
+  const fields = new Map(ev.fields.map((f) => [f.label, fitText(maskField(f.label, f.value), valueChars(labelW))]))
   const buttons = new Set(ev.buttons)
   const tones = new Map((spec.marks ?? []).map((m) => [m.line, m.tone]))
-  const labelW = Math.max(PAGE.labelMin, ...ev.fields.map((f) => Math.ceil(textWidth(f.label, 28)) + 40))
   if (labelW + PAGE.input > PAGE.width) problems.push(`не помещается: подписи полей и поле ввода шире колонки страницы (${Math.round(labelW + PAGE.input)} px при ${PAGE.width})`)
   const top = SAFE.y + WIN.bar + PAGE.top
   const withConsole = spec.console === true

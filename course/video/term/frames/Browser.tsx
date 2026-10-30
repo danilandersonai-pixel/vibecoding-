@@ -4,7 +4,7 @@ import { useCurrentFrame } from 'remotion'
 import type { Clock, FrameCtx } from '../frame'
 import { fitText } from '../text'
 import { SAFE, T, alpha } from '../theme'
-import { CONSOLE, CONSOLE_TOP, FIELD_H, PAGE, TAB_CHARS, URL_BAR, consoleAt, isError, isWarning, plan, slotAt, urlAt } from './browserPlan'
+import { CONSOLE, CONSOLE_TOP, FIELD_H, TAB_CHARS, URL_BAR, consoleAt, isError, isWarning, plan, slotAt, urlAt } from './browserPlan'
 import type { BrowserSpec } from './browserPlan'
 import { LH, MONO_STYLE, WIN, cells, rowTop } from './geometry'
 import { Row, Window } from './Window'
@@ -72,7 +72,7 @@ export function Browser({ spec, clock, ctx }: Props): JSX.Element {
               <text x={p.x} y={y + 36} fill={T.soft} style={{ ...GOLOS, fontSize: 28 }}>
                 {item.text}
               </text>
-              <rect x={p.inputX} y={y} width={PAGE.input} height={FIELD_H} rx={8} fill={T.termBg} stroke={T.line} strokeWidth={2} />
+              <rect x={p.inputX} y={y} width={item.w - p.labelW} height={FIELD_H} rx={8} fill={T.termBg} stroke={T.line} strokeWidth={2} />
               <text x={p.inputX + 16} y={y + 34} fill={T.ink} style={MONO_STYLE}>
                 {item.value}
               </text>

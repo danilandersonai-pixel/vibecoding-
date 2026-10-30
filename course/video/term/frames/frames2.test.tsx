@@ -16,7 +16,7 @@ import { easeOut } from '../motion'
 import { textWidth, wrapText } from '../text'
 import { alpha, MIN_TEXT, MOTION, SAFE, T } from '../theme'
 import { CLOCK, ctx, FIXTURE, makeClock } from './fixture'
-import { maskField, URL_BAR, URL_CHARS } from './browserPlan'
+import { fieldWidth, maskField, PAGE, URL_BAR, URL_CHARS, valueChars } from './browserPlan'
 import { cells, wrapWords } from './geometry'
 import { consoleText } from './source'
 import { FRAMES, frameDef } from './index'
@@ -1167,6 +1167,46 @@ describe('Browser', () => {
       expect(layout['field:Пароль'].x).toBe(layout['field:Почта'].x)
       expect(layout['field:Пароль'].w).toBe(layout['field:Почта'].w)
       expect(problems(spec, CLOCK, c2)).toEqual([])
+    })
+
+    it('длинное значение поля (комментарий в s16) расширяет поле до края колонки, а что не входит — обрезано с «…»; короткое — как есть', () => {
+      const form = FIXTURE.events.find((e) => e.id === 'form') as BrowserEvent
+      const withValue = (id: string, value: string): FrameCtx => {
+        const ev: BrowserEvent = { ...form, id, fields: [{ label: 'Вес, кг', value }, { label: 'Повторы', value: '8' }] }
+        return { ...ctx, find: makeFind([{ ...FIXTURE, events: [...FIXTURE.events, ev] }]) }
+      }
+      const field = (id: string, value: string) => {
+        const c2 = withValue(id, value)
+        const spec: BrowserSpec = { type: 'browser', session: S, event: id, at: { page: 0 } }
+        const html = view(spec, PAGE_AT + 60, CLOCK, c2)
+        const box = part(html, 'field:Вес, кг')!
+        const width = Number(/<rect[^>]*\swidth="([\d.]+)"/.exec(box)![1])
+        expect(problems(spec, CLOCK, c2)).toEqual([])
+        return { shown: plain(box).slice('Вес, кг'.length), width, layout: def.layout(spec, c2) }
+      }
+      // короткое — поле обычной ширины
+      expect(field('v-short', '60 кг')).toMatchObject({ shown: '60 кг', width: PAGE.input })
+      // 36 знаков — поле шире PAGE.input, значение целиком и внутри рамки
+      const knee = 'Последний подход тяжело, ноет колено'
+      const mid = field('v-mid', knee)
+      expect(mid.shown).toBe(knee)
+      expect(mid.width).toBeGreaterThan(PAGE.input)
+      expect(16 + cells([...knee].length)).toBeLessThanOrEqual(mid.width - 16)
+      // у соседнего поля с коротким значением — обычная ширина; подписи — в одной колонке
+      const labelMid = mid.layout['field:Вес, кг'].w - mid.width
+      expect(mid.width).toBe(fieldWidth(knee, labelMid))
+      expect(mid.layout['field:Повторы'].w).toBe(labelMid + PAGE.input)
+      // длиннее колонки — поле до края колонки, значение обрезано с «…»
+      const long = knee + ' и ещё немного, и ещё, и ещё'
+      const big = field('v-long', long)
+      const labelW = big.layout['field:Вес, кг'].w - big.width
+      expect(big.width).toBe(fieldWidth(big.shown, labelW))
+      expect(big.width).toBeLessThanOrEqual(PAGE.width - labelW)
+      expect(big.width).toBeGreaterThan(PAGE.width - labelW - cells(1))
+      expect([...big.shown]).toHaveLength(valueChars(labelW))
+      expect(big.shown).toBe([...long].slice(0, valueChars(labelW) - 1).join('') + '…')
+      expect(16 + cells(valueChars(labelW))).toBeLessThanOrEqual(big.width - 16)
+      expect(plain(part(view({ type: 'browser', session: S, event: 'v-long', at: { page: 0 } }, PAGE_AT + 60, CLOCK, withValue('v-long', long)), 'field:Повторы')!)).toBe('Повторы8')
     })
 
     it('маска по подписи: «Новый пароль», «Password» — точками, «Почта» и «Вес, кг» — нет; знаки считаются по символам', () => {

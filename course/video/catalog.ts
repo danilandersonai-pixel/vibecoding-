@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react'
-import { day11Script } from './day-11/script'
 import { day12Script } from './day-12/script'
 import { day13Script } from './day-13/script'
 import { day14Script } from './day-14/script'
@@ -25,6 +24,7 @@ import { chAbcScript } from './lessons/ch-abc/script'
 import { day08Script } from './lessons/day-08/script'
 import { day09Script } from './lessons/day-09/script'
 import { day10Script } from './lessons/day-10/script'
+import { day11Script } from './lessons/day-11/script'
 import { pilotRlsScript } from './lessons/pilot-rls/script'
 import type { VideoScript } from './types'
 
@@ -138,7 +138,7 @@ export const catalog: Record<string, CatalogEntry> = {
     title: 'Комментарии и уведомления',
     kind: 'day',
     script: day11Script,
-    load: () => import('./day-11/Video'),
+    load: () => import('./lessons/day-11/Video'),
   },
   'day-12': {
     title: 'Приглашение по ссылке',
