@@ -22,7 +22,7 @@ import { plan as editorPlan } from './editorPlan'
 import { cells, COLS, outsideSafe, rowTop, take, widest, WIN, wrapWords } from './geometry'
 import { FRAMES, frameDef } from './index'
 import type { DiffSpec, EditorSpec, FrameSpec, TerminalSpec } from './index'
-import { plan as terminalPlan, terminalPartMoves } from './terminalPlan'
+import { cmdRowShown, cursorCell, plan as terminalPlan, terminalPartMoves } from './terminalPlan'
 
 const S = 'fixture'
 const START = CLOCK.beat(0) // 30
@@ -418,6 +418,29 @@ describe('Terminal', () => {
       // перемена в кадре — и на каждом Enter
       const m = FRAMES.terminal.moments(spec, CLOCK, c2)
       expect(m).toEqual(expect.arrayContaining([at(first + 1), at(first + 2)]))
+    })
+
+    it('длинная строка команды после «\\n» переносится по COLS: продолжение без «> », видно, когда до него дошёл набор', () => {
+      const tail = 'y'.repeat(COLS + 10)
+      const cmd = `git commit -m "A\n${tail}"`
+      const long = { id: 'wrap', kind: 'commit' as const, cmd, hash: 'abc8888', message: '', branch: 'main', parents: [], out: ['ok'], files: [] }
+      const c2 = { ...ctx, find: makeFind([{ ...FIXTURE, events: [...FIXTURE.events, long] }]) }
+      const spec: TerminalSpec = { type: 'terminal', items: [{ session: S, event: 'wrap', at: 0 }] }
+      const rows = terminalPlan(spec, c2).entries[0].cmdRows
+      const second = '> ' + tail + '"'
+      expect(rows.map((r) => r.text)).toEqual(['~/trainer-app $ git commit -m "A', second.slice(0, COLS), second.slice(COLS)])
+      expect(rows.map((r) => r.lead)).toEqual([16, 2, 0])
+      // вторая строка начинается после «\n» (знаков подсказки и команды до неё — 16 + 16 + 1), третья — через COLS − 2 знаков после неё
+      const at2 = 16 + 'git commit -m "A'.length + 1
+      expect(rows.map((r) => r.start)).toEqual([16, at2, at2 + COLS - 2])
+      // третья строка пуста, пока набор до неё не дошёл, и начинается с первого её знака
+      expect(cmdRowShown(rows[2], at2 + COLS - 3)).toBe('')
+      expect(cmdRowShown(rows[2], at2 + COLS - 1)).toBe('y')
+      expect(cursorCell(rows, at2 + COLS - 2)).toEqual({ row: 2, col: 0 })
+      // перемена в кадре — на Enter и на начале переноса
+      const typedAt = (n: number) => START + Math.ceil((n * 30) / MOTION.typeCps)
+      const m = FRAMES.terminal.moments(spec, CLOCK, c2)
+      expect(m).toEqual(expect.arrayContaining([typedAt(at2 - 16), typedAt(at2 + COLS - 2 - 16)]))
     })
 
     it('команда без «\\n» — те же строки окна, что перенос подсказки и команды по COLS', () => {
