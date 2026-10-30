@@ -1292,3 +1292,46 @@ test('s13: расплывчатая задача трогает четыре ф�
   // кадр тренера: форма назначения тренировки есть только у Марины
   expect(card).toContain('Назначить')
 })
+
+test('s14: ссылка с каскадом стирает подходы — тест красный; копия — зелёный; программа на 4 недели', () => {
+  const run = (id: string) => find('s14-programs', id, 'run')
+  const file = (id: string) => find('s14-programs', id, 'file')
+  // Plan: три модели данных — агент только читает модель и план, код не меняет
+  const model = find('s14-programs', 'ask-model', 'agent')
+  expect(model.steps).toEqual(['m-init', 'm-plan'])
+  expect(find('s14-programs', 'm-init', 'read').path).toBe('supabase/migrations/0001_init.sql')
+  expect(find('s14-programs', 'm-plan', 'read').path).toBe('docs/plan-weeks-2-3.md')
+  expect(model.reply).toMatch(/Какой берём\?$/)
+
+  // вариант 1 — ссылка на строку шаблона с каскадом; миграция применяется
+  expect(file('ref-sql').path).toBe('supabase/migrations/0004_programs.sql')
+  expect(file('ref-sql').after).toContain('program_item_id bigint not null references program_items (id) on delete cascade')
+  expect(file('ref-sql').after).toContain('workout_item_id bigint references workout_items (id) on delete cascade')
+  expect(run('ref-apply').cmd).toBe('psql -f supabase/migrations/0004_programs.sql')
+  expect(run('ref-apply').code).toBe(0)
+  expect(run('ref-apply').out.join('\n')).not.toContain('ERROR')
+
+  // тест из требования красный: каскад стёр подходы прошлой тренировки
+  expect(run('prog-red').cmd).toBe('npx vitest run test/programs.test.ts')
+  expect(run('prog-red').code).not.toBe(0)
+  expect(run('prog-red').out.join('\n')).toContain('подходов: expected +0 to be 3')
+
+  // копия вместо ссылки: тот же тест зелёный
+  expect(file('copy-sql').path).toBe('supabase/migrations/0005_programs_copy.sql')
+  expect(file('copy-sql').after).toContain('on delete set null')
+  expect(run('copy-apply').code).toBe(0)
+  expect(run('copy-apply').out.join('\n')).not.toContain('ERROR')
+  expect(run('prog-green').cmd).toBe('npx vitest run test/programs.test.ts')
+  expect(run('prog-green').code).toBe(0)
+  expect(find('s14-programs', 'ask-copy', 'agent').steps).toEqual(['copy-sql', 'copy-apply', 'prog-green'])
+
+  // программа на 4 недели с введённой даты: у Анны четыре тренировки «Ноги, 4 недели», в первой — присед 3 × 10
+  expect(find('s14-programs', 'program-assign', 'browser').fields).toContainEqual({ label: 'С даты', value: '2026-11-09' })
+  const week = find('s14-programs', 'anna-week', 'browser').after
+  for (const day of ['9 ноября', '16 ноября', '23 ноября', '30 ноября']) expect(week, day).toContain(day)
+  expect(week.filter((line) => line === 'Ноги, 4 недели')).toHaveLength(4)
+  const items = find('s14-programs', 'anna-items', 'browser')
+  expect(items.url).toBe('http://localhost:3000/workouts/6')
+  expect(items.after).toContain('Ноги, 4 недели')
+  expect(items.after).toContain('Присед — 3 × 10')
+})

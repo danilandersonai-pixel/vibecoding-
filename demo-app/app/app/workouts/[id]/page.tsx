@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Тренировка" };
 // Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки
 export const instant = false;
 
-// Тренировка по id из адреса: подходы, объём и форма нового подхода. Чужой тренировки база не отдаст (RLS) — будет 404
+// Тренировка по id из адреса: упражнения по программе, подходы, объём и форма нового подхода. Чужой тренировки база не отдаст (RLS) — будет 404
 export default async function WorkoutPage({ params, searchParams }: PageProps<"/workouts/[id]">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
@@ -19,12 +19,17 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<"/
   const { error } = await searchParams;
   const workout = await asUser(uid, async (db) => {
     const found = await db.query<{ title: string }>("select title from workouts where id = $1", [id]);
+    // упражнения по программе: копия строк шаблона в строках тренировки — «Присед — 3 × 10»
+    const items = await db.query<{ id: string; exercise: string; sets: number; reps: number }>(
+      "select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id",
+      [id],
+    );
     // вес в базе — numeric, pg отдаёт его строкой; float8 приходит числом
     const sets = await db.query<{ id: string; weight: number; reps: number }>(
       "select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id",
       [id],
     );
-    return found.rows.length > 0 ? { title: found.rows[0].title, sets: sets.rows } : null;
+    return found.rows.length > 0 ? { title: found.rows[0].title, items: items.rows, sets: sets.rows } : null;
   });
   if (!workout) notFound();
   // поля приходят из формы, а id тренировки действие получает отсюда
@@ -33,6 +38,15 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<"/
   return (
     <main className="mx-auto w-full max-w-md p-8">
       <h1 className="text-3xl font-semibold">{workout.title}</h1>
+      {workout.items.length > 0 && (
+        <ul className="mt-2 flex flex-col gap-1 font-medium">
+          {workout.items.map((item) => (
+            <li key={item.id}>
+              {item.exercise} — {item.sets} × {item.reps}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {workout.sets.length === 0 ? (
         <p className="mt-6 text-zinc-500">Подходов пока нет</p>
