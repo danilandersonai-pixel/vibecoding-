@@ -1,7 +1,9 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { pilotRlsScript } from '../../video/pilot-rls/script'
+import type { VideoScript } from '../../video/types'
+import oldVideo from './fixtures/old-video.json'
+import { videos } from './registry'
 import { VideoBlock } from './VideoBlock'
 
 type Handler = (e: { detail: unknown }) => void
@@ -54,26 +56,51 @@ vi.mock('remotion', async (importOriginal) => ({ ...(await importOriginal<typeof
 
 vi.mock('./registry', async () => {
   const { createElement } = await import('react')
-  const { pilotRlsScript } = await import('../../video/pilot-rls/script')
+  const oldVideoFixture = (await import('./fixtures/old-video.json')).default as VideoScript
   const { Subtitles } = await import('../../video/lib/Subtitles')
   const ok = () => Promise.resolve({ default: () => null })
   // Ролик с настоящими субтитрами: реплика идёт с первого кадра
   const withSubtitles = () => Promise.resolve({ default: () => createElement(Subtitles, { cues: [{ from: 0, to: 6000, text: 'Первая реплика' }] }) })
+  // Ролик набора «Репозиторий»: кадр 1920 × 1080, три главы (1800 / 2400 / 1800 кадров из 6000), адреса MP4 нет
+  const chaptered = {
+    ...oldVideoFixture,
+    id: 'chaptered',
+    width: 1920,
+    height: 1080,
+    scenes: [{ id: 'всё', durationInFrames: 6000 }],
+    cues: [],
+    hotspots: [{ from: 2000, to: 2300, x: 960, y: 540, w: 192, h: 108, title: 'git log', text: 'История коммитов проекта' }],
+    chapters: [
+      { from: 0, title: 'Что узнаете' },
+      { from: 1800, title: 'Четыре части приложения' },
+      { from: 4200, title: 'Итог' },
+    ],
+    poster: 2100,
+  }
   return {
     videos: {
-      a: { script: pilotRlsScript, load: ok },
-      b: { script: pilotRlsScript, load: ok },
-      subs: { script: pilotRlsScript, load: withSubtitles },
+      chaptered: { script: chaptered, load: ok },
+      // Тот же ролик с пустым списком глав — для плеера это ролик без глав
+      unchaptered: { script: { ...chaptered, chapters: [] }, load: ok },
+      // Старый ролик с адресом MP4 в хранилище страницы
+      withMp4: { script: oldVideoFixture, load: ok, mp4Url: '/_blob/00000000000000000000000000000000' },
+      a: { script: oldVideoFixture, load: ok },
+      b: { script: oldVideoFixture, load: ok },
+      subs: { script: oldVideoFixture, load: withSubtitles },
       // 7789 кадров = 259,6 с: полная длительность округляется до 4:20, последний кадр — 4:19 целых секунд
-      long: { script: { ...pilotRlsScript, scenes: [{ id: 'всё', durationInFrames: 7789 }] }, load: ok },
-      broken: { script: pilotRlsScript, load: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) },
+      long: { script: { ...oldVideoFixture, scenes: [{ id: 'всё', durationInFrames: 7789 }] }, load: ok },
+      broken: { script: oldVideoFixture, load: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) },
+      brokenWide: { script: chaptered, load: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) },
     },
   }
 })
 
 const play = (id: string, instance: string) => window.dispatchEvent(new CustomEvent('vibecourse:video-play', { detail: { videoId: id, instance } }))
 const cover = (title = 'Ролик') => screen.queryByRole('button', { name: `Смотреть ролик «${title}»` })
-const poster = pilotRlsScript.hotspots[0].from
+// Замороженный сценарий старого ролика 1280 × 720: тесты не зависят от роликов каталога. Длительность в тестах — 4683 кадра = «2:36»,
+// три зоны, вторая — «Пустой экран с подсказкой» (текст зоны начинается с «Пустой список видит каждый новый пользователь»).
+const oldVideoFixture = oldVideo as VideoScript
+const poster = oldVideoFixture.hotspots[0].from
 
 // Полноэкранный режим jsdom не умеет — подменяем его: вход и выход сообщают fullscreenchange, как браузер
 function stubFullscreen() {
@@ -120,6 +147,17 @@ describe('VideoBlock', () => {
     expect(screen.queryByRole('slider', { name: 'Перемотка' })).toBeNull()
   })
 
+  it('сообщение об ошибке лежит внутри кадра и сжимается с ним: в кадре 1920 × 1080 шрифт крупнее', async () => {
+    const { unmount } = render(<VideoBlock videoId="broken" title="Старый" />)
+    expect(await screen.findByText('Ролик не загрузился')).not.toHaveClass('video-failed-wide')
+    unmount()
+    render(<VideoBlock videoId="brokenWide" title="Новый" />)
+    expect(await screen.findByText('Ролик не загрузился')).toHaveClass('video-failed', 'video-failed-wide')
+    // ролика нет — перематывать некуда: ни панели с подписью главы, ни списка глав
+    expect(screen.queryByTestId('video-chapter')).toBeNull()
+    expect(screen.queryByRole('list', { name: 'Главы ролика' })).toBeNull()
+  })
+
   it('другой ролик на том же месте не наследует ошибку загрузки', async () => {
     const { rerender } = render(<VideoBlock videoId="broken" title="Ролик" />)
     await screen.findByText('Ролик не загрузился')
@@ -145,11 +183,11 @@ describe('VideoBlock', () => {
     act(() => player.emit('frameupdate', { frame: poster }))
     expect(cover()).toBeInTheDocument()
     expect(screen.getByText('Видеоурок 2')).toBeInTheDocument()
-    expect(screen.getByText('3:23')).toBeInTheDocument()
-    for (const h of pilotRlsScript.hotspots) expect(screen.queryByRole('button', { name: h.title })).toBeNull()
+    expect(screen.getByText('2:36')).toBeInTheDocument()
+    for (const h of oldVideoFixture.hotspots) expect(screen.queryByRole('button', { name: h.title })).toBeNull()
     expect(screen.queryByText(/Нажмите на подсвеченное/)).toBeNull()
     // время в панели — с начала ролика, полная длительность — та же, что на обложке
-    expect(screen.getByTestId('video-time')).toHaveTextContent('0:00 / 3:23')
+    expect(screen.getByTestId('video-time')).toHaveTextContent('0:00 / 2:36')
   })
 
   it('субтитры ролика: на обложке их нет, после запуска — есть', async () => {
@@ -180,17 +218,50 @@ describe('VideoBlock', () => {
     await act(async () => {})
     const player = fake.players[0]
     await user.click(cover()!)
-    const zone = pilotRlsScript.hotspots.find((h) => h.title === 'client/18')!
+    const zone = oldVideoFixture.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
     act(() => {
       player.emit('play')
       player.emit('frameupdate', { frame: zone.from + 5 })
     })
     expect(screen.getByRole('button', { name: 'Пауза' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'client/18' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Пустой экран с подсказкой' })).toBeNull()
     act(() => player.emit('pause'))
-    expect(screen.getByRole('button', { name: 'client/18' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Пустой экран с подсказкой' })).toBeInTheDocument()
     expect(screen.getByText('Нажмите на подсвеченное, чтобы узнать подробнее')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Смотреть' })).toBeInTheDocument()
+  })
+
+  it('пояснение по нажатию — панель рядом с кадром, а не внутри него: на узком экране она встаёт под кадр (video.css)', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<VideoBlock videoId="a" title="Ролик" />)
+    await act(async () => {})
+    const player = fake.players[0]
+    await user.click(cover()!)
+    const zone = oldVideoFixture.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
+    act(() => {
+      player.emit('play')
+      player.emit('frameupdate', { frame: zone.from + 5 })
+      player.emit('pause')
+    })
+    expect(screen.queryByRole('status')).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Пустой экран с подсказкой' }))
+    const note = screen.getByRole('status')
+    expect(note).toHaveTextContent(zone.text)
+    // панель — сразу за сценой кадра в общей обёртке: сама сцена (.video-stage) остаётся высотой кадра
+    const stage = container.querySelector('.video-stage')!
+    expect(stage.contains(note)).toBe(false)
+    expect(note.parentElement).toHaveClass('video-view')
+    expect(stage.nextElementSibling).toBe(note)
+    // повторное нажатие закрывает; другой кадр — тоже
+    await user.click(screen.getByRole('button', { name: 'Пустой экран с подсказкой' }))
+    expect(screen.queryByRole('status')).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Пустой экран с подсказкой' }))
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    act(() => player.emit('frameupdate', { frame: zone.from + 6 }))
+    expect(screen.queryByRole('status')).toBeNull()
+    // и на тот же кадр после перемотки пояснение не возвращается само
+    act(() => player.emit('frameupdate', { frame: zone.from + 5 }))
+    expect(screen.queryByRole('status')).toBeNull()
   })
 
   it('кнопка панели: до запуска — с начала, потом — пауза и продолжение', async () => {
@@ -214,7 +285,7 @@ describe('VideoBlock', () => {
     fireEvent.change(screen.getByRole('slider', { name: 'Перемотка' }), { target: { value: '900' } })
     expect(player.seekTo).toHaveBeenCalledWith(900)
     expect(cover()).toBeNull()
-    expect(screen.getByTestId('video-time')).toHaveTextContent('0:30 / 3:23')
+    expect(screen.getByTestId('video-time')).toHaveTextContent('0:30 / 2:36')
   })
 
   it('после конца — «Смотреть ещё раз» и «Дальше»', async () => {
@@ -242,7 +313,7 @@ describe('VideoBlock', () => {
     const [againFirst] = screen.getAllByRole('button', { name: 'Смотреть ещё раз' })
     const [nextFirst, nextSecond] = screen.getAllByRole('button', { name: 'Дальше' })
     // на экране конца рамок точек нет
-    for (const h of pilotRlsScript.hotspots) expect(screen.queryByRole('button', { name: h.title })).toBeNull()
+    for (const h of oldVideoFixture.hotspots) expect(screen.queryByRole('button', { name: h.title })).toBeNull()
 
     // «Дальше» — к следующему материалу: после первого ролика второй, после последнего — то, что идёт за сеткой
     await user.click(nextFirst)
@@ -294,7 +365,7 @@ describe('VideoBlock', () => {
     render(<VideoBlock videoId="a" title="Ролик" />)
     await act(async () => {})
     expect(screen.getByRole('heading', { name: 'Ролик' })).toBeInTheDocument()
-    expect(screen.getByText('3:23 · 3 пояснения по нажатию')).toBeInTheDocument()
+    expect(screen.getByText('2:36 · 3 пояснения по нажатию')).toBeInTheDocument()
   })
 
   it('«Во весь экран» — только если браузер умеет; подпись меняется, выход — той же кнопкой и по Esc', async () => {
@@ -391,5 +462,220 @@ describe('VideoBlock', () => {
     unmount()
     play('b', 'чужой')
     expect(player.pause).not.toHaveBeenCalled()
+  })
+})
+
+// Ролик «Репозиторий» в тестах: 6000 кадров = 3:20, главы с кадров 0, 1800 (1:00) и 4200 (2:20)
+describe('VideoBlock: главы ролика', () => {
+  const chapters = videos.chaptered.script.chapters!
+  const seekBar = () => screen.getByRole('slider', { name: 'Перемотка' })
+  const segments = (container: HTMLElement) => [...container.querySelectorAll<HTMLElement>('.video-seek-chapters > *')]
+  const chapterButtons = () => within(screen.getByRole('list', { name: 'Главы ролика' })).getAllByRole('button')
+  // Ролик пошёл и дошёл до кадра frame
+  const playTo = (player: FakePlayer, frame: number) =>
+    act(() => {
+      player.emit('play')
+      player.emit('frameupdate', { frame })
+    })
+
+  it('под перемоткой — сегменты по главам, ширина пропорциональна длине главы', async () => {
+    const { container } = render(<VideoBlock videoId="chaptered" title="Ролик" />)
+    await act(async () => {})
+    const bar = container.querySelector('.video-seek-chapters')!
+    // полоса для глаз: чтение с экрана и клавиатура остаются за ползунком, он на месте и в той же обёртке
+    expect(bar).toHaveAttribute('aria-hidden', 'true')
+    expect(seekBar().parentElement).toContainElement(bar as HTMLElement)
+    const parts = segments(container)
+    expect(parts).toHaveLength(3)
+    // ширина — доля свободного места: сумма длин глав даёт весь ролик, зазоры 2 px вычитает сама раскладка
+    const grow = parts.map((p) => Number(p.style.flexGrow))
+    expect(grow).toEqual([1800, 2400, 1800])
+    expect(grow.reduce((a, b) => a + b)).toBe(6000)
+  })
+
+  it('пройденная часть полосы закрашена: прошедшие главы целиком, текущая — по доле, остальные пусты', async () => {
+    const { container } = render(<VideoBlock videoId="chaptered" title="Ролик" />)
+    await act(async () => {})
+    const player = fake.players[0]
+    const fill = () => segments(container).map((p) => p.style.getPropertyValue('--fill'))
+    expect(fill()).toEqual(['0%', '0%', '0%'])
+    // кадр 3000 — ровно середина второй главы (1800…4200)
+    playTo(player, 3000)
+    expect(fill()).toEqual(['100%', '50%', '0%'])
+    act(() => player.emit('ended'))
+    expect(fill()).toEqual(['100%', '100%', '100%'])
+  })
+
+  it('подпись текущей главы рядом со временем: «2/3 · название», на кадре в начале — первая глава', async () => {
+    render(<VideoBlock videoId="chaptered" title="Ролик" />)
+    await act(async () => {})
+    const player = fake.players[0]
+    // пока ролик на обложке, время 0:00 и глава первая, хотя кадр обложки лежит во второй главе
+    expect(screen.getByTestId('video-chapter')).toHaveTextContent('1/3 · Что узнаете')
+    expect(screen.getByTestId('video-chapter')).toHaveClass('video-chapter')
+    playTo(player, 3000)
+    expect(screen.getByTestId('video-chapter')).toHaveTextContent('2/3 · Четыре части приложения')
+    // граница главы принадлежит новой главе, последний кадр — последней
+    act(() => player.emit('frameupdate', { frame: 1799 }))
+    expect(screen.getByTestId('video-chapter')).toHaveTextContent('1/3 · Что узнаете')
+    act(() => player.emit('frameupdate', { frame: 1800 }))
+    expect(screen.getByTestId('video-chapter')).toHaveTextContent('2/3 · Четыре части приложения')
+    act(() => player.emit('frameupdate', { frame: 5999 }))
+    expect(screen.getByTestId('video-chapter')).toHaveTextContent('3/3 · Итог')
+    // подпись идёт в строке панели, после времени
+    expect(screen.getByTestId('video-time').nextElementSibling).toBe(screen.getByTestId('video-chapter'))
+  })
+
+  it('под строкой с длительностью — список глав: время начала и название, текущая отмечена', async () => {
+    const { container } = render(<VideoBlock videoId="chaptered" title="Ролик" />)
+    await act(async () => {})
+    const list = screen.getByRole('list', { name: 'Главы ролика' })
+    expect(list.tagName).toBe('OL')
+    expect(list).toHaveClass('video-chapters')
+    // список лежит в блоке ролика, сразу после строки «м:сс · N пояснений»
+    const meta = container.querySelector('.video-meta')!
+    expect(meta.nextElementSibling).toBe(list)
+    expect(container.querySelector('figure')).toContainElement(list)
+    const items = chapterButtons()
+    expect(items.map((b) => b.textContent)).toEqual(['0:00 Что узнаете', '1:00 Четыре части приложения', '2:20 Итог'])
+    expect(items.map((b) => b.querySelector('.video-chapter-time')?.textContent)).toEqual(['0:00', '1:00', '2:20'])
+    for (const b of items) expect(b).toHaveAttribute('type', 'button')
+    // до запуска — первая глава, дальше следом за кадром
+    expect(items.map((b) => b.getAttribute('aria-current'))).toEqual(['true', null, null])
+    playTo(fake.players[0], 3000)
+    expect(chapterButtons().map((b) => b.getAttribute('aria-current'))).toEqual([null, 'true', null])
+  })
+
+  it.each([
+    ['ролик на обложке', () => {}],
+    ['ролик идёт', (p: FakePlayer) => playTo(p, 500)],
+    ['ролик на паузе', (p: FakePlayer) => {
+      playTo(p, 500)
+      act(() => p.emit('pause'))
+    }],
+    ['ролик досмотрен', (p: FakePlayer) => {
+      playTo(p, 500)
+      act(() => p.emit('ended'))
+    }],
+  ])('нажатие на главу — перемотка к её началу и запуск: %s', async (_state, setup) => {
+    const user = userEvent.setup()
+    render(<VideoBlock videoId="chaptered" title="Ролик" />)
+    await act(async () => {})
+    const player = fake.players[0]
+    setup(player)
+    await user.click(chapterButtons()[2])
+    expect(player.seekTo).toHaveBeenCalledTimes(1)
+    expect(player.seekTo).toHaveBeenCalledWith(chapters[2].from)
+    expect(player.play).toHaveBeenCalledTimes(1)
+    expect(player.seekTo.mock.invocationCallOrder[0]).toBeLessThan(player.play.mock.invocationCallOrder[0])
+    // идущий плеер перед перемоткой ставится на паузу: иначе его seekTo оставляет отметку «возобновить» и следующая «Пауза» не держится
+    expect(player.pause).toHaveBeenCalledTimes(1)
+    expect(player.pause.mock.invocationCallOrder[0]).toBeLessThan(player.seekTo.mock.invocationCallOrder[0])
+    // обложки и экрана конца нет, текущая — третья глава
+    expect(cover()).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Смотреть ещё раз' })).toBeNull()
+    expect(chapterButtons().map((b) => b.getAttribute('aria-current'))).toEqual([null, null, 'true'])
+    expect(screen.getByTestId('video-chapter')).toHaveTextContent('3/3 · Итог')
+    expect(screen.getByTestId('video-time')).toHaveTextContent('2:20 / 3:20')
+  })
+
+  it('перемотка ползунком по-прежнему ставит нужный кадр и переключает главу', async () => {
+    render(<VideoBlock videoId="chaptered" title="Ролик" />)
+    await act(async () => {})
+    fireEvent.change(seekBar(), { target: { value: '4300' } })
+    expect(fake.players[0].seekTo).toHaveBeenCalledWith(4300)
+    expect(screen.getByTestId('video-chapter')).toHaveTextContent('3/3 · Итог')
+  })
+
+  it('пояснение по размеру кадра ролика: x 960, w 192 при 1920 даёт left 50 %, width 10 %', async () => {
+    render(<VideoBlock videoId="chaptered" title="Ролик" />)
+    await act(async () => {})
+    const player = fake.players[0]
+    playTo(player, 2100)
+    act(() => player.emit('pause'))
+    // y 540 и h 108 при высоте 1080 — тоже 50 % и 10 %
+    expect(screen.getByRole('button', { name: 'git log' })).toHaveStyle({ left: '50%', top: '50%', width: '10%', height: '10%' })
+  })
+
+  it('слой пояснений тёмного ролика (кадр 1920 × 1080) помечен is-dark, у старого 1280 × 720 — нет', async () => {
+    const { container, unmount } = render(<VideoBlock videoId="chaptered" title="Новый" />)
+    await act(async () => {})
+    playTo(fake.players[0], 2100)
+    act(() => fake.players[0].emit('pause'))
+    expect(container.querySelector('.hotspot-layer')).toHaveClass('is-dark')
+    unmount()
+    fake.players.length = 0
+
+    const old = render(<VideoBlock videoId="a" title="Старый" />)
+    await act(async () => {})
+    const zone = oldVideoFixture.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
+    playTo(fake.players[0], zone.from + 5)
+    act(() => fake.players[0].emit('pause'))
+    expect(old.container.querySelector('.hotspot-layer')).not.toBeNull()
+    expect(old.container.querySelector('.hotspot-layer')).not.toHaveClass('is-dark')
+  })
+
+  it('сцена до загрузки тёмного ролика (1920 × 1080) помечена is-dark, у старого 1280 × 720 — нет', async () => {
+    const wide = render(<VideoBlock videoId="chaptered" title="Новый" />)
+    // кадр ещё не нарисован — фон сцены уже тёмный, без белой вспышки
+    expect(wide.container.querySelector('.video-stage')).toHaveClass('is-dark')
+    wide.unmount()
+    const old = render(<VideoBlock videoId="a" title="Старый" />)
+    expect(old.container.querySelector('.video-stage')).not.toHaveClass('is-dark')
+    await act(async () => {})
+  })
+
+  it('блок тёмного ролика (1920 × 1080) помечен is-term — в сетке дня он во всю ширину, у старого 1280 × 720 — нет', async () => {
+    const wide = render(<VideoBlock videoId="chaptered" title="Новый" />)
+    expect(wide.container.querySelector('figure.video')).toHaveClass('is-term')
+    wide.unmount()
+    const old = render(<VideoBlock videoId="a" title="Старый" />)
+    expect(old.container.querySelector('figure.video')).not.toHaveClass('is-term')
+    await act(async () => {})
+  })
+
+  it('у ролика без глав (и с пустым списком глав) панель и блок прежние', async () => {
+    for (const id of ['a', 'unchaptered']) {
+      const { container, unmount } = render(<VideoBlock videoId={id} title="Ролик" />)
+      await act(async () => {})
+      expect(container.querySelector('.video-seek-chapters'), id).toBeNull()
+      expect(container.querySelector('.video-seek-wrap'), id).toBeNull()
+      expect(screen.queryByTestId('video-chapter'), id).toBeNull()
+      expect(screen.queryByRole('list', { name: 'Главы ролика' }), id).toBeNull()
+      expect(container.querySelector('.video-chapters'), id).toBeNull()
+      // ползунок — прямо в панели, как раньше
+      expect(seekBar().parentElement).toHaveClass('video-controls')
+      unmount()
+    }
+  })
+
+  it('старый ролик 1280 × 720: пояснения считаются от 1280 × 720, как раньше', async () => {
+    render(<VideoBlock videoId="a" title="Ролик" />)
+    await act(async () => {})
+    const player = fake.players[0]
+    const zone = oldVideoFixture.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
+    playTo(player, zone.from + 5)
+    act(() => player.emit('pause'))
+    expect(screen.getByRole('button', { name: 'Пустой экран с подсказкой' })).toHaveStyle({
+      left: `${(zone.x / 1280) * 100}%`,
+      top: `${(zone.y / 720) * 100}%`,
+      width: `${(zone.w / 1280) * 100}%`,
+      height: `${(zone.h / 720) * 100}%`,
+    })
+  })
+
+  it('«Скачать MP4» есть у ролика с адресом MP4 и не появляется у нового ролика без него', async () => {
+    const use = vi.fn(() => Promise.resolve({ save: vi.fn() }))
+    vi.stubGlobal('claude', { use })
+    render(<VideoBlock videoId="withMp4" title="Старый" />)
+    expect(await screen.findByRole('button', { name: 'Скачать MP4' })).toBeInTheDocument()
+    cleanup()
+
+    use.mockClear()
+    render(<VideoBlock videoId="chaptered" title="Новый" />)
+    await act(async () => {})
+    expect(screen.queryByRole('button', { name: 'Скачать MP4' })).toBeNull()
+    // и за возможностью скачивания блок даже не обращается: адреса нет
+    expect(use).not.toHaveBeenCalled()
   })
 })

@@ -6,9 +6,11 @@ import { getClaude, type DownloadsLike } from '../claude'
 import { IconArrow, IconPlay } from '../components/icons'
 import { formatDuration, plural, videoMeta } from '../course/summary'
 import { scrollToElement } from '../home/scroll'
+import { chapterIndexAt, clock } from './chapters'
 import { saveVideo } from './download'
-import { HotspotLayer } from './HotspotLayer'
+import { HotspotLayer, HotspotNote } from './HotspotLayer'
 import { videos } from './registry'
+import { isTermScript } from './termScript'
 import { useNarration, useRussianVoice } from './useNarration'
 import { VideoControls } from './VideoControls'
 import { VideoCover } from './VideoCover'
@@ -17,9 +19,10 @@ import { VideoCover } from './VideoCover'
 const PLAY_EVENT = 'vibecourse:video-play'
 type PlayDetail = { videoId: string; instance: string }
 
-// Показывается внутри кадра (масштабируется вместе с ним), поэтому крупный шрифт задан в .video-failed.
-const loadFailed = () => (
-  <p className="video-failed" role="alert">
+// Показывается внутри кадра (масштабируется вместе с ним), поэтому крупный шрифт задан в .video-failed;
+// кадр 1920 × 1080 сжимается сильнее 1280 × 720, ему шрифт ещё крупнее (.video-failed-wide).
+const loadFailed = (dark: boolean) => (
+  <p className={dark ? 'video-failed video-failed-wide' : 'video-failed'} role="alert">
     Ролик не загрузился
   </p>
 )
@@ -39,7 +42,7 @@ export function VideoBlock(props: Props) {
   return <VideoBlockBody key={props.videoId} {...props} />
 }
 
-// Объясняющий ролик на странице: обложка до первого запуска, своя панель, голос браузера,
+// Объясняющий ролик на странице: обложка до первого запуска, своя панель, голос браузера, главы (полоса перемотки и список),
 // зоны с пояснениями на паузе и экран «Смотреть ещё раз / Дальше» в конце.
 // index — номер ролика среди роликов дня («Видеоурок i» на обложке).
 function VideoBlockBody({ videoId, title, index }: Props) {
@@ -60,6 +63,10 @@ function VideoBlockBody({ videoId, title, index }: Props) {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [failed, setFailed] = useState(false)
+  // Открытое на паузе пояснение: название зоны и кадр, на котором его открыли. Другой кадр (перемотка, воспроизведение) его закрывает —
+  // и на тот же кадр после перемотки оно само не вернётся
+  const [note, setNote] = useState<{ frame: number; title: string } | null>(null)
+  if (note && note.frame !== frame) setNote(null)
   const instance = useId()
   const titleId = useId()
   const mp4 = entry?.mp4Url
@@ -153,6 +160,20 @@ function VideoBlockBody({ videoId, title, index }: Props) {
     setFrame(f)
     playerRef.current?.seekTo(f)
   }
+  // Глава из списка: с обложки, с паузы и после конца ролик запускается с начала главы, идущий — продолжает с неё.
+  // Сначала pause(): seekTo идущего плеера сам ставит на паузу «до возобновления» и потом запускает его, а наш play() сразу следом
+  // оставил бы эту отметку висеть — и следующее нажатие «Пауза» тут же отменялось бы. Речь после перемотки не накладывается:
+  // её обрывают pause и seeked (useNarration)
+  const startChapter = (from: number) => {
+    const p = playerRef.current
+    if (!p) return
+    setStarted(true)
+    setEnded(false)
+    setFrame(from)
+    p.pause()
+    p.seekTo(from)
+    p.play()
+  }
   // «Дальше» во весь экран: сначала выйти из него, иначе прокрутится документ под полноэкранным блоком
   const goNext = () => {
     const figure = figureRef.current
@@ -169,46 +190,66 @@ function VideoBlockBody({ videoId, title, index }: Props) {
   }
 
   const { script, load, mp4Url } = entry
+  const dark = isTermScript(script)
   const frames = totalFrames(script)
   const duration = formatDuration(meta.seconds)
   const shownFrame = started ? frame : 0
   const paused = started && !playing && !ended
   const spots = meta.hotspots
+  // Зоны на паузе — пояснения, живые на этом кадре; открытое — одно из них
+  const live = paused ? script.hotspots.filter((h) => frame >= h.from && frame < h.to) : []
+  const opened = note ? live.find((h) => h.title === note.title) : undefined
+  // Главы есть не у старых роликов; пустой список — всё равно что нет
+  const chapters = script.chapters?.length ? script.chapters : undefined
+  const currentChapter = chapters ? chapterIndexAt(chapters, shownFrame) : -1
   return (
-    <figure ref={figureRef} className="block video" aria-labelledby={titleId}>
+    <figure ref={figureRef} className={dark ? 'block video is-term' : 'block video'} aria-labelledby={titleId}>
       <div ref={screenRef} className="video-screen">
-        <div className="video-stage">
-          {/* Пока ролик стоит на обложке, субтитры кадра обложки не рисуются: под нижним затемнением они только шумят */}
-          <SubtitlesShown.Provider value={started}>
-            {/* Класс video-frame стилей не имеет — это крючок e2e (кадр ролика нарисован), не удалять */}
-            <Player
-              ref={playerRef}
-              className="video-frame"
-              lazyComponent={load}
-              errorFallback={loadFailed}
-              durationInFrames={frames}
-              compositionWidth={script.width}
-              compositionHeight={script.height}
-              fps={script.fps}
-              initialFrame={meta.posterFrame}
-              style={{ width: '100%', aspectRatio: '16 / 9' }}
-              clickToPlay={false}
-              spaceKeyToPlayOrPause={false}
-              acknowledgeRemotionLicense
-            />
-          </SubtitlesShown.Provider>
-          {!failed && !started && <VideoCover title={title} label={index ? `Видеоурок ${index}` : 'Видеоурок'} duration={duration} onPlay={start} />}
-          {!failed && paused && <HotspotLayer key={frame} hotspots={script.hotspots} frame={frame} />}
-          {!failed && ended && (
-            <div className="video-end">
-              <button type="button" className="btn btn-cover" onClick={start}>
-                <IconPlay size={18} /> Смотреть ещё раз
-              </button>
-              <button type="button" className="btn video-end-next" onClick={goNext}>
-                Дальше <IconArrow size={18} />
-              </button>
-            </div>
-          )}
+        {/* Сцена кадра и панель открытого пояснения: на компьютере панель лежит поверх низа кадра, на узком экране — под ним (video.css) */}
+        <div className="video-view">
+          <div className={dark ? 'video-stage is-dark' : 'video-stage'}>
+            {/* Пока ролик стоит на обложке, субтитры кадра обложки не рисуются: под нижним затемнением они только шумят */}
+            <SubtitlesShown.Provider value={started}>
+              {/* Класс video-frame стилей не имеет — это крючок e2e (кадр ролика нарисован), не удалять */}
+              <Player
+                ref={playerRef}
+                className="video-frame"
+                lazyComponent={load}
+                errorFallback={() => loadFailed(dark)}
+                durationInFrames={frames}
+                compositionWidth={script.width}
+                compositionHeight={script.height}
+                fps={script.fps}
+                initialFrame={meta.posterFrame}
+                style={{ width: '100%', aspectRatio: '16 / 9' }}
+                clickToPlay={false}
+                spaceKeyToPlayOrPause={false}
+                acknowledgeRemotionLicense
+              />
+            </SubtitlesShown.Provider>
+            {!failed && !started && <VideoCover title={title} label={index ? `Видеоурок ${index}` : 'Видеоурок'} duration={duration} onPlay={start} />}
+            {!failed && paused && (
+              <HotspotLayer
+                hotspots={live}
+                width={script.width}
+                height={script.height}
+                frame={frame}
+                open={opened?.title ?? null}
+                onToggle={(title) => setNote(title === null ? null : { frame, title })}
+              />
+            )}
+            {!failed && ended && (
+              <div className="video-end">
+                <button type="button" className="btn btn-cover" onClick={start}>
+                  <IconPlay size={18} /> Смотреть ещё раз
+                </button>
+                <button type="button" className="btn video-end-next" onClick={goNext}>
+                  Дальше <IconArrow size={18} />
+                </button>
+              </div>
+            )}
+          </div>
+          {!failed && opened && <HotspotNote spot={opened} />}
         </div>
         {!failed && (
           <VideoControls
@@ -218,6 +259,7 @@ function VideoBlockBody({ videoId, title, index }: Props) {
             frames={frames}
             duration={duration}
             fps={script.fps}
+            chapters={chapters}
             voice={voice !== null}
             voiceOn={voiceOn}
             onToggle={() => (!started || ended ? start() : playerRef.current?.toggle())}
@@ -227,14 +269,23 @@ function VideoBlockBody({ videoId, title, index }: Props) {
             onFullscreen={document.fullscreenEnabled ? toggleFullscreen : undefined}
           />
         )}
-        {!failed && paused && script.hotspots.some((h) => frame >= h.from && frame < h.to) && (
-          <p className="video-hint">Нажмите на подсвеченное, чтобы узнать подробнее</p>
-        )}
+        {!failed && live.length > 0 && <p className="video-hint">Нажмите на подсвеченное, чтобы узнать подробнее</p>}
       </div>
       <h3 id={titleId} className="video-title">
         {title}
       </h3>
       <p className="video-meta">{spots > 0 ? `${duration} · ${spots} ${plural(spots, 'пояснение', 'пояснения', 'пояснений')} по нажатию` : duration}</p>
+      {chapters && !failed && (
+        <ol className="video-chapters" aria-label="Главы ролика">
+          {chapters.map((c, i) => (
+            <li key={c.from}>
+              <button type="button" aria-current={i === currentChapter ? 'true' : undefined} onClick={() => startChapter(c.from)}>
+                <span className="video-chapter-time">{clock(c.from, script.fps)}</span> <span className="video-chapter-title">{c.title}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
       {mp4Url && downloads && (
         <p className="video-download">
           <button

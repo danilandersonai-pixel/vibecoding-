@@ -1,0 +1,1509 @@
+{
+ "id": "s07-cycle",
+ "from": "s06-auth",
+ "recorded": "2026-11-01",
+ "events": [
+  {
+   "id": "dev",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npm run dev",
+   "out": [
+    "",
+    "> trainer-app@0.1.0 dev",
+    "> next dev",
+    "",
+    "▲ Next.js 16.4.3 (Turbopack)",
+    "- Local:         http://localhost:3000",
+    "- Network:       http://192.0.2.2:3000",
+    "- Environments: .env.local",
+    "✓ Ready in 447ms"
+   ],
+   "code": null
+  },
+  {
+   "id": "ask-assign",
+   "kind": "agent",
+   "prompt": "Основной цикл по сценариям 1–2 из docs/spec.md: тренер на /clients/[id] назначает тренировку (поля «Название», «Дата», кнопка «Назначить»); подопечный видит свои тренировки из базы на /workouts и вписывает подходы на /workouts/[id] (поля «Вес, кг», «Повторы», кнопка «Сохранить подход», разбор веса — parseWeight); объём — в lib/volume.ts",
+   "reply": "Сделал основной цикл. Тренер: на /clients/[id] форма «Название», «Дата» и кнопка «Назначить», под ней тренировки подопечного; действие app/clients/[id]/actions.ts добавляет тренировку от имени тренера, чужому подопечному назначить не даст RLS. Подопечный: /workouts теперь из базы, только его тренировки; на /workouts/[id] подходы, объём и форма «Вес, кг», «Повторы», «Сохранить подход» — вес разбирает parseWeight, ошибка видна под формой. Объём считает volume() из lib/volume.ts. Выдуманные данные lib/workouts.ts больше не нужны — удалил.",
+   "steps": [
+    "assign-action",
+    "client-page2",
+    "workouts-db",
+    "workout-page",
+    "sets-action",
+    "volume-lib",
+    "drop-fake"
+   ]
+  },
+  {
+   "id": "assign-action",
+   "kind": "file",
+   "path": "app/clients/[id]/actions.ts",
+   "before": null,
+   "after": "\"use server\";\n\nimport { revalidatePath } from \"next/cache\";\nimport { redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\n\n// Тренер назначает тренировку подопечному clientId: название и день.\n// Запрос идёт от имени тренера, и чужому подопечному назначить не даст RLS (политика «тренер добавляет тренировки»).\nexport async function assignWorkout(clientId: string, form: FormData) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const title = String(form.get(\"title\") ?? \"\").trim();\n  const day = String(form.get(\"day\") ?? \"\");\n  // без названия или без даты (ГГГГ-ММ-ДД из поля даты) ничего не назначаем\n  if (title === \"\" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(day)) return;\n  await asUser(uid, (db) =>\n    db.query(\"insert into workouts (client_id, title, day) values ($1, $2, $3)\", [clientId, title, day]),\n  );\n  // карточка подопечного покажет новую тренировку сразу после нажатия\n  revalidatePath(`/clients/${clientId}`);\n}\n",
+   "diff": [
+    "diff --git a/app/clients/[id]/actions.ts b/app/clients/[id]/actions.ts",
+    "new file mode 100644",
+    "index 0000000..5eec7d6",
+    "--- /dev/null",
+    "+++ b/app/clients/[id]/actions.ts",
+    "@@ -0,0 +1,22 @@",
+    "+\"use server\";",
+    "+",
+    "+import { revalidatePath } from \"next/cache\";",
+    "+import { redirect } from \"next/navigation\";",
+    "+import { asUser } from \"@/lib/db\";",
+    "+import { currentUser } from \"@/lib/session\";",
+    "+",
+    "+// Тренер назначает тренировку подопечному clientId: название и день.",
+    "+// Запрос идёт от имени тренера, и чужому подопечному назначить не даст RLS (политика «тренер добавляет тренировки»).",
+    "+export async function assignWorkout(clientId: string, form: FormData) {",
+    "+  const uid = await currentUser();",
+    "+  if (!uid) redirect(\"/login\");",
+    "+  const title = String(form.get(\"title\") ?? \"\").trim();",
+    "+  const day = String(form.get(\"day\") ?? \"\");",
+    "+  // без названия или без даты (ГГГГ-ММ-ДД из поля даты) ничего не назначаем",
+    "+  if (title === \"\" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(day)) return;",
+    "+  await asUser(uid, (db) =>",
+    "+    db.query(\"insert into workouts (client_id, title, day) values ($1, $2, $3)\", [clientId, title, day]),",
+    "+  );",
+    "+  // карточка подопечного покажет новую тренировку сразу после нажатия",
+    "+  revalidatePath(`/clients/${clientId}`);",
+    "+}"
+   ],
+   "blob": "5eec7d6a8dc7a7d35ddf493f54d12c44c36a524d",
+   "by": "agent"
+  },
+  {
+   "id": "client-page2",
+   "kind": "file",
+   "path": "app/clients/[id]/page.tsx",
+   "before": "import type { Metadata } from \"next\";\nimport { notFound, redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\n\nexport const metadata: Metadata = { title: \"Подопечный\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Карточка подопечного по id из адреса: имя и тренировки\nexport default async function ClientPage({ params }: PageProps<\"/clients/[id]\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { id } = await params;\n  const card = await asUser(uid, async (db) => {\n    const client = await db.query<{ name: string }>(\"select name from clients where id = $1\", [id]);\n    const workouts = await db.query<{ id: string; title: string; date: string }>(\n      \"select id, title, to_char(day, 'DD.MM.YYYY') as date from workouts where client_id = $1 order by day\",\n      [id],\n    );\n    return client.rows.length > 0 ? { name: client.rows[0].name, workouts: workouts.rows } : null;\n  });\n  if (!card) notFound();\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">{card.name}</h1>\n      {card.workouts.length === 0 ? (\n        <p className=\"mt-6 text-zinc-500\">Тренировок пока нет</p>\n      ) : (\n        <ul className=\"mt-6 flex flex-col gap-3\">\n          {card.workouts.map((workout) => (\n            <li key={workout.id}>\n              <h2 className=\"text-xl font-semibold\">{workout.title}</h2>\n              <p className=\"text-sm text-zinc-500\">{workout.date}</p>\n            </li>\n          ))}\n        </ul>\n      )}\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport { notFound, redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { assignWorkout } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Подопечный\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Карточка подопечного по id из адреса: имя, форма «Назначить» и тренировки\nexport default async function ClientPage({ params }: PageProps<\"/clients/[id]\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { id } = await params;\n  const card = await asUser(uid, async (db) => {\n    const client = await db.query<{ name: string }>(\"select name from clients where id = $1\", [id]);\n    const workouts = await db.query<{ id: string; title: string; day: Date }>(\n      \"select id, title, day from workouts where client_id = $1 order by day\",\n      [id],\n    );\n    return client.rows.length > 0 ? { name: client.rows[0].name, workouts: workouts.rows } : null;\n  });\n  if (!card) notFound();\n  // поля приходят из формы, а id подопечного действие получает отсюда\n  const assign = assignWorkout.bind(null, id);\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">{card.name}</h1>\n\n      <form action={assign} className=\"mt-6 flex flex-col gap-4\">\n        <h2 className=\"text-xl font-semibold\">Новая тренировка</h2>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"title\">Название</label>\n          <input\n            id=\"title\"\n            name=\"title\"\n            required\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"day\">Дата</label>\n          <input\n            id=\"day\"\n            name=\"day\"\n            type=\"date\"\n            required\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Назначить\n        </button>\n      </form>\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Тренировки</h2>\n      {card.workouts.length === 0 ? (\n        <p className=\"mt-2 text-zinc-500\">Тренировок пока нет</p>\n      ) : (\n        <ul className=\"mt-2 flex flex-col gap-3\">\n          {card.workouts.map((workout) => (\n            <li key={workout.id}>\n              <Link href={`/workouts/${workout.id}`} className=\"font-semibold underline\">\n                {workout.title}\n              </Link>\n              <p className=\"text-sm text-zinc-500\">{new Date(workout.day).toLocaleDateString()}</p>\n            </li>\n          ))}\n        </ul>\n      )}\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/clients/[id]/page.tsx b/app/clients/[id]/page.tsx",
+    "index 9b55bb0..891c13e 100644",
+    "--- a/app/clients/[id]/page.tsx",
+    "+++ b/app/clients/[id]/page.tsx",
+    "@@ -1,39 +1,73 @@",
+    " import type { Metadata } from \"next\";",
+    "+import Link from \"next/link\";",
+    " import { notFound, redirect } from \"next/navigation\";",
+    " import { asUser } from \"@/lib/db\";",
+    " import { currentUser } from \"@/lib/session\";",
+    "+import { assignWorkout } from \"./actions\";",
+    " ",
+    " export const metadata: Metadata = { title: \"Подопечный\" };",
+    " ",
+    " // Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки",
+    " export const instant = false;",
+    " ",
+    "-// Карточка подопечного по id из адреса: имя и тренировки",
+    "+// Карточка подопечного по id из адреса: имя, форма «Назначить» и тренировки",
+    " export default async function ClientPage({ params }: PageProps<\"/clients/[id]\">) {",
+    "   const uid = await currentUser();",
+    "   if (!uid) redirect(\"/login\");",
+    "   const { id } = await params;",
+    "   const card = await asUser(uid, async (db) => {",
+    "     const client = await db.query<{ name: string }>(\"select name from clients where id = $1\", [id]);",
+    "-    const workouts = await db.query<{ id: string; title: string; date: string }>(",
+    "-      \"select id, title, to_char(day, 'DD.MM.YYYY') as date from workouts where client_id = $1 order by day\",",
+    "+    const workouts = await db.query<{ id: string; title: string; day: Date }>(",
+    "+      \"select id, title, day from workouts where client_id = $1 order by day\",",
+    "       [id],",
+    "     );",
+    "     return client.rows.length > 0 ? { name: client.rows[0].name, workouts: workouts.rows } : null;",
+    "   });",
+    "   if (!card) notFound();",
+    "+  // поля приходят из формы, а id подопечного действие получает отсюда",
+    "+  const assign = assignWorkout.bind(null, id);",
+    " ",
+    "   return (",
+    "     <main className=\"mx-auto w-full max-w-md p-8\">",
+    "       <h1 className=\"text-3xl font-semibold\">{card.name}</h1>",
+    "+",
+    "+      <form action={assign} className=\"mt-6 flex flex-col gap-4\">",
+    "+        <h2 className=\"text-xl font-semibold\">Новая тренировка</h2>",
+    "+        <div className=\"flex flex-col gap-1\">",
+    "+          <label htmlFor=\"title\">Название</label>",
+    "+          <input",
+    "+            id=\"title\"",
+    "+            name=\"title\"",
+    "+            required",
+    "+            className=\"rounded border border-zinc-300 px-3 py-2\"",
+    "+          />",
+    "+        </div>",
+    "+        <div className=\"flex flex-col gap-1\">",
+    "+          <label htmlFor=\"day\">Дата</label>",
+    "+          <input",
+    "+            id=\"day\"",
+    "+            name=\"day\"",
+    "+            type=\"date\"",
+    "+            required",
+    "+            className=\"rounded border border-zinc-300 px-3 py-2\"",
+    "+          />",
+    "+        </div>",
+    "+        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">",
+    "+          Назначить",
+    "+        </button>",
+    "+      </form>",
+    "+",
+    "+      <h2 className=\"mt-8 text-xl font-semibold\">Тренировки</h2>",
+    "       {card.workouts.length === 0 ? (",
+    "-        <p className=\"mt-6 text-zinc-500\">Тренировок пока нет</p>",
+    "+        <p className=\"mt-2 text-zinc-500\">Тренировок пока нет</p>",
+    "       ) : (",
+    "-        <ul className=\"mt-6 flex flex-col gap-3\">",
+    "+        <ul className=\"mt-2 flex flex-col gap-3\">",
+    "           {card.workouts.map((workout) => (",
+    "             <li key={workout.id}>",
+    "-              <h2 className=\"text-xl font-semibold\">{workout.title}</h2>",
+    "-              <p className=\"text-sm text-zinc-500\">{workout.date}</p>",
+    "+              <Link href={`/workouts/${workout.id}`} className=\"font-semibold underline\">",
+    "+                {workout.title}",
+    "+              </Link>",
+    "+              <p className=\"text-sm text-zinc-500\">{new Date(workout.day).toLocaleDateString()}</p>",
+    "             </li>",
+    "           ))}",
+    "         </ul>"
+   ],
+   "blob": "891c13efe1d097ad9df2fb32a536f4945c702a0e",
+   "by": "agent"
+  },
+  {
+   "id": "workouts-db",
+   "kind": "file",
+   "path": "app/workouts/page.tsx",
+   "before": "import type { Metadata } from \"next\";\nimport { CLIENTS, CURRENT_CLIENT, volume, workoutsOf } from \"@/lib/workouts\";\n\nexport const metadata: Metadata = { title: \"Мои тренировки\" };\n\n// «2026-10-19» показываем как «19.10.2026»\nconst formatDate = (date: string) => date.split(\"-\").reverse().join(\".\");\n\nexport default function WorkoutsPage() {\n  // Входа пока нет: «я» — константа CURRENT_CLIENT. Тренировок других подопечных здесь нет.\n  const workouts = workoutsOf(CURRENT_CLIENT);\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Мои тренировки</h1>\n      <p className=\"mt-1 text-zinc-500\">Подопечная: {CLIENTS[CURRENT_CLIENT]}</p>\n\n      {workouts.length === 0 ? (\n        <p className=\"mt-6 text-zinc-500\">Тренировок пока нет</p>\n      ) : (\n        <ul className=\"mt-6 flex flex-col gap-6\">\n          {workouts.map((workout) => (\n            <li key={workout.id}>\n              <h2 className=\"text-xl font-semibold\">{workout.name}</h2>\n              <p className=\"text-sm text-zinc-500\">{formatDate(workout.date)}</p>\n              <ul className=\"mt-2 flex flex-col gap-1\">\n                {workout.sets.map((set, i) => (\n                  <li key={i}>\n                    {set.weight} кг × {set.reps}\n                  </li>\n                ))}\n              </ul>\n              <p className=\"mt-2 font-medium\">Объём: {volume(workout.sets)} кг</p>\n            </li>\n          ))}\n        </ul>\n      )}\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport { redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\n\nexport const metadata: Metadata = { title: \"Мои тренировки\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Тренировки вошедшего подопечного — те, что назначил тренер. Чужих база не отдаст (RLS)\nexport default async function WorkoutsPage() {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const workouts = await asUser(uid, async (db) => {\n    const { rows } = await db.query<{ id: string; title: string; day: Date }>(\n      `select w.id, w.title, w.day\n         from workouts w join clients c on c.id = w.client_id\n        where c.user_id = $1\n        order by w.day`,\n      [uid],\n    );\n    return rows;\n  });\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Мои тренировки</h1>\n\n      {workouts.length === 0 ? (\n        <p className=\"mt-6 text-zinc-500\">Тренировок пока нет</p>\n      ) : (\n        <ul className=\"mt-6 flex flex-col gap-3\">\n          {workouts.map((workout) => (\n            <li key={workout.id}>\n              <Link href={`/workouts/${workout.id}`} className=\"text-xl font-semibold underline\">\n                {workout.title}\n              </Link>\n              <p className=\"text-sm text-zinc-500\">{new Date(workout.day).toLocaleDateString()}</p>\n            </li>\n          ))}\n        </ul>\n      )}\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/workouts/page.tsx b/app/workouts/page.tsx",
+    "index 5a7eda6..76bc30c 100644",
+    "--- a/app/workouts/page.tsx",
+    "+++ b/app/workouts/page.tsx",
+    "@@ -1,36 +1,43 @@",
+    " import type { Metadata } from \"next\";",
+    "-import { CLIENTS, CURRENT_CLIENT, volume, workoutsOf } from \"@/lib/workouts\";",
+    "+import Link from \"next/link\";",
+    "+import { redirect } from \"next/navigation\";",
+    "+import { asUser } from \"@/lib/db\";",
+    "+import { currentUser } from \"@/lib/session\";",
+    " ",
+    " export const metadata: Metadata = { title: \"Мои тренировки\" };",
+    " ",
+    "-// «2026-10-19» показываем как «19.10.2026»",
+    "-const formatDate = (date: string) => date.split(\"-\").reverse().join(\".\");",
+    "+// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки",
+    "+export const instant = false;",
+    " ",
+    "-export default function WorkoutsPage() {",
+    "-  // Входа пока нет: «я» — константа CURRENT_CLIENT. Тренировок других подопечных здесь нет.",
+    "-  const workouts = workoutsOf(CURRENT_CLIENT);",
+    "+// Тренировки вошедшего подопечного — те, что назначил тренер. Чужих база не отдаст (RLS)",
+    "+export default async function WorkoutsPage() {",
+    "+  const uid = await currentUser();",
+    "+  if (!uid) redirect(\"/login\");",
+    "+  const workouts = await asUser(uid, async (db) => {",
+    "+    const { rows } = await db.query<{ id: string; title: string; day: Date }>(",
+    "+      `select w.id, w.title, w.day",
+    "+         from workouts w join clients c on c.id = w.client_id",
+    "+        where c.user_id = $1",
+    "+        order by w.day`,",
+    "+      [uid],",
+    "+    );",
+    "+    return rows;",
+    "+  });",
+    " ",
+    "   return (",
+    "     <main className=\"mx-auto w-full max-w-md p-8\">",
+    "       <h1 className=\"text-3xl font-semibold\">Мои тренировки</h1>",
+    "-      <p className=\"mt-1 text-zinc-500\">Подопечная: {CLIENTS[CURRENT_CLIENT]}</p>",
+    " ",
+    "       {workouts.length === 0 ? (",
+    "         <p className=\"mt-6 text-zinc-500\">Тренировок пока нет</p>",
+    "       ) : (",
+    "-        <ul className=\"mt-6 flex flex-col gap-6\">",
+    "+        <ul className=\"mt-6 flex flex-col gap-3\">",
+    "           {workouts.map((workout) => (",
+    "             <li key={workout.id}>",
+    "-              <h2 className=\"text-xl font-semibold\">{workout.name}</h2>",
+    "-              <p className=\"text-sm text-zinc-500\">{formatDate(workout.date)}</p>",
+    "-              <ul className=\"mt-2 flex flex-col gap-1\">",
+    "-                {workout.sets.map((set, i) => (",
+    "-                  <li key={i}>",
+    "-                    {set.weight} кг × {set.reps}",
+    "-                  </li>",
+    "-                ))}",
+    "-              </ul>",
+    "-              <p className=\"mt-2 font-medium\">Объём: {volume(workout.sets)} кг</p>",
+    "+              <Link href={`/workouts/${workout.id}`} className=\"text-xl font-semibold underline\">",
+    "+                {workout.title}",
+    "+              </Link>",
+    "+              <p className=\"text-sm text-zinc-500\">{new Date(workout.day).toLocaleDateString()}</p>",
+    "             </li>",
+    "           ))}",
+    "         </ul>"
+   ],
+   "blob": "76bc30c4a821280f1d23b896b54bdeb2cf8bd5a0",
+   "by": "agent"
+  },
+  {
+   "id": "workout-page",
+   "kind": "file",
+   "path": "app/workouts/[id]/page.tsx",
+   "before": null,
+   "after": "import type { Metadata } from \"next\";\nimport { notFound, redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { volume } from \"@/lib/volume\";\nimport { saveSet } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Тренировка\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Тренировка по id из адреса: подходы, объём и форма нового подхода. Чужой тренировки база не отдаст (RLS) — будет 404\nexport default async function WorkoutPage({ params, searchParams }: PageProps<\"/workouts/[id]\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { id } = await params;\n  const { error } = await searchParams;\n  const workout = await asUser(uid, async (db) => {\n    const found = await db.query<{ title: string }>(\"select title from workouts where id = $1\", [id]);\n    // вес в базе — numeric, pg отдаёт его строкой; float8 приходит числом\n    const sets = await db.query<{ id: string; weight: number; reps: number }>(\n      \"select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id\",\n      [id],\n    );\n    return found.rows.length > 0 ? { title: found.rows[0].title, sets: sets.rows } : null;\n  });\n  if (!workout) notFound();\n  // поля приходят из формы, а id тренировки действие получает отсюда\n  const save = saveSet.bind(null, id);\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">{workout.title}</h1>\n\n      <ul className=\"mt-6 flex flex-col gap-1\">\n        {workout.sets.map((set) => (\n          <li key={set.id}>\n            {set.weight} кг × {set.reps}\n          </li>\n        ))}\n      </ul>\n      <p className=\"mt-2 font-medium\">Объём: {volume(workout.sets)} кг</p>\n\n      <form action={save} className=\"mt-6 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"weight\">Вес, кг</label>\n          <input\n            id=\"weight\"\n            name=\"weight\"\n            inputMode=\"decimal\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"reps\">Повторы</label>\n          <input\n            id=\"reps\"\n            name=\"reps\"\n            inputMode=\"numeric\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Сохранить подход\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/workouts/[id]/page.tsx b/app/workouts/[id]/page.tsx",
+    "new file mode 100644",
+    "index 0000000..ba78861",
+    "--- /dev/null",
+    "+++ b/app/workouts/[id]/page.tsx",
+    "@@ -0,0 +1,76 @@",
+    "+import type { Metadata } from \"next\";",
+    "+import { notFound, redirect } from \"next/navigation\";",
+    "+import { asUser } from \"@/lib/db\";",
+    "+import { currentUser } from \"@/lib/session\";",
+    "+import { volume } from \"@/lib/volume\";",
+    "+import { saveSet } from \"./actions\";",
+    "+",
+    "+export const metadata: Metadata = { title: \"Тренировка\" };",
+    "+",
+    "+// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки",
+    "+export const instant = false;",
+    "+",
+    "+// Тренировка по id из адреса: подходы, объём и форма нового подхода. Чужой тренировки база не отдаст (RLS) — будет 404",
+    "+export default async function WorkoutPage({ params, searchParams }: PageProps<\"/workouts/[id]\">) {",
+    "+  const uid = await currentUser();",
+    "+  if (!uid) redirect(\"/login\");",
+    "+  const { id } = await params;",
+    "+  const { error } = await searchParams;",
+    "+  const workout = await asUser(uid, async (db) => {",
+    "+    const found = await db.query<{ title: string }>(\"select title from workouts where id = $1\", [id]);",
+    "+    // вес в базе — numeric, pg отдаёт его строкой; float8 приходит числом",
+    "+    const sets = await db.query<{ id: string; weight: number; reps: number }>(",
+    "+      \"select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id\",",
+    "+      [id],",
+    "+    );",
+    "+    return found.rows.length > 0 ? { title: found.rows[0].title, sets: sets.rows } : null;",
+    "+  });",
+    "+  if (!workout) notFound();",
+    "+  // поля приходят из формы, а id тренировки действие получает отсюда",
+    "+  const save = saveSet.bind(null, id);",
+    "+",
+    "+  return (",
+    "+    <main className=\"mx-auto w-full max-w-md p-8\">",
+    "+      <h1 className=\"text-3xl font-semibold\">{workout.title}</h1>",
+    "+",
+    "+      <ul className=\"mt-6 flex flex-col gap-1\">",
+    "+        {workout.sets.map((set) => (",
+    "+          <li key={set.id}>",
+    "+            {set.weight} кг × {set.reps}",
+    "+          </li>",
+    "+        ))}",
+    "+      </ul>",
+    "+      <p className=\"mt-2 font-medium\">Объём: {volume(workout.sets)} кг</p>",
+    "+",
+    "+      <form action={save} className=\"mt-6 flex flex-col gap-4\">",
+    "+        <div className=\"flex flex-col gap-1\">",
+    "+          <label htmlFor=\"weight\">Вес, кг</label>",
+    "+          <input",
+    "+            id=\"weight\"",
+    "+            name=\"weight\"",
+    "+            inputMode=\"decimal\"",
+    "+            className=\"rounded border border-zinc-300 px-3 py-2\"",
+    "+          />",
+    "+        </div>",
+    "+        <div className=\"flex flex-col gap-1\">",
+    "+          <label htmlFor=\"reps\">Повторы</label>",
+    "+          <input",
+    "+            id=\"reps\"",
+    "+            name=\"reps\"",
+    "+            inputMode=\"numeric\"",
+    "+            className=\"rounded border border-zinc-300 px-3 py-2\"",
+    "+          />",
+    "+        </div>",
+    "+        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">",
+    "+          Сохранить подход",
+    "+        </button>",
+    "+      </form>",
+    "+",
+    "+      {typeof error === \"string\" && (",
+    "+        <p role=\"alert\" className=\"mt-4 text-red-600\">",
+    "+          {error}",
+    "+        </p>",
+    "+      )}",
+    "+    </main>",
+    "+  );",
+    "+}"
+   ],
+   "blob": "ba788619a292e7bdf86b19d795892cc19cf102b4",
+   "by": "agent"
+  },
+  {
+   "id": "sets-action",
+   "kind": "file",
+   "path": "app/workouts/[id]/actions.ts",
+   "before": null,
+   "after": "\"use server\";\n\nimport { redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { parseWeight } from \"@/lib/weight\";\n\n// Подход в тренировку workoutId: вес и повторы из формы.\n// Запрос идёт от имени вошедшего, и в чужую тренировку вписать не даст RLS (политика «подопечный добавляет подходы»).\nexport async function saveSet(workoutId: string, form: FormData) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const page = `/workouts/${workoutId}`;\n  // ошибку страница покажет под формой: её текст — в адресе\n  const fail = (error: string) => `${page}?error=${encodeURIComponent(error)}`;\n\n  // вес разбирает lib/weight.ts: число или текст ошибки\n  const weight = parseWeight(String(form.get(\"weight\") ?? \"\"));\n  if (typeof weight === \"string\") redirect(fail(weight));\n  const reps = Number(form.get(\"reps\"));\n  if (!Number.isInteger(reps) || reps <= 0) redirect(fail(\"Повторы — целое число больше нуля\"));\n\n  await asUser(uid, (db) =>\n    db.query(\"insert into sets (workout_id, weight, reps) values ($1, $2, $3)\", [workoutId, weight, reps]),\n  );\n  // та же страница заново — с новым подходом и без прежней ошибки в адресе\n  redirect(page);\n}\n",
+   "diff": [
+    "diff --git a/app/workouts/[id]/actions.ts b/app/workouts/[id]/actions.ts",
+    "new file mode 100644",
+    "index 0000000..92df68c",
+    "--- /dev/null",
+    "+++ b/app/workouts/[id]/actions.ts",
+    "@@ -0,0 +1,28 @@",
+    "+\"use server\";",
+    "+",
+    "+import { redirect } from \"next/navigation\";",
+    "+import { asUser } from \"@/lib/db\";",
+    "+import { currentUser } from \"@/lib/session\";",
+    "+import { parseWeight } from \"@/lib/weight\";",
+    "+",
+    "+// Подход в тренировку workoutId: вес и повторы из формы.",
+    "+// Запрос идёт от имени вошедшего, и в чужую тренировку вписать не даст RLS (политика «подопечный добавляет подходы»).",
+    "+export async function saveSet(workoutId: string, form: FormData) {",
+    "+  const uid = await currentUser();",
+    "+  if (!uid) redirect(\"/login\");",
+    "+  const page = `/workouts/${workoutId}`;",
+    "+  // ошибку страница покажет под формой: её текст — в адресе",
+    "+  const fail = (error: string) => `${page}?error=${encodeURIComponent(error)}`;",
+    "+",
+    "+  // вес разбирает lib/weight.ts: число или текст ошибки",
+    "+  const weight = parseWeight(String(form.get(\"weight\") ?? \"\"));",
+    "+  if (typeof weight === \"string\") redirect(fail(weight));",
+    "+  const reps = Number(form.get(\"reps\"));",
+    "+  if (!Number.isInteger(reps) || reps <= 0) redirect(fail(\"Повторы — целое число больше нуля\"));",
+    "+",
+    "+  await asUser(uid, (db) =>",
+    "+    db.query(\"insert into sets (workout_id, weight, reps) values ($1, $2, $3)\", [workoutId, weight, reps]),",
+    "+  );",
+    "+  // та же страница заново — с новым подходом и без прежней ошибки в адресе",
+    "+  redirect(page);",
+    "+}"
+   ],
+   "blob": "92df68cb8d2ee7edfda413ea0b801ba6643cbf31",
+   "by": "agent"
+  },
+  {
+   "id": "volume-lib",
+   "kind": "file",
+   "path": "lib/volume.ts",
+   "before": null,
+   "after": "// Объём тренировки, кг: сумма «вес × повторы» по подходам; у тренировки без подходов — 0.\n// Три подхода по 10 раз с весом 50 кг — 1500 кг.\nexport type WorkoutSet = { weight: number; reps: number };\n\nexport function volume(sets: WorkoutSet[]): number {\n  return sets.reduce((sum, { weight, reps }) => sum + weight * reps, 0);\n}\n",
+   "diff": [
+    "diff --git a/lib/volume.ts b/lib/volume.ts",
+    "new file mode 100644",
+    "index 0000000..502a74e",
+    "--- /dev/null",
+    "+++ b/lib/volume.ts",
+    "@@ -0,0 +1,7 @@",
+    "+// Объём тренировки, кг: сумма «вес × повторы» по подходам; у тренировки без подходов — 0.",
+    "+// Три подхода по 10 раз с весом 50 кг — 1500 кг.",
+    "+export type WorkoutSet = { weight: number; reps: number };",
+    "+",
+    "+export function volume(sets: WorkoutSet[]): number {",
+    "+  return sets.reduce((sum, { weight, reps }) => sum + weight * reps, 0);",
+    "+}"
+   ],
+   "blob": "502a74ed0deef89945adb773fd72e96c701f2e7c",
+   "by": "agent"
+  },
+  {
+   "id": "drop-fake",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "git rm -q lib/workouts.ts",
+   "out": [],
+   "code": 0,
+   "files": [
+    {
+     "path": "lib/workouts.ts",
+     "blob": null
+    }
+   ],
+   "by": "agent"
+  },
+  {
+   "id": "stage",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "git add -A",
+   "out": [],
+   "code": 0
+  },
+  {
+   "id": "diff-stat",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "git diff --stat HEAD",
+   "out": [
+    " app/clients/[id]/actions.ts  | 22 ++++++++++++",
+    " app/clients/[id]/page.tsx    | 48 +++++++++++++++++++++----",
+    " app/workouts/[id]/actions.ts | 28 +++++++++++++++",
+    " app/workouts/[id]/page.tsx   | 76 +++++++++++++++++++++++++++++++++++++++",
+    " app/workouts/page.tsx        | 43 ++++++++++++----------",
+    " lib/volume.ts                |  7 ++++",
+    " lib/workouts.ts              | 86 --------------------------------------------",
+    " 7 files changed, 199 insertions(+), 111 deletions(-)"
+   ],
+   "code": 0
+  },
+  {
+   "id": "diff-assign",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "git diff HEAD -- 'app/clients/[id]/page.tsx'",
+   "out": [
+    "diff --git a/app/clients/[id]/page.tsx b/app/clients/[id]/page.tsx",
+    "index 9b55bb0..891c13e 100644",
+    "--- a/app/clients/[id]/page.tsx",
+    "+++ b/app/clients/[id]/page.tsx",
+    "@@ -1,39 +1,73 @@",
+    " import type { Metadata } from \"next\";",
+    "+import Link from \"next/link\";",
+    " import { notFound, redirect } from \"next/navigation\";",
+    " import { asUser } from \"@/lib/db\";",
+    " import { currentUser } from \"@/lib/session\";",
+    "+import { assignWorkout } from \"./actions\";",
+    " ",
+    " export const metadata: Metadata = { title: \"Подопечный\" };",
+    " ",
+    " // Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки",
+    " export const instant = false;",
+    " ",
+    "-// Карточка подопечного по id из адреса: имя и тренировки",
+    "+// Карточка подопечного по id из адреса: имя, форма «Назначить» и тренировки",
+    " export default async function ClientPage({ params }: PageProps<\"/clients/[id]\">) {",
+    "   const uid = await currentUser();",
+    "   if (!uid) redirect(\"/login\");",
+    "   const { id } = await params;",
+    "   const card = await asUser(uid, async (db) => {",
+    "     const client = await db.query<{ name: string }>(\"select name from clients where id = $1\", [id]);",
+    "-    const workouts = await db.query<{ id: string; title: string; date: string }>(",
+    "-      \"select id, title, to_char(day, 'DD.MM.YYYY') as date from workouts where client_id = $1 order by day\",",
+    "+    const workouts = await db.query<{ id: string; title: string; day: Date }>(",
+    "+      \"select id, title, day from workouts where client_id = $1 order by day\",",
+    "       [id],",
+    "     );",
+    "     return client.rows.length > 0 ? { name: client.rows[0].name, workouts: workouts.rows } : null;",
+    "   });",
+    "   if (!card) notFound();",
+    "+  // поля приходят из формы, а id подопечного действие получает отсюда",
+    "+  const assign = assignWorkout.bind(null, id);",
+    " ",
+    "   return (",
+    "     <main className=\"mx-auto w-full max-w-md p-8\">",
+    "       <h1 className=\"text-3xl font-semibold\">{card.name}</h1>",
+    "+",
+    "+      <form action={assign} className=\"mt-6 flex flex-col gap-4\">",
+    "+        <h2 className=\"text-xl font-semibold\">Новая тренировка</h2>",
+    "+        <div className=\"flex flex-col gap-1\">",
+    "+          <label htmlFor=\"title\">Название</label>",
+    "+          <input",
+    "+            id=\"title\"",
+    "+            name=\"title\"",
+    "+            required",
+    "+            className=\"rounded border border-zinc-300 px-3 py-2\"",
+    "+          />",
+    "+        </div>",
+    "+        <div className=\"flex flex-col gap-1\">",
+    "+          <label htmlFor=\"day\">Дата</label>",
+    "+          <input",
+    "+            id=\"day\"",
+    "+            name=\"day\"",
+    "+            type=\"date\"",
+    "+            required",
+    "+            className=\"rounded border border-zinc-300 px-3 py-2\"",
+    "+          />",
+    "+        </div>",
+    "+        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">",
+    "+          Назначить",
+    "+        </button>",
+    "+      </form>",
+    "+",
+    "+      <h2 className=\"mt-8 text-xl font-semibold\">Тренировки</h2>",
+    "       {card.workouts.length === 0 ? (",
+    "-        <p className=\"mt-6 text-zinc-500\">Тренировок пока нет</p>",
+    "+        <p className=\"mt-2 text-zinc-500\">Тренировок пока нет</p>",
+    "       ) : (",
+    "-        <ul className=\"mt-6 flex flex-col gap-3\">",
+    "+        <ul className=\"mt-2 flex flex-col gap-3\">",
+    "           {card.workouts.map((workout) => (",
+    "             <li key={workout.id}>",
+    "-              <h2 className=\"text-xl font-semibold\">{workout.title}</h2>",
+    "-              <p className=\"text-sm text-zinc-500\">{workout.date}</p>",
+    "+              <Link href={`/workouts/${workout.id}`} className=\"font-semibold underline\">",
+    "+                {workout.title}",
+    "+              </Link>",
+    "+              <p className=\"text-sm text-zinc-500\">{new Date(workout.day).toLocaleDateString()}</p>",
+    "             </li>",
+    "           ))}",
+    "         </ul>"
+   ],
+   "code": 0
+  },
+  {
+   "id": "login-marina",
+   "kind": "browser",
+   "url": "http://localhost:3000/login",
+   "urlAfter": "http://localhost:3000/clients",
+   "title": "Тренировка",
+   "fields": [
+    {
+     "label": "Почта",
+     "value": "marina@example.com"
+    },
+    {
+     "label": "Пароль",
+     "value": "demo-password"
+    }
+   ],
+   "buttons": [
+    "Войти"
+   ],
+   "before": [
+    "Вход",
+    "Почта",
+    "Пароль",
+    "Войти"
+   ],
+   "after": [
+    "Подопечные",
+    "Анна",
+    "Олег"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] rebuilding"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] done in 292ms"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] rebuilding"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] done in 488ms"
+    }
+   ],
+   "network": [],
+   "server": [
+    "- Cache Components enabled",
+    "- Partial Prefetching enabled",
+    "",
+    " GET /login 200 in 478ms (next.js: 247ms, application-code: 231ms)",
+    " POST /api/login 200 in 195ms (next.js: 99ms, application-code: 96ms)",
+    " GET /clients 200 in 118ms (next.js: 17ms, application-code: 102ms)"
+   ]
+  },
+  {
+   "id": "assign",
+   "kind": "browser",
+   "url": "http://localhost:3000/clients/1",
+   "title": "Подопечный",
+   "fields": [
+    {
+     "label": "Название",
+     "value": "Грудь и спина"
+    },
+    {
+     "label": "Дата",
+     "value": "2026-11-02"
+    }
+   ],
+   "buttons": [
+    "Назначить"
+   ],
+   "before": [
+    "Анна",
+    "Новая тренировка",
+    "Название",
+    "Дата",
+    "Назначить",
+    "Тренировки",
+    "Ноги",
+    "10/19/2026",
+    "Спина и бицепс",
+    "10/21/2026",
+    "Грудь и плечи",
+    "10/26/2026"
+   ],
+   "after": [
+    "Анна",
+    "Новая тренировка",
+    "Название",
+    "Дата",
+    "Назначить",
+    "Тренировки",
+    "Ноги",
+    "10/19/2026",
+    "Спина и бицепс",
+    "10/21/2026",
+    "Грудь и плечи",
+    "10/26/2026",
+    "Грудь и спина",
+    "11/2/2026"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    }
+   ],
+   "network": [],
+   "server": [
+    " GET /clients/1 200 in 759ms (next.js: 26ms, generate-params: 571ms, application-code: 163ms)",
+    " POST /clients/1 200 in 103ms (next.js: 2ms, generate-params: 20ms, application-code: 81ms)",
+    "  └─ ƒ assignWorkout(\"1\", {}) in 9ms app/clients/[id]/actions.ts"
+   ]
+  },
+  {
+   "id": "ask-date",
+   "kind": "agent",
+   "prompt": "Даты показываются как 11/2/2026, а приложение русское: нужно «2 ноября»",
+   "reply": "Добавил lib/dates.ts: formatDay() пишет день по-русски — «2 ноября». Язык в нём задан явно: toLocaleDateString() без языка берёт язык системы, где работает сервер, отсюда 11/2/2026. formatDay теперь на карточке подопечного у тренера и в «Моих тренировках».",
+   "steps": [
+    "dates-lib",
+    "date-use-1",
+    "date-use-2"
+   ]
+  },
+  {
+   "id": "dates-lib",
+   "kind": "file",
+   "path": "lib/dates.ts",
+   "before": null,
+   "after": "// День тренировки по-русски: «2 ноября». Язык задан явно: без него toLocaleDateString() берёт язык системы,\n// где работает сервер, и дата выходит как 11/2/2026.\nexport function formatDay(day: Date): string {\n  return day.toLocaleDateString(\"ru-RU\", { day: \"numeric\", month: \"long\" });\n}\n",
+   "diff": [
+    "diff --git a/lib/dates.ts b/lib/dates.ts",
+    "new file mode 100644",
+    "index 0000000..604f906",
+    "--- /dev/null",
+    "+++ b/lib/dates.ts",
+    "@@ -0,0 +1,5 @@",
+    "+// День тренировки по-русски: «2 ноября». Язык задан явно: без него toLocaleDateString() берёт язык системы,",
+    "+// где работает сервер, и дата выходит как 11/2/2026.",
+    "+export function formatDay(day: Date): string {",
+    "+  return day.toLocaleDateString(\"ru-RU\", { day: \"numeric\", month: \"long\" });",
+    "+}"
+   ],
+   "blob": "604f906e3dc4c58d9489abf84950ae071ceafed5",
+   "by": "agent"
+  },
+  {
+   "id": "date-use-1",
+   "kind": "file",
+   "path": "app/clients/[id]/page.tsx",
+   "before": "import type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport { notFound, redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { assignWorkout } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Подопечный\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Карточка подопечного по id из адреса: имя, форма «Назначить» и тренировки\nexport default async function ClientPage({ params }: PageProps<\"/clients/[id]\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { id } = await params;\n  const card = await asUser(uid, async (db) => {\n    const client = await db.query<{ name: string }>(\"select name from clients where id = $1\", [id]);\n    const workouts = await db.query<{ id: string; title: string; day: Date }>(\n      \"select id, title, day from workouts where client_id = $1 order by day\",\n      [id],\n    );\n    return client.rows.length > 0 ? { name: client.rows[0].name, workouts: workouts.rows } : null;\n  });\n  if (!card) notFound();\n  // поля приходят из формы, а id подопечного действие получает отсюда\n  const assign = assignWorkout.bind(null, id);\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">{card.name}</h1>\n\n      <form action={assign} className=\"mt-6 flex flex-col gap-4\">\n        <h2 className=\"text-xl font-semibold\">Новая тренировка</h2>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"title\">Название</label>\n          <input\n            id=\"title\"\n            name=\"title\"\n            required\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"day\">Дата</label>\n          <input\n            id=\"day\"\n            name=\"day\"\n            type=\"date\"\n            required\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Назначить\n        </button>\n      </form>\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Тренировки</h2>\n      {card.workouts.length === 0 ? (\n        <p className=\"mt-2 text-zinc-500\">Тренировок пока нет</p>\n      ) : (\n        <ul className=\"mt-2 flex flex-col gap-3\">\n          {card.workouts.map((workout) => (\n            <li key={workout.id}>\n              <Link href={`/workouts/${workout.id}`} className=\"font-semibold underline\">\n                {workout.title}\n              </Link>\n              <p className=\"text-sm text-zinc-500\">{new Date(workout.day).toLocaleDateString()}</p>\n            </li>\n          ))}\n        </ul>\n      )}\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport { notFound, redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { assignWorkout } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Подопечный\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Карточка подопечного по id из адреса: имя, форма «Назначить» и тренировки\nexport default async function ClientPage({ params }: PageProps<\"/clients/[id]\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { id } = await params;\n  const card = await asUser(uid, async (db) => {\n    const client = await db.query<{ name: string }>(\"select name from clients where id = $1\", [id]);\n    const workouts = await db.query<{ id: string; title: string; day: Date }>(\n      \"select id, title, day from workouts where client_id = $1 order by day\",\n      [id],\n    );\n    return client.rows.length > 0 ? { name: client.rows[0].name, workouts: workouts.rows } : null;\n  });\n  if (!card) notFound();\n  // поля приходят из формы, а id подопечного действие получает отсюда\n  const assign = assignWorkout.bind(null, id);\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">{card.name}</h1>\n\n      <form action={assign} className=\"mt-6 flex flex-col gap-4\">\n        <h2 className=\"text-xl font-semibold\">Новая тренировка</h2>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"title\">Название</label>\n          <input\n            id=\"title\"\n            name=\"title\"\n            required\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"day\">Дата</label>\n          <input\n            id=\"day\"\n            name=\"day\"\n            type=\"date\"\n            required\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Назначить\n        </button>\n      </form>\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Тренировки</h2>\n      {card.workouts.length === 0 ? (\n        <p className=\"mt-2 text-zinc-500\">Тренировок пока нет</p>\n      ) : (\n        <ul className=\"mt-2 flex flex-col gap-3\">\n          {card.workouts.map((workout) => (\n            <li key={workout.id}>\n              <Link href={`/workouts/${workout.id}`} className=\"font-semibold underline\">\n                {workout.title}\n              </Link>\n              <p className=\"text-sm text-zinc-500\">{formatDay(workout.day)}</p>\n            </li>\n          ))}\n        </ul>\n      )}\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/clients/[id]/page.tsx b/app/clients/[id]/page.tsx",
+    "index 891c13e..cc8a024 100644",
+    "--- a/app/clients/[id]/page.tsx",
+    "+++ b/app/clients/[id]/page.tsx",
+    "@@ -1,6 +1,7 @@",
+    " import type { Metadata } from \"next\";",
+    " import Link from \"next/link\";",
+    " import { notFound, redirect } from \"next/navigation\";",
+    "+import { formatDay } from \"@/lib/dates\";",
+    " import { asUser } from \"@/lib/db\";",
+    " import { currentUser } from \"@/lib/session\";",
+    " import { assignWorkout } from \"./actions\";",
+    "@@ -67,7 +68,7 @@ export default async function ClientPage({ params }: PageProps<\"/clients/[id]\">)",
+    "               <Link href={`/workouts/${workout.id}`} className=\"font-semibold underline\">",
+    "                 {workout.title}",
+    "               </Link>",
+    "-              <p className=\"text-sm text-zinc-500\">{new Date(workout.day).toLocaleDateString()}</p>",
+    "+              <p className=\"text-sm text-zinc-500\">{formatDay(workout.day)}</p>",
+    "             </li>",
+    "           ))}",
+    "         </ul>"
+   ],
+   "blob": "cc8a0244f8d2c7e36354e95a1a425d44ad29f140",
+   "by": "agent"
+  },
+  {
+   "id": "date-use-2",
+   "kind": "file",
+   "path": "app/workouts/page.tsx",
+   "before": "import type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport { redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\n\nexport const metadata: Metadata = { title: \"Мои тренировки\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Тренировки вошедшего подопечного — те, что назначил тренер. Чужих база не отдаст (RLS)\nexport default async function WorkoutsPage() {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const workouts = await asUser(uid, async (db) => {\n    const { rows } = await db.query<{ id: string; title: string; day: Date }>(\n      `select w.id, w.title, w.day\n         from workouts w join clients c on c.id = w.client_id\n        where c.user_id = $1\n        order by w.day`,\n      [uid],\n    );\n    return rows;\n  });\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Мои тренировки</h1>\n\n      {workouts.length === 0 ? (\n        <p className=\"mt-6 text-zinc-500\">Тренировок пока нет</p>\n      ) : (\n        <ul className=\"mt-6 flex flex-col gap-3\">\n          {workouts.map((workout) => (\n            <li key={workout.id}>\n              <Link href={`/workouts/${workout.id}`} className=\"text-xl font-semibold underline\">\n                {workout.title}\n              </Link>\n              <p className=\"text-sm text-zinc-500\">{new Date(workout.day).toLocaleDateString()}</p>\n            </li>\n          ))}\n        </ul>\n      )}\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\n\nexport const metadata: Metadata = { title: \"Мои тренировки\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Тренировки вошедшего подопечного — те, что назначил тренер. Чужих база не отдаст (RLS)\nexport default async function WorkoutsPage() {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const workouts = await asUser(uid, async (db) => {\n    const { rows } = await db.query<{ id: string; title: string; day: Date }>(\n      `select w.id, w.title, w.day\n         from workouts w join clients c on c.id = w.client_id\n        where c.user_id = $1\n        order by w.day`,\n      [uid],\n    );\n    return rows;\n  });\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Мои тренировки</h1>\n\n      {workouts.length === 0 ? (\n        <p className=\"mt-6 text-zinc-500\">Тренировок пока нет</p>\n      ) : (\n        <ul className=\"mt-6 flex flex-col gap-3\">\n          {workouts.map((workout) => (\n            <li key={workout.id}>\n              <Link href={`/workouts/${workout.id}`} className=\"text-xl font-semibold underline\">\n                {workout.title}\n              </Link>\n              <p className=\"text-sm text-zinc-500\">{formatDay(workout.day)}</p>\n            </li>\n          ))}\n        </ul>\n      )}\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/workouts/page.tsx b/app/workouts/page.tsx",
+    "index 76bc30c..728769d 100644",
+    "--- a/app/workouts/page.tsx",
+    "+++ b/app/workouts/page.tsx",
+    "@@ -1,6 +1,7 @@",
+    " import type { Metadata } from \"next\";",
+    " import Link from \"next/link\";",
+    " import { redirect } from \"next/navigation\";",
+    "+import { formatDay } from \"@/lib/dates\";",
+    " import { asUser } from \"@/lib/db\";",
+    " import { currentUser } from \"@/lib/session\";",
+    " ",
+    "@@ -37,7 +38,7 @@ export default async function WorkoutsPage() {",
+    "               <Link href={`/workouts/${workout.id}`} className=\"text-xl font-semibold underline\">",
+    "                 {workout.title}",
+    "               </Link>",
+    "-              <p className=\"text-sm text-zinc-500\">{new Date(workout.day).toLocaleDateString()}</p>",
+    "+              <p className=\"text-sm text-zinc-500\">{formatDay(workout.day)}</p>",
+    "             </li>",
+    "           ))}",
+    "         </ul>"
+   ],
+   "blob": "728769dd02c5244cccfca97dfcbff45fe901d8df",
+   "by": "agent"
+  },
+  {
+   "id": "assign-view",
+   "kind": "browser",
+   "url": "http://localhost:3000/clients/1",
+   "title": "Подопечный",
+   "fields": [],
+   "buttons": [
+    "Назначить"
+   ],
+   "before": [
+    "Анна",
+    "Новая тренировка",
+    "Название",
+    "Дата",
+    "Назначить",
+    "Тренировки",
+    "Ноги",
+    "19 октября",
+    "Спина и бицепс",
+    "21 октября",
+    "Грудь и плечи",
+    "26 октября",
+    "Грудь и спина",
+    "2 ноября"
+   ],
+   "after": [
+    "Анна",
+    "Новая тренировка",
+    "Название",
+    "Дата",
+    "Назначить",
+    "Тренировки",
+    "Ноги",
+    "19 октября",
+    "Спина и бицепс",
+    "21 октября",
+    "Грудь и плечи",
+    "26 октября",
+    "Грудь и спина",
+    "2 ноября"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    }
+   ],
+   "network": [],
+   "server": [
+    "✓ Compiled in 47ms",
+    " GET /clients/1 200 in 120ms (next.js: 4ms, generate-params: 24ms, application-code: 93ms)"
+   ]
+  },
+  {
+   "id": "login-anna",
+   "kind": "browser",
+   "url": "http://localhost:3000/login",
+   "urlAfter": "http://localhost:3000/workouts",
+   "title": "Тренировка",
+   "fields": [
+    {
+     "label": "Почта",
+     "value": "anna@example.com"
+    },
+    {
+     "label": "Пароль",
+     "value": "demo-password"
+    }
+   ],
+   "buttons": [
+    "Войти"
+   ],
+   "before": [
+    "Вход",
+    "Почта",
+    "Пароль",
+    "Войти"
+   ],
+   "after": [
+    "Мои тренировки",
+    "Ноги",
+    "19 октября",
+    "Спина и бицепс",
+    "21 октября",
+    "Грудь и плечи",
+    "26 октября",
+    "Грудь и спина",
+    "2 ноября"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] rebuilding"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] done in 262ms"
+    }
+   ],
+   "network": [],
+   "server": [
+    " GET /login 200 in 44ms (next.js: 1.8ms, application-code: 42ms)",
+    " POST /api/login 200 in 16ms (next.js: 1.5ms, application-code: 14ms)",
+    " GET /workouts 200 in 78ms (next.js: 15ms, application-code: 63ms)"
+   ]
+  },
+  {
+   "id": "log-set",
+   "kind": "browser",
+   "url": "http://localhost:3000/workouts/6",
+   "title": "Тренировка",
+   "fields": [
+    {
+     "label": "Вес, кг",
+     "value": "60"
+    },
+    {
+     "label": "Повторы",
+     "value": "8"
+    }
+   ],
+   "buttons": [
+    "Сохранить подход"
+   ],
+   "before": [
+    "Грудь и спина",
+    "Объём: 0 кг",
+    "Вес, кг",
+    "Повторы",
+    "Сохранить подход"
+   ],
+   "after": [
+    "Грудь и спина",
+    "60 кг × 8",
+    "Объём: 480 кг",
+    "Вес, кг",
+    "Повторы",
+    "Сохранить подход"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    }
+   ],
+   "network": [],
+   "server": [
+    " GET /workouts/6 200 in 700ms (next.js: 13ms, generate-params: 612ms, application-code: 75ms)",
+    " GET /workouts/6 200 in 92ms (next.js: 2.0ms, generate-params: 0.1ms, application-code: 90ms)",
+    " POST /workouts/6 200 in 161ms (next.js: 1.8ms, generate-params: 24ms, application-code: 135ms)",
+    "  └─ ƒ saveSet(\"6\", {}) in 7ms app/workouts/[id]/actions.ts"
+   ]
+  },
+  {
+   "id": "ask-volume-test",
+   "kind": "agent",
+   "prompt": "Тест на объём по требованию: три подхода по 10 раз с весом 50 кг — 1500 кг; пустая тренировка — 0",
+   "reply": "Написал lib/volume.test.ts — два теста ровно по требованию: три подхода по 10 раз с весом 50 кг дают 1500 кг, тренировка без подходов — 0. Запустил npx vitest run lib/volume.test.ts — оба прошли.",
+   "steps": [
+    "volume-test",
+    "volume-run"
+   ]
+  },
+  {
+   "id": "volume-test",
+   "kind": "file",
+   "path": "lib/volume.test.ts",
+   "before": null,
+   "after": "import { expect, test } from \"vitest\";\nimport { volume } from \"./volume\";\n\ntest(\"три подхода по 10 раз с весом 50 кг — 1500 кг\", () => {\n  const sets = [\n    { weight: 50, reps: 10 },\n    { weight: 50, reps: 10 },\n    { weight: 50, reps: 10 },\n  ];\n  expect(volume(sets)).toBe(1500);\n});\n\ntest(\"пустая тренировка — 0\", () => {\n  expect(volume([])).toBe(0);\n});\n",
+   "diff": [
+    "diff --git a/lib/volume.test.ts b/lib/volume.test.ts",
+    "new file mode 100644",
+    "index 0000000..4e9f9a4",
+    "--- /dev/null",
+    "+++ b/lib/volume.test.ts",
+    "@@ -0,0 +1,15 @@",
+    "+import { expect, test } from \"vitest\";",
+    "+import { volume } from \"./volume\";",
+    "+",
+    "+test(\"три подхода по 10 раз с весом 50 кг — 1500 кг\", () => {",
+    "+  const sets = [",
+    "+    { weight: 50, reps: 10 },",
+    "+    { weight: 50, reps: 10 },",
+    "+    { weight: 50, reps: 10 },",
+    "+  ];",
+    "+  expect(volume(sets)).toBe(1500);",
+    "+});",
+    "+",
+    "+test(\"пустая тренировка — 0\", () => {",
+    "+  expect(volume([])).toBe(0);",
+    "+});"
+   ],
+   "blob": "4e9f9a42b6b37446b8cab4c83062c2135c4b20e4",
+   "by": "agent"
+  },
+  {
+   "id": "volume-run",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npx vitest run lib/volume.test.ts",
+   "out": [
+    "",
+    " RUN  v5.0.5 ~/trainer-app",
+    "",
+    " ✓ lib/volume.test.ts (2 tests) 5ms",
+    "",
+    " Test Files  1 passed (1)",
+    "      Tests  2 passed (2)",
+    "   Start at  09:57:22",
+    "   Duration  229ms (transform 54%, import 36%, tests 5%, worker 5%)"
+   ],
+   "code": 0,
+   "by": "agent"
+  },
+  {
+   "id": "break",
+   "kind": "file",
+   "path": "lib/volume.ts",
+   "before": "// Объём тренировки, кг: сумма «вес × повторы» по подходам; у тренировки без подходов — 0.\n// Три подхода по 10 раз с весом 50 кг — 1500 кг.\nexport type WorkoutSet = { weight: number; reps: number };\n\nexport function volume(sets: WorkoutSet[]): number {\n  return sets.reduce((sum, { weight, reps }) => sum + weight * reps, 0);\n}\n",
+   "after": "// Объём тренировки, кг: сумма «вес × повторы» по подходам; у тренировки без подходов — 0.\n// Три подхода по 10 раз с весом 50 кг — 1500 кг.\nexport type WorkoutSet = { weight: number; reps: number };\n\nexport function volume(sets: WorkoutSet[]): number {\n  return sets.reduce((sum, { weight, reps }) => sum + weight + reps, 0);\n}\n",
+   "diff": [
+    "diff --git a/lib/volume.ts b/lib/volume.ts",
+    "index 502a74e..bd3a6ed 100644",
+    "--- a/lib/volume.ts",
+    "+++ b/lib/volume.ts",
+    "@@ -3,5 +3,5 @@",
+    " export type WorkoutSet = { weight: number; reps: number };",
+    " ",
+    " export function volume(sets: WorkoutSet[]): number {",
+    "-  return sets.reduce((sum, { weight, reps }) => sum + weight * reps, 0);",
+    "+  return sets.reduce((sum, { weight, reps }) => sum + weight + reps, 0);",
+    " }"
+   ],
+   "blob": "bd3a6eda197ff51209797fc3eaeb3f5755644977"
+  },
+  {
+   "id": "red",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npm test",
+   "out": [
+    "",
+    "> trainer-app@0.1.0 test",
+    "> vitest run",
+    "",
+    "",
+    " RUN  v5.0.5 ~/trainer-app",
+    "",
+    " ❯ lib/volume.test.ts (2 tests | 1 failed) 9ms",
+    "   × три подхода по 10 раз с весом 50 кг — 1500 кг 8ms",
+    "   ✓ пустая тренировка — 0 0ms",
+    " ✓ lib/weight.test.ts (5 tests) 6ms",
+    " ✓ test/rls.test.ts (3 tests) 37ms",
+    "",
+    "⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+    "",
+    " FAIL  lib/volume.test.ts > три подхода по 10 раз с весом 50 кг — 1500 кг",
+    "AssertionError: expected 180 to be 1500 // Object.is equality",
+    "",
+    "- Expected",
+    "+ Received",
+    "",
+    "- 1500",
+    "+ 180",
+    "",
+    " ❯ lib/volume.test.ts:10:24",
+    "      8|     { weight: 50, reps: 10 },",
+    "      9|   ];",
+    "     10|   expect(volume(sets)).toBe(1500);",
+    "       |                        ^",
+    "     11| });",
+    "     12|",
+    "",
+    "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯",
+    "",
+    "",
+    " Test Files  1 failed | 2 passed (3)",
+    "      Tests  1 failed | 9 passed (10)",
+    "   Start at  09:57:23",
+    "   Duration  326ms (transform 54%, import 25%, tests 15%, worker 6%)"
+   ],
+   "code": 1
+  },
+  {
+   "id": "unbreak",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "git restore lib/volume.ts",
+   "out": [],
+   "code": 0,
+   "files": [
+    {
+     "path": "lib/volume.ts",
+     "blob": "502a74ed0deef89945adb773fd72e96c701f2e7c"
+    }
+   ]
+  },
+  {
+   "id": "green",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npm test",
+   "out": [
+    "",
+    "> trainer-app@0.1.0 test",
+    "> vitest run",
+    "",
+    "",
+    " RUN  v5.0.5 ~/trainer-app",
+    "",
+    " ✓ lib/weight.test.ts (5 tests) 7ms",
+    " ✓ lib/volume.test.ts (2 tests) 4ms",
+    " ✓ test/rls.test.ts (3 tests) 32ms",
+    "",
+    " Test Files  3 passed (3)",
+    "      Tests  10 passed (10)",
+    "   Start at  09:57:24",
+    "   Duration  299ms (import 38%, transform 33%, tests 18%, worker 11%)"
+   ],
+   "code": 0
+  },
+  {
+   "id": "pw",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npm install -D @playwright/test@1.56.1",
+   "out": [
+    "",
+    "added 3 packages, and audited 418 packages in 2s",
+    "",
+    "found 0 vulnerabilities"
+   ],
+   "code": 0,
+   "files": [
+    {
+     "path": "package-lock.json",
+     "blob": "71dc629fde4984efe6bfc757b2116700222d44c2"
+    },
+    {
+     "path": "package.json",
+     "blob": "2448940451a87058fe0cb1750f0237b2620e55b7"
+    }
+   ]
+  },
+  {
+   "id": "ask-e2e",
+   "kind": "agent",
+   "prompt": "Сквозной тест сценария: Марина назначает тренировку Анне, Анна вписывает подход, Марина видит объём",
+   "reply": "Написал e2e/cycle.spec.ts: Марина входит и назначает Анне тренировку, Анна в своём браузере вписывает подход 50 кг × 10, Марина открывает эту тренировку и видит «Объём: 500 кг». Название каждый раз новое — тест не зависит от того, что уже есть в базе. playwright.config.ts: тесты из e2e/, адрес http://localhost:3000, запущенный npm run dev берётся как есть. Vitest папку e2e/ больше не трогает (vitest.config.ts), отчёты Playwright — в .gitignore. npx playwright test — тест прошёл.",
+   "steps": [
+    "vitest-config",
+    "pw-config",
+    "e2e-file",
+    "e2e-ignore",
+    "e2e-run"
+   ]
+  },
+  {
+   "id": "vitest-config",
+   "kind": "file",
+   "path": "vitest.config.ts",
+   "before": null,
+   "after": "import { configDefaults, defineConfig } from \"vitest/config\";\n\n// Vitest запускает модульные тесты (npm test). В e2e/ — сквозные тесты Playwright, их запускает npx playwright test.\nexport default defineConfig({\n  test: {\n    exclude: [...configDefaults.exclude, \"e2e/**\"],\n  },\n});\n",
+   "diff": [
+    "diff --git a/vitest.config.ts b/vitest.config.ts",
+    "new file mode 100644",
+    "index 0000000..0562200",
+    "--- /dev/null",
+    "+++ b/vitest.config.ts",
+    "@@ -0,0 +1,8 @@",
+    "+import { configDefaults, defineConfig } from \"vitest/config\";",
+    "+",
+    "+// Vitest запускает модульные тесты (npm test). В e2e/ — сквозные тесты Playwright, их запускает npx playwright test.",
+    "+export default defineConfig({",
+    "+  test: {",
+    "+    exclude: [...configDefaults.exclude, \"e2e/**\"],",
+    "+  },",
+    "+});"
+   ],
+   "blob": "0562200385d5e8064e0abd6a21b33bc24c48ba2c",
+   "by": "agent"
+  },
+  {
+   "id": "pw-config",
+   "kind": "file",
+   "path": "playwright.config.ts",
+   "before": null,
+   "after": "import { defineConfig, devices } from \"@playwright/test\";\n\n// Сквозные тесты из e2e/ — в настоящем браузере, по приложению на http://localhost:3000.\n// Если npm run dev уже запущен, тесты идут по нему; если нет — Playwright запустит его сам.\nexport default defineConfig({\n  testDir: \"e2e\",\n  reporter: \"list\",\n  use: { baseURL: \"http://localhost:3000\" },\n  projects: [{ name: \"chromium\", use: { ...devices[\"Desktop Chrome\"] } }],\n  webServer: {\n    command: \"npm run dev\",\n    url: \"http://localhost:3000\",\n    reuseExistingServer: true,\n  },\n});\n",
+   "diff": [
+    "diff --git a/playwright.config.ts b/playwright.config.ts",
+    "new file mode 100644",
+    "index 0000000..595220c",
+    "--- /dev/null",
+    "+++ b/playwright.config.ts",
+    "@@ -0,0 +1,15 @@",
+    "+import { defineConfig, devices } from \"@playwright/test\";",
+    "+",
+    "+// Сквозные тесты из e2e/ — в настоящем браузере, по приложению на http://localhost:3000.",
+    "+// Если npm run dev уже запущен, тесты идут по нему; если нет — Playwright запустит его сам.",
+    "+export default defineConfig({",
+    "+  testDir: \"e2e\",",
+    "+  reporter: \"list\",",
+    "+  use: { baseURL: \"http://localhost:3000\" },",
+    "+  projects: [{ name: \"chromium\", use: { ...devices[\"Desktop Chrome\"] } }],",
+    "+  webServer: {",
+    "+    command: \"npm run dev\",",
+    "+    url: \"http://localhost:3000\",",
+    "+    reuseExistingServer: true,",
+    "+  },",
+    "+});"
+   ],
+   "blob": "595220c1a2b5022019ab262c9f15b538f80ce466",
+   "by": "agent"
+  },
+  {
+   "id": "e2e-file",
+   "kind": "file",
+   "path": "e2e/cycle.spec.ts",
+   "before": null,
+   "after": "import { expect, test, type Page } from \"@playwright/test\";\n\n// Сценарии 1–2 из docs/spec.md целиком: Марина назначает тренировку Анне, Анна вписывает подход, Марина видит объём.\n// Название каждый раз новое: тест не зависит от того, что уже есть в базе.\nconst title = `Сквозной тест ${Date.now()}`;\n\nasync function login(page: Page, email: string, home: RegExp) {\n  await page.goto(\"/login\");\n  await page.getByLabel(\"Почта\").fill(email);\n  await page.getByLabel(\"Пароль\").fill(\"demo-password\");\n  await page.getByRole(\"button\", { name: \"Войти\" }).click();\n  await expect(page).toHaveURL(home);\n}\n\ntest(\"Марина назначает тренировку, Анна вписывает подход, Марина видит объём\", async ({ browser }) => {\n  // у Марины и Анны — свои браузеры, у каждой своя cookie входа\n  const marina = await browser.newPage();\n  await login(marina, \"marina@example.com\", /\\/clients$/);\n  await marina.getByRole(\"link\", { name: \"Анна\" }).click();\n  await marina.getByLabel(\"Название\").fill(title);\n  await marina.getByLabel(\"Дата\").fill(\"2026-11-09\");\n  await marina.getByRole(\"button\", { name: \"Назначить\" }).click();\n  await expect(marina.getByRole(\"link\", { name: title })).toBeVisible();\n\n  const anna = await browser.newPage();\n  await login(anna, \"anna@example.com\", /\\/workouts$/);\n  await anna.getByRole(\"link\", { name: title }).click();\n  await anna.getByLabel(\"Вес, кг\").fill(\"50\");\n  await anna.getByLabel(\"Повторы\").fill(\"10\");\n  await anna.getByRole(\"button\", { name: \"Сохранить подход\" }).click();\n  await expect(anna.getByText(\"50 кг × 10\")).toBeVisible();\n\n  await marina.getByRole(\"link\", { name: title }).click();\n  await expect(marina.getByText(\"Объём: 500 кг\")).toBeVisible();\n});\n",
+   "diff": [
+    "diff --git a/e2e/cycle.spec.ts b/e2e/cycle.spec.ts",
+    "new file mode 100644",
+    "index 0000000..d199de9",
+    "--- /dev/null",
+    "+++ b/e2e/cycle.spec.ts",
+    "@@ -0,0 +1,35 @@",
+    "+import { expect, test, type Page } from \"@playwright/test\";",
+    "+",
+    "+// Сценарии 1–2 из docs/spec.md целиком: Марина назначает тренировку Анне, Анна вписывает подход, Марина видит объём.",
+    "+// Название каждый раз новое: тест не зависит от того, что уже есть в базе.",
+    "+const title = `Сквозной тест ${Date.now()}`;",
+    "+",
+    "+async function login(page: Page, email: string, home: RegExp) {",
+    "+  await page.goto(\"/login\");",
+    "+  await page.getByLabel(\"Почта\").fill(email);",
+    "+  await page.getByLabel(\"Пароль\").fill(\"demo-password\");",
+    "+  await page.getByRole(\"button\", { name: \"Войти\" }).click();",
+    "+  await expect(page).toHaveURL(home);",
+    "+}",
+    "+",
+    "+test(\"Марина назначает тренировку, Анна вписывает подход, Марина видит объём\", async ({ browser }) => {",
+    "+  // у Марины и Анны — свои браузеры, у каждой своя cookie входа",
+    "+  const marina = await browser.newPage();",
+    "+  await login(marina, \"marina@example.com\", /\\/clients$/);",
+    "+  await marina.getByRole(\"link\", { name: \"Анна\" }).click();",
+    "+  await marina.getByLabel(\"Название\").fill(title);",
+    "+  await marina.getByLabel(\"Дата\").fill(\"2026-11-09\");",
+    "+  await marina.getByRole(\"button\", { name: \"Назначить\" }).click();",
+    "+  await expect(marina.getByRole(\"link\", { name: title })).toBeVisible();",
+    "+",
+    "+  const anna = await browser.newPage();",
+    "+  await login(anna, \"anna@example.com\", /\\/workouts$/);",
+    "+  await anna.getByRole(\"link\", { name: title }).click();",
+    "+  await anna.getByLabel(\"Вес, кг\").fill(\"50\");",
+    "+  await anna.getByLabel(\"Повторы\").fill(\"10\");",
+    "+  await anna.getByRole(\"button\", { name: \"Сохранить подход\" }).click();",
+    "+  await expect(anna.getByText(\"50 кг × 10\")).toBeVisible();",
+    "+",
+    "+  await marina.getByRole(\"link\", { name: title }).click();",
+    "+  await expect(marina.getByText(\"Объём: 500 кг\")).toBeVisible();",
+    "+});"
+   ],
+   "blob": "d199de9ce7b3315a7a18c40005dbc6dd27a03f93",
+   "by": "agent"
+  },
+  {
+   "id": "e2e-ignore",
+   "kind": "file",
+   "path": ".gitignore",
+   "before": "# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.\n\n# dependencies\n/node_modules\n/.pnp\n.pnp.*\n.yarn/*\n!.yarn/patches\n!.yarn/plugins\n!.yarn/releases\n!.yarn/versions\n\n# testing\n/coverage\n\n# next.js\n/.next/\n/out/\n\n# production\n/build\n\n# misc\n.DS_Store\n*.pem\n\n# debug\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\n.pnpm-debug.log*\n\n# env files (can opt-in for committing if needed)\n.env*\n\n# vercel\n.vercel\n\n# typescript\n*.tsbuildinfo\nnext-env.d.ts\n",
+   "after": "# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.\n\n# dependencies\n/node_modules\n/.pnp\n.pnp.*\n.yarn/*\n!.yarn/patches\n!.yarn/plugins\n!.yarn/releases\n!.yarn/versions\n\n# testing\n/coverage\n/test-results/\n/playwright-report/\n\n# next.js\n/.next/\n/out/\n\n# production\n/build\n\n# misc\n.DS_Store\n*.pem\n\n# debug\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\n.pnpm-debug.log*\n\n# env files (can opt-in for committing if needed)\n.env*\n\n# vercel\n.vercel\n\n# typescript\n*.tsbuildinfo\nnext-env.d.ts\n",
+   "diff": [
+    "diff --git a/.gitignore b/.gitignore",
+    "index 5ef6a52..9babaf7 100644",
+    "--- a/.gitignore",
+    "+++ b/.gitignore",
+    "@@ -12,6 +12,8 @@",
+    " ",
+    " # testing",
+    " /coverage",
+    "+/test-results/",
+    "+/playwright-report/",
+    " ",
+    " # next.js",
+    " /.next/"
+   ],
+   "blob": "9babaf7a7576684d1e6f19db4afa2cefd91640d3",
+   "by": "agent"
+  },
+  {
+   "id": "e2e-run",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npx playwright test",
+   "out": [
+    "",
+    "Running 1 test using 1 worker",
+    "",
+    "  ✓  1 [chromium] › e2e/cycle.spec.ts:15:5 › Марина назначает тренировку, Анна вписывает подход, Марина видит объём (3.6s)",
+    "",
+    "  1 passed (5.5s)"
+   ],
+   "code": 0,
+   "by": "agent"
+  },
+  {
+   "id": "c-cycle",
+   "kind": "commit",
+   "cmd": "git add -A && git commit -m \"Основной цикл: назначить тренировку, вписать подходы; тесты\"",
+   "hash": "8aa9c10",
+   "message": "Основной цикл: назначить тренировку, вписать подходы; тесты",
+   "branch": "main",
+   "parents": [
+    "656642b"
+   ],
+   "out": [
+    "[main 8aa9c10] Основной цикл: назначить тренировку, вписать подходы; тесты",
+    " 15 files changed, 346 insertions(+), 111 deletions(-)",
+    " create mode 100644 app/clients/[id]/actions.ts",
+    " create mode 100644 app/workouts/[id]/actions.ts",
+    " create mode 100644 app/workouts/[id]/page.tsx",
+    " create mode 100644 e2e/cycle.spec.ts",
+    " create mode 100644 lib/dates.ts",
+    " create mode 100644 lib/volume.test.ts",
+    " create mode 100644 lib/volume.ts",
+    " delete mode 100644 lib/workouts.ts",
+    " create mode 100644 playwright.config.ts",
+    " create mode 100644 vitest.config.ts"
+   ],
+   "files": [
+    {
+     "path": ".gitignore",
+     "blob": "9babaf7a7576684d1e6f19db4afa2cefd91640d3"
+    },
+    {
+     "path": "CLAUDE.md",
+     "blob": "eddd7ec69c49be4d9b10d0c43803834ac4ab4293"
+    },
+    {
+     "path": "README.md",
+     "blob": "e215bc4ccf138bbc38ad58ad57e92135484b3c0f"
+    },
+    {
+     "path": "app/api/login/route.ts",
+     "blob": "7829a82134996fe5762f86635d7c9aebb43c77e8"
+    },
+    {
+     "path": "app/api/sets/route.ts",
+     "blob": "86d7c8e5b7f6716c088e4661438b2ab14cbe31bc"
+    },
+    {
+     "path": "app/clients/[id]/actions.ts",
+     "blob": "5eec7d6a8dc7a7d35ddf493f54d12c44c36a524d"
+    },
+    {
+     "path": "app/clients/[id]/not-found.tsx",
+     "blob": "d3ecd96388b66eaa569bd8895275f5200bb3a85a"
+    },
+    {
+     "path": "app/clients/[id]/page.tsx",
+     "blob": "cc8a0244f8d2c7e36354e95a1a425d44ad29f140"
+    },
+    {
+     "path": "app/clients/page.tsx",
+     "blob": "fde7560b546a6f3f776de02c42039d023d70ed9a"
+    },
+    {
+     "path": "app/favicon.ico",
+     "blob": "af98450595e8b8efd9e505cddc5ed705b665a4d8"
+    },
+    {
+     "path": "app/globals.css",
+     "blob": "bb4f7dd716191366da8ab882e4194b8157a504dd"
+    },
+    {
+     "path": "app/layout.tsx",
+     "blob": "8515cad45d81c7b1929badb5a9da485bd379b523"
+    },
+    {
+     "path": "app/login/page.tsx",
+     "blob": "57a869356b632ea695f249ccf7802a0942141ab6"
+    },
+    {
+     "path": "app/page.tsx",
+     "blob": "58c27d1e76bd2f9f7e7763f3d6256ea6a157749d"
+    },
+    {
+     "path": "app/workouts/[id]/actions.ts",
+     "blob": "92df68cb8d2ee7edfda413ea0b801ba6643cbf31"
+    },
+    {
+     "path": "app/workouts/[id]/page.tsx",
+     "blob": "ba788619a292e7bdf86b19d795892cc19cf102b4"
+    },
+    {
+     "path": "app/workouts/page.tsx",
+     "blob": "728769dd02c5244cccfca97dfcbff45fe901d8df"
+    },
+    {
+     "path": "docs/etalons.md",
+     "blob": "fdfe7da9d3ffc22d6f656c0f62158b898645c1d2"
+    },
+    {
+     "path": "docs/idea.md",
+     "blob": "df36eb1f1505a363fadd7ad7fdb3975ccfdd2ffb"
+    },
+    {
+     "path": "docs/mini-set.md",
+     "blob": "423696ff8c914a7cd24f5e11a3c0d1855c251c6a"
+    },
+    {
+     "path": "docs/spec.md",
+     "blob": "491b7a53d9b628346315e33365aefd7fc7e3a8cf"
+    },
+    {
+     "path": "e2e/cycle.spec.ts",
+     "blob": "d199de9ce7b3315a7a18c40005dbc6dd27a03f93"
+    },
+    {
+     "path": "eslint.config.mjs",
+     "blob": "05e726d1b4201bc8c7716d2b058279676582e8c0"
+    },
+    {
+     "path": "lib/dates.ts",
+     "blob": "604f906e3dc4c58d9489abf84950ae071ceafed5"
+    },
+    {
+     "path": "lib/db.ts",
+     "blob": "932f5937ef1f193f7dcdbf1db27ce9a6e8c434e1"
+    },
+    {
+     "path": "lib/session.ts",
+     "blob": "ced1148dc6236d6801f8931198ea2feb6a5d6b87"
+    },
+    {
+     "path": "lib/volume.test.ts",
+     "blob": "4e9f9a42b6b37446b8cab4c83062c2135c4b20e4"
+    },
+    {
+     "path": "lib/volume.ts",
+     "blob": "502a74ed0deef89945adb773fd72e96c701f2e7c"
+    },
+    {
+     "path": "lib/weight.test.ts",
+     "blob": "eb7b55ea11479f8d43d61a53e08af9b780a27179"
+    },
+    {
+     "path": "lib/weight.ts",
+     "blob": "5534e4676b0358eaf2665bfa0f498d168ad7705b"
+    },
+    {
+     "path": "next.config.ts",
+     "blob": "a0cf0c7313a86b713eb9d9bcac6539bc5d0bd1a9"
+    },
+    {
+     "path": "package-lock.json",
+     "blob": "71dc629fde4984efe6bfc757b2116700222d44c2"
+    },
+    {
+     "path": "package.json",
+     "blob": "2448940451a87058fe0cb1750f0237b2620e55b7"
+    },
+    {
+     "path": "playwright.config.ts",
+     "blob": "595220c1a2b5022019ab262c9f15b538f80ce466"
+    },
+    {
+     "path": "public/file.svg",
+     "blob": "004145cddf3f9db91b57b9cb596683c8eb420862"
+    },
+    {
+     "path": "public/globe.svg",
+     "blob": "567f17b0d7c7fb662c16d4357dd74830caf2dccb"
+    },
+    {
+     "path": "public/next.svg",
+     "blob": "5174b28c565c285e3e312ec5178be64fbeca8398"
+    },
+    {
+     "path": "public/vercel.svg",
+     "blob": "77053960334e2e34dc584dea8019925c3b4ccca9"
+    },
+    {
+     "path": "public/window.svg",
+     "blob": "b2b2a44f6ebc70c450043c05a002e7a93ba5d651"
+    },
+    {
+     "path": "supabase/migrations/0001_init.sql",
+     "blob": "ca60aa2319df6786876d0481231f2d7d8f24650f"
+    },
+    {
+     "path": "supabase/migrations/0002_rls.sql",
+     "blob": "9f3c19c1164504275cbfc78368afbe6ab5090f49"
+    },
+    {
+     "path": "supabase/seed.sql",
+     "blob": "e9921b84a8400b48b89436d0ec1888f8d1bb6985"
+    },
+    {
+     "path": "supabase/tests/as-marina.sql",
+     "blob": "99304779f4762abc87793067ecd67c50a22946a0"
+    },
+    {
+     "path": "test/rls.test.ts",
+     "blob": "ae67530abf76fcb4b2ed63daecd63f6f6544f243"
+    },
+    {
+     "path": "tsconfig.json",
+     "blob": "3a13f90a773b0facb675bf5b1a8239c8f33d36f5"
+    },
+    {
+     "path": "vitest.config.ts",
+     "blob": "0562200385d5e8064e0abd6a21b33bc24c48ba2c"
+    }
+   ]
+  }
+ ]
+}

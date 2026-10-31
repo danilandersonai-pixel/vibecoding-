@@ -1,15 +1,19 @@
-/* Плеер роликов: кадр, под ним панель, название и строка «м:сс · N пояснений по нажатию» */
+/* Плеер роликов: кадр, под ним панель, название, строка «м:сс · N пояснений по нажатию» и список глав */
 .video{display:flex;flex-direction:column;gap:10px;margin:22px 0;font-family:var(--font-ui)}
 .video-screen{display:flex;flex-direction:column;gap:4px}
-/* Кадр — рамка 1 px без тени. Фон — бумага самих роликов: они всегда в светлой теме книги */
+/* Кадр — рамка 1 px без тени. Фон — бумага самих роликов, пока кадр не нарисован: старые ролики светлые (бумага книги),
+   новые (1920×1080, is-dark) тёмные — #141619, --desk тёмной темы курса, от темы страницы не зависит.
+   Правило is-dark стоит выше .video-stage:has(.video-failed): при равной специфичности побеждает более позднее */
 .video-stage{position:relative;border:1px solid var(--paper-edge);border-radius:var(--radius-l);overflow:hidden;background:#FBFAF6}
+.video-stage.is-dark{background:#141619}
 .video-title{margin:4px 0 0;font:600 16px/1.35 var(--font-body);overflow-wrap:break-word}
 .video-meta{margin:-4px 0 0;color:var(--ink-soft);font:400 12px/1.5 var(--font-ui)}
 
-/* Сетка роликов теории: два в ряд, одинокий ролик — во всю ширину */
+/* Сетка роликов теории: два в ряд, одинокий ролик — во всю ширину.
+   Тёмный ролик (кадр 1920 × 1080: код и вывод мелким шрифтом) — всегда во всю ширину, иначе текст кадра не читается */
 .video-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 20px;margin:22px 0}
 .video-grid > *{margin:0}
-.video-grid > :only-child{grid-column:1 / -1}
+.video-grid > :only-child,.video-grid > .video.is-term{grid-column:1 / -1}
 /* «Дальше» прокручивает к следующему материалу — над ним остаётся место (на узком экране — под полосой плана дня) */
 :is(.day-part,.video-grid) > *{scroll-margin-top:24px}
 
@@ -32,12 +36,24 @@
 .video-end-next,.video-end-next:hover:not(:disabled){border-color:var(--term-ink);background:var(--term-ink);color:var(--term-bg)}
 .video-end :focus-visible{outline:3px solid var(--term-ink);outline-offset:2px;box-shadow:0 0 0 2px var(--term-bg)}
 
-/* Зоны кадра на паузе: рамки мягко пульсируют. Кадр всегда светлый — рамка тёмная в обеих темах */
+/* Зоны кадра на паузе: рамки мягко пульсируют. Кадр старых роликов светлый — рамка тёмная в обеих темах;
+   кадр новых (1920×1080, слой с is-dark) всегда тёмный — рамка светлая, цвет ink тёмной темы курса: не переменная темы страницы,
+   потому что кадр от темы не зависит.
+   Зона — ровно прямоугольник части кадра, а рамка — outline снаружи неё с отступом в свою толщину: border внутри узкой зоны
+   (одна буква, короткая строка) закрывал её первый знак. Рамка тонкая и близко к зоне: строки кода стоят вплотную, дальше она
+   зачёркивала бы соседнюю. Пульс — тень за рамкой. Фокус с клавиатуры — второе кольцо снаружи */
 .hotspot-layer{position:absolute;inset:0}
-.video-hotspot{position:absolute;padding:0;border:3px solid #16181B;border-radius:var(--radius-s);background:rgba(22,24,27,.08);animation:hs-pulse 1.6s ease-in-out infinite}
+.video-hotspot{position:absolute;padding:0;border:0;outline:2px solid #16181B;outline-offset:2px;border-radius:var(--radius-s);background:rgba(22,24,27,.08);animation:hs-pulse 1.6s ease-in-out infinite}
 .video-hotspot.is-open{animation:none;background:rgba(22,24,27,.16)}
-@keyframes hs-pulse{50%{box-shadow:0 0 0 6px rgba(22,24,27,.22)}}
-@media (prefers-reduced-motion: reduce){.video-hotspot{animation:none}}
+.video-hotspot:focus-visible{outline:2px solid #16181B;outline-offset:2px;animation:none;box-shadow:0 0 0 6px #FBFAF6,0 0 0 8px #16181B}
+@keyframes hs-pulse{50%{box-shadow:0 0 0 8px rgba(22,24,27,.22)}}
+.hotspot-layer.is-dark .video-hotspot{outline-color:#E9EBEE;background:rgba(233,235,238,.08);animation-name:hs-pulse-dark}
+.hotspot-layer.is-dark .video-hotspot.is-open{animation:none;background:rgba(233,235,238,.16)}
+.hotspot-layer.is-dark .video-hotspot:focus-visible{outline-color:#E9EBEE;box-shadow:0 0 0 6px #141619,0 0 0 8px #E9EBEE}
+@keyframes hs-pulse-dark{50%{box-shadow:0 0 0 8px rgba(233,235,238,.22)}}
+@media (prefers-reduced-motion: reduce){.video-hotspot,.hotspot-layer.is-dark .video-hotspot{animation:none}}
+/* Кадр и панель открытого пояснения — в одной обёртке: на компьютере панель лежит поверх низа кадра, на узком экране — под ним (ниже) */
+.video-view{position:relative}
 .video-hotspot-note{position:absolute;left:12px;right:12px;bottom:12px;padding:10px 14px;border-radius:var(--radius-s);background:var(--paper);color:var(--ink);border:1px solid var(--rule);box-shadow:var(--shadow-raised);font:400 .9rem/1.45 var(--font-body)}
 .video-hotspot-note p{margin:4px 0 0}
 
@@ -45,13 +61,39 @@
    У перемотки область нажатия 44 px, дорожка браузера остаётся тонкой посередине — она же даёт отступы панели */
 .video-controls{display:flex;flex-wrap:wrap;align-items:center;gap:0 10px}
 .video-seek{flex:1 1 100%;min-width:0;height:44px;margin:0;accent-color:var(--accent)}
+/* Ролики с главами: под ползунком лежит полоса сегментов, а родная дорожка ползунка прозрачна — виден один кружок.
+   Сегмент занимает ширину по длине главы (flex-grow в кадрах, задан в разметке), между сегментами 2 px; --fill — пройденная доля главы:
+   пройденное — ink, остальное — edge (3 : 1 к фону страницы). Полоса и дорожка одной высоты --seek-h. Края полосы отступают на полкружка,
+   чтобы кружок стоял точно на границе пройденного. Полоса не принимает нажатий — перематывает сам ползунок */
+.video-seek-wrap{--seek-h:4px;--seek-thumb:14px;position:relative;flex:1 1 100%;min-width:0;height:44px}
+.video-seek-chapters{position:absolute;left:calc(var(--seek-thumb) / 2);right:calc(var(--seek-thumb) / 2);top:50%;display:flex;gap:2px;height:var(--seek-h);margin-top:calc(var(--seek-h) / -2);pointer-events:none}
+.video-seek-chapter{flex:1 1 0;min-width:0;background:linear-gradient(90deg,var(--ink) var(--fill,0%),var(--edge) var(--fill,0%))}
+.video-seek-wrap .video-seek{position:relative;display:block;width:100%;appearance:none;background:transparent}
+.video-seek-wrap .video-seek::-webkit-slider-runnable-track{height:var(--seek-h);background:transparent}
+.video-seek-wrap .video-seek::-moz-range-track{height:var(--seek-h);background:transparent}
+.video-seek-wrap .video-seek::-webkit-slider-thumb{appearance:none;width:var(--seek-thumb);height:var(--seek-thumb);margin-top:calc((var(--seek-h) - var(--seek-thumb)) / 2);border:0;border-radius:50%;background:var(--ink);box-shadow:0 0 0 2px var(--desk)}
+.video-seek-wrap .video-seek::-moz-range-thumb{width:var(--seek-thumb);height:var(--seek-thumb);border:0;border-radius:50%;background:var(--ink);box-shadow:0 0 0 2px var(--desk)}
 .video-toggle,.video-fullscreen{width:44px;padding:0}
 .video-toggle,.video-toggle:hover:not(:disabled){border-color:var(--ink);background:var(--ink);color:var(--desk)}
 .video-time{color:var(--ink-soft);font:500 12px/1 var(--font-code);font-variant-numeric:tabular-nums;white-space:nowrap}
 .video-voice{display:flex;align-items:center;gap:8px;min-height:44px;margin-left:auto;font:500 12px/1 var(--font-ui);cursor:pointer}
 .video-voice input{width:18px;height:18px;margin:0;accent-color:var(--ink)}
-.video-time + .video-fullscreen{margin-left:auto}
+.video-time + .video-fullscreen,.video-chapter + .video-fullscreen{margin-left:auto}
+/* Текущая глава после времени: занимает остаток строки и обрезается «…»; basis 9em — если места меньше, она уходит на свою строку,
+   а не сжимается до «2/…»; на телефоне — всегда отдельной строкой панели. Отступ от времени — у времени, чтобы на своей строке подпись стояла вровень с кнопкой */
+.video-time:has(+ .video-chapter){margin-right:6px}
+.video-chapter{flex:1 1 9em;min-width:0;overflow:hidden;color:var(--ink-soft);font:400 12px/1.4 var(--font-ui);text-overflow:ellipsis;white-space:nowrap}
 .video-hint{margin:6px 0 0;color:var(--ink-soft);font:400 14px/1.4 var(--font-body)}
+/* Список глав под строкой «м:сс · N пояснений»: время начала и название, нажатие — к началу главы и воспроизведение.
+   Кнопка на всю ширину, не ниже 44 px; длинное название переносится, текущая глава — ink и черта слева (не только цвет) */
+.video-chapters{margin:-4px 0 0;padding:0;list-style:none}
+.video-chapters li{margin:0}
+.video-chapters button{display:flex;align-items:baseline;gap:12px;width:100%;min-height:44px;padding:8px 10px;border:0;border-radius:0 var(--radius-m) var(--radius-m) 0;background:transparent;color:var(--ink-soft);font:400 14px/1.4 var(--font-body);text-align:left;transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out)}
+.video-chapters button:hover{background:var(--tint);color:var(--ink)}
+.video-chapters button[aria-current="true"]{color:var(--ink);box-shadow:inset 2px 0 0 var(--ink)}
+.video-chapter-time{flex:none;min-width:4ch;color:var(--ink-faint);font:500 12px/1.4 var(--font-ui);font-variant-numeric:tabular-nums}
+.video-chapters button:is(:hover,[aria-current="true"]) .video-chapter-time{color:var(--ink-soft)}
+.video-chapter-title{min-width:0;overflow-wrap:anywhere}
 .video-download{margin:0}
 .video-download-btn{padding:0 14px;font:500 12px/1.2 var(--font-ui)}
 
@@ -60,9 +102,11 @@
 .video-screen:fullscreen > *{width:min(100%,calc((100vh - 170px) * 16 / 9))}
 .video-screen:fullscreen .video-stage{box-shadow:none}
 
-/* Сообщение лежит внутри кадра 1280×720 и сжимается вместе с ним, поэтому шрифт крупный.
+/* Сообщение лежит внутри кадра ролика и сжимается вместе с ним, поэтому шрифт крупный: 52 px в кадре 1280×720,
+   в кадре 1920×1080 (video-failed-wide) в полтора раза крупнее — на экране размер одинаковый.
    Кадра нет — фон бумаги темы, чтобы текст читался и в тёмной теме */
 .video-failed{margin:0;padding:0 120px;text-align:center;font:500 52px/1.3 var(--font-body);color:var(--ink-soft)}
+.video-failed-wide{padding:0 180px;font-size:78px}
 .video-stage:has(.video-failed){background:var(--paper)}
 
 @media (max-width:960px){
@@ -79,4 +123,10 @@
   .video-end .btn{min-height:44px;padding:0 14px;font-size:14px}
   .video-title{font-size:15px}
   .video-hotspot-note{left:6px;right:6px;bottom:6px;padding:6px 10px;font-size:.78rem;line-height:1.35}
+}
+/* Телефон (уже 600 px): подпись главы — своей строкой панели; пояснение открывается под кадром, а не поверх него —
+   поверх оно закрывало до 60 % сцены. Под кадром места хватает, поэтому шрифт обычный */
+@media (max-width:600px){
+  .video-chapter{order:1;flex:1 1 100%;padding-bottom:4px}
+  .video-hotspot-note{position:static;margin-top:6px;padding:10px 14px;box-shadow:none;font-size:.9rem;line-height:1.45}
 }

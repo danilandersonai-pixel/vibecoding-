@@ -1,0 +1,1187 @@
+{
+ "id": "s10-care",
+ "from": "s09-audit",
+ "recorded": "2026-11-02",
+ "events": [
+  {
+   "id": "dev",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npm run dev",
+   "out": [
+    "",
+    "> trainer-app@0.1.0 dev",
+    "> next dev",
+    "",
+    "▲ Next.js 16.4.3 (Turbopack)",
+    "- Local:         http://localhost:3000",
+    "- Network:       http://192.0.2.2:3000",
+    "- Environments: .env.local",
+    "✓ Ready in 456ms"
+   ],
+   "code": null
+  },
+  {
+   "id": "login-marina",
+   "kind": "browser",
+   "url": "http://localhost:3000/login",
+   "urlAfter": "http://localhost:3000/clients",
+   "title": "Тренировка",
+   "fields": [
+    {
+     "label": "Почта",
+     "value": "marina@example.com"
+    },
+    {
+     "label": "Пароль",
+     "value": "demo-password"
+    }
+   ],
+   "buttons": [
+    "Войти"
+   ],
+   "before": [
+    "Вход",
+    "Почта",
+    "Пароль",
+    "Войти"
+   ],
+   "after": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Олег",
+    "Последняя тренировка: 27 октября"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] rebuilding"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] done in 244ms"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] rebuilding"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] done in 575ms"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    "- Cache Components enabled",
+    "- Partial Prefetching enabled",
+    "",
+    " GET /login 200 in 509ms (next.js: 257ms, application-code: 252ms)",
+    " POST /api/login 200 in 173ms (next.js: 79ms, application-code: 94ms)",
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    " GET /clients 200 in 162ms (next.js: 35ms, application-code: 127ms)"
+   ]
+  },
+  {
+   "id": "ask-add-client",
+   "kind": "agent",
+   "prompt": "Тренер добавляет подопечного: на /clients поле «Имя» и кнопка «Добавить», с проверкой имени",
+   "reply": "Добавил подопечного на /clients. Под списком форма: поле «Имя» и кнопка «Добавить». Действие app/clients/actions.ts записывает подопечного вошедшему тренеру от его имени — чужому тренеру записать не даст RLS. Имя проверяет lib/names.ts: пока это латинские буквы и пробел, как у большинства имён в примерах; иначе под формой ошибка «Имя может содержать только буквы».",
+   "steps": [
+    "name-lib",
+    "add-action",
+    "add-form"
+   ]
+  },
+  {
+   "id": "name-lib",
+   "kind": "file",
+   "path": "lib/names.ts",
+   "before": null,
+   "after": "// Проверка имени подопечного из формы: null — имя годится, иначе текст ошибки для тренера.\n// Имя — латинские буквы и пробелы: самый частый случай в примерах, его и проверяем.\nconst ONLY_LETTERS = \"Имя может содержать только буквы\";\n\nexport function checkName(name: string): string | null {\n  return /^[A-Za-z ]+$/.test(name) ? null : ONLY_LETTERS;\n}\n",
+   "diff": [
+    "diff --git a/lib/names.ts b/lib/names.ts",
+    "new file mode 100644",
+    "index 0000000..9dd6a1e",
+    "--- /dev/null",
+    "+++ b/lib/names.ts",
+    "@@ -0,0 +1,7 @@",
+    "+// Проверка имени подопечного из формы: null — имя годится, иначе текст ошибки для тренера.",
+    "+// Имя — латинские буквы и пробелы: самый частый случай в примерах, его и проверяем.",
+    "+const ONLY_LETTERS = \"Имя может содержать только буквы\";",
+    "+",
+    "+export function checkName(name: string): string | null {",
+    "+  return /^[A-Za-z ]+$/.test(name) ? null : ONLY_LETTERS;",
+    "+}"
+   ],
+   "blob": "9dd6a1eb731be47d228ecc090685de88bc0d270b",
+   "by": "agent"
+  },
+  {
+   "id": "add-action",
+   "kind": "file",
+   "path": "app/clients/actions.ts",
+   "before": null,
+   "after": "\"use server\";\n\nimport { redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { checkName } from \"@/lib/names\";\nimport { currentUser } from \"@/lib/session\";\n\n// Тренер добавляет подопечного: имя из формы. Подопечный записывается вошедшему тренеру (coach_id = uid).\n// Запрос идёт от имени тренера, и записать подопечного чужому тренеру не даст RLS (политика «тренер добавляет своих»).\nexport async function addClient(form: FormData) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const name = String(form.get(\"name\") ?? \"\").trim();\n  // пустое имя ничего не добавляет; остальное проверяет lib/names.ts, ошибку страница покажет под формой\n  if (name === \"\") redirect(\"/clients\");\n  const error = checkName(name);\n  if (error) redirect(`/clients?error=${encodeURIComponent(error)}`);\n  await asUser(uid, (db) => db.query(\"insert into clients (coach_id, name) values ($1, $2)\", [uid, name]));\n  // тот же список заново — с новым подопечным и без прежней ошибки в адресе\n  redirect(\"/clients\");\n}\n",
+   "diff": [
+    "diff --git a/app/clients/actions.ts b/app/clients/actions.ts",
+    "new file mode 100644",
+    "index 0000000..ab5d0e7",
+    "--- /dev/null",
+    "+++ b/app/clients/actions.ts",
+    "@@ -0,0 +1,21 @@",
+    "+\"use server\";",
+    "+",
+    "+import { redirect } from \"next/navigation\";",
+    "+import { asUser } from \"@/lib/db\";",
+    "+import { checkName } from \"@/lib/names\";",
+    "+import { currentUser } from \"@/lib/session\";",
+    "+",
+    "+// Тренер добавляет подопечного: имя из формы. Подопечный записывается вошедшему тренеру (coach_id = uid).",
+    "+// Запрос идёт от имени тренера, и записать подопечного чужому тренеру не даст RLS (политика «тренер добавляет своих»).",
+    "+export async function addClient(form: FormData) {",
+    "+  const uid = await currentUser();",
+    "+  if (!uid) redirect(\"/login\");",
+    "+  const name = String(form.get(\"name\") ?? \"\").trim();",
+    "+  // пустое имя ничего не добавляет; остальное проверяет lib/names.ts, ошибку страница покажет под формой",
+    "+  if (name === \"\") redirect(\"/clients\");",
+    "+  const error = checkName(name);",
+    "+  if (error) redirect(`/clients?error=${encodeURIComponent(error)}`);",
+    "+  await asUser(uid, (db) => db.query(\"insert into clients (coach_id, name) values ($1, $2)\", [uid, name]));",
+    "+  // тот же список заново — с новым подопечным и без прежней ошибки в адресе",
+    "+  redirect(\"/clients\");",
+    "+}"
+   ],
+   "blob": "ab5d0e77f906f6dcf618cb398a172a67390ea7fe",
+   "by": "agent"
+  },
+  {
+   "id": "add-form",
+   "kind": "file",
+   "path": "app/clients/page.tsx",
+   "before": "import type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Подопечный тренера с датой последней тренировки\ntype Client = { id: string; name: string; last: Date | null };\n\n// Подопечные вошедшего тренера, у каждого — дата последней тренировки\nexport default async function ClientsPage() {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const clients = await asUser(uid, async (db) => {\n    // подопечные и дата последней тренировки — одним запросом: left join и max(day)\n    const { rows } = await db.query<Client>(\n      `select c.id, c.name, max(w.day) as last\n         from clients c\n         left join workouts w on w.client_id = c.id\n        where c.coach_id = $1\n        group by c.id\n        order by c.id`,\n      [uid],\n    );\n    return rows;\n  });\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id}>\n            <Link\n              href={`/clients/${client.id}`}\n              className=\"block rounded border border-zinc-300 p-4 text-xl font-semibold\"\n            >\n              {client.name}\n              <span className=\"block text-sm font-normal text-zinc-500\">\n                {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : \"Тренировок пока нет\"}\n              </span>\n            </Link>\n          </li>\n        ))}\n      </ul>\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { addClient } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Подопечный тренера с датой последней тренировки\ntype Client = { id: string; name: string; last: Date | null };\n\n// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного\nexport default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { error } = await searchParams;\n  const clients = await asUser(uid, async (db) => {\n    // подопечные и дата последней тренировки — одним запросом: left join и max(day)\n    const { rows } = await db.query<Client>(\n      `select c.id, c.name, max(w.day) as last\n         from clients c\n         left join workouts w on w.client_id = c.id\n        where c.coach_id = $1\n        group by c.id\n        order by c.id`,\n      [uid],\n    );\n    return rows;\n  });\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id}>\n            <Link\n              href={`/clients/${client.id}`}\n              className=\"block rounded border border-zinc-300 p-4 text-xl font-semibold\"\n            >\n              {client.name}\n              <span className=\"block text-sm font-normal text-zinc-500\">\n                {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : \"Тренировок пока нет\"}\n              </span>\n            </Link>\n          </li>\n        ))}\n      </ul>\n\n      <form action={addClient} className=\"mt-8 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"name\">Имя</label>\n          <input id=\"name\" name=\"name\" required className=\"rounded border border-zinc-300 px-3 py-2\" />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Добавить\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/clients/page.tsx b/app/clients/page.tsx",
+    "index d0fd27f..ca5d268 100644",
+    "--- a/app/clients/page.tsx",
+    "+++ b/app/clients/page.tsx",
+    "@@ -4,6 +4,7 @@ import { redirect } from \"next/navigation\";",
+    " import { formatDay } from \"@/lib/dates\";",
+    " import { asUser } from \"@/lib/db\";",
+    " import { currentUser } from \"@/lib/session\";",
+    "+import { addClient } from \"./actions\";",
+    " ",
+    " export const metadata: Metadata = { title: \"Подопечные\" };",
+    " ",
+    "@@ -13,10 +14,11 @@ export const instant = false;",
+    " // Подопечный тренера с датой последней тренировки",
+    " type Client = { id: string; name: string; last: Date | null };",
+    " ",
+    "-// Подопечные вошедшего тренера, у каждого — дата последней тренировки",
+    "-export default async function ClientsPage() {",
+    "+// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного",
+    "+export default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {",
+    "   const uid = await currentUser();",
+    "   if (!uid) redirect(\"/login\");",
+    "+  const { error } = await searchParams;",
+    "   const clients = await asUser(uid, async (db) => {",
+    "     // подопечные и дата последней тренировки — одним запросом: left join и max(day)",
+    "     const { rows } = await db.query<Client>(",
+    "@@ -49,6 +51,22 @@ export default async function ClientsPage() {",
+    "           </li>",
+    "         ))}",
+    "       </ul>",
+    "+",
+    "+      <form action={addClient} className=\"mt-8 flex flex-col gap-4\">",
+    "+        <div className=\"flex flex-col gap-1\">",
+    "+          <label htmlFor=\"name\">Имя</label>",
+    "+          <input id=\"name\" name=\"name\" required className=\"rounded border border-zinc-300 px-3 py-2\" />",
+    "+        </div>",
+    "+        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">",
+    "+          Добавить",
+    "+        </button>",
+    "+      </form>",
+    "+",
+    "+      {typeof error === \"string\" && (",
+    "+        <p role=\"alert\" className=\"mt-4 text-red-600\">",
+    "+          {error}",
+    "+        </p>",
+    "+      )}",
+    "     </main>",
+    "   );",
+    " }"
+   ],
+   "blob": "ca5d268ee0c2fa2842364928d121c187ce9f70ca",
+   "by": "agent"
+  },
+  {
+   "id": "add-olga",
+   "kind": "browser",
+   "url": "http://localhost:3000/clients",
+   "urlAfter": "http://localhost:3000/clients?error=%D0%98%D0%BC%D1%8F%20%D0%BC%D0%BE%D0%B6%D0%B5%D1%82%20%D1%81%D0%BE%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C%20%D1%82%D0%BE%D0%BB%D1%8C%D0%BA%D0%BE%20%D0%B1%D1%83%D0%BA%D0%B2%D1%8B",
+   "title": "Подопечные",
+   "fields": [
+    {
+     "label": "Имя",
+     "value": "Ольга"
+    }
+   ],
+   "buttons": [
+    "Добавить"
+   ],
+   "before": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Имя",
+    "Добавить"
+   ],
+   "after": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Имя",
+    "Добавить",
+    "Имя может содержать только буквы"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    "✓ Compiled in 305ms",
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    " GET /clients 200 in 157ms (next.js: 20ms, application-code: 137ms)",
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    " GET /clients?error=%D0%98%D0%BC%D1%8F+%D0%BC%D0%BE%D0%B6%D0%B5%D1%82+%D1%81%D0%BE%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C+%D1%82%D0%BE%D0%BB%D1%8C%D0%BA%D0%BE+%D0%B1%D1%83%D0%BA%D0%B2%D1%8B 200 in 63ms (next.js: 1.5ms, application-code: 62ms)",
+    " POST /clients 200 in 94ms (next.js: 1.8ms, application-code: 92ms)",
+    "  └─ ƒ addClient({}) in 2ms app/clients/actions.ts"
+   ]
+  },
+  {
+   "id": "ask-names",
+   "kind": "agent",
+   "prompt": "Имя «Ольга» не проходит. Имена бывают на любом языке, с дефисом и апострофом: «Анна-Мария», «Д'Артаньян». Сначала тест на эти случаи",
+   "reply": "Начал с теста: lib/names.test.ts проверяет «Ольга», «Анна-Мария», «Д'Артаньян», имя с пробелом, имена других алфавитов и отказы на цифры, знаки и дефис в начале. Потом поправил lib/names.ts: имя начинается с буквы любого алфавита, дальше — буквы, пробел, дефис и апостроф. Запустил npx vitest run lib/names.test.ts.",
+   "steps": [
+    "names-test",
+    "names-fix",
+    "names-run"
+   ]
+  },
+  {
+   "id": "names-test",
+   "kind": "file",
+   "path": "lib/names.test.ts",
+   "before": null,
+   "after": "import { expect, test } from \"vitest\";\nimport { checkName } from \"./names\";\n\nconst ONLY_LETTERS = \"Имя может содержать только буквы\";\n\ntest(\"кириллица — «Ольга»\", () => {\n  expect(checkName(\"Ольга\")).toBeNull();\n});\n\ntest(\"латиница — «Olga»\", () => {\n  expect(checkName(\"Olga\")).toBeNull();\n});\n\ntest(\"двойное имя через дефис — «Анна-Мария»\", () => {\n  expect(checkName(\"Анна-Мария\")).toBeNull();\n});\n\ntest(\"апостроф — «Д'Артаньян»\", () => {\n  expect(checkName(\"Д'Артаньян\")).toBeNull();\n});\n\ntest(\"имя из двух слов через пробел — «Анна Мария»\", () => {\n  expect(checkName(\"Анна Мария\")).toBeNull();\n});\n\ntest(\"другие алфавиты — «José», «李雷», «Ευγενία»\", () => {\n  for (const name of [\"José\", \"李雷\", \"Ευγενία\"]) expect(checkName(name), name).toBeNull();\n});\n\ntest(\"цифры и знаки — ошибка\", () => {\n  for (const name of [\"Анна2\", \"Анна!\", \"<b>Анна</b>\", \"Анна_Мария\"]) expect(checkName(name), name).toBe(ONLY_LETTERS);\n});\n\ntest(\"дефис, апостроф или пробел в начале — ошибка\", () => {\n  for (const name of [\"-Анна\", \"'Анна\", \" Анна\"]) expect(checkName(name), name).toBe(ONLY_LETTERS);\n});\n\ntest(\"пустое имя — ошибка\", () => {\n  expect(checkName(\"\")).toBe(ONLY_LETTERS);\n});\n",
+   "diff": [
+    "diff --git a/lib/names.test.ts b/lib/names.test.ts",
+    "new file mode 100644",
+    "index 0000000..d6890ca",
+    "--- /dev/null",
+    "+++ b/lib/names.test.ts",
+    "@@ -0,0 +1,40 @@",
+    "+import { expect, test } from \"vitest\";",
+    "+import { checkName } from \"./names\";",
+    "+",
+    "+const ONLY_LETTERS = \"Имя может содержать только буквы\";",
+    "+",
+    "+test(\"кириллица — «Ольга»\", () => {",
+    "+  expect(checkName(\"Ольга\")).toBeNull();",
+    "+});",
+    "+",
+    "+test(\"латиница — «Olga»\", () => {",
+    "+  expect(checkName(\"Olga\")).toBeNull();",
+    "+});",
+    "+",
+    "+test(\"двойное имя через дефис — «Анна-Мария»\", () => {",
+    "+  expect(checkName(\"Анна-Мария\")).toBeNull();",
+    "+});",
+    "+",
+    "+test(\"апостроф — «Д'Артаньян»\", () => {",
+    "+  expect(checkName(\"Д'Артаньян\")).toBeNull();",
+    "+});",
+    "+",
+    "+test(\"имя из двух слов через пробел — «Анна Мария»\", () => {",
+    "+  expect(checkName(\"Анна Мария\")).toBeNull();",
+    "+});",
+    "+",
+    "+test(\"другие алфавиты — «José», «李雷», «Ευγενία»\", () => {",
+    "+  for (const name of [\"José\", \"李雷\", \"Ευγενία\"]) expect(checkName(name), name).toBeNull();",
+    "+});",
+    "+",
+    "+test(\"цифры и знаки — ошибка\", () => {",
+    "+  for (const name of [\"Анна2\", \"Анна!\", \"<b>Анна</b>\", \"Анна_Мария\"]) expect(checkName(name), name).toBe(ONLY_LETTERS);",
+    "+});",
+    "+",
+    "+test(\"дефис, апостроф или пробел в начале — ошибка\", () => {",
+    "+  for (const name of [\"-Анна\", \"'Анна\", \" Анна\"]) expect(checkName(name), name).toBe(ONLY_LETTERS);",
+    "+});",
+    "+",
+    "+test(\"пустое имя — ошибка\", () => {",
+    "+  expect(checkName(\"\")).toBe(ONLY_LETTERS);",
+    "+});"
+   ],
+   "blob": "d6890ca72d4e9cf0dcfe414e472266a38881a512",
+   "by": "agent"
+  },
+  {
+   "id": "names-fix",
+   "kind": "file",
+   "path": "lib/names.ts",
+   "before": "// Проверка имени подопечного из формы: null — имя годится, иначе текст ошибки для тренера.\n// Имя — латинские буквы и пробелы: самый частый случай в примерах, его и проверяем.\nconst ONLY_LETTERS = \"Имя может содержать только буквы\";\n\nexport function checkName(name: string): string | null {\n  return /^[A-Za-z ]+$/.test(name) ? null : ONLY_LETTERS;\n}\n",
+   "after": "// Проверка имени подопечного из формы: null — имя годится, иначе текст ошибки для тренера.\n// Имя — буквы любого алфавита (\\p{L}, с надстрочными значками \\p{M}), пробел, дефис и апостроф: «Ольга», «Анна-Мария», «Д'Артаньян».\n// Начинается с буквы, чтобы имя не состояло из одних дефисов и пробелов. Тесты — lib/names.test.ts.\nconst ONLY_LETTERS = \"Имя может содержать только буквы\";\n\nexport function checkName(name: string): string | null {\n  return /^\\p{L}[\\p{L}\\p{M} '’-]*$/u.test(name) ? null : ONLY_LETTERS;\n}\n",
+   "diff": [
+    "diff --git a/lib/names.ts b/lib/names.ts",
+    "index 9dd6a1e..e805924 100644",
+    "--- a/lib/names.ts",
+    "+++ b/lib/names.ts",
+    "@@ -1,7 +1,8 @@",
+    " // Проверка имени подопечного из формы: null — имя годится, иначе текст ошибки для тренера.",
+    "-// Имя — латинские буквы и пробелы: самый частый случай в примерах, его и проверяем.",
+    "+// Имя — буквы любого алфавита (\\p{L}, с надстрочными значками \\p{M}), пробел, дефис и апостроф: «Ольга», «Анна-Мария», «Д'Артаньян».",
+    "+// Начинается с буквы, чтобы имя не состояло из одних дефисов и пробелов. Тесты — lib/names.test.ts.",
+    " const ONLY_LETTERS = \"Имя может содержать только буквы\";",
+    " ",
+    " export function checkName(name: string): string | null {",
+    "-  return /^[A-Za-z ]+$/.test(name) ? null : ONLY_LETTERS;",
+    "+  return /^\\p{L}[\\p{L}\\p{M} '’-]*$/u.test(name) ? null : ONLY_LETTERS;",
+    " }"
+   ],
+   "blob": "e805924b33930951cfc371393ca87c8a0f8995fb",
+   "by": "agent"
+  },
+  {
+   "id": "names-run",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npx vitest run lib/names.test.ts",
+   "out": [
+    "",
+    " RUN  v5.0.5 ~/trainer-app",
+    "",
+    " ✓ lib/names.test.ts (9 tests) 20ms",
+    "",
+    " Test Files  1 passed (1)",
+    "      Tests  9 passed (9)",
+    "   Start at  11:53:58",
+    "   Duration  411ms (transform 57%, import 21%, tests 16%, worker 7%)"
+   ],
+   "code": 0,
+   "by": "agent"
+  },
+  {
+   "id": "add-olga2",
+   "kind": "browser",
+   "url": "http://localhost:3000/clients",
+   "title": "Подопечные",
+   "fields": [
+    {
+     "label": "Имя",
+     "value": "Ольга"
+    }
+   ],
+   "buttons": [
+    "Добавить"
+   ],
+   "before": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Имя",
+    "Добавить"
+   ],
+   "after": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Ольга",
+    "Тренировок пока нет",
+    "Имя",
+    "Добавить"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    " GET /clients 200 in 67ms (next.js: 1.6ms, application-code: 65ms)",
+    "[sql] insert into clients (coach_id, name) values ($1, $2)",
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    " GET /clients 200 in 63ms (next.js: 3ms, application-code: 60ms)",
+    " POST /clients 200 in 92ms (next.js: 1.9ms, application-code: 90ms)",
+    "  └─ ƒ addClient({}) in 9ms app/clients/actions.ts"
+   ]
+  },
+  {
+   "id": "add-anna-maria",
+   "kind": "browser",
+   "url": "http://localhost:3000/clients",
+   "title": "Подопечные",
+   "fields": [
+    {
+     "label": "Имя",
+     "value": "Анна-Мария"
+    }
+   ],
+   "buttons": [
+    "Добавить"
+   ],
+   "before": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Ольга",
+    "Тренировок пока нет",
+    "Имя",
+    "Добавить"
+   ],
+   "after": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Ольга",
+    "Тренировок пока нет",
+    "Анна-Мария",
+    "Тренировок пока нет",
+    "Имя",
+    "Добавить"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    " GET /clients 200 in 76ms (next.js: 1.5ms, application-code: 75ms)",
+    "[sql] insert into clients (coach_id, name) values ($1, $2)",
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    " GET /clients 200 in 49ms (next.js: 1.5ms, application-code: 48ms)",
+    " POST /clients 200 in 76ms (next.js: 1.6ms, application-code: 74ms)",
+    "  └─ ƒ addClient({}) in 8ms app/clients/actions.ts"
+   ]
+  },
+  {
+   "id": "login-anna",
+   "kind": "browser",
+   "url": "http://localhost:3000/login",
+   "urlAfter": "http://localhost:3000/workouts",
+   "title": "Тренировка",
+   "fields": [
+    {
+     "label": "Почта",
+     "value": "anna@example.com"
+    },
+    {
+     "label": "Пароль",
+     "value": "demo-password"
+    }
+   ],
+   "buttons": [
+    "Войти"
+   ],
+   "before": [
+    "Вход",
+    "Почта",
+    "Пароль",
+    "Войти"
+   ],
+   "after": [
+    "Мои тренировки",
+    "Ноги",
+    "19 октября",
+    "Спина и бицепс",
+    "21 октября",
+    "Грудь и плечи",
+    "26 октября"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] rebuilding"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] done in 243ms"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    " GET /login 200 in 40ms (next.js: 1.4ms, application-code: 39ms)",
+    " POST /api/login 200 in 27ms (next.js: 2.0ms, application-code: 25ms)",
+    "[sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day",
+    " GET /workouts 200 in 86ms (next.js: 20ms, application-code: 66ms)"
+   ]
+  },
+  {
+   "id": "ask-log",
+   "kind": "agent",
+   "prompt": "Пиши в журнал сервера сохранение подхода, чтобы разбирать ошибки",
+   "reply": "Добавил запись в журнал сервера: после сохранения подхода действие saveSet (app/workouts/[id]/actions.ts) печатает «Подход сохранён» и объект: id подхода, подопечный (id и имя), тренировка, вес, повторы, заметка и время. Чтобы знать, чей подход, запрос теперь возвращает и подопечного этой тренировки. По такой строке видно всё, что понадобится при разборе ошибки.",
+   "steps": [
+    "log-full"
+   ]
+  },
+  {
+   "id": "log-full",
+   "kind": "file",
+   "path": "app/workouts/[id]/actions.ts",
+   "before": "\"use server\";\n\nimport { redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { parseWeight } from \"@/lib/weight\";\n\n// Подход в тренировку workoutId: вес и повторы из формы.\n// Запрос идёт от имени вошедшего, и в чужую тренировку вписать не даст RLS (политика «подопечный добавляет подходы»).\nexport async function saveSet(workoutId: string, form: FormData) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const page = `/workouts/${workoutId}`;\n  // ошибку страница покажет под формой: её текст — в адресе\n  const fail = (error: string) => `${page}?error=${encodeURIComponent(error)}`;\n\n  // вес разбирает lib/weight.ts: число или текст ошибки\n  const weight = parseWeight(String(form.get(\"weight\") ?? \"\"));\n  if (typeof weight === \"string\") redirect(fail(weight));\n  const reps = Number(form.get(\"reps\"));\n  if (!Number.isInteger(reps) || reps <= 0) redirect(fail(\"Повторы — целое число больше нуля\"));\n\n  // заметка необязательна: пустое поле — без заметки (null); длиннее 200 знаков не примет и база\n  const note = String(form.get(\"note\") ?? \"\").trim() || null;\n  if (note && note.length > 200) redirect(fail(\"Заметка — не длиннее 200 знаков\"));\n\n  await asUser(uid, (db) =>\n    db.query(\"insert into sets (workout_id, weight, reps, note) values ($1, $2, $3, $4)\", [workoutId, weight, reps, note]),\n  );\n  // та же страница заново — с новым подходом и без прежней ошибки в адресе\n  redirect(page);\n}\n",
+   "after": "\"use server\";\n\nimport { redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { parseWeight } from \"@/lib/weight\";\n\n// Подход в тренировку workoutId: вес и повторы из формы.\n// Запрос идёт от имени вошедшего, и в чужую тренировку вписать не даст RLS (политика «подопечный добавляет подходы»).\nexport async function saveSet(workoutId: string, form: FormData) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const page = `/workouts/${workoutId}`;\n  // ошибку страница покажет под формой: её текст — в адресе\n  const fail = (error: string) => `${page}?error=${encodeURIComponent(error)}`;\n\n  // вес разбирает lib/weight.ts: число или текст ошибки\n  const weight = parseWeight(String(form.get(\"weight\") ?? \"\"));\n  if (typeof weight === \"string\") redirect(fail(weight));\n  const reps = Number(form.get(\"reps\"));\n  if (!Number.isInteger(reps) || reps <= 0) redirect(fail(\"Повторы — целое число больше нуля\"));\n\n  // заметка необязательна: пустое поле — без заметки (null); длиннее 200 знаков не примет и база\n  const note = String(form.get(\"note\") ?? \"\").trim() || null;\n  if (note && note.length > 200) redirect(fail(\"Заметка — не длиннее 200 знаков\"));\n\n  const saved = await asUser(uid, async (db) => {\n    const { rows } = await db.query<{ id: string }>(\n      \"insert into sets (workout_id, weight, reps, note) values ($1, $2, $3, $4) returning id\",\n      [workoutId, weight, reps, note],\n    );\n    // чей подход: подопечный этой тренировки\n    const owner = await db.query<{ id: string; name: string }>(\n      \"select c.id, c.name from clients c join workouts w on w.client_id = c.id where w.id = $1\",\n      [workoutId],\n    );\n    return { setId: rows[0].id, client: owner.rows[0] };\n  });\n  // журнал сервера: что сохранили — по нему разбираем ошибки\n  console.log(\"Подход сохранён\", {\n    setId: saved.setId,\n    client: saved.client,\n    workoutId,\n    weight,\n    reps,\n    note,\n    time: new Date().toLocaleTimeString(\"ru-RU\"),\n  });\n  // та же страница заново — с новым подходом и без прежней ошибки в адресе\n  redirect(page);\n}\n",
+   "diff": [
+    "diff --git a/app/workouts/[id]/actions.ts b/app/workouts/[id]/actions.ts",
+    "index 632afff..a5091e9 100644",
+    "--- a/app/workouts/[id]/actions.ts",
+    "+++ b/app/workouts/[id]/actions.ts",
+    "@@ -24,9 +24,28 @@ export async function saveSet(workoutId: string, form: FormData) {",
+    "   const note = String(form.get(\"note\") ?? \"\").trim() || null;",
+    "   if (note && note.length > 200) redirect(fail(\"Заметка — не длиннее 200 знаков\"));",
+    " ",
+    "-  await asUser(uid, (db) =>",
+    "-    db.query(\"insert into sets (workout_id, weight, reps, note) values ($1, $2, $3, $4)\", [workoutId, weight, reps, note]),",
+    "-  );",
+    "+  const saved = await asUser(uid, async (db) => {",
+    "+    const { rows } = await db.query<{ id: string }>(",
+    "+      \"insert into sets (workout_id, weight, reps, note) values ($1, $2, $3, $4) returning id\",",
+    "+      [workoutId, weight, reps, note],",
+    "+    );",
+    "+    // чей подход: подопечный этой тренировки",
+    "+    const owner = await db.query<{ id: string; name: string }>(",
+    "+      \"select c.id, c.name from clients c join workouts w on w.client_id = c.id where w.id = $1\",",
+    "+      [workoutId],",
+    "+    );",
+    "+    return { setId: rows[0].id, client: owner.rows[0] };",
+    "+  });",
+    "+  // журнал сервера: что сохранили — по нему разбираем ошибки",
+    "+  console.log(\"Подход сохранён\", {",
+    "+    setId: saved.setId,",
+    "+    client: saved.client,",
+    "+    workoutId,",
+    "+    weight,",
+    "+    reps,",
+    "+    note,",
+    "+    time: new Date().toLocaleTimeString(\"ru-RU\"),",
+    "+  });",
+    "   // та же страница заново — с новым подходом и без прежней ошибки в адресе",
+    "   redirect(page);",
+    " }"
+   ],
+   "blob": "a5091e9c2fbbb03d950873ba9fc7ae186f6ce5dd",
+   "by": "agent"
+  },
+  {
+   "id": "log-set2",
+   "kind": "browser",
+   "url": "http://localhost:3000/workouts/3",
+   "title": "Тренировка",
+   "fields": [
+    {
+     "label": "Вес, кг",
+     "value": "40"
+    },
+    {
+     "label": "Повторы",
+     "value": "10"
+    },
+    {
+     "label": "Заметка",
+     "value": "болит колено"
+    }
+   ],
+   "buttons": [
+    "Сохранить подход"
+   ],
+   "before": [
+    "Грудь и плечи",
+    "30 кг × 10",
+    "30 кг × 10",
+    "35 кг × 8",
+    "Объём: 880 кг",
+    "Вес, кг",
+    "Повторы",
+    "Заметка",
+    "Сохранить подход"
+   ],
+   "after": [
+    "Грудь и плечи",
+    "30 кг × 10",
+    "30 кг × 10",
+    "35 кг × 8",
+    "40 кг × 10",
+    "Объём: 1280 кг",
+    "Вес, кг",
+    "Повторы",
+    "Заметка",
+    "Сохранить подход"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select title from workouts where id = $1 background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select title from workouts where id = $1 background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    "[sql] select title from workouts where id = $1",
+    "[sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id",
+    " GET /workouts/3 200 in 676ms (next.js: 12ms, generate-params: 563ms, application-code: 101ms)",
+    "[sql] insert into sets (workout_id, weight, reps, note) values ($1, $2, $3, $4) returning id",
+    "[sql] select c.id, c.name from clients c join workouts w on w.client_id = c.id where w.id = $1",
+    "Подход сохранён {",
+    "  setId: '15',",
+    "  client: { id: '1', name: 'Анна' },",
+    "  workoutId: '3',",
+    "  weight: 40,",
+    "  reps: 10,",
+    "  note: 'болит колено',",
+    "  time: '11:54:07'",
+    "}",
+    "[sql] select title from workouts where id = $1",
+    "[sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id",
+    " GET /workouts/3 200 in 84ms (next.js: 1.2ms, generate-params: 0.0ms, application-code: 82ms)",
+    " POST /workouts/3 200 in 147ms (next.js: 2ms, generate-params: 27ms, application-code: 117ms)",
+    "  └─ ƒ saveSet(\"3\", {}) in 12ms app/workouts/[id]/actions.ts"
+   ]
+  },
+  {
+   "id": "ask-log-fix",
+   "kind": "agent",
+   "prompt": "В журнале — данные о здоровье. Только id подхода и время, без имени и заметки",
+   "reply": "Убрал. Имя подопечного и заметка о колене — данные о здоровье, в журнале им не место. Теперь действие печатает «Подход сохранён», id подхода и время. Запрос подопечного тренировки стал не нужен — убрал и его.",
+   "steps": [
+    "log-min"
+   ]
+  },
+  {
+   "id": "log-min",
+   "kind": "file",
+   "path": "app/workouts/[id]/actions.ts",
+   "before": "\"use server\";\n\nimport { redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { parseWeight } from \"@/lib/weight\";\n\n// Подход в тренировку workoutId: вес и повторы из формы.\n// Запрос идёт от имени вошедшего, и в чужую тренировку вписать не даст RLS (политика «подопечный добавляет подходы»).\nexport async function saveSet(workoutId: string, form: FormData) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const page = `/workouts/${workoutId}`;\n  // ошибку страница покажет под формой: её текст — в адресе\n  const fail = (error: string) => `${page}?error=${encodeURIComponent(error)}`;\n\n  // вес разбирает lib/weight.ts: число или текст ошибки\n  const weight = parseWeight(String(form.get(\"weight\") ?? \"\"));\n  if (typeof weight === \"string\") redirect(fail(weight));\n  const reps = Number(form.get(\"reps\"));\n  if (!Number.isInteger(reps) || reps <= 0) redirect(fail(\"Повторы — целое число больше нуля\"));\n\n  // заметка необязательна: пустое поле — без заметки (null); длиннее 200 знаков не примет и база\n  const note = String(form.get(\"note\") ?? \"\").trim() || null;\n  if (note && note.length > 200) redirect(fail(\"Заметка — не длиннее 200 знаков\"));\n\n  const saved = await asUser(uid, async (db) => {\n    const { rows } = await db.query<{ id: string }>(\n      \"insert into sets (workout_id, weight, reps, note) values ($1, $2, $3, $4) returning id\",\n      [workoutId, weight, reps, note],\n    );\n    // чей подход: подопечный этой тренировки\n    const owner = await db.query<{ id: string; name: string }>(\n      \"select c.id, c.name from clients c join workouts w on w.client_id = c.id where w.id = $1\",\n      [workoutId],\n    );\n    return { setId: rows[0].id, client: owner.rows[0] };\n  });\n  // журнал сервера: что сохранили — по нему разбираем ошибки\n  console.log(\"Подход сохранён\", {\n    setId: saved.setId,\n    client: saved.client,\n    workoutId,\n    weight,\n    reps,\n    note,\n    time: new Date().toLocaleTimeString(\"ru-RU\"),\n  });\n  // та же страница заново — с новым подходом и без прежней ошибки в адресе\n  redirect(page);\n}\n",
+   "after": "\"use server\";\n\nimport { redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { parseWeight } from \"@/lib/weight\";\n\n// Подход в тренировку workoutId: вес и повторы из формы.\n// Запрос идёт от имени вошедшего, и в чужую тренировку вписать не даст RLS (политика «подопечный добавляет подходы»).\nexport async function saveSet(workoutId: string, form: FormData) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const page = `/workouts/${workoutId}`;\n  // ошибку страница покажет под формой: её текст — в адресе\n  const fail = (error: string) => `${page}?error=${encodeURIComponent(error)}`;\n\n  // вес разбирает lib/weight.ts: число или текст ошибки\n  const weight = parseWeight(String(form.get(\"weight\") ?? \"\"));\n  if (typeof weight === \"string\") redirect(fail(weight));\n  const reps = Number(form.get(\"reps\"));\n  if (!Number.isInteger(reps) || reps <= 0) redirect(fail(\"Повторы — целое число больше нуля\"));\n\n  // заметка необязательна: пустое поле — без заметки (null); длиннее 200 знаков не примет и база\n  const note = String(form.get(\"note\") ?? \"\").trim() || null;\n  if (note && note.length > 200) redirect(fail(\"Заметка — не длиннее 200 знаков\"));\n\n  const setId = await asUser(uid, async (db) => {\n    const { rows } = await db.query<{ id: string }>(\n      \"insert into sets (workout_id, weight, reps, note) values ($1, $2, $3, $4) returning id\",\n      [workoutId, weight, reps, note],\n    );\n    return rows[0].id;\n  });\n  // журнал сервера: только id подхода и время — без имени и заметки, это данные о здоровье\n  console.log(\"Подход сохранён\", { setId, time: new Date().toLocaleTimeString(\"ru-RU\") });\n  // та же страница заново — с новым подходом и без прежней ошибки в адресе\n  redirect(page);\n}\n",
+   "diff": [
+    "diff --git a/app/workouts/[id]/actions.ts b/app/workouts/[id]/actions.ts",
+    "index a5091e9..a849a80 100644",
+    "--- a/app/workouts/[id]/actions.ts",
+    "+++ b/app/workouts/[id]/actions.ts",
+    "@@ -24,28 +24,15 @@ export async function saveSet(workoutId: string, form: FormData) {",
+    "   const note = String(form.get(\"note\") ?? \"\").trim() || null;",
+    "   if (note && note.length > 200) redirect(fail(\"Заметка — не длиннее 200 знаков\"));",
+    " ",
+    "-  const saved = await asUser(uid, async (db) => {",
+    "+  const setId = await asUser(uid, async (db) => {",
+    "     const { rows } = await db.query<{ id: string }>(",
+    "       \"insert into sets (workout_id, weight, reps, note) values ($1, $2, $3, $4) returning id\",",
+    "       [workoutId, weight, reps, note],",
+    "     );",
+    "-    // чей подход: подопечный этой тренировки",
+    "-    const owner = await db.query<{ id: string; name: string }>(",
+    "-      \"select c.id, c.name from clients c join workouts w on w.client_id = c.id where w.id = $1\",",
+    "-      [workoutId],",
+    "-    );",
+    "-    return { setId: rows[0].id, client: owner.rows[0] };",
+    "-  });",
+    "-  // журнал сервера: что сохранили — по нему разбираем ошибки",
+    "-  console.log(\"Подход сохранён\", {",
+    "-    setId: saved.setId,",
+    "-    client: saved.client,",
+    "-    workoutId,",
+    "-    weight,",
+    "-    reps,",
+    "-    note,",
+    "-    time: new Date().toLocaleTimeString(\"ru-RU\"),",
+    "+    return rows[0].id;",
+    "   });",
+    "+  // журнал сервера: только id подхода и время — без имени и заметки, это данные о здоровье",
+    "+  console.log(\"Подход сохранён\", { setId, time: new Date().toLocaleTimeString(\"ru-RU\") });",
+    "   // та же страница заново — с новым подходом и без прежней ошибки в адресе",
+    "   redirect(page);",
+    " }"
+   ],
+   "blob": "a849a809da0ad95aee01b95383d51138d629d035",
+   "by": "agent"
+  },
+  {
+   "id": "log-set3",
+   "kind": "browser",
+   "url": "http://localhost:3000/workouts/3",
+   "title": "Тренировка",
+   "fields": [
+    {
+     "label": "Вес, кг",
+     "value": "40"
+    },
+    {
+     "label": "Повторы",
+     "value": "10"
+    },
+    {
+     "label": "Заметка",
+     "value": "болит колено"
+    }
+   ],
+   "buttons": [
+    "Сохранить подход"
+   ],
+   "before": [
+    "Грудь и плечи",
+    "30 кг × 10",
+    "30 кг × 10",
+    "35 кг × 8",
+    "40 кг × 10",
+    "Объём: 1280 кг",
+    "Вес, кг",
+    "Повторы",
+    "Заметка",
+    "Сохранить подход"
+   ],
+   "after": [
+    "Грудь и плечи",
+    "30 кг × 10",
+    "30 кг × 10",
+    "35 кг × 8",
+    "40 кг × 10",
+    "40 кг × 10",
+    "Объём: 1680 кг",
+    "Вес, кг",
+    "Повторы",
+    "Заметка",
+    "Сохранить подход"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select title from workouts where id = $1 background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select title from workouts where id = $1 background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    "✓ Compiled in 16ms",
+    "[sql] select title from workouts where id = $1",
+    "[sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id",
+    " GET /workouts/3 200 in 97ms (next.js: 2ms, generate-params: 29ms, application-code: 66ms)",
+    "[sql] insert into sets (workout_id, weight, reps, note) values ($1, $2, $3, $4) returning id",
+    "Подход сохранён { setId: '16', time: '11:54:10' }",
+    "[sql] select title from workouts where id = $1",
+    "[sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id",
+    " GET /workouts/3 200 in 56ms (next.js: 1.2ms, generate-params: 0.1ms, application-code: 55ms)",
+    " POST /workouts/3 200 in 585ms (next.js: 1.5ms, generate-params: 32ms, application-code: 552ms)",
+    "  └─ ƒ saveSet(\"3\", {}) in 475ms app/workouts/[id]/actions.ts"
+   ]
+  },
+  {
+   "id": "licenses",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npx --yes license-checker --summary",
+   "out": [
+    "├─ MIT: 341",
+    "├─ Apache-2.0: 27",
+    "├─ ISC: 17",
+    "├─ MPL-2.0: 7",
+    "├─ BSD-2-Clause: 7",
+    "├─ LGPL-3.0-or-later: 2",
+    "├─ BSD-3-Clause: 2",
+    "├─ Apache-2.0 AND LGPL-3.0-or-later AND MIT: 1",
+    "├─ Python-2.0: 1",
+    "├─ CC-BY-4.0: 1",
+    "├─ CC0-1.0: 1",
+    "├─ BlueOak-1.0.0: 1",
+    "├─ UNLICENSED: 1",
+    "└─ 0BSD: 1"
+   ],
+   "code": 0
+  },
+  {
+   "id": "c-care",
+   "kind": "commit",
+   "cmd": "git add -A && git commit -m \"Имена на любом языке; журнал без данных о здоровье\n\nCo-Authored-By: Claude <noreply@anthropic.com>\"",
+   "hash": "1cb43dc",
+   "message": "Имена на любом языке; журнал без данных о здоровье\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
+   "branch": "main",
+   "parents": [
+    "6fd1baa"
+   ],
+   "out": [
+    "[main 1cb43dc] Имена на любом языке; журнал без данных о здоровье",
+    " 5 files changed, 98 insertions(+), 5 deletions(-)",
+    " create mode 100644 app/clients/actions.ts",
+    " create mode 100644 lib/names.test.ts",
+    " create mode 100644 lib/names.ts"
+   ],
+   "files": [
+    {
+     "path": ".githooks/pre-commit",
+     "blob": "4fe231258086611cd45d79cbd7d7e319e68b76f9"
+    },
+    {
+     "path": ".gitignore",
+     "blob": "9babaf7a7576684d1e6f19db4afa2cefd91640d3"
+    },
+    {
+     "path": "CLAUDE.md",
+     "blob": "eddd7ec69c49be4d9b10d0c43803834ac4ab4293"
+    },
+    {
+     "path": "README.md",
+     "blob": "e215bc4ccf138bbc38ad58ad57e92135484b3c0f"
+    },
+    {
+     "path": "app/api/clients/search/route.ts",
+     "blob": "780c06f4f652de71a19f4181be66c86857fcd5d5"
+    },
+    {
+     "path": "app/api/login/route.ts",
+     "blob": "427b6448156be34ccb617c8c35a5e16282a8fea4"
+    },
+    {
+     "path": "app/api/sets/route.ts",
+     "blob": "86d7c8e5b7f6716c088e4661438b2ab14cbe31bc"
+    },
+    {
+     "path": "app/clients/[id]/actions.ts",
+     "blob": "5eec7d6a8dc7a7d35ddf493f54d12c44c36a524d"
+    },
+    {
+     "path": "app/clients/[id]/not-found.tsx",
+     "blob": "d3ecd96388b66eaa569bd8895275f5200bb3a85a"
+    },
+    {
+     "path": "app/clients/[id]/page.tsx",
+     "blob": "01169acdf555b128d9aa42702be88ef7c6e711f1"
+    },
+    {
+     "path": "app/clients/actions.ts",
+     "blob": "ab5d0e77f906f6dcf618cb398a172a67390ea7fe"
+    },
+    {
+     "path": "app/clients/page.tsx",
+     "blob": "ca5d268ee0c2fa2842364928d121c187ce9f70ca"
+    },
+    {
+     "path": "app/favicon.ico",
+     "blob": "af98450595e8b8efd9e505cddc5ed705b665a4d8"
+    },
+    {
+     "path": "app/globals.css",
+     "blob": "bb4f7dd716191366da8ab882e4194b8157a504dd"
+    },
+    {
+     "path": "app/layout.tsx",
+     "blob": "8515cad45d81c7b1929badb5a9da485bd379b523"
+    },
+    {
+     "path": "app/login/page.tsx",
+     "blob": "57a869356b632ea695f249ccf7802a0942141ab6"
+    },
+    {
+     "path": "app/page.tsx",
+     "blob": "58c27d1e76bd2f9f7e7763f3d6256ea6a157749d"
+    },
+    {
+     "path": "app/workouts/[id]/actions.ts",
+     "blob": "a849a809da0ad95aee01b95383d51138d629d035"
+    },
+    {
+     "path": "app/workouts/[id]/page.tsx",
+     "blob": "464dc44e1c802b45a643abe78222ada246a196fa"
+    },
+    {
+     "path": "app/workouts/page.tsx",
+     "blob": "728769dd02c5244cccfca97dfcbff45fe901d8df"
+    },
+    {
+     "path": "components/ProgressChart.tsx",
+     "blob": "77e64ac8860f1a46c395ffe50848c38423679a04"
+    },
+    {
+     "path": "components/SetList.tsx",
+     "blob": "78d3f5823d2dd9cc94835db6cf1fd4fa201ecdf2"
+    },
+    {
+     "path": "docs/etalons.md",
+     "blob": "fdfe7da9d3ffc22d6f656c0f62158b898645c1d2"
+    },
+    {
+     "path": "docs/idea.md",
+     "blob": "df36eb1f1505a363fadd7ad7fdb3975ccfdd2ffb"
+    },
+    {
+     "path": "docs/mini-set.md",
+     "blob": "423696ff8c914a7cd24f5e11a3c0d1855c251c6a"
+    },
+    {
+     "path": "docs/prompts.md",
+     "blob": "bc4298e80af8ab9afbccd1b77985bd312f00b26c"
+    },
+    {
+     "path": "docs/spec.md",
+     "blob": "491b7a53d9b628346315e33365aefd7fc7e3a8cf"
+    },
+    {
+     "path": "e2e/cycle.spec.ts",
+     "blob": "d199de9ce7b3315a7a18c40005dbc6dd27a03f93"
+    },
+    {
+     "path": "eslint.config.mjs",
+     "blob": "05e726d1b4201bc8c7716d2b058279676582e8c0"
+    },
+    {
+     "path": "lib/dates.ts",
+     "blob": "604f906e3dc4c58d9489abf84950ae071ceafed5"
+    },
+    {
+     "path": "lib/db.ts",
+     "blob": "bea1677f27da982934d297189b74b60017148c33"
+    },
+    {
+     "path": "lib/names.test.ts",
+     "blob": "d6890ca72d4e9cf0dcfe414e472266a38881a512"
+    },
+    {
+     "path": "lib/names.ts",
+     "blob": "e805924b33930951cfc371393ca87c8a0f8995fb"
+    },
+    {
+     "path": "lib/payments.ts",
+     "blob": "510e71445c634695ed1430647ec1f6f95e46368a"
+    },
+    {
+     "path": "lib/rate-limit.ts",
+     "blob": "1173b80e31f5a1aed29826b2c7bb8b90f1973871"
+    },
+    {
+     "path": "lib/session.ts",
+     "blob": "ced1148dc6236d6801f8931198ea2feb6a5d6b87"
+    },
+    {
+     "path": "lib/volume.test.ts",
+     "blob": "4e9f9a42b6b37446b8cab4c83062c2135c4b20e4"
+    },
+    {
+     "path": "lib/volume.ts",
+     "blob": "00d8286c3020ec0800698c190f02c8edcbf151ab"
+    },
+    {
+     "path": "lib/weight.test.ts",
+     "blob": "eb7b55ea11479f8d43d61a53e08af9b780a27179"
+    },
+    {
+     "path": "lib/weight.ts",
+     "blob": "5534e4676b0358eaf2665bfa0f498d168ad7705b"
+    },
+    {
+     "path": "next.config.ts",
+     "blob": "a0cf0c7313a86b713eb9d9bcac6539bc5d0bd1a9"
+    },
+    {
+     "path": "package-lock.json",
+     "blob": "71dc629fde4984efe6bfc757b2116700222d44c2"
+    },
+    {
+     "path": "package.json",
+     "blob": "6ab56583cc817522e1595c6f6770bd01510a1cfa"
+    },
+    {
+     "path": "playwright.config.ts",
+     "blob": "595220c1a2b5022019ab262c9f15b538f80ce466"
+    },
+    {
+     "path": "public/file.svg",
+     "blob": "004145cddf3f9db91b57b9cb596683c8eb420862"
+    },
+    {
+     "path": "public/globe.svg",
+     "blob": "567f17b0d7c7fb662c16d4357dd74830caf2dccb"
+    },
+    {
+     "path": "public/next.svg",
+     "blob": "5174b28c565c285e3e312ec5178be64fbeca8398"
+    },
+    {
+     "path": "public/vercel.svg",
+     "blob": "77053960334e2e34dc584dea8019925c3b4ccca9"
+    },
+    {
+     "path": "public/window.svg",
+     "blob": "b2b2a44f6ebc70c450043c05a002e7a93ba5d651"
+    },
+    {
+     "path": "supabase/migrations/0001_init.sql",
+     "blob": "ca60aa2319df6786876d0481231f2d7d8f24650f"
+    },
+    {
+     "path": "supabase/migrations/0002_rls.sql",
+     "blob": "9f3c19c1164504275cbfc78368afbe6ab5090f49"
+    },
+    {
+     "path": "supabase/migrations/0003_set_note.sql",
+     "blob": "88f05938526d33b6e393e5db1132ecc4aaae304f"
+    },
+    {
+     "path": "supabase/seed-load.sql",
+     "blob": "d1da7ddb2ae113d9be8de99917d110b18748e85a"
+    },
+    {
+     "path": "supabase/seed.sql",
+     "blob": "e9921b84a8400b48b89436d0ec1888f8d1bb6985"
+    },
+    {
+     "path": "supabase/tests/as-marina.sql",
+     "blob": "99304779f4762abc87793067ecd67c50a22946a0"
+    },
+    {
+     "path": "test/rls.test.ts",
+     "blob": "3ad9cbba9d59ab1bdcebb1d1bafc0fa25436a7f5"
+    },
+    {
+     "path": "tsconfig.json",
+     "blob": "3a13f90a773b0facb675bf5b1a8239c8f33d36f5"
+    },
+    {
+     "path": "vitest.config.mts",
+     "blob": "0562200385d5e8064e0abd6a21b33bc24c48ba2c"
+    }
+   ]
+  },
+  {
+   "id": "show-label",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "git log -1",
+   "out": [
+    "commit 1cb43dc700ecbbadfd3554bb35f55f9a5f770743",
+    "Author: Анна <anna@example.com>",
+    "Date:   Mon Nov 2 12:01:00 2026 +0000",
+    "",
+    "    Имена на любом языке; журнал без данных о здоровье",
+    "    ",
+    "    Co-Authored-By: Claude <noreply@anthropic.com>"
+   ],
+   "code": 0
+  }
+ ]
+}

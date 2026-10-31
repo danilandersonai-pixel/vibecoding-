@@ -1,0 +1,2329 @@
+{
+ "id": "s18-quick-set",
+ "from": "s17-invite",
+ "recorded": "2026-11-09",
+ "events": [
+  {
+   "id": "complaints",
+   "kind": "file",
+   "path": "docs/complaints.md",
+   "before": null,
+   "after": "# Жалобы на эталоны\n\nЖалобы пользователей эталонов А, Б и В. Текст мой: пересказ по образцу публичных отзывов с низкой оценкой, без названий приложений и без имён. Похожие жалобы лежат в одной стопке; стопки идут по размеру, сверху — на что жалуются чаще.\n\n## Долго записывать подход — А, Б\n\n- «Один подход — пять нажатий: упражнение, подход, вес, повторы, „Сохранить“. Отдых кончается раньше» — А.\n- «Вес и повторы каждый раз ввожу заново, хотя они те же, что в прошлом подходе» — А.\n- «Вписывать вес долго, поэтому подопечные просто ставят галочку „выполнено“» — Б.\n\n## Тренер не видит, что я сделал — Б, В\n\n- «Ставлю галочку, а сколько поднял, тренер не знает» — Б.\n- «Вижу у подопечных только отметки: растёт ли вес, не понять» — Б.\n- «Есть только отметка „был“. Что я делал на тренировке, никто не видит» — В.\n\nСюда же жалоба на А, где тренера нет вовсе: «Свои записи тренеру не показать».\n\n## Пропадает история — А, В\n\n- «Сменила телефон — история тренировок пропала» — А.\n- «Кончился абонемент, и тренировки за год исчезли» — В.\n\n## Мешает на тренировке — А, Б\n\n- «Реклама на весь экран прямо между подходами» — А.\n- «Уведомления по каждому поводу, пришлось отключить все» — Б.\n\n## Не под меня — Б, В\n\n- «Одно и то же упражнение вбиваю в программу каждому подопечному заново» — Б.\n- «Программу клуба под себя не изменить» — В.\n- «Работает только в одном клубе: перешла в другой — и приложение не нужно» — В.\n\n## Дорого — Б\n\n- «Цена растёт с каждым подопечным» — Б.\n\n## Что из этого следует\n\n- Вторая стопка у нас уже закрыта: строка паритета «Тренер видит вес и повторы подопечного» (`docs/parity.md`) — у всех эталонов «нет», у нас работает.\n- Первая открыта: подход по-прежнему вписывается в поля — вес, повторы, «Сохранить подход».\n- Отличие: подход в одно касание, и тренер сразу видит вес, повторы и рост.\n",
+   "diff": [
+    "diff --git a/docs/complaints.md b/docs/complaints.md",
+    "new file mode 100644",
+    "index 0000000..9b1c59e",
+    "--- /dev/null",
+    "+++ b/docs/complaints.md",
+    "@@ -0,0 +1,43 @@",
+    "+# Жалобы на эталоны",
+    "+",
+    "+Жалобы пользователей эталонов А, Б и В. Текст мой: пересказ по образцу публичных отзывов с низкой оценкой, без названий приложений и без имён. Похожие жалобы лежат в одной стопке; стопки идут по размеру, сверху — на что жалуются чаще.",
+    "+",
+    "+## Долго записывать подход — А, Б",
+    "+",
+    "+- «Один подход — пять нажатий: упражнение, подход, вес, повторы, „Сохранить“. Отдых кончается раньше» — А.",
+    "+- «Вес и повторы каждый раз ввожу заново, хотя они те же, что в прошлом подходе» — А.",
+    "+- «Вписывать вес долго, поэтому подопечные просто ставят галочку „выполнено“» — Б.",
+    "+",
+    "+## Тренер не видит, что я сделал — Б, В",
+    "+",
+    "+- «Ставлю галочку, а сколько поднял, тренер не знает» — Б.",
+    "+- «Вижу у подопечных только отметки: растёт ли вес, не понять» — Б.",
+    "+- «Есть только отметка „был“. Что я делал на тренировке, никто не видит» — В.",
+    "+",
+    "+Сюда же жалоба на А, где тренера нет вовсе: «Свои записи тренеру не показать».",
+    "+",
+    "+## Пропадает история — А, В",
+    "+",
+    "+- «Сменила телефон — история тренировок пропала» — А.",
+    "+- «Кончился абонемент, и тренировки за год исчезли» — В.",
+    "+",
+    "+## Мешает на тренировке — А, Б",
+    "+",
+    "+- «Реклама на весь экран прямо между подходами» — А.",
+    "+- «Уведомления по каждому поводу, пришлось отключить все» — Б.",
+    "+",
+    "+## Не под меня — Б, В",
+    "+",
+    "+- «Одно и то же упражнение вбиваю в программу каждому подопечному заново» — Б.",
+    "+- «Программу клуба под себя не изменить» — В.",
+    "+- «Работает только в одном клубе: перешла в другой — и приложение не нужно» — В.",
+    "+",
+    "+## Дорого — Б",
+    "+",
+    "+- «Цена растёт с каждым подопечным» — Б.",
+    "+",
+    "+## Что из этого следует",
+    "+",
+    "+- Вторая стопка у нас уже закрыта: строка паритета «Тренер видит вес и повторы подопечного» (`docs/parity.md`) — у всех эталонов «нет», у нас работает.",
+    "+- Первая открыта: подход по-прежнему вписывается в поля — вес, повторы, «Сохранить подход».",
+    "+- Отличие: подход в одно касание, и тренер сразу видит вес, повторы и рост."
+   ],
+   "blob": "9b1c59e095311045de8d5e001a2ea161d9c41a0a"
+  },
+  {
+   "id": "c-complaints",
+   "kind": "commit",
+   "cmd": "git add -A && git commit -m \"Жалобы на эталоны в стопки\"",
+   "hash": "b747564",
+   "message": "Жалобы на эталоны в стопки",
+   "branch": "main",
+   "parents": [
+    "fc13709"
+   ],
+   "out": [
+    "[main b747564] Жалобы на эталоны в стопки",
+    " 1 file changed, 43 insertions(+)",
+    " create mode 100644 docs/complaints.md"
+   ],
+   "files": [
+    {
+     "path": ".githooks/pre-commit",
+     "blob": "4fe231258086611cd45d79cbd7d7e319e68b76f9"
+    },
+    {
+     "path": ".gitignore",
+     "blob": "9babaf7a7576684d1e6f19db4afa2cefd91640d3"
+    },
+    {
+     "path": "CLAUDE.md",
+     "blob": "eddd7ec69c49be4d9b10d0c43803834ac4ab4293"
+    },
+    {
+     "path": "README.md",
+     "blob": "e215bc4ccf138bbc38ad58ad57e92135484b3c0f"
+    },
+    {
+     "path": "app/api/clients/search/route.ts",
+     "blob": "780c06f4f652de71a19f4181be66c86857fcd5d5"
+    },
+    {
+     "path": "app/api/login/route.ts",
+     "blob": "427b6448156be34ccb617c8c35a5e16282a8fea4"
+    },
+    {
+     "path": "app/api/sets/route.ts",
+     "blob": "86d7c8e5b7f6716c088e4661438b2ab14cbe31bc"
+    },
+    {
+     "path": "app/clients/[id]/actions.ts",
+     "blob": "5eec7d6a8dc7a7d35ddf493f54d12c44c36a524d"
+    },
+    {
+     "path": "app/clients/[id]/not-found.tsx",
+     "blob": "d3ecd96388b66eaa569bd8895275f5200bb3a85a"
+    },
+    {
+     "path": "app/clients/[id]/page.tsx",
+     "blob": "9c8a80abed61c077137ec92210315b7cca6454f0"
+    },
+    {
+     "path": "app/clients/actions.ts",
+     "blob": "ab5d0e77f906f6dcf618cb398a172a67390ea7fe"
+    },
+    {
+     "path": "app/clients/page.tsx",
+     "blob": "0d937b027c0b8b2fe0807463ec1b9758cf6d98f3"
+    },
+    {
+     "path": "app/favicon.ico",
+     "blob": "af98450595e8b8efd9e505cddc5ed705b665a4d8"
+    },
+    {
+     "path": "app/globals.css",
+     "blob": "eed3b35f34ff5c8f6d0dfb90aaae81581dbe798c"
+    },
+    {
+     "path": "app/icon.tsx",
+     "blob": "17f2f42e653179751c4644305031303484fb9eea"
+    },
+    {
+     "path": "app/join/[code]/actions.ts",
+     "blob": "706def01ab2c040e1bb2ce51b76d4424694c50b7"
+    },
+    {
+     "path": "app/join/[code]/page.tsx",
+     "blob": "7e9481cd7b7de7dcc7530b32de7546d455b6eab6"
+    },
+    {
+     "path": "app/layout.tsx",
+     "blob": "8515cad45d81c7b1929badb5a9da485bd379b523"
+    },
+    {
+     "path": "app/login/page.tsx",
+     "blob": "57a869356b632ea695f249ccf7802a0942141ab6"
+    },
+    {
+     "path": "app/manifest.ts",
+     "blob": "9dbb36a2f2fe2ec302d3dd0e1d8c80ccb41ca71c"
+    },
+    {
+     "path": "app/page.tsx",
+     "blob": "58c27d1e76bd2f9f7e7763f3d6256ea6a157749d"
+    },
+    {
+     "path": "app/programs/actions.ts",
+     "blob": "dcd541fe06f5492687a0ea1cf620c192b6bc64d4"
+    },
+    {
+     "path": "app/programs/page.tsx",
+     "blob": "afac09dd15a93bb1775b65096db6bfff25dbeb70"
+    },
+    {
+     "path": "app/report/page.tsx",
+     "blob": "f10ded0acd8bd2ac60b7f3c31449bfb298aaf94d"
+    },
+    {
+     "path": "app/workouts/[id]/actions.ts",
+     "blob": "a849a809da0ad95aee01b95383d51138d629d035"
+    },
+    {
+     "path": "app/workouts/[id]/comments.ts",
+     "blob": "5cf9a284eb26545757c2c104919fe593425887e2"
+    },
+    {
+     "path": "app/workouts/[id]/page.tsx",
+     "blob": "9a1d156bfdf8074a9af53aa09e6d34604f13906d"
+    },
+    {
+     "path": "app/workouts/page.tsx",
+     "blob": "728769dd02c5244cccfca97dfcbff45fe901d8df"
+    },
+    {
+     "path": "components/Comments.tsx",
+     "blob": "3d337b64d15a4667a38c040559b8f498f2c1318a"
+    },
+    {
+     "path": "components/ProgressChart.tsx",
+     "blob": "77e64ac8860f1a46c395ffe50848c38423679a04"
+    },
+    {
+     "path": "components/SetList.tsx",
+     "blob": "2c715947f996c357c227fb7f2d88d8f689bbd6bb"
+    },
+    {
+     "path": "docs/complaints.md",
+     "blob": "9b1c59e095311045de8d5e001a2ea161d9c41a0a"
+    },
+    {
+     "path": "docs/design.md",
+     "blob": "d4f7691cb131c13ea47a613c9d17e8e02b0aed9a"
+    },
+    {
+     "path": "docs/etalons.md",
+     "blob": "fdfe7da9d3ffc22d6f656c0f62158b898645c1d2"
+    },
+    {
+     "path": "docs/feedback.md",
+     "blob": "a7460f95f2740430a7216a333ab57eb79b887050"
+    },
+    {
+     "path": "docs/idea.md",
+     "blob": "df36eb1f1505a363fadd7ad7fdb3975ccfdd2ffb"
+    },
+    {
+     "path": "docs/mini-set.md",
+     "blob": "423696ff8c914a7cd24f5e11a3c0d1855c251c6a"
+    },
+    {
+     "path": "docs/parity.md",
+     "blob": "a8c3a569ad92667412b210fc1a84fda926dcaf1b"
+    },
+    {
+     "path": "docs/plan-weeks-2-3.md",
+     "blob": "94eb8518bed0420f3fe7434edc9ccb896eb04096"
+    },
+    {
+     "path": "docs/prompts.md",
+     "blob": "bc4298e80af8ab9afbccd1b77985bd312f00b26c"
+    },
+    {
+     "path": "docs/report.md",
+     "blob": "a6562754e58b0e8fbeb0ed59013c66c9b8e541e2"
+    },
+    {
+     "path": "docs/spec.md",
+     "blob": "491b7a53d9b628346315e33365aefd7fc7e3a8cf"
+    },
+    {
+     "path": "docs/tasks/notes.md",
+     "blob": "cb71ccb1a0bf09ae4ebba4f14aa214be10729bae"
+    },
+    {
+     "path": "docs/tasks/records.md",
+     "blob": "db9abf41775b6851fb35442a8204275b9a669e04"
+    },
+    {
+     "path": "e2e/cycle.spec.ts",
+     "blob": "d199de9ce7b3315a7a18c40005dbc6dd27a03f93"
+    },
+    {
+     "path": "eslint.config.mjs",
+     "blob": "05e726d1b4201bc8c7716d2b058279676582e8c0"
+    },
+    {
+     "path": "lib/dates.ts",
+     "blob": "604f906e3dc4c58d9489abf84950ae071ceafed5"
+    },
+    {
+     "path": "lib/db.ts",
+     "blob": "bea1677f27da982934d297189b74b60017148c33"
+    },
+    {
+     "path": "lib/names.test.ts",
+     "blob": "d6890ca72d4e9cf0dcfe414e472266a38881a512"
+    },
+    {
+     "path": "lib/names.ts",
+     "blob": "e805924b33930951cfc371393ca87c8a0f8995fb"
+    },
+    {
+     "path": "lib/notify.test.ts",
+     "blob": "d74f2fee04f22ac2ccb60f91831ab8db86b9eb8e"
+    },
+    {
+     "path": "lib/notify.ts",
+     "blob": "4a0e8d5c643239ea470cf2d1c158d05b2525f4b5"
+    },
+    {
+     "path": "lib/payments.ts",
+     "blob": "510e71445c634695ed1430647ec1f6f95e46368a"
+    },
+    {
+     "path": "lib/progress.test.ts",
+     "blob": "c83c2100822d3f81e8ef67a2d807957ef83a3b4a"
+    },
+    {
+     "path": "lib/progress.ts",
+     "blob": "473f33d0e627b4627df5cb776d2ebb3f26f6c4fd"
+    },
+    {
+     "path": "lib/rate-limit.ts",
+     "blob": "1173b80e31f5a1aed29826b2c7bb8b90f1973871"
+    },
+    {
+     "path": "lib/records.test.ts",
+     "blob": "43b4ad5e54a06df184118b4a8945d53326d77f03"
+    },
+    {
+     "path": "lib/records.ts",
+     "blob": "7c0fabdcea67e71f837798fc5013f74db68f6a02"
+    },
+    {
+     "path": "lib/report.test.ts",
+     "blob": "d13a57d9455db9a518b5419cff96167b85a95d66"
+    },
+    {
+     "path": "lib/report.ts",
+     "blob": "c2fc54105f1531b1f304e5f69958e6c3bb5ce36b"
+    },
+    {
+     "path": "lib/session.ts",
+     "blob": "ced1148dc6236d6801f8931198ea2feb6a5d6b87"
+    },
+    {
+     "path": "lib/volume.test.ts",
+     "blob": "4e9f9a42b6b37446b8cab4c83062c2135c4b20e4"
+    },
+    {
+     "path": "lib/volume.ts",
+     "blob": "00d8286c3020ec0800698c190f02c8edcbf151ab"
+    },
+    {
+     "path": "lib/weight.test.ts",
+     "blob": "eb7b55ea11479f8d43d61a53e08af9b780a27179"
+    },
+    {
+     "path": "lib/weight.ts",
+     "blob": "5534e4676b0358eaf2665bfa0f498d168ad7705b"
+    },
+    {
+     "path": "next.config.ts",
+     "blob": "a0cf0c7313a86b713eb9d9bcac6539bc5d0bd1a9"
+    },
+    {
+     "path": "package-lock.json",
+     "blob": "71dc629fde4984efe6bfc757b2116700222d44c2"
+    },
+    {
+     "path": "package.json",
+     "blob": "6ab56583cc817522e1595c6f6770bd01510a1cfa"
+    },
+    {
+     "path": "playwright.config.ts",
+     "blob": "595220c1a2b5022019ab262c9f15b538f80ce466"
+    },
+    {
+     "path": "public/file.svg",
+     "blob": "004145cddf3f9db91b57b9cb596683c8eb420862"
+    },
+    {
+     "path": "public/globe.svg",
+     "blob": "567f17b0d7c7fb662c16d4357dd74830caf2dccb"
+    },
+    {
+     "path": "public/next.svg",
+     "blob": "5174b28c565c285e3e312ec5178be64fbeca8398"
+    },
+    {
+     "path": "public/vercel.svg",
+     "blob": "77053960334e2e34dc584dea8019925c3b4ccca9"
+    },
+    {
+     "path": "public/window.svg",
+     "blob": "b2b2a44f6ebc70c450043c05a002e7a93ba5d651"
+    },
+    {
+     "path": "supabase/migrations/0001_init.sql",
+     "blob": "ca60aa2319df6786876d0481231f2d7d8f24650f"
+    },
+    {
+     "path": "supabase/migrations/0002_rls.sql",
+     "blob": "9f3c19c1164504275cbfc78368afbe6ab5090f49"
+    },
+    {
+     "path": "supabase/migrations/0003_set_note.sql",
+     "blob": "88f05938526d33b6e393e5db1132ecc4aaae304f"
+    },
+    {
+     "path": "supabase/migrations/0004_programs.sql",
+     "blob": "6e31f64935c0792ed04414fde9cf2473dddb2971"
+    },
+    {
+     "path": "supabase/migrations/0005_programs_copy.sql",
+     "blob": "606da9ade911fa66a50d5705122590f6a71c3621"
+    },
+    {
+     "path": "supabase/migrations/0006_comments.sql",
+     "blob": "70db2a965660677fe1d3ffecf2be764d2bdbe5fb"
+    },
+    {
+     "path": "supabase/migrations/0007_comments_rls.sql",
+     "blob": "904c10716be7844bbf0cebb577a70b06a4ca77ad"
+    },
+    {
+     "path": "supabase/migrations/0008_invites.sql",
+     "blob": "6671c51bbb8e9b56bfe5764398594fa85c78b4a7"
+    },
+    {
+     "path": "supabase/seed-load.sql",
+     "blob": "d1da7ddb2ae113d9be8de99917d110b18748e85a"
+    },
+    {
+     "path": "supabase/seed.sql",
+     "blob": "e9921b84a8400b48b89436d0ec1888f8d1bb6985"
+    },
+    {
+     "path": "supabase/tests/as-marina.sql",
+     "blob": "99304779f4762abc87793067ecd67c50a22946a0"
+    },
+    {
+     "path": "supabase/tests/as-sveta-write.sql",
+     "blob": "b0e5f9fa329449360016bc91bd7d3210a2b79e00"
+    },
+    {
+     "path": "supabase/tests/as-sveta.sql",
+     "blob": "d9c23ae84ff0acb4b52c5bd00598782e8c99c77a"
+    },
+    {
+     "path": "test/comments.test.ts",
+     "blob": "294e59b3081a8e6d73346af01a7e428a8eb9b7ed"
+    },
+    {
+     "path": "test/invites.test.ts",
+     "blob": "ebb453a9d2a65c185d2967a8029585aeb42b34d9"
+    },
+    {
+     "path": "test/programs.test.ts",
+     "blob": "cbfc8ab60a5683131a2bf6731c29d773d95eba3c"
+    },
+    {
+     "path": "test/rls.test.ts",
+     "blob": "3ad9cbba9d59ab1bdcebb1d1bafc0fa25436a7f5"
+    },
+    {
+     "path": "tsconfig.json",
+     "blob": "3a13f90a773b0facb675bf5b1a8239c8f33d36f5"
+    },
+    {
+     "path": "vitest.config.mts",
+     "blob": "0562200385d5e8064e0abd6a21b33bc24c48ba2c"
+    }
+   ]
+  },
+  {
+   "id": "copy-branch",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "git switch -c copy/etalon-b",
+   "out": [
+    "Switched to a new branch 'copy/etalon-b'"
+   ],
+   "code": 0
+  },
+  {
+   "id": "ask-copy",
+   "kind": "agent",
+   "prompt": "Сделай как у эталонов: чат и оплату как у Б, таймер отдыха как у А",
+   "reply": "Как у Б: чат на /chat и подписка на /billing — цена за каждого подопечного. Как у А: таймер отдыха на 60, 90 и 120 секунд под формой подхода. Чату нужна таблица messages: миграцию я не писал.",
+   "steps": [
+    "copy-chat",
+    "copy-timer",
+    "copy-timer-use",
+    "copy-pay",
+    "copy-pay-lib"
+   ]
+  },
+  {
+   "id": "copy-chat",
+   "kind": "file",
+   "path": "app/chat/page.tsx",
+   "before": null,
+   "after": "import type { Metadata } from \"next\";\nimport { redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\n\nexport const metadata: Metadata = { title: \"Чат\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Сообщение чата: автор и текст\ntype Message = { id: string; author: string; body: string };\n\n// Сообщение от имени вошедшего — тренера или подопечного, как в чате эталона Б\nasync function send(form: FormData) {\n  \"use server\";\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const body = String(form.get(\"body\") ?? \"\").trim();\n  if (body !== \"\") {\n    await asUser(uid, (db) => db.query(\"insert into messages (author_id, body) values ($1, $2)\", [uid, body]));\n  }\n  redirect(\"/chat\");\n}\n\n// Чат тренера и подопечного: сообщения по порядку, под ними поле «Сообщение» и кнопка «Отправить»\nexport default async function ChatPage() {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const messages = await asUser(uid, async (db) => {\n    const { rows } = await db.query<Message>(\n      \"select m.id, p.name as author, m.body from messages m join profiles p on p.id = m.author_id order by m.id\",\n    );\n    return rows;\n  });\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Чат</h1>\n      <ul className=\"mt-6 flex flex-col gap-2\">\n        {messages.map((message) => (\n          <li key={message.id}>\n            <span className=\"font-semibold\">{message.author}:</span> {message.body}\n          </li>\n        ))}\n      </ul>\n      <form action={send} className=\"mt-6 flex flex-col gap-4\">\n        <label className=\"flex flex-col gap-1\">\n          Сообщение\n          <textarea name=\"body\" required rows={2} className=\"rounded border border-zinc-300 px-3 py-2\" />\n        </label>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Отправить\n        </button>\n      </form>\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/chat/page.tsx b/app/chat/page.tsx",
+    "new file mode 100644",
+    "index 0000000..48f4864",
+    "--- /dev/null",
+    "+++ b/app/chat/page.tsx",
+    "@@ -0,0 +1,58 @@",
+    "+import type { Metadata } from \"next\";",
+    "+import { redirect } from \"next/navigation\";",
+    "+import { asUser } from \"@/lib/db\";",
+    "+import { currentUser } from \"@/lib/session\";",
+    "+",
+    "+export const metadata: Metadata = { title: \"Чат\" };",
+    "+",
+    "+// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки",
+    "+export const instant = false;",
+    "+",
+    "+// Сообщение чата: автор и текст",
+    "+type Message = { id: string; author: string; body: string };",
+    "+",
+    "+// Сообщение от имени вошедшего — тренера или подопечного, как в чате эталона Б",
+    "+async function send(form: FormData) {",
+    "+  \"use server\";",
+    "+  const uid = await currentUser();",
+    "+  if (!uid) redirect(\"/login\");",
+    "+  const body = String(form.get(\"body\") ?? \"\").trim();",
+    "+  if (body !== \"\") {",
+    "+    await asUser(uid, (db) => db.query(\"insert into messages (author_id, body) values ($1, $2)\", [uid, body]));",
+    "+  }",
+    "+  redirect(\"/chat\");",
+    "+}",
+    "+",
+    "+// Чат тренера и подопечного: сообщения по порядку, под ними поле «Сообщение» и кнопка «Отправить»",
+    "+export default async function ChatPage() {",
+    "+  const uid = await currentUser();",
+    "+  if (!uid) redirect(\"/login\");",
+    "+  const messages = await asUser(uid, async (db) => {",
+    "+    const { rows } = await db.query<Message>(",
+    "+      \"select m.id, p.name as author, m.body from messages m join profiles p on p.id = m.author_id order by m.id\",",
+    "+    );",
+    "+    return rows;",
+    "+  });",
+    "+",
+    "+  return (",
+    "+    <main className=\"mx-auto w-full max-w-md p-8\">",
+    "+      <h1 className=\"text-3xl font-semibold\">Чат</h1>",
+    "+      <ul className=\"mt-6 flex flex-col gap-2\">",
+    "+        {messages.map((message) => (",
+    "+          <li key={message.id}>",
+    "+            <span className=\"font-semibold\">{message.author}:</span> {message.body}",
+    "+          </li>",
+    "+        ))}",
+    "+      </ul>",
+    "+      <form action={send} className=\"mt-6 flex flex-col gap-4\">",
+    "+        <label className=\"flex flex-col gap-1\">",
+    "+          Сообщение",
+    "+          <textarea name=\"body\" required rows={2} className=\"rounded border border-zinc-300 px-3 py-2\" />",
+    "+        </label>",
+    "+        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">",
+    "+          Отправить",
+    "+        </button>",
+    "+      </form>",
+    "+    </main>",
+    "+  );",
+    "+}"
+   ],
+   "blob": "48f486403377b37ce915effd6fa0165c52e64981",
+   "by": "agent"
+  },
+  {
+   "id": "copy-timer",
+   "kind": "file",
+   "path": "components/RestTimer.tsx",
+   "before": null,
+   "after": "\"use client\";\n\nimport { useEffect, useState } from \"react\";\n\n// Таймер отдыха между подходами, как у эталона А: кнопки 60, 90 и 120 секунд и обратный отсчёт\nexport default function RestTimer() {\n  const [left, setLeft] = useState(0);\n\n  // секунда за секундой, пока отдых не кончится\n  useEffect(() => {\n    if (left <= 0) return;\n    const tick = setTimeout(() => setLeft(left - 1), 1000);\n    return () => clearTimeout(tick);\n  }, [left]);\n\n  return (\n    <div className=\"mt-6 flex items-center gap-2\">\n      <span className=\"w-16 font-mono text-xl\">\n        {left > 0 ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, \"0\")}` : \"Отдых\"}\n      </span>\n      {[60, 90, 120].map((seconds) => (\n        <button\n          key={seconds}\n          type=\"button\"\n          onClick={() => setLeft(seconds)}\n          className=\"rounded border border-zinc-300 px-3 py-1 text-sm\"\n        >\n          {seconds} с\n        </button>\n      ))}\n    </div>\n  );\n}\n",
+   "diff": [
+    "diff --git a/components/RestTimer.tsx b/components/RestTimer.tsx",
+    "new file mode 100644",
+    "index 0000000..d4d7443",
+    "--- /dev/null",
+    "+++ b/components/RestTimer.tsx",
+    "@@ -0,0 +1,33 @@",
+    "+\"use client\";",
+    "+",
+    "+import { useEffect, useState } from \"react\";",
+    "+",
+    "+// Таймер отдыха между подходами, как у эталона А: кнопки 60, 90 и 120 секунд и обратный отсчёт",
+    "+export default function RestTimer() {",
+    "+  const [left, setLeft] = useState(0);",
+    "+",
+    "+  // секунда за секундой, пока отдых не кончится",
+    "+  useEffect(() => {",
+    "+    if (left <= 0) return;",
+    "+    const tick = setTimeout(() => setLeft(left - 1), 1000);",
+    "+    return () => clearTimeout(tick);",
+    "+  }, [left]);",
+    "+",
+    "+  return (",
+    "+    <div className=\"mt-6 flex items-center gap-2\">",
+    "+      <span className=\"w-16 font-mono text-xl\">",
+    "+        {left > 0 ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, \"0\")}` : \"Отдых\"}",
+    "+      </span>",
+    "+      {[60, 90, 120].map((seconds) => (",
+    "+        <button",
+    "+          key={seconds}",
+    "+          type=\"button\"",
+    "+          onClick={() => setLeft(seconds)}",
+    "+          className=\"rounded border border-zinc-300 px-3 py-1 text-sm\"",
+    "+        >",
+    "+          {seconds} с",
+    "+        </button>",
+    "+      ))}",
+    "+    </div>",
+    "+  );",
+    "+}"
+   ],
+   "blob": "d4d74431ddfd1ef4a14748a7c2b9a90cdf3ac81c",
+   "by": "agent"
+  },
+  {
+   "id": "copy-timer-use",
+   "kind": "file",
+   "path": "app/workouts/[id]/page.tsx",
+   "before": "import type { Metadata } from \"next\";\nimport { notFound, redirect } from \"next/navigation\";\nimport Comments, { type WorkoutComment } from \"@/components/Comments\";\nimport SetList from \"@/components/SetList\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { volume } from \"@/lib/volume\";\nimport { saveSet } from \"./actions\";\nimport { addComment } from \"./comments\";\n\nexport const metadata: Metadata = { title: \"Тренировка\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Тренировка по id из адреса: упражнения по программе, подходы, объём, форма нового подхода и комментарии. Чужой тренировки база не отдаст (RLS) — будет 404\nexport default async function WorkoutPage({ params, searchParams }: PageProps<\"/workouts/[id]\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { id } = await params;\n  const { error } = await searchParams;\n  const workout = await asUser(uid, async (db) => {\n    const found = await db.query<{ title: string }>(\"select title from workouts where id = $1\", [id]);\n    // упражнения по программе: копия строк шаблона в строках тренировки — «Присед — 3 × 10»\n    const items = await db.query<{ id: string; exercise: string; sets: number; reps: number }>(\n      \"select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id\",\n      [id],\n    );\n    // вес в базе — numeric, pg отдаёт его строкой; float8 приходит числом\n    const sets = await db.query<{ id: string; weight: number; reps: number }>(\n      \"select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id\",\n      [id],\n    );\n    // комментарии к тренировке: автор — подопечный (его имя) или тренер\n    const comments = await db.query<WorkoutComment>(\n      `select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author\n         from comments cm\n         join workouts w on w.id = cm.workout_id\n         join clients c on c.id = w.client_id\n        where cm.workout_id = $1\n        order by cm.id`,\n      [id],\n    );\n    return found.rows.length > 0\n      ? { title: found.rows[0].title, items: items.rows, sets: sets.rows, comments: comments.rows }\n      : null;\n  });\n  if (!workout) notFound();\n  // поля приходят из формы, а id тренировки действие получает отсюда\n  const save = saveSet.bind(null, id);\n  // комментарий — к этой тренировке, после отправки — снова эта страница\n  const comment = addComment.bind(null, id, `/workouts/${id}`);\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">{workout.title}</h1>\n      {workout.items.length > 0 && (\n        <ul className=\"mt-2 flex flex-col gap-1 font-medium\">\n          {workout.items.map((item) => (\n            <li key={item.id}>\n              {item.exercise} — {item.sets} × {item.reps}\n            </li>\n          ))}\n        </ul>\n      )}\n\n      {workout.sets.length === 0 ? (\n        <p className=\"mt-6 text-zinc-500\">Подходов пока нет</p>\n      ) : (\n        <SetList sets={workout.sets} className=\"mt-6 flex flex-col gap-1\" />\n      )}\n      <p className=\"mt-2 font-medium\">Объём: {volume(workout.sets)} кг</p>\n\n      <form action={save} className=\"mt-6 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"weight\">Вес, кг</label>\n          <input\n            id=\"weight\"\n            name=\"weight\"\n            inputMode=\"decimal\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"reps\">Повторы</label>\n          <input\n            id=\"reps\"\n            name=\"reps\"\n            inputMode=\"numeric\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"note\">Заметка</label>\n          <input\n            id=\"note\"\n            name=\"note\"\n            maxLength={200}\n            placeholder=\"Необязательно, до 200 знаков\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Сохранить подход\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Комментарии</h2>\n      <Comments comments={workout.comments} action={comment} className=\"mt-2\" />\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport { notFound, redirect } from \"next/navigation\";\nimport Comments, { type WorkoutComment } from \"@/components/Comments\";\nimport RestTimer from \"@/components/RestTimer\";\nimport SetList from \"@/components/SetList\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { volume } from \"@/lib/volume\";\nimport { saveSet } from \"./actions\";\nimport { addComment } from \"./comments\";\n\nexport const metadata: Metadata = { title: \"Тренировка\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Тренировка по id из адреса: упражнения по программе, подходы, объём, форма нового подхода и комментарии. Чужой тренировки база не отдаст (RLS) — будет 404\nexport default async function WorkoutPage({ params, searchParams }: PageProps<\"/workouts/[id]\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { id } = await params;\n  const { error } = await searchParams;\n  const workout = await asUser(uid, async (db) => {\n    const found = await db.query<{ title: string }>(\"select title from workouts where id = $1\", [id]);\n    // упражнения по программе: копия строк шаблона в строках тренировки — «Присед — 3 × 10»\n    const items = await db.query<{ id: string; exercise: string; sets: number; reps: number }>(\n      \"select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id\",\n      [id],\n    );\n    // вес в базе — numeric, pg отдаёт его строкой; float8 приходит числом\n    const sets = await db.query<{ id: string; weight: number; reps: number }>(\n      \"select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id\",\n      [id],\n    );\n    // комментарии к тренировке: автор — подопечный (его имя) или тренер\n    const comments = await db.query<WorkoutComment>(\n      `select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author\n         from comments cm\n         join workouts w on w.id = cm.workout_id\n         join clients c on c.id = w.client_id\n        where cm.workout_id = $1\n        order by cm.id`,\n      [id],\n    );\n    return found.rows.length > 0\n      ? { title: found.rows[0].title, items: items.rows, sets: sets.rows, comments: comments.rows }\n      : null;\n  });\n  if (!workout) notFound();\n  // поля приходят из формы, а id тренировки действие получает отсюда\n  const save = saveSet.bind(null, id);\n  // комментарий — к этой тренировке, после отправки — снова эта страница\n  const comment = addComment.bind(null, id, `/workouts/${id}`);\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">{workout.title}</h1>\n      {workout.items.length > 0 && (\n        <ul className=\"mt-2 flex flex-col gap-1 font-medium\">\n          {workout.items.map((item) => (\n            <li key={item.id}>\n              {item.exercise} — {item.sets} × {item.reps}\n            </li>\n          ))}\n        </ul>\n      )}\n\n      {workout.sets.length === 0 ? (\n        <p className=\"mt-6 text-zinc-500\">Подходов пока нет</p>\n      ) : (\n        <SetList sets={workout.sets} className=\"mt-6 flex flex-col gap-1\" />\n      )}\n      <p className=\"mt-2 font-medium\">Объём: {volume(workout.sets)} кг</p>\n\n      <form action={save} className=\"mt-6 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"weight\">Вес, кг</label>\n          <input\n            id=\"weight\"\n            name=\"weight\"\n            inputMode=\"decimal\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"reps\">Повторы</label>\n          <input\n            id=\"reps\"\n            name=\"reps\"\n            inputMode=\"numeric\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"note\">Заметка</label>\n          <input\n            id=\"note\"\n            name=\"note\"\n            maxLength={200}\n            placeholder=\"Необязательно, до 200 знаков\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Сохранить подход\n        </button>\n      </form>\n      <RestTimer />\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Комментарии</h2>\n      <Comments comments={workout.comments} action={comment} className=\"mt-2\" />\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/workouts/[id]/page.tsx b/app/workouts/[id]/page.tsx",
+    "index 9a1d156..a813a8b 100644",
+    "--- a/app/workouts/[id]/page.tsx",
+    "+++ b/app/workouts/[id]/page.tsx",
+    "@@ -1,6 +1,7 @@",
+    " import type { Metadata } from \"next\";",
+    " import { notFound, redirect } from \"next/navigation\";",
+    " import Comments, { type WorkoutComment } from \"@/components/Comments\";",
+    "+import RestTimer from \"@/components/RestTimer\";",
+    " import SetList from \"@/components/SetList\";",
+    " import { asUser } from \"@/lib/db\";",
+    " import { currentUser } from \"@/lib/session\";",
+    "@@ -104,6 +105,7 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<\"/",
+    "           Сохранить подход",
+    "         </button>",
+    "       </form>",
+    "+      <RestTimer />",
+    " ",
+    "       {typeof error === \"string\" && (",
+    "         <p role=\"alert\" className=\"mt-4 text-red-600\">"
+   ],
+   "blob": "a813a8b2551137cf213b5daf972ff041fa8f043c",
+   "by": "agent"
+  },
+  {
+   "id": "copy-pay",
+   "kind": "file",
+   "path": "app/billing/page.tsx",
+   "before": null,
+   "after": "import type { Metadata } from \"next\";\nimport { redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { monthlyPrice, startPayment } from \"@/lib/payments\";\nimport { currentUser } from \"@/lib/session\";\n\nexport const metadata: Metadata = { title: \"Подписка\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Тренер оплачивает месяц подписки\nasync function pay() {\n  \"use server\";\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  await startPayment({ coachId: uid, plan: \"month\" });\n  redirect(\"/clients\");\n}\n\n// Подписка тренера, как у эталона Б: цена за месяц — за каждого подопечного\nexport default async function BillingPage() {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const count = await asUser(uid, async (db) => {\n    const { rows } = await db.query<{ count: number }>(\"select count(*)::int as count from clients where coach_id = $1\", [uid]);\n    return rows[0].count;\n  });\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подписка</h1>\n      <p className=\"mt-6\">Подопечных: {count}</p>\n      <p className=\"mt-2 font-medium\">В месяц: {monthlyPrice(count)} ₽</p>\n      <form action={pay} className=\"mt-6\">\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Оплатить\n        </button>\n      </form>\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/billing/page.tsx b/app/billing/page.tsx",
+    "new file mode 100644",
+    "index 0000000..a0efa91",
+    "--- /dev/null",
+    "+++ b/app/billing/page.tsx",
+    "@@ -0,0 +1,42 @@",
+    "+import type { Metadata } from \"next\";",
+    "+import { redirect } from \"next/navigation\";",
+    "+import { asUser } from \"@/lib/db\";",
+    "+import { monthlyPrice, startPayment } from \"@/lib/payments\";",
+    "+import { currentUser } from \"@/lib/session\";",
+    "+",
+    "+export const metadata: Metadata = { title: \"Подписка\" };",
+    "+",
+    "+// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки",
+    "+export const instant = false;",
+    "+",
+    "+// Тренер оплачивает месяц подписки",
+    "+async function pay() {",
+    "+  \"use server\";",
+    "+  const uid = await currentUser();",
+    "+  if (!uid) redirect(\"/login\");",
+    "+  await startPayment({ coachId: uid, plan: \"month\" });",
+    "+  redirect(\"/clients\");",
+    "+}",
+    "+",
+    "+// Подписка тренера, как у эталона Б: цена за месяц — за каждого подопечного",
+    "+export default async function BillingPage() {",
+    "+  const uid = await currentUser();",
+    "+  if (!uid) redirect(\"/login\");",
+    "+  const count = await asUser(uid, async (db) => {",
+    "+    const { rows } = await db.query<{ count: number }>(\"select count(*)::int as count from clients where coach_id = $1\", [uid]);",
+    "+    return rows[0].count;",
+    "+  });",
+    "+",
+    "+  return (",
+    "+    <main className=\"mx-auto w-full max-w-md p-8\">",
+    "+      <h1 className=\"text-3xl font-semibold\">Подписка</h1>",
+    "+      <p className=\"mt-6\">Подопечных: {count}</p>",
+    "+      <p className=\"mt-2 font-medium\">В месяц: {monthlyPrice(count)} ₽</p>",
+    "+      <form action={pay} className=\"mt-6\">",
+    "+        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">",
+    "+          Оплатить",
+    "+        </button>",
+    "+      </form>",
+    "+    </main>",
+    "+  );",
+    "+}"
+   ],
+   "blob": "a0efa912a7b2cac66e73a0378eb42bf1a76428d1",
+   "by": "agent"
+  },
+  {
+   "id": "copy-pay-lib",
+   "kind": "file",
+   "path": "lib/payments.ts",
+   "before": "// Заготовка оплаты подписки тренера. Секрет платёжной системы берём из окружения (.env.local), в коде его нет:\n// сканер секретов не пустит ключ в коммит, а на сервере его читает process.env.\nconst PAY_SECRET = process.env.PAY_SECRET ?? \"\";\n\nexport type Subscription = { coachId: string; plan: \"month\" | \"year\" };\n\n// Пока заглушка: позже здесь будет вызов платёжной системы с PAY_SECRET.\nexport async function startPayment(sub: Subscription): Promise<{ ok: boolean; plan: Subscription[\"plan\"] }> {\n  if (!PAY_SECRET) throw new Error(\"Не задан PAY_SECRET\");\n  return { ok: true, plan: sub.plan };\n}\n",
+   "after": "// Заготовка оплаты подписки тренера. Секрет платёжной системы берём из окружения (.env.local), в коде его нет:\n// сканер секретов не пустит ключ в коммит, а на сервере его читает process.env.\nconst PAY_SECRET = process.env.PAY_SECRET ?? \"\";\n\nexport type Subscription = { coachId: string; plan: \"month\" | \"year\" };\n\n// Цена, как у эталона Б: рублей в месяц за каждого подопечного\nexport const PRICE_PER_CLIENT = 290;\n\nexport function monthlyPrice(clients: number): number {\n  return PRICE_PER_CLIENT * clients;\n}\n\n// Пока заглушка: позже здесь будет вызов платёжной системы с PAY_SECRET.\nexport async function startPayment(sub: Subscription): Promise<{ ok: boolean; plan: Subscription[\"plan\"] }> {\n  if (!PAY_SECRET) throw new Error(\"Не задан PAY_SECRET\");\n  return { ok: true, plan: sub.plan };\n}\n",
+   "diff": [
+    "diff --git a/lib/payments.ts b/lib/payments.ts",
+    "index 510e714..e745568 100644",
+    "--- a/lib/payments.ts",
+    "+++ b/lib/payments.ts",
+    "@@ -4,6 +4,13 @@ const PAY_SECRET = process.env.PAY_SECRET ?? \"\";",
+    " ",
+    " export type Subscription = { coachId: string; plan: \"month\" | \"year\" };",
+    " ",
+    "+// Цена, как у эталона Б: рублей в месяц за каждого подопечного",
+    "+export const PRICE_PER_CLIENT = 290;",
+    "+",
+    "+export function monthlyPrice(clients: number): number {",
+    "+  return PRICE_PER_CLIENT * clients;",
+    "+}",
+    "+",
+    " // Пока заглушка: позже здесь будет вызов платёжной системы с PAY_SECRET.",
+    " export async function startPayment(sub: Subscription): Promise<{ ok: boolean; plan: Subscription[\"plan\"] }> {",
+    "   if (!PAY_SECRET) throw new Error(\"Не задан PAY_SECRET\");"
+   ],
+   "blob": "e745568b5ba5bc69663371106f229aed4418fc73",
+   "by": "agent"
+  },
+  {
+   "id": "c-copy",
+   "kind": "commit",
+   "cmd": "git add -A && git commit -m \"Как у эталона Б\"",
+   "hash": "3e34ede",
+   "message": "Как у эталона Б",
+   "branch": "copy/etalon-b",
+   "parents": [
+    "b747564"
+   ],
+   "out": [
+    "[copy/etalon-b 3e34ede] Как у эталона Б",
+    " 5 files changed, 142 insertions(+)",
+    " create mode 100644 app/billing/page.tsx",
+    " create mode 100644 app/chat/page.tsx",
+    " create mode 100644 components/RestTimer.tsx"
+   ],
+   "files": [
+    {
+     "path": ".githooks/pre-commit",
+     "blob": "4fe231258086611cd45d79cbd7d7e319e68b76f9"
+    },
+    {
+     "path": ".gitignore",
+     "blob": "9babaf7a7576684d1e6f19db4afa2cefd91640d3"
+    },
+    {
+     "path": "CLAUDE.md",
+     "blob": "eddd7ec69c49be4d9b10d0c43803834ac4ab4293"
+    },
+    {
+     "path": "README.md",
+     "blob": "e215bc4ccf138bbc38ad58ad57e92135484b3c0f"
+    },
+    {
+     "path": "app/api/clients/search/route.ts",
+     "blob": "780c06f4f652de71a19f4181be66c86857fcd5d5"
+    },
+    {
+     "path": "app/api/login/route.ts",
+     "blob": "427b6448156be34ccb617c8c35a5e16282a8fea4"
+    },
+    {
+     "path": "app/api/sets/route.ts",
+     "blob": "86d7c8e5b7f6716c088e4661438b2ab14cbe31bc"
+    },
+    {
+     "path": "app/billing/page.tsx",
+     "blob": "a0efa912a7b2cac66e73a0378eb42bf1a76428d1"
+    },
+    {
+     "path": "app/chat/page.tsx",
+     "blob": "48f486403377b37ce915effd6fa0165c52e64981"
+    },
+    {
+     "path": "app/clients/[id]/actions.ts",
+     "blob": "5eec7d6a8dc7a7d35ddf493f54d12c44c36a524d"
+    },
+    {
+     "path": "app/clients/[id]/not-found.tsx",
+     "blob": "d3ecd96388b66eaa569bd8895275f5200bb3a85a"
+    },
+    {
+     "path": "app/clients/[id]/page.tsx",
+     "blob": "9c8a80abed61c077137ec92210315b7cca6454f0"
+    },
+    {
+     "path": "app/clients/actions.ts",
+     "blob": "ab5d0e77f906f6dcf618cb398a172a67390ea7fe"
+    },
+    {
+     "path": "app/clients/page.tsx",
+     "blob": "0d937b027c0b8b2fe0807463ec1b9758cf6d98f3"
+    },
+    {
+     "path": "app/favicon.ico",
+     "blob": "af98450595e8b8efd9e505cddc5ed705b665a4d8"
+    },
+    {
+     "path": "app/globals.css",
+     "blob": "eed3b35f34ff5c8f6d0dfb90aaae81581dbe798c"
+    },
+    {
+     "path": "app/icon.tsx",
+     "blob": "17f2f42e653179751c4644305031303484fb9eea"
+    },
+    {
+     "path": "app/join/[code]/actions.ts",
+     "blob": "706def01ab2c040e1bb2ce51b76d4424694c50b7"
+    },
+    {
+     "path": "app/join/[code]/page.tsx",
+     "blob": "7e9481cd7b7de7dcc7530b32de7546d455b6eab6"
+    },
+    {
+     "path": "app/layout.tsx",
+     "blob": "8515cad45d81c7b1929badb5a9da485bd379b523"
+    },
+    {
+     "path": "app/login/page.tsx",
+     "blob": "57a869356b632ea695f249ccf7802a0942141ab6"
+    },
+    {
+     "path": "app/manifest.ts",
+     "blob": "9dbb36a2f2fe2ec302d3dd0e1d8c80ccb41ca71c"
+    },
+    {
+     "path": "app/page.tsx",
+     "blob": "58c27d1e76bd2f9f7e7763f3d6256ea6a157749d"
+    },
+    {
+     "path": "app/programs/actions.ts",
+     "blob": "dcd541fe06f5492687a0ea1cf620c192b6bc64d4"
+    },
+    {
+     "path": "app/programs/page.tsx",
+     "blob": "afac09dd15a93bb1775b65096db6bfff25dbeb70"
+    },
+    {
+     "path": "app/report/page.tsx",
+     "blob": "f10ded0acd8bd2ac60b7f3c31449bfb298aaf94d"
+    },
+    {
+     "path": "app/workouts/[id]/actions.ts",
+     "blob": "a849a809da0ad95aee01b95383d51138d629d035"
+    },
+    {
+     "path": "app/workouts/[id]/comments.ts",
+     "blob": "5cf9a284eb26545757c2c104919fe593425887e2"
+    },
+    {
+     "path": "app/workouts/[id]/page.tsx",
+     "blob": "a813a8b2551137cf213b5daf972ff041fa8f043c"
+    },
+    {
+     "path": "app/workouts/page.tsx",
+     "blob": "728769dd02c5244cccfca97dfcbff45fe901d8df"
+    },
+    {
+     "path": "components/Comments.tsx",
+     "blob": "3d337b64d15a4667a38c040559b8f498f2c1318a"
+    },
+    {
+     "path": "components/ProgressChart.tsx",
+     "blob": "77e64ac8860f1a46c395ffe50848c38423679a04"
+    },
+    {
+     "path": "components/RestTimer.tsx",
+     "blob": "d4d74431ddfd1ef4a14748a7c2b9a90cdf3ac81c"
+    },
+    {
+     "path": "components/SetList.tsx",
+     "blob": "2c715947f996c357c227fb7f2d88d8f689bbd6bb"
+    },
+    {
+     "path": "docs/complaints.md",
+     "blob": "9b1c59e095311045de8d5e001a2ea161d9c41a0a"
+    },
+    {
+     "path": "docs/design.md",
+     "blob": "d4f7691cb131c13ea47a613c9d17e8e02b0aed9a"
+    },
+    {
+     "path": "docs/etalons.md",
+     "blob": "fdfe7da9d3ffc22d6f656c0f62158b898645c1d2"
+    },
+    {
+     "path": "docs/feedback.md",
+     "blob": "a7460f95f2740430a7216a333ab57eb79b887050"
+    },
+    {
+     "path": "docs/idea.md",
+     "blob": "df36eb1f1505a363fadd7ad7fdb3975ccfdd2ffb"
+    },
+    {
+     "path": "docs/mini-set.md",
+     "blob": "423696ff8c914a7cd24f5e11a3c0d1855c251c6a"
+    },
+    {
+     "path": "docs/parity.md",
+     "blob": "a8c3a569ad92667412b210fc1a84fda926dcaf1b"
+    },
+    {
+     "path": "docs/plan-weeks-2-3.md",
+     "blob": "94eb8518bed0420f3fe7434edc9ccb896eb04096"
+    },
+    {
+     "path": "docs/prompts.md",
+     "blob": "bc4298e80af8ab9afbccd1b77985bd312f00b26c"
+    },
+    {
+     "path": "docs/report.md",
+     "blob": "a6562754e58b0e8fbeb0ed59013c66c9b8e541e2"
+    },
+    {
+     "path": "docs/spec.md",
+     "blob": "491b7a53d9b628346315e33365aefd7fc7e3a8cf"
+    },
+    {
+     "path": "docs/tasks/notes.md",
+     "blob": "cb71ccb1a0bf09ae4ebba4f14aa214be10729bae"
+    },
+    {
+     "path": "docs/tasks/records.md",
+     "blob": "db9abf41775b6851fb35442a8204275b9a669e04"
+    },
+    {
+     "path": "e2e/cycle.spec.ts",
+     "blob": "d199de9ce7b3315a7a18c40005dbc6dd27a03f93"
+    },
+    {
+     "path": "eslint.config.mjs",
+     "blob": "05e726d1b4201bc8c7716d2b058279676582e8c0"
+    },
+    {
+     "path": "lib/dates.ts",
+     "blob": "604f906e3dc4c58d9489abf84950ae071ceafed5"
+    },
+    {
+     "path": "lib/db.ts",
+     "blob": "bea1677f27da982934d297189b74b60017148c33"
+    },
+    {
+     "path": "lib/names.test.ts",
+     "blob": "d6890ca72d4e9cf0dcfe414e472266a38881a512"
+    },
+    {
+     "path": "lib/names.ts",
+     "blob": "e805924b33930951cfc371393ca87c8a0f8995fb"
+    },
+    {
+     "path": "lib/notify.test.ts",
+     "blob": "d74f2fee04f22ac2ccb60f91831ab8db86b9eb8e"
+    },
+    {
+     "path": "lib/notify.ts",
+     "blob": "4a0e8d5c643239ea470cf2d1c158d05b2525f4b5"
+    },
+    {
+     "path": "lib/payments.ts",
+     "blob": "e745568b5ba5bc69663371106f229aed4418fc73"
+    },
+    {
+     "path": "lib/progress.test.ts",
+     "blob": "c83c2100822d3f81e8ef67a2d807957ef83a3b4a"
+    },
+    {
+     "path": "lib/progress.ts",
+     "blob": "473f33d0e627b4627df5cb776d2ebb3f26f6c4fd"
+    },
+    {
+     "path": "lib/rate-limit.ts",
+     "blob": "1173b80e31f5a1aed29826b2c7bb8b90f1973871"
+    },
+    {
+     "path": "lib/records.test.ts",
+     "blob": "43b4ad5e54a06df184118b4a8945d53326d77f03"
+    },
+    {
+     "path": "lib/records.ts",
+     "blob": "7c0fabdcea67e71f837798fc5013f74db68f6a02"
+    },
+    {
+     "path": "lib/report.test.ts",
+     "blob": "d13a57d9455db9a518b5419cff96167b85a95d66"
+    },
+    {
+     "path": "lib/report.ts",
+     "blob": "c2fc54105f1531b1f304e5f69958e6c3bb5ce36b"
+    },
+    {
+     "path": "lib/session.ts",
+     "blob": "ced1148dc6236d6801f8931198ea2feb6a5d6b87"
+    },
+    {
+     "path": "lib/volume.test.ts",
+     "blob": "4e9f9a42b6b37446b8cab4c83062c2135c4b20e4"
+    },
+    {
+     "path": "lib/volume.ts",
+     "blob": "00d8286c3020ec0800698c190f02c8edcbf151ab"
+    },
+    {
+     "path": "lib/weight.test.ts",
+     "blob": "eb7b55ea11479f8d43d61a53e08af9b780a27179"
+    },
+    {
+     "path": "lib/weight.ts",
+     "blob": "5534e4676b0358eaf2665bfa0f498d168ad7705b"
+    },
+    {
+     "path": "next.config.ts",
+     "blob": "a0cf0c7313a86b713eb9d9bcac6539bc5d0bd1a9"
+    },
+    {
+     "path": "package-lock.json",
+     "blob": "71dc629fde4984efe6bfc757b2116700222d44c2"
+    },
+    {
+     "path": "package.json",
+     "blob": "6ab56583cc817522e1595c6f6770bd01510a1cfa"
+    },
+    {
+     "path": "playwright.config.ts",
+     "blob": "595220c1a2b5022019ab262c9f15b538f80ce466"
+    },
+    {
+     "path": "public/file.svg",
+     "blob": "004145cddf3f9db91b57b9cb596683c8eb420862"
+    },
+    {
+     "path": "public/globe.svg",
+     "blob": "567f17b0d7c7fb662c16d4357dd74830caf2dccb"
+    },
+    {
+     "path": "public/next.svg",
+     "blob": "5174b28c565c285e3e312ec5178be64fbeca8398"
+    },
+    {
+     "path": "public/vercel.svg",
+     "blob": "77053960334e2e34dc584dea8019925c3b4ccca9"
+    },
+    {
+     "path": "public/window.svg",
+     "blob": "b2b2a44f6ebc70c450043c05a002e7a93ba5d651"
+    },
+    {
+     "path": "supabase/migrations/0001_init.sql",
+     "blob": "ca60aa2319df6786876d0481231f2d7d8f24650f"
+    },
+    {
+     "path": "supabase/migrations/0002_rls.sql",
+     "blob": "9f3c19c1164504275cbfc78368afbe6ab5090f49"
+    },
+    {
+     "path": "supabase/migrations/0003_set_note.sql",
+     "blob": "88f05938526d33b6e393e5db1132ecc4aaae304f"
+    },
+    {
+     "path": "supabase/migrations/0004_programs.sql",
+     "blob": "6e31f64935c0792ed04414fde9cf2473dddb2971"
+    },
+    {
+     "path": "supabase/migrations/0005_programs_copy.sql",
+     "blob": "606da9ade911fa66a50d5705122590f6a71c3621"
+    },
+    {
+     "path": "supabase/migrations/0006_comments.sql",
+     "blob": "70db2a965660677fe1d3ffecf2be764d2bdbe5fb"
+    },
+    {
+     "path": "supabase/migrations/0007_comments_rls.sql",
+     "blob": "904c10716be7844bbf0cebb577a70b06a4ca77ad"
+    },
+    {
+     "path": "supabase/migrations/0008_invites.sql",
+     "blob": "6671c51bbb8e9b56bfe5764398594fa85c78b4a7"
+    },
+    {
+     "path": "supabase/seed-load.sql",
+     "blob": "d1da7ddb2ae113d9be8de99917d110b18748e85a"
+    },
+    {
+     "path": "supabase/seed.sql",
+     "blob": "e9921b84a8400b48b89436d0ec1888f8d1bb6985"
+    },
+    {
+     "path": "supabase/tests/as-marina.sql",
+     "blob": "99304779f4762abc87793067ecd67c50a22946a0"
+    },
+    {
+     "path": "supabase/tests/as-sveta-write.sql",
+     "blob": "b0e5f9fa329449360016bc91bd7d3210a2b79e00"
+    },
+    {
+     "path": "supabase/tests/as-sveta.sql",
+     "blob": "d9c23ae84ff0acb4b52c5bd00598782e8c99c77a"
+    },
+    {
+     "path": "test/comments.test.ts",
+     "blob": "294e59b3081a8e6d73346af01a7e428a8eb9b7ed"
+    },
+    {
+     "path": "test/invites.test.ts",
+     "blob": "ebb453a9d2a65c185d2967a8029585aeb42b34d9"
+    },
+    {
+     "path": "test/programs.test.ts",
+     "blob": "cbfc8ab60a5683131a2bf6731c29d773d95eba3c"
+    },
+    {
+     "path": "test/rls.test.ts",
+     "blob": "3ad9cbba9d59ab1bdcebb1d1bafc0fa25436a7f5"
+    },
+    {
+     "path": "tsconfig.json",
+     "blob": "3a13f90a773b0facb675bf5b1a8239c8f33d36f5"
+    },
+    {
+     "path": "vitest.config.mts",
+     "blob": "0562200385d5e8064e0abd6a21b33bc24c48ba2c"
+    }
+   ]
+  },
+  {
+   "id": "copy-stat",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "git diff main copy/etalon-b --stat",
+   "out": [
+    " app/billing/page.tsx       | 42 +++++++++++++++++++++++++++++++++",
+    " app/chat/page.tsx          | 58 ++++++++++++++++++++++++++++++++++++++++++++++",
+    " app/workouts/[id]/page.tsx |  2 ++",
+    " components/RestTimer.tsx   | 33 ++++++++++++++++++++++++++",
+    " lib/payments.ts            |  7 ++++++",
+    " 5 files changed, 142 insertions(+)"
+   ],
+   "code": 0
+  },
+  {
+   "id": "copy-drop",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "git switch main && git branch -D copy/etalon-b",
+   "out": [
+    "Switched to branch 'main'",
+    "Deleted branch copy/etalon-b (was 3e34ede)."
+   ],
+   "code": 0,
+   "files": [
+    {
+     "path": "app/billing/page.tsx",
+     "blob": null
+    },
+    {
+     "path": "app/chat/page.tsx",
+     "blob": null
+    },
+    {
+     "path": "app/workouts/[id]/page.tsx",
+     "blob": "9a1d156bfdf8074a9af53aa09e6d34604f13906d"
+    },
+    {
+     "path": "components/RestTimer.tsx",
+     "blob": null
+    },
+    {
+     "path": "lib/payments.ts",
+     "blob": "510e71445c634695ed1430647ec1f6f95e46368a"
+    }
+   ]
+  },
+  {
+   "id": "parity-edit",
+   "kind": "file",
+   "path": "docs/parity.md",
+   "before": "# Паритет с эталонами\n\nШаг 5 чистой комнаты: первая версия собрана и запускается как рабочая сборка (`npm start`), теперь сверяю её с эталонами. Сравниваю поведение по сценариям, а не внешний вид. Про эталоны беру только свой разбор (`docs/etalons.md`): «нет» в их колонках значит «в разборе этого нет», а не «точно нет».\n\nВ колонке «Наше» — то, что приложение делает сегодня, 3 ноября:\n\n- **есть** — работает, я это нажимала или это проверяет тест;\n- **позже** — отложено в спецификации (`docs/spec.md`, «Откладываем») или попало в план недель 2–3;\n- **нет** — осознанно не делаем.\n\n| Сценарий | Эталон А | Эталон Б | Эталон В | Наше |\n|---|---|---|---|---|\n| Записать подход: вес и повторы | есть | нет | нет | есть |\n| Таймер отдыха | есть | нет | нет | позже |\n| История тренировок | есть | есть | есть | есть |\n| График роста | есть | нет | нет | есть |\n| Тренер назначает тренировку | нет | есть | нет | есть |\n| Упражнения в тренировке | есть | есть | есть | позже |\n| Готовая программа, не нужно собирать | нет | нет | есть | позже |\n| Менять программу под себя | нет | есть | нет | позже |\n| Список подопечных у тренера | нет | есть | нет | есть |\n| Тренер видит вес и повторы подопечного | нет | нет | нет | есть |\n| Отметка «выполнено» | нет | есть | есть | нет |\n| Чат тренера и подопечного | нет | есть | нет | позже |\n| Напоминания и уведомления | нет | есть | нет | позже |\n| Видео упражнения | нет | нет | есть | позже |\n| Расписание клуба и запись на занятие | нет | нет | есть | позже |\n| Оплата и тарифы | нет | есть | нет | позже |\n\n## Что видно в таблице\n\n- Три главных сценария из спецификации — записать подход, назначить тренировку, увидеть прогресс — в приложении есть, но в урезанном виде: у тренировки нет упражнений, а записи подопечных тренер смотрит по одному (подробнее ниже). Для первой версии этого достаточно.\n- Строка «Тренер видит вес и повторы подопечного» — единственная, где у всех трёх эталонов «нет», а у нас «есть». Это вторая половина моего отличия из спецификации («тренер сразу видит вес и повторы и то, растут ли они»), на неё и делаю ставку. Первая половина — подход за пару секунд — пока не выполнена: см. пункт 2 ниже.\n- «Отметка „выполнено“» у нас «нет» не случайно: подопечный пишет настоящий вес и повторы, а не ставит галочку.\n- Из В я беру идею готовой тренировки, которую можно менять. В моём разборе у В программа готовая, но под себя её не изменить: поэтому «Готовая программа, не нужно собирать» и «Менять программу под себя» — две строки, и нужны обе. У Б в моём разборе наоборот: программу можно собрать, но шаблонов не видно, и одно и то же приходится повторять руками.\n- «Позже» собирается в две группы. Первая делает тренировку полноценной: упражнения и программы. Вторая оживляет общение: чат, напоминания, уведомления. Таймер, видео, расписание клуба и оплата к главным сценариям не относятся.\n\n## Где приложение делает меньше, чем я записала\n\nЭто места, где поведение расходится со спецификацией, а не только с эталонами. Решения по ним в спецификации нет, их надо принять:\n\n1. Сценарий 1 обещает «добавляет упражнения: сколько подходов, повторов и какой вес». В приложении у тренировки есть название и дата, упражнений нет, а подход — просто вес и повторы.\n2. «Подход в два касания». Сейчас подопечный открывает тренировку, вписывает вес, повторы и, если нужно, заметку, потом нажимает «Сохранить подход». Это больше двух касаний, и в зале это заметно.\n3. «Тренер видит записи всех подопечных в одном месте». Список подопечных показывает только дату последней тренировки; вес и повторы — на карточке каждого.\n4. Заметка к подходу («болит колено») сохраняется, но нигде не показывается: ни подопечному, ни тренеру.\n5. Подопечного, которого тренер добавил на `/clients` по имени, пустить в приложение нечем: у него нет входа. Входят только подопечные из демо-данных.\n\n## Чего в моём разборе эталонов не было, а у нас есть\n\n- Тренер видит только своих подопечных: за это отвечают политики доступа к строкам в базе, а не страница.\n- Манифест и иконка есть; установку на телефон не проверяла: сайт пока не в интернете. В спецификации был «только сайт»; когда он появится в интернете, попробую поставить его на экран как приложение, без магазина.\n\n## Чего не делаю\n\nНе гонюсь за полным повторением: у эталонов сотни возможностей за годы. Пока не закрыты упражнения с программами и общение (чат, напоминания, уведомления), к видео, расписанию клуба и оплате не прикасаюсь.\n",
+   "after": "# Паритет с эталонами\n\nШаг 5 чистой комнаты: первая версия собрана и запускается как рабочая сборка (`npm start`), теперь сверяю её с эталонами. Сравниваю поведение по сценариям, а не внешний вид. Про эталоны беру только свой разбор (`docs/etalons.md`): «нет» в их колонках значит «в разборе этого нет», а не «точно нет».\n\nВ колонке «Наше» — моё решение по каждой строке на сегодня, 9 ноября:\n\n- **готово** — работает, я это нажимала или это проверяет тест;\n- **наше отличие** — ради этого к нам перейдут: в моём разборе такого нет ни у одного эталона;\n- **позже** — отложено в спецификации (`docs/spec.md`, «Откладываем») или попало в план недель 2–3;\n- **не делаем** — осознанно не делаем.\n\n| Сценарий | Эталон А | Эталон Б | Эталон В | Наше |\n|---|---|---|---|---|\n| Записать подход: вес и повторы | есть | нет | нет | готово |\n| Подход в одно касание | нет | нет | нет | наше отличие |\n| Таймер отдыха | есть | нет | нет | позже — к главным сценариям не относится, вернусь после запуска |\n| История тренировок | есть | есть | есть | готово |\n| График роста | есть | нет | нет | готово |\n| Тренер назначает тренировку | нет | есть | нет | готово |\n| Упражнения в тренировке | есть | есть | есть | готово |\n| Готовая программа, не нужно собирать | нет | нет | есть | готово |\n| Менять программу под себя | нет | есть | нет | позже — назначенное уже копия шаблона, но править её пока нечем |\n| Список подопечных у тренера | нет | есть | нет | готово |\n| Тренер видит вес и повторы подопечного | нет | нет | нет | наше отличие |\n| Отметка «выполнено» | нет | есть | есть | не делаем — подопечный пишет настоящий вес и повторы |\n| Чат тренера и подопечного | нет | есть | нет | не делаем — вместо чата комментарии к тренировке |\n| Напоминания и уведомления | нет | есть | нет | позже — правила уведомлений есть, отправки нет |\n| Видео упражнения | нет | нет | есть | позже |\n| Расписание клуба и запись на занятие | нет | нет | есть | позже |\n| Оплата и тарифы | нет | есть | нет | позже — после запуска, и не за каждого подопечного: на это жалуются у Б |\n\nРазбор ниже — от 3 ноября, по первой версии. Решения 9 ноября — в таблице и в разделе «Чего не делаю».\n\n## Что видно в таблице\n\n- Три главных сценария из спецификации — записать подход, назначить тренировку, увидеть прогресс — в приложении есть, но в урезанном виде: у тренировки нет упражнений, а записи подопечных тренер смотрит по одному (подробнее ниже). Для первой версии этого достаточно.\n- Строка «Тренер видит вес и повторы подопечного» — единственная, где у всех трёх эталонов «нет», а у нас «есть». Это вторая половина моего отличия из спецификации («тренер сразу видит вес и повторы и то, растут ли они»), на неё и делаю ставку. Первая половина — подход за пару секунд — пока не выполнена: см. пункт 2 ниже.\n- «Отметка „выполнено“» у нас «нет» не случайно: подопечный пишет настоящий вес и повторы, а не ставит галочку.\n- Из В я беру идею готовой тренировки, которую можно менять. В моём разборе у В программа готовая, но под себя её не изменить: поэтому «Готовая программа, не нужно собирать» и «Менять программу под себя» — две строки, и нужны обе. У Б в моём разборе наоборот: программу можно собрать, но шаблонов не видно, и одно и то же приходится повторять руками.\n- «Позже» собирается в две группы. Первая делает тренировку полноценной: упражнения и программы. Вторая оживляет общение: чат, напоминания, уведомления. Таймер, видео, расписание клуба и оплата к главным сценариям не относятся.\n\n## Где приложение делает меньше, чем я записала\n\nЭто места, где поведение расходится со спецификацией, а не только с эталонами. Решения по ним в спецификации нет, их надо принять:\n\n1. Сценарий 1 обещает «добавляет упражнения: сколько подходов, повторов и какой вес». В приложении у тренировки есть название и дата, упражнений нет, а подход — просто вес и повторы.\n2. «Подход в два касания». Сейчас подопечный открывает тренировку, вписывает вес, повторы и, если нужно, заметку, потом нажимает «Сохранить подход». Это больше двух касаний, и в зале это заметно.\n3. «Тренер видит записи всех подопечных в одном месте». Список подопечных показывает только дату последней тренировки; вес и повторы — на карточке каждого.\n4. Заметка к подходу («болит колено») сохраняется, но нигде не показывается: ни подопечному, ни тренеру.\n5. Подопечного, которого тренер добавил на `/clients` по имени, пустить в приложение нечем: у него нет входа. Входят только подопечные из демо-данных.\n\n## Чего в моём разборе эталонов не было, а у нас есть\n\n- Тренер видит только своих подопечных: за это отвечают политики доступа к строкам в базе, а не страница.\n- Манифест и иконка есть; установку на телефон не проверяла: сайт пока не в интернете. В спецификации был «только сайт»; когда он появится в интернете, попробую поставить его на экран как приложение, без магазина.\n\n## Чего не делаю\n\nНе гонюсь за полным повторением: у эталонов сотни возможностей за годы. 9 ноября попросила агента сделать «как у эталонов» — чат и оплату подписки как у Б, таймер отдыха как у А — в отдельной ветке: пять файлов, ни один не нужен главным сценариям, а цена за каждого подопечного повторила жалобу на Б. Ветку удалила. Делаю одно отличие: подход в одно касание, и тренер сразу видит вес, повторы и рост.\n",
+   "diff": [
+    "diff --git a/docs/parity.md b/docs/parity.md",
+    "index a8c3a56..b1b7d43 100644",
+    "--- a/docs/parity.md",
+    "+++ b/docs/parity.md",
+    "@@ -2,30 +2,34 @@",
+    " ",
+    " Шаг 5 чистой комнаты: первая версия собрана и запускается как рабочая сборка (`npm start`), теперь сверяю её с эталонами. Сравниваю поведение по сценариям, а не внешний вид. Про эталоны беру только свой разбор (`docs/etalons.md`): «нет» в их колонках значит «в разборе этого нет», а не «точно нет».",
+    " ",
+    "-В колонке «Наше» — то, что приложение делает сегодня, 3 ноября:",
+    "+В колонке «Наше» — моё решение по каждой строке на сегодня, 9 ноября:",
+    " ",
+    "-- **есть** — работает, я это нажимала или это проверяет тест;",
+    "+- **готово** — работает, я это нажимала или это проверяет тест;",
+    "+- **наше отличие** — ради этого к нам перейдут: в моём разборе такого нет ни у одного эталона;",
+    " - **позже** — отложено в спецификации (`docs/spec.md`, «Откладываем») или попало в план недель 2–3;",
+    "-- **нет** — осознанно не делаем.",
+    "+- **не делаем** — осознанно не делаем.",
+    " ",
+    " | Сценарий | Эталон А | Эталон Б | Эталон В | Наше |",
+    " |---|---|---|---|---|",
+    "-| Записать подход: вес и повторы | есть | нет | нет | есть |",
+    "-| Таймер отдыха | есть | нет | нет | позже |",
+    "-| История тренировок | есть | есть | есть | есть |",
+    "-| График роста | есть | нет | нет | есть |",
+    "-| Тренер назначает тренировку | нет | есть | нет | есть |",
+    "-| Упражнения в тренировке | есть | есть | есть | позже |",
+    "-| Готовая программа, не нужно собирать | нет | нет | есть | позже |",
+    "-| Менять программу под себя | нет | есть | нет | позже |",
+    "-| Список подопечных у тренера | нет | есть | нет | есть |",
+    "-| Тренер видит вес и повторы подопечного | нет | нет | нет | есть |",
+    "-| Отметка «выполнено» | нет | есть | есть | нет |",
+    "-| Чат тренера и подопечного | нет | есть | нет | позже |",
+    "-| Напоминания и уведомления | нет | есть | нет | позже |",
+    "+| Записать подход: вес и повторы | есть | нет | нет | готово |",
+    "+| Подход в одно касание | нет | нет | нет | наше отличие |",
+    "+| Таймер отдыха | есть | нет | нет | позже — к главным сценариям не относится, вернусь после запуска |",
+    "+| История тренировок | есть | есть | есть | готово |",
+    "+| График роста | есть | нет | нет | готово |",
+    "+| Тренер назначает тренировку | нет | есть | нет | готово |",
+    "+| Упражнения в тренировке | есть | есть | есть | готово |",
+    "+| Готовая программа, не нужно собирать | нет | нет | есть | готово |",
+    "+| Менять программу под себя | нет | есть | нет | позже — назначенное уже копия шаблона, но править её пока нечем |",
+    "+| Список подопечных у тренера | нет | есть | нет | готово |",
+    "+| Тренер видит вес и повторы подопечного | нет | нет | нет | наше отличие |",
+    "+| Отметка «выполнено» | нет | есть | есть | не делаем — подопечный пишет настоящий вес и повторы |",
+    "+| Чат тренера и подопечного | нет | есть | нет | не делаем — вместо чата комментарии к тренировке |",
+    "+| Напоминания и уведомления | нет | есть | нет | позже — правила уведомлений есть, отправки нет |",
+    " | Видео упражнения | нет | нет | есть | позже |",
+    " | Расписание клуба и запись на занятие | нет | нет | есть | позже |",
+    "-| Оплата и тарифы | нет | есть | нет | позже |",
+    "+| Оплата и тарифы | нет | есть | нет | позже — после запуска, и не за каждого подопечного: на это жалуются у Б |",
+    "+",
+    "+Разбор ниже — от 3 ноября, по первой версии. Решения 9 ноября — в таблице и в разделе «Чего не делаю».",
+    " ",
+    " ## Что видно в таблице",
+    " ",
+    "@@ -52,4 +56,4 @@",
+    " ",
+    " ## Чего не делаю",
+    " ",
+    "-Не гонюсь за полным повторением: у эталонов сотни возможностей за годы. Пока не закрыты упражнения с программами и общение (чат, напоминания, уведомления), к видео, расписанию клуба и оплате не прикасаюсь.",
+    "+Не гонюсь за полным повторением: у эталонов сотни возможностей за годы. 9 ноября попросила агента сделать «как у эталонов» — чат и оплату подписки как у Б, таймер отдыха как у А — в отдельной ветке: пять файлов, ни один не нужен главным сценариям, а цена за каждого подопечного повторила жалобу на Б. Ветку удалила. Делаю одно отличие: подход в одно касание, и тренер сразу видит вес, повторы и рост."
+   ],
+   "blob": "b1b7d4389f95d6e155a98d2cee54bae4b4ba0992"
+  },
+  {
+   "id": "ask-quick",
+   "kind": "agent",
+   "prompt": "Подход в одно касание: на тренировке кнопка «Повторить подход» с весом и повторами прошлого подхода. У тренера в списке — последний подход каждого и «растёт / нет». Сначала сквозной тест",
+   "reply": "«Повторить подход» берёт вес и повторы из базы. Тренер видит последний подход каждого с тренировкой; вес растёт, если подход тяжелее прошлого в той же тренировке или вес тот же, а повторов больше.",
+   "steps": [
+    "quick-e2e",
+    "quick-page",
+    "quick-action",
+    "quick-clients",
+    "quick-run"
+   ]
+  },
+  {
+   "id": "quick-e2e",
+   "kind": "file",
+   "path": "e2e/quick-set.spec.ts",
+   "before": null,
+   "after": "import { expect, test, type Page } from \"@playwright/test\";\n\n// Подход в одно касание: Анна на тренировке «Ноги» (id 1 в supabase/seed.sql, там подходы 50 × 10) нажимает «Повторить подход» —\n// подходов «50 кг × 10» становится на один больше; Марина в списке подопечных видит у Анны последний подход «50 кг × 10».\n// Подходы тест считает до и после нажатия: от того, сколько их уже в базе, он не зависит.\n\nasync function login(page: Page, email: string, home: RegExp) {\n  await page.goto(\"/login\");\n  await page.getByLabel(\"Почта\").fill(email);\n  await page.getByLabel(\"Пароль\").fill(\"demo-password\");\n  await page.getByRole(\"button\", { name: \"Войти\" }).click();\n  await expect(page).toHaveURL(home);\n}\n\ntest(\"Анна повторяет подход одним касанием, Марина видит его в списке подопечных\", async ({ browser }) => {\n  // у Анны и Марины — свои браузеры, у каждой своя cookie входа\n  const anna = await browser.newPage();\n  await login(anna, \"anna@example.com\", /\\/workouts$/);\n  await anna.goto(\"/workouts/1\");\n  const sets = anna.getByText(\"50 кг × 10\", { exact: true });\n  const before = await sets.count();\n  await anna.getByRole(\"button\", { name: \"Повторить подход\" }).click();\n  await expect(sets).toHaveCount(before + 1);\n\n  const marina = await browser.newPage();\n  await login(marina, \"marina@example.com\", /\\/clients$/);\n  await expect(marina.getByRole(\"link\", { name: /^Анна/ })).toContainText(\"Последний подход: 50 кг × 10\");\n});\n",
+   "diff": [
+    "diff --git a/e2e/quick-set.spec.ts b/e2e/quick-set.spec.ts",
+    "new file mode 100644",
+    "index 0000000..c2db2c0",
+    "--- /dev/null",
+    "+++ b/e2e/quick-set.spec.ts",
+    "@@ -0,0 +1,28 @@",
+    "+import { expect, test, type Page } from \"@playwright/test\";",
+    "+",
+    "+// Подход в одно касание: Анна на тренировке «Ноги» (id 1 в supabase/seed.sql, там подходы 50 × 10) нажимает «Повторить подход» —",
+    "+// подходов «50 кг × 10» становится на один больше; Марина в списке подопечных видит у Анны последний подход «50 кг × 10».",
+    "+// Подходы тест считает до и после нажатия: от того, сколько их уже в базе, он не зависит.",
+    "+",
+    "+async function login(page: Page, email: string, home: RegExp) {",
+    "+  await page.goto(\"/login\");",
+    "+  await page.getByLabel(\"Почта\").fill(email);",
+    "+  await page.getByLabel(\"Пароль\").fill(\"demo-password\");",
+    "+  await page.getByRole(\"button\", { name: \"Войти\" }).click();",
+    "+  await expect(page).toHaveURL(home);",
+    "+}",
+    "+",
+    "+test(\"Анна повторяет подход одним касанием, Марина видит его в списке подопечных\", async ({ browser }) => {",
+    "+  // у Анны и Марины — свои браузеры, у каждой своя cookie входа",
+    "+  const anna = await browser.newPage();",
+    "+  await login(anna, \"anna@example.com\", /\\/workouts$/);",
+    "+  await anna.goto(\"/workouts/1\");",
+    "+  const sets = anna.getByText(\"50 кг × 10\", { exact: true });",
+    "+  const before = await sets.count();",
+    "+  await anna.getByRole(\"button\", { name: \"Повторить подход\" }).click();",
+    "+  await expect(sets).toHaveCount(before + 1);",
+    "+",
+    "+  const marina = await browser.newPage();",
+    "+  await login(marina, \"marina@example.com\", /\\/clients$/);",
+    "+  await expect(marina.getByRole(\"link\", { name: /^Анна/ })).toContainText(\"Последний подход: 50 кг × 10\");",
+    "+});"
+   ],
+   "blob": "c2db2c02e86024897b2ab91db914a1b6878766c1",
+   "by": "agent"
+  },
+  {
+   "id": "quick-page",
+   "kind": "file",
+   "path": "app/workouts/[id]/page.tsx",
+   "before": "import type { Metadata } from \"next\";\nimport { notFound, redirect } from \"next/navigation\";\nimport Comments, { type WorkoutComment } from \"@/components/Comments\";\nimport SetList from \"@/components/SetList\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { volume } from \"@/lib/volume\";\nimport { saveSet } from \"./actions\";\nimport { addComment } from \"./comments\";\n\nexport const metadata: Metadata = { title: \"Тренировка\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Тренировка по id из адреса: упражнения по программе, подходы, объём, форма нового подхода и комментарии. Чужой тренировки база не отдаст (RLS) — будет 404\nexport default async function WorkoutPage({ params, searchParams }: PageProps<\"/workouts/[id]\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { id } = await params;\n  const { error } = await searchParams;\n  const workout = await asUser(uid, async (db) => {\n    const found = await db.query<{ title: string }>(\"select title from workouts where id = $1\", [id]);\n    // упражнения по программе: копия строк шаблона в строках тренировки — «Присед — 3 × 10»\n    const items = await db.query<{ id: string; exercise: string; sets: number; reps: number }>(\n      \"select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id\",\n      [id],\n    );\n    // вес в базе — numeric, pg отдаёт его строкой; float8 приходит числом\n    const sets = await db.query<{ id: string; weight: number; reps: number }>(\n      \"select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id\",\n      [id],\n    );\n    // комментарии к тренировке: автор — подопечный (его имя) или тренер\n    const comments = await db.query<WorkoutComment>(\n      `select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author\n         from comments cm\n         join workouts w on w.id = cm.workout_id\n         join clients c on c.id = w.client_id\n        where cm.workout_id = $1\n        order by cm.id`,\n      [id],\n    );\n    return found.rows.length > 0\n      ? { title: found.rows[0].title, items: items.rows, sets: sets.rows, comments: comments.rows }\n      : null;\n  });\n  if (!workout) notFound();\n  // поля приходят из формы, а id тренировки действие получает отсюда\n  const save = saveSet.bind(null, id);\n  // комментарий — к этой тренировке, после отправки — снова эта страница\n  const comment = addComment.bind(null, id, `/workouts/${id}`);\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">{workout.title}</h1>\n      {workout.items.length > 0 && (\n        <ul className=\"mt-2 flex flex-col gap-1 font-medium\">\n          {workout.items.map((item) => (\n            <li key={item.id}>\n              {item.exercise} — {item.sets} × {item.reps}\n            </li>\n          ))}\n        </ul>\n      )}\n\n      {workout.sets.length === 0 ? (\n        <p className=\"mt-6 text-zinc-500\">Подходов пока нет</p>\n      ) : (\n        <SetList sets={workout.sets} className=\"mt-6 flex flex-col gap-1\" />\n      )}\n      <p className=\"mt-2 font-medium\">Объём: {volume(workout.sets)} кг</p>\n\n      <form action={save} className=\"mt-6 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"weight\">Вес, кг</label>\n          <input\n            id=\"weight\"\n            name=\"weight\"\n            inputMode=\"decimal\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"reps\">Повторы</label>\n          <input\n            id=\"reps\"\n            name=\"reps\"\n            inputMode=\"numeric\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"note\">Заметка</label>\n          <input\n            id=\"note\"\n            name=\"note\"\n            maxLength={200}\n            placeholder=\"Необязательно, до 200 знаков\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Сохранить подход\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Комментарии</h2>\n      <Comments comments={workout.comments} action={comment} className=\"mt-2\" />\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport { notFound, redirect } from \"next/navigation\";\nimport Comments, { type WorkoutComment } from \"@/components/Comments\";\nimport SetList from \"@/components/SetList\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { volume } from \"@/lib/volume\";\nimport { repeatSet, saveSet } from \"./actions\";\nimport { addComment } from \"./comments\";\n\nexport const metadata: Metadata = { title: \"Тренировка\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Повторы словом по правилам русского языка: «1 повтор», «2 повтора», «10 повторов»\nconst REPS: Record<string, string> = { one: \"повтор\", few: \"повтора\", many: \"повторов\", other: \"повтора\" };\nfunction repsText(reps: number): string {\n  return `${reps} ${REPS[new Intl.PluralRules(\"ru\").select(reps)]}`;\n}\n\n// Тренировка по id из адреса: упражнения по программе, подходы, объём, «Повторить подход», форма нового подхода и комментарии. Чужой тренировки база не отдаст (RLS) — будет 404\nexport default async function WorkoutPage({ params, searchParams }: PageProps<\"/workouts/[id]\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { id } = await params;\n  const { error } = await searchParams;\n  const workout = await asUser(uid, async (db) => {\n    const found = await db.query<{ title: string }>(\"select title from workouts where id = $1\", [id]);\n    // упражнения по программе: копия строк шаблона в строках тренировки — «Присед — 3 × 10»\n    const items = await db.query<{ id: string; exercise: string; sets: number; reps: number }>(\n      \"select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id\",\n      [id],\n    );\n    // вес в базе — numeric, pg отдаёт его строкой; float8 приходит числом\n    const sets = await db.query<{ id: string; weight: number; reps: number }>(\n      \"select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id\",\n      [id],\n    );\n    // комментарии к тренировке: автор — подопечный (его имя) или тренер\n    const comments = await db.query<WorkoutComment>(\n      `select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author\n         from comments cm\n         join workouts w on w.id = cm.workout_id\n         join clients c on c.id = w.client_id\n        where cm.workout_id = $1\n        order by cm.id`,\n      [id],\n    );\n    return found.rows.length > 0\n      ? { title: found.rows[0].title, items: items.rows, sets: sets.rows, comments: comments.rows }\n      : null;\n  });\n  if (!workout) notFound();\n  // поля приходят из формы, а id тренировки действие получает отсюда\n  const save = saveSet.bind(null, id);\n  // одно касание: ещё раз прошлый подход этой тренировки — тот, что на кнопке; вес и повторы действие возьмёт из базы\n  const last = workout.sets.at(-1);\n  // комментарий — к этой тренировке, после отправки — снова эта страница\n  const comment = addComment.bind(null, id, `/workouts/${id}`);\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">{workout.title}</h1>\n      {workout.items.length > 0 && (\n        <ul className=\"mt-2 flex flex-col gap-1 font-medium\">\n          {workout.items.map((item) => (\n            <li key={item.id}>\n              {item.exercise} — {item.sets} × {item.reps}\n            </li>\n          ))}\n        </ul>\n      )}\n\n      {workout.sets.length === 0 ? (\n        <p className=\"mt-6 text-zinc-500\">Подходов пока нет</p>\n      ) : (\n        <SetList sets={workout.sets} className=\"mt-6 flex flex-col gap-1\" />\n      )}\n      <p className=\"mt-2 font-medium\">Объём: {volume(workout.sets)} кг</p>\n      {last && (\n        <form action={repeatSet.bind(null, id, last.id)} className=\"mt-6\">\n          <button type=\"submit\" className=\"w-full rounded bg-zinc-900 px-4 py-2 text-white\">\n            Повторить подход ({last.weight} кг, {repsText(last.reps)})\n          </button>\n        </form>\n      )}\n\n      <form action={save} className=\"mt-6 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"weight\">Вес, кг</label>\n          <input\n            id=\"weight\"\n            name=\"weight\"\n            inputMode=\"decimal\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"reps\">Повторы</label>\n          <input\n            id=\"reps\"\n            name=\"reps\"\n            inputMode=\"numeric\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"note\">Заметка</label>\n          <input\n            id=\"note\"\n            name=\"note\"\n            maxLength={200}\n            placeholder=\"Необязательно, до 200 знаков\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Сохранить подход\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Комментарии</h2>\n      <Comments comments={workout.comments} action={comment} className=\"mt-2\" />\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/workouts/[id]/page.tsx b/app/workouts/[id]/page.tsx",
+    "index 9a1d156..c0823ff 100644",
+    "--- a/app/workouts/[id]/page.tsx",
+    "+++ b/app/workouts/[id]/page.tsx",
+    "@@ -5,7 +5,7 @@ import SetList from \"@/components/SetList\";",
+    " import { asUser } from \"@/lib/db\";",
+    " import { currentUser } from \"@/lib/session\";",
+    " import { volume } from \"@/lib/volume\";",
+    "-import { saveSet } from \"./actions\";",
+    "+import { repeatSet, saveSet } from \"./actions\";",
+    " import { addComment } from \"./comments\";",
+    " ",
+    " export const metadata: Metadata = { title: \"Тренировка\" };",
+    "@@ -13,7 +13,13 @@ export const metadata: Metadata = { title: \"Тренировка\" };",
+    " // Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки",
+    " export const instant = false;",
+    " ",
+    "-// Тренировка по id из адреса: упражнения по программе, подходы, объём, форма нового подхода и комментарии. Чужой тренировки база не отдаст (RLS) — будет 404",
+    "+// Повторы словом по правилам русского языка: «1 повтор», «2 повтора», «10 повторов»",
+    "+const REPS: Record<string, string> = { one: \"повтор\", few: \"повтора\", many: \"повторов\", other: \"повтора\" };",
+    "+function repsText(reps: number): string {",
+    "+  return `${reps} ${REPS[new Intl.PluralRules(\"ru\").select(reps)]}`;",
+    "+}",
+    "+",
+    "+// Тренировка по id из адреса: упражнения по программе, подходы, объём, «Повторить подход», форма нового подхода и комментарии. Чужой тренировки база не отдаст (RLS) — будет 404",
+    " export default async function WorkoutPage({ params, searchParams }: PageProps<\"/workouts/[id]\">) {",
+    "   const uid = await currentUser();",
+    "   if (!uid) redirect(\"/login\");",
+    "@@ -48,6 +54,8 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<\"/",
+    "   if (!workout) notFound();",
+    "   // поля приходят из формы, а id тренировки действие получает отсюда",
+    "   const save = saveSet.bind(null, id);",
+    "+  // одно касание: ещё раз прошлый подход этой тренировки — тот, что на кнопке; вес и повторы действие возьмёт из базы",
+    "+  const last = workout.sets.at(-1);",
+    "   // комментарий — к этой тренировке, после отправки — снова эта страница",
+    "   const comment = addComment.bind(null, id, `/workouts/${id}`);",
+    " ",
+    "@@ -70,6 +78,13 @@ export default async function WorkoutPage({ params, searchParams }: PageProps<\"/",
+    "         <SetList sets={workout.sets} className=\"mt-6 flex flex-col gap-1\" />",
+    "       )}",
+    "       <p className=\"mt-2 font-medium\">Объём: {volume(workout.sets)} кг</p>",
+    "+      {last && (",
+    "+        <form action={repeatSet.bind(null, id, last.id)} className=\"mt-6\">",
+    "+          <button type=\"submit\" className=\"w-full rounded bg-zinc-900 px-4 py-2 text-white\">",
+    "+            Повторить подход ({last.weight} кг, {repsText(last.reps)})",
+    "+          </button>",
+    "+        </form>",
+    "+      )}",
+    " ",
+    "       <form action={save} className=\"mt-6 flex flex-col gap-4\">",
+    "         <div className=\"flex flex-col gap-1\">"
+   ],
+   "blob": "c0823ff6ce7a78edf113e73a75e332938d0022c6",
+   "by": "agent"
+  },
+  {
+   "id": "quick-action",
+   "kind": "file",
+   "path": "app/workouts/[id]/actions.ts",
+   "before": "\"use server\";\n\nimport { redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { parseWeight } from \"@/lib/weight\";\n\n// Подход в тренировку workoutId: вес и повторы из формы.\n// Запрос идёт от имени вошедшего, и в чужую тренировку вписать не даст RLS (политика «подопечный добавляет подходы»).\nexport async function saveSet(workoutId: string, form: FormData) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const page = `/workouts/${workoutId}`;\n  // ошибку страница покажет под формой: её текст — в адресе\n  const fail = (error: string) => `${page}?error=${encodeURIComponent(error)}`;\n\n  // вес разбирает lib/weight.ts: число или текст ошибки\n  const weight = parseWeight(String(form.get(\"weight\") ?? \"\"));\n  if (typeof weight === \"string\") redirect(fail(weight));\n  const reps = Number(form.get(\"reps\"));\n  if (!Number.isInteger(reps) || reps <= 0) redirect(fail(\"Повторы — целое число больше нуля\"));\n\n  // заметка необязательна: пустое поле — без заметки (null); длиннее 200 знаков не примет и база\n  const note = String(form.get(\"note\") ?? \"\").trim() || null;\n  if (note && note.length > 200) redirect(fail(\"Заметка — не длиннее 200 знаков\"));\n\n  const setId = await asUser(uid, async (db) => {\n    const { rows } = await db.query<{ id: string }>(\n      \"insert into sets (workout_id, weight, reps, note) values ($1, $2, $3, $4) returning id\",\n      [workoutId, weight, reps, note],\n    );\n    return rows[0].id;\n  });\n  // журнал сервера: только id подхода и время — без имени и заметки, это данные о здоровье\n  console.log(\"Подход сохранён\", { setId, time: new Date().toLocaleTimeString(\"ru-RU\") });\n  // та же страница заново — с новым подходом и без прежней ошибки в адресе\n  redirect(page);\n}\n",
+   "after": "\"use server\";\n\nimport { redirect } from \"next/navigation\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { parseWeight } from \"@/lib/weight\";\n\n// Подход в тренировку workoutId: вес и повторы из формы.\n// Запрос идёт от имени вошедшего, и в чужую тренировку вписать не даст RLS (политика «подопечный добавляет подходы»).\nexport async function saveSet(workoutId: string, form: FormData) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const page = `/workouts/${workoutId}`;\n  // ошибку страница покажет под формой: её текст — в адресе\n  const fail = (error: string) => `${page}?error=${encodeURIComponent(error)}`;\n\n  // вес разбирает lib/weight.ts: число или текст ошибки\n  const weight = parseWeight(String(form.get(\"weight\") ?? \"\"));\n  if (typeof weight === \"string\") redirect(fail(weight));\n  const reps = Number(form.get(\"reps\"));\n  if (!Number.isInteger(reps) || reps <= 0) redirect(fail(\"Повторы — целое число больше нуля\"));\n\n  // заметка необязательна: пустое поле — без заметки (null); длиннее 200 знаков не примет и база\n  const note = String(form.get(\"note\") ?? \"\").trim() || null;\n  if (note && note.length > 200) redirect(fail(\"Заметка — не длиннее 200 знаков\"));\n\n  const setId = await asUser(uid, async (db) => {\n    const { rows } = await db.query<{ id: string }>(\n      \"insert into sets (workout_id, weight, reps, note) values ($1, $2, $3, $4) returning id\",\n      [workoutId, weight, reps, note],\n    );\n    return rows[0].id;\n  });\n  // журнал сервера: только id подхода и время — без имени и заметки, это данные о здоровье\n  console.log(\"Подход сохранён\", { setId, time: new Date().toLocaleTimeString(\"ru-RU\") });\n  // та же страница заново — с новым подходом и без прежней ошибки в адресе\n  redirect(page);\n}\n\n// Одно касание: ещё один подход в тренировку workoutId с весом и повторами подхода setId — того, что на кнопке. Вес и повторы\n// берём из базы, а не из формы: подставить в запрос свой вес нельзя; подход другой тренировки не повторится (workout_id = $1).\n// Запрос идёт от имени вошедшего: в чужую тренировку не даст вписать RLS.\nexport async function repeatSet(workoutId: string, setId: string) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  await asUser(uid, (db) =>\n    db.query(\n      `insert into sets (workout_id, weight, reps)\n       select workout_id, weight, reps from sets where id = $2 and workout_id = $1`,\n      [workoutId, setId],\n    ),\n  );\n  redirect(`/workouts/${workoutId}`);\n}\n",
+   "diff": [
+    "diff --git a/app/workouts/[id]/actions.ts b/app/workouts/[id]/actions.ts",
+    "index a849a80..2f6a6ad 100644",
+    "--- a/app/workouts/[id]/actions.ts",
+    "+++ b/app/workouts/[id]/actions.ts",
+    "@@ -36,3 +36,19 @@ export async function saveSet(workoutId: string, form: FormData) {",
+    "   // та же страница заново — с новым подходом и без прежней ошибки в адресе",
+    "   redirect(page);",
+    " }",
+    "+",
+    "+// Одно касание: ещё один подход в тренировку workoutId с весом и повторами подхода setId — того, что на кнопке. Вес и повторы",
+    "+// берём из базы, а не из формы: подставить в запрос свой вес нельзя; подход другой тренировки не повторится (workout_id = $1).",
+    "+// Запрос идёт от имени вошедшего: в чужую тренировку не даст вписать RLS.",
+    "+export async function repeatSet(workoutId: string, setId: string) {",
+    "+  const uid = await currentUser();",
+    "+  if (!uid) redirect(\"/login\");",
+    "+  await asUser(uid, (db) =>",
+    "+    db.query(",
+    "+      `insert into sets (workout_id, weight, reps)",
+    "+       select workout_id, weight, reps from sets where id = $2 and workout_id = $1`,",
+    "+      [workoutId, setId],",
+    "+    ),",
+    "+  );",
+    "+  redirect(`/workouts/${workoutId}`);",
+    "+}"
+   ],
+   "blob": "2f6a6ad88f19d5f2ef0dcd9640b3d0cb3c0ebeee",
+   "by": "agent"
+  },
+  {
+   "id": "quick-clients",
+   "kind": "file",
+   "path": "app/clients/page.tsx",
+   "before": "import type { Metadata } from \"next\";\nimport { headers } from \"next/headers\";\nimport Link from \"next/link\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { addClient } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Подопечный тренера с датой последней тренировки\ntype Client = { id: string; name: string; last: Date | null };\n// Действующее приглашение тренера: не принято, не отозвано, срок не вышел\ntype Invite = { id: string; code: string };\n\n// Тренер создаёт приглашение на себя: код и срок ставит база (0008_invites.sql), записать приглашение чужому не даст RLS\nasync function createInvite() {\n  \"use server\";\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  await asUser(uid, (db) => db.query(\"insert into invites (coach_id) values ($1)\", [uid]));\n  redirect(\"/clients\");\n}\n\n// Тренер отзывает приглашение: по ссылке больше не зарегистрироваться. Чужое приглашение отозвать не даст RLS\nasync function revokeInvite(id: string) {\n  \"use server\";\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  await asUser(uid, (db) => db.query(\"update invites set revoked_at = now() where id = $1\", [id]));\n  redirect(\"/clients\");\n}\n\n// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного и приглашения\nexport default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { error } = await searchParams;\n  const { clients, invites } = await asUser(uid, async (db) => {\n    // подопечные и дата последней тренировки — одним запросом: left join и max(day)\n    const found = await db.query<Client>(\n      `select c.id, c.name, max(w.day) as last\n         from clients c\n         left join workouts w on w.client_id = c.id\n        where c.coach_id = $1\n        group by c.id\n        order by c.id`,\n      [uid],\n    );\n    // действующие приглашения: срок сверяют часы базы, на странице дат нет\n    const active = await db.query<Invite>(\n      `select id, code from invites\n        where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now()\n        order by id`,\n      [uid],\n    );\n    return { clients: found.rows, invites: active.rows };\n  });\n  // адрес сайта для ссылки — из запроса: localhost:3000 при разработке, свой домен на сервере\n  const head = await headers();\n  const origin = `${head.get(\"x-forwarded-proto\") ?? \"http\"}://${head.get(\"host\")}`;\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id}>\n            <Link\n              href={`/clients/${client.id}`}\n              className=\"block rounded border border-zinc-300 p-4 text-xl font-semibold\"\n            >\n              {client.name}\n              <span className=\"block text-sm font-normal text-zinc-500\">\n                {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : \"Тренировок пока нет\"}\n              </span>\n            </Link>\n          </li>\n        ))}\n      </ul>\n\n      <form action={addClient} className=\"mt-8 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"name\">Имя</label>\n          <input id=\"name\" name=\"name\" required className=\"rounded border border-zinc-300 px-3 py-2\" />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Добавить\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Приглашения</h2>\n      <p className=\"mt-2 text-zinc-500\">Ссылка действует 48 часов, по ней регистрируются один раз.</p>\n      {invites.length === 0 ? (\n        <p className=\"mt-2 text-zinc-500\">Приглашений пока нет</p>\n      ) : (\n        <ul className=\"mt-2 flex flex-col gap-2\">\n          {invites.map((invite) => (\n            <li key={invite.id} className=\"flex items-center gap-2\">\n              <span className=\"break-all font-mono text-sm\">{`${origin}/join/${invite.code}`}</span>\n              <form action={revokeInvite.bind(null, invite.id)}>\n                <button type=\"submit\" className=\"rounded border border-zinc-300 px-3 py-1 text-sm\">\n                  Отозвать\n                </button>\n              </form>\n            </li>\n          ))}\n        </ul>\n      )}\n      <form action={createInvite} className=\"mt-4\">\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Создать приглашение\n        </button>\n      </form>\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport { headers } from \"next/headers\";\nimport Link from \"next/link\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { addClient } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Подопечный тренера с датой последней тренировки\ntype Client = { id: string; name: string; last: Date | null };\n// Последний подход подопечного, его тренировка и растёт ли вес; growing — null, если подход в тренировке один: сравнивать не с чем\ntype Latest = { id: string; workout: string; weight: number; reps: number; growing: boolean | null };\n// Действующее приглашение тренера: не принято, не отозвано, срок не вышел\ntype Invite = { id: string; code: string };\n\n// Тренер создаёт приглашение на себя: код и срок ставит база (0008_invites.sql), записать приглашение чужому не даст RLS\nasync function createInvite() {\n  \"use server\";\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  await asUser(uid, (db) => db.query(\"insert into invites (coach_id) values ($1)\", [uid]));\n  redirect(\"/clients\");\n}\n\n// Тренер отзывает приглашение: по ссылке больше не зарегистрироваться. Чужое приглашение отозвать не даст RLS\nasync function revokeInvite(id: string) {\n  \"use server\";\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  await asUser(uid, (db) => db.query(\"update invites set revoked_at = now() where id = $1\", [id]));\n  redirect(\"/clients\");\n}\n\n// Подопечные вошедшего тренера, у каждого — дата последней тренировки, последний подход и растёт ли вес; под списком форма нового подопечного и приглашения\nexport default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { error } = await searchParams;\n  const { clients, invites } = await asUser(uid, async (db) => {\n    // подопечные и дата последней тренировки — одним запросом: left join и max(day)\n    const found = await db.query<Client>(\n      `select c.id, c.name, max(w.day) as last\n         from clients c\n         left join workouts w on w.client_id = c.id\n        where c.coach_id = $1\n        group by c.id\n        order by c.id`,\n      [uid],\n    );\n    // действующие приглашения: срок сверяют часы базы, на странице дат нет\n    const active = await db.query<Invite>(\n      `select id, code from invites\n        where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now()\n        order by id`,\n      [uid],\n    );\n    // последний подход каждого — по порядку записи, с названием его тренировки. Вес растёт, если этот подход тяжелее прошлого\n    // подхода той же тренировки или с тем же весом повторов больше; подход в тренировке один — сравнивать не с чем (null).\n    // Только подопечные этого тренера — как в запросах выше; чужих база не отдаст и так (RLS)\n    const latest = await db.query<Latest>(\n      `with ranked as (\n         select w.client_id, w.title, s.weight, s.reps,\n                lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps,\n                row_number() over (partition by w.client_id order by s.id desc) as n\n           from sets s\n           join workouts w on w.id = s.workout_id\n           join clients c on c.id = w.client_id\n          where c.coach_id = $1\n         window by_workout as (partition by s.workout_id order by s.id)\n       )\n       select client_id as id, title as workout, weight::float8 as weight, reps,\n              case when prev_weight is null then null\n                   else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing\n         from ranked\n        where n = 1`,\n      [uid],\n    );\n    const byClient = new Map(latest.rows.map((row) => [row.id, row]));\n    return { clients: found.rows.map((client) => ({ ...client, latest: byClient.get(client.id) })), invites: active.rows };\n  });\n  // адрес сайта для ссылки — из запроса: localhost:3000 при разработке, свой домен на сервере\n  const head = await headers();\n  const origin = `${head.get(\"x-forwarded-proto\") ?? \"http\"}://${head.get(\"host\")}`;\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id}>\n            <Link\n              href={`/clients/${client.id}`}\n              className=\"block rounded border border-zinc-300 p-4 text-xl font-semibold\"\n            >\n              {client.name}\n              <span className=\"block text-sm font-normal text-zinc-500\">\n                {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : \"Тренировок пока нет\"}\n              </span>\n              {client.latest && (\n                <span className=\"block text-sm font-normal text-zinc-500\">\n                  Последний подход: {client.latest.weight} кг × {client.latest.reps}, {client.latest.workout}\n                </span>\n              )}\n              {client.latest && client.latest.growing !== null && (\n                <span className=\"block text-sm font-normal text-zinc-500\">\n                  {client.latest.growing ? \"Вес растёт\" : \"Вес не растёт\"}\n                </span>\n              )}\n            </Link>\n          </li>\n        ))}\n      </ul>\n\n      <form action={addClient} className=\"mt-8 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"name\">Имя</label>\n          <input id=\"name\" name=\"name\" required className=\"rounded border border-zinc-300 px-3 py-2\" />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Добавить\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Приглашения</h2>\n      <p className=\"mt-2 text-zinc-500\">Ссылка действует 48 часов, по ней регистрируются один раз.</p>\n      {invites.length === 0 ? (\n        <p className=\"mt-2 text-zinc-500\">Приглашений пока нет</p>\n      ) : (\n        <ul className=\"mt-2 flex flex-col gap-2\">\n          {invites.map((invite) => (\n            <li key={invite.id} className=\"flex items-center gap-2\">\n              <span className=\"break-all font-mono text-sm\">{`${origin}/join/${invite.code}`}</span>\n              <form action={revokeInvite.bind(null, invite.id)}>\n                <button type=\"submit\" className=\"rounded border border-zinc-300 px-3 py-1 text-sm\">\n                  Отозвать\n                </button>\n              </form>\n            </li>\n          ))}\n        </ul>\n      )}\n      <form action={createInvite} className=\"mt-4\">\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Создать приглашение\n        </button>\n      </form>\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/clients/page.tsx b/app/clients/page.tsx",
+    "index 0d937b0..1b365e7 100644",
+    "--- a/app/clients/page.tsx",
+    "+++ b/app/clients/page.tsx",
+    "@@ -14,6 +14,8 @@ export const instant = false;",
+    " ",
+    " // Подопечный тренера с датой последней тренировки",
+    " type Client = { id: string; name: string; last: Date | null };",
+    "+// Последний подход подопечного, его тренировка и растёт ли вес; growing — null, если подход в тренировке один: сравнивать не с чем",
+    "+type Latest = { id: string; workout: string; weight: number; reps: number; growing: boolean | null };",
+    " // Действующее приглашение тренера: не принято, не отозвано, срок не вышел",
+    " type Invite = { id: string; code: string };",
+    " ",
+    "@@ -35,7 +37,7 @@ async function revokeInvite(id: string) {",
+    "   redirect(\"/clients\");",
+    " }",
+    " ",
+    "-// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного и приглашения",
+    "+// Подопечные вошедшего тренера, у каждого — дата последней тренировки, последний подход и растёт ли вес; под списком форма нового подопечного и приглашения",
+    " export default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {",
+    "   const uid = await currentUser();",
+    "   if (!uid) redirect(\"/login\");",
+    "@@ -58,7 +60,29 @@ export default async function ClientsPage({ searchParams }: PageProps<\"/clients\"",
+    "         order by id`,",
+    "       [uid],",
+    "     );",
+    "-    return { clients: found.rows, invites: active.rows };",
+    "+    // последний подход каждого — по порядку записи, с названием его тренировки. Вес растёт, если этот подход тяжелее прошлого",
+    "+    // подхода той же тренировки или с тем же весом повторов больше; подход в тренировке один — сравнивать не с чем (null).",
+    "+    // Только подопечные этого тренера — как в запросах выше; чужих база не отдаст и так (RLS)",
+    "+    const latest = await db.query<Latest>(",
+    "+      `with ranked as (",
+    "+         select w.client_id, w.title, s.weight, s.reps,",
+    "+                lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps,",
+    "+                row_number() over (partition by w.client_id order by s.id desc) as n",
+    "+           from sets s",
+    "+           join workouts w on w.id = s.workout_id",
+    "+           join clients c on c.id = w.client_id",
+    "+          where c.coach_id = $1",
+    "+         window by_workout as (partition by s.workout_id order by s.id)",
+    "+       )",
+    "+       select client_id as id, title as workout, weight::float8 as weight, reps,",
+    "+              case when prev_weight is null then null",
+    "+                   else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing",
+    "+         from ranked",
+    "+        where n = 1`,",
+    "+      [uid],",
+    "+    );",
+    "+    const byClient = new Map(latest.rows.map((row) => [row.id, row]));",
+    "+    return { clients: found.rows.map((client) => ({ ...client, latest: byClient.get(client.id) })), invites: active.rows };",
+    "   });",
+    "   // адрес сайта для ссылки — из запроса: localhost:3000 при разработке, свой домен на сервере",
+    "   const head = await headers();",
+    "@@ -78,6 +102,16 @@ export default async function ClientsPage({ searchParams }: PageProps<\"/clients\"",
+    "               <span className=\"block text-sm font-normal text-zinc-500\">",
+    "                 {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : \"Тренировок пока нет\"}",
+    "               </span>",
+    "+              {client.latest && (",
+    "+                <span className=\"block text-sm font-normal text-zinc-500\">",
+    "+                  Последний подход: {client.latest.weight} кг × {client.latest.reps}, {client.latest.workout}",
+    "+                </span>",
+    "+              )}",
+    "+              {client.latest && client.latest.growing !== null && (",
+    "+                <span className=\"block text-sm font-normal text-zinc-500\">",
+    "+                  {client.latest.growing ? \"Вес растёт\" : \"Вес не растёт\"}",
+    "+                </span>",
+    "+              )}",
+    "             </Link>",
+    "           </li>",
+    "         ))}"
+   ],
+   "blob": "1b365e7dd3c7355ce848185e5993d330077f3318",
+   "by": "agent"
+  },
+  {
+   "id": "quick-run",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npx playwright test e2e/quick-set.spec.ts",
+   "out": [
+    "",
+    "Running 1 test using 1 worker",
+    "",
+    "  ✓  1 [chromium] › e2e/quick-set.spec.ts:15:5 › Анна повторяет подход одним касанием, Марина видит его в списке подопечных (5.9s)",
+    "",
+    "  1 passed (10.3s)"
+   ],
+   "code": 0,
+   "by": "agent"
+  },
+  {
+   "id": "c-quick",
+   "kind": "commit",
+   "cmd": "git add -A && git commit -m \"Подход в одно касание; последний подход у тренера\"",
+   "hash": "8d28da0",
+   "message": "Подход в одно касание; последний подход у тренера",
+   "branch": "main",
+   "parents": [
+    "b747564"
+   ],
+   "out": [
+    "[main 8d28da0] Подход в одно касание; последний подход у тренера",
+    " 5 files changed, 119 insertions(+), 22 deletions(-)",
+    " create mode 100644 e2e/quick-set.spec.ts"
+   ],
+   "files": [
+    {
+     "path": ".githooks/pre-commit",
+     "blob": "4fe231258086611cd45d79cbd7d7e319e68b76f9"
+    },
+    {
+     "path": ".gitignore",
+     "blob": "9babaf7a7576684d1e6f19db4afa2cefd91640d3"
+    },
+    {
+     "path": "CLAUDE.md",
+     "blob": "eddd7ec69c49be4d9b10d0c43803834ac4ab4293"
+    },
+    {
+     "path": "README.md",
+     "blob": "e215bc4ccf138bbc38ad58ad57e92135484b3c0f"
+    },
+    {
+     "path": "app/api/clients/search/route.ts",
+     "blob": "780c06f4f652de71a19f4181be66c86857fcd5d5"
+    },
+    {
+     "path": "app/api/login/route.ts",
+     "blob": "427b6448156be34ccb617c8c35a5e16282a8fea4"
+    },
+    {
+     "path": "app/api/sets/route.ts",
+     "blob": "86d7c8e5b7f6716c088e4661438b2ab14cbe31bc"
+    },
+    {
+     "path": "app/clients/[id]/actions.ts",
+     "blob": "5eec7d6a8dc7a7d35ddf493f54d12c44c36a524d"
+    },
+    {
+     "path": "app/clients/[id]/not-found.tsx",
+     "blob": "d3ecd96388b66eaa569bd8895275f5200bb3a85a"
+    },
+    {
+     "path": "app/clients/[id]/page.tsx",
+     "blob": "9c8a80abed61c077137ec92210315b7cca6454f0"
+    },
+    {
+     "path": "app/clients/actions.ts",
+     "blob": "ab5d0e77f906f6dcf618cb398a172a67390ea7fe"
+    },
+    {
+     "path": "app/clients/page.tsx",
+     "blob": "1b365e7dd3c7355ce848185e5993d330077f3318"
+    },
+    {
+     "path": "app/favicon.ico",
+     "blob": "af98450595e8b8efd9e505cddc5ed705b665a4d8"
+    },
+    {
+     "path": "app/globals.css",
+     "blob": "eed3b35f34ff5c8f6d0dfb90aaae81581dbe798c"
+    },
+    {
+     "path": "app/icon.tsx",
+     "blob": "17f2f42e653179751c4644305031303484fb9eea"
+    },
+    {
+     "path": "app/join/[code]/actions.ts",
+     "blob": "706def01ab2c040e1bb2ce51b76d4424694c50b7"
+    },
+    {
+     "path": "app/join/[code]/page.tsx",
+     "blob": "7e9481cd7b7de7dcc7530b32de7546d455b6eab6"
+    },
+    {
+     "path": "app/layout.tsx",
+     "blob": "8515cad45d81c7b1929badb5a9da485bd379b523"
+    },
+    {
+     "path": "app/login/page.tsx",
+     "blob": "57a869356b632ea695f249ccf7802a0942141ab6"
+    },
+    {
+     "path": "app/manifest.ts",
+     "blob": "9dbb36a2f2fe2ec302d3dd0e1d8c80ccb41ca71c"
+    },
+    {
+     "path": "app/page.tsx",
+     "blob": "58c27d1e76bd2f9f7e7763f3d6256ea6a157749d"
+    },
+    {
+     "path": "app/programs/actions.ts",
+     "blob": "dcd541fe06f5492687a0ea1cf620c192b6bc64d4"
+    },
+    {
+     "path": "app/programs/page.tsx",
+     "blob": "afac09dd15a93bb1775b65096db6bfff25dbeb70"
+    },
+    {
+     "path": "app/report/page.tsx",
+     "blob": "f10ded0acd8bd2ac60b7f3c31449bfb298aaf94d"
+    },
+    {
+     "path": "app/workouts/[id]/actions.ts",
+     "blob": "2f6a6ad88f19d5f2ef0dcd9640b3d0cb3c0ebeee"
+    },
+    {
+     "path": "app/workouts/[id]/comments.ts",
+     "blob": "5cf9a284eb26545757c2c104919fe593425887e2"
+    },
+    {
+     "path": "app/workouts/[id]/page.tsx",
+     "blob": "c0823ff6ce7a78edf113e73a75e332938d0022c6"
+    },
+    {
+     "path": "app/workouts/page.tsx",
+     "blob": "728769dd02c5244cccfca97dfcbff45fe901d8df"
+    },
+    {
+     "path": "components/Comments.tsx",
+     "blob": "3d337b64d15a4667a38c040559b8f498f2c1318a"
+    },
+    {
+     "path": "components/ProgressChart.tsx",
+     "blob": "77e64ac8860f1a46c395ffe50848c38423679a04"
+    },
+    {
+     "path": "components/SetList.tsx",
+     "blob": "2c715947f996c357c227fb7f2d88d8f689bbd6bb"
+    },
+    {
+     "path": "docs/complaints.md",
+     "blob": "9b1c59e095311045de8d5e001a2ea161d9c41a0a"
+    },
+    {
+     "path": "docs/design.md",
+     "blob": "d4f7691cb131c13ea47a613c9d17e8e02b0aed9a"
+    },
+    {
+     "path": "docs/etalons.md",
+     "blob": "fdfe7da9d3ffc22d6f656c0f62158b898645c1d2"
+    },
+    {
+     "path": "docs/feedback.md",
+     "blob": "a7460f95f2740430a7216a333ab57eb79b887050"
+    },
+    {
+     "path": "docs/idea.md",
+     "blob": "df36eb1f1505a363fadd7ad7fdb3975ccfdd2ffb"
+    },
+    {
+     "path": "docs/mini-set.md",
+     "blob": "423696ff8c914a7cd24f5e11a3c0d1855c251c6a"
+    },
+    {
+     "path": "docs/parity.md",
+     "blob": "b1b7d4389f95d6e155a98d2cee54bae4b4ba0992"
+    },
+    {
+     "path": "docs/plan-weeks-2-3.md",
+     "blob": "94eb8518bed0420f3fe7434edc9ccb896eb04096"
+    },
+    {
+     "path": "docs/prompts.md",
+     "blob": "bc4298e80af8ab9afbccd1b77985bd312f00b26c"
+    },
+    {
+     "path": "docs/report.md",
+     "blob": "a6562754e58b0e8fbeb0ed59013c66c9b8e541e2"
+    },
+    {
+     "path": "docs/spec.md",
+     "blob": "491b7a53d9b628346315e33365aefd7fc7e3a8cf"
+    },
+    {
+     "path": "docs/tasks/notes.md",
+     "blob": "cb71ccb1a0bf09ae4ebba4f14aa214be10729bae"
+    },
+    {
+     "path": "docs/tasks/records.md",
+     "blob": "db9abf41775b6851fb35442a8204275b9a669e04"
+    },
+    {
+     "path": "e2e/cycle.spec.ts",
+     "blob": "d199de9ce7b3315a7a18c40005dbc6dd27a03f93"
+    },
+    {
+     "path": "e2e/quick-set.spec.ts",
+     "blob": "c2db2c02e86024897b2ab91db914a1b6878766c1"
+    },
+    {
+     "path": "eslint.config.mjs",
+     "blob": "05e726d1b4201bc8c7716d2b058279676582e8c0"
+    },
+    {
+     "path": "lib/dates.ts",
+     "blob": "604f906e3dc4c58d9489abf84950ae071ceafed5"
+    },
+    {
+     "path": "lib/db.ts",
+     "blob": "bea1677f27da982934d297189b74b60017148c33"
+    },
+    {
+     "path": "lib/names.test.ts",
+     "blob": "d6890ca72d4e9cf0dcfe414e472266a38881a512"
+    },
+    {
+     "path": "lib/names.ts",
+     "blob": "e805924b33930951cfc371393ca87c8a0f8995fb"
+    },
+    {
+     "path": "lib/notify.test.ts",
+     "blob": "d74f2fee04f22ac2ccb60f91831ab8db86b9eb8e"
+    },
+    {
+     "path": "lib/notify.ts",
+     "blob": "4a0e8d5c643239ea470cf2d1c158d05b2525f4b5"
+    },
+    {
+     "path": "lib/payments.ts",
+     "blob": "510e71445c634695ed1430647ec1f6f95e46368a"
+    },
+    {
+     "path": "lib/progress.test.ts",
+     "blob": "c83c2100822d3f81e8ef67a2d807957ef83a3b4a"
+    },
+    {
+     "path": "lib/progress.ts",
+     "blob": "473f33d0e627b4627df5cb776d2ebb3f26f6c4fd"
+    },
+    {
+     "path": "lib/rate-limit.ts",
+     "blob": "1173b80e31f5a1aed29826b2c7bb8b90f1973871"
+    },
+    {
+     "path": "lib/records.test.ts",
+     "blob": "43b4ad5e54a06df184118b4a8945d53326d77f03"
+    },
+    {
+     "path": "lib/records.ts",
+     "blob": "7c0fabdcea67e71f837798fc5013f74db68f6a02"
+    },
+    {
+     "path": "lib/report.test.ts",
+     "blob": "d13a57d9455db9a518b5419cff96167b85a95d66"
+    },
+    {
+     "path": "lib/report.ts",
+     "blob": "c2fc54105f1531b1f304e5f69958e6c3bb5ce36b"
+    },
+    {
+     "path": "lib/session.ts",
+     "blob": "ced1148dc6236d6801f8931198ea2feb6a5d6b87"
+    },
+    {
+     "path": "lib/volume.test.ts",
+     "blob": "4e9f9a42b6b37446b8cab4c83062c2135c4b20e4"
+    },
+    {
+     "path": "lib/volume.ts",
+     "blob": "00d8286c3020ec0800698c190f02c8edcbf151ab"
+    },
+    {
+     "path": "lib/weight.test.ts",
+     "blob": "eb7b55ea11479f8d43d61a53e08af9b780a27179"
+    },
+    {
+     "path": "lib/weight.ts",
+     "blob": "5534e4676b0358eaf2665bfa0f498d168ad7705b"
+    },
+    {
+     "path": "next.config.ts",
+     "blob": "a0cf0c7313a86b713eb9d9bcac6539bc5d0bd1a9"
+    },
+    {
+     "path": "package-lock.json",
+     "blob": "71dc629fde4984efe6bfc757b2116700222d44c2"
+    },
+    {
+     "path": "package.json",
+     "blob": "6ab56583cc817522e1595c6f6770bd01510a1cfa"
+    },
+    {
+     "path": "playwright.config.ts",
+     "blob": "595220c1a2b5022019ab262c9f15b538f80ce466"
+    },
+    {
+     "path": "public/file.svg",
+     "blob": "004145cddf3f9db91b57b9cb596683c8eb420862"
+    },
+    {
+     "path": "public/globe.svg",
+     "blob": "567f17b0d7c7fb662c16d4357dd74830caf2dccb"
+    },
+    {
+     "path": "public/next.svg",
+     "blob": "5174b28c565c285e3e312ec5178be64fbeca8398"
+    },
+    {
+     "path": "public/vercel.svg",
+     "blob": "77053960334e2e34dc584dea8019925c3b4ccca9"
+    },
+    {
+     "path": "public/window.svg",
+     "blob": "b2b2a44f6ebc70c450043c05a002e7a93ba5d651"
+    },
+    {
+     "path": "supabase/migrations/0001_init.sql",
+     "blob": "ca60aa2319df6786876d0481231f2d7d8f24650f"
+    },
+    {
+     "path": "supabase/migrations/0002_rls.sql",
+     "blob": "9f3c19c1164504275cbfc78368afbe6ab5090f49"
+    },
+    {
+     "path": "supabase/migrations/0003_set_note.sql",
+     "blob": "88f05938526d33b6e393e5db1132ecc4aaae304f"
+    },
+    {
+     "path": "supabase/migrations/0004_programs.sql",
+     "blob": "6e31f64935c0792ed04414fde9cf2473dddb2971"
+    },
+    {
+     "path": "supabase/migrations/0005_programs_copy.sql",
+     "blob": "606da9ade911fa66a50d5705122590f6a71c3621"
+    },
+    {
+     "path": "supabase/migrations/0006_comments.sql",
+     "blob": "70db2a965660677fe1d3ffecf2be764d2bdbe5fb"
+    },
+    {
+     "path": "supabase/migrations/0007_comments_rls.sql",
+     "blob": "904c10716be7844bbf0cebb577a70b06a4ca77ad"
+    },
+    {
+     "path": "supabase/migrations/0008_invites.sql",
+     "blob": "6671c51bbb8e9b56bfe5764398594fa85c78b4a7"
+    },
+    {
+     "path": "supabase/seed-load.sql",
+     "blob": "d1da7ddb2ae113d9be8de99917d110b18748e85a"
+    },
+    {
+     "path": "supabase/seed.sql",
+     "blob": "e9921b84a8400b48b89436d0ec1888f8d1bb6985"
+    },
+    {
+     "path": "supabase/tests/as-marina.sql",
+     "blob": "99304779f4762abc87793067ecd67c50a22946a0"
+    },
+    {
+     "path": "supabase/tests/as-sveta-write.sql",
+     "blob": "b0e5f9fa329449360016bc91bd7d3210a2b79e00"
+    },
+    {
+     "path": "supabase/tests/as-sveta.sql",
+     "blob": "d9c23ae84ff0acb4b52c5bd00598782e8c99c77a"
+    },
+    {
+     "path": "test/comments.test.ts",
+     "blob": "294e59b3081a8e6d73346af01a7e428a8eb9b7ed"
+    },
+    {
+     "path": "test/invites.test.ts",
+     "blob": "ebb453a9d2a65c185d2967a8029585aeb42b34d9"
+    },
+    {
+     "path": "test/programs.test.ts",
+     "blob": "cbfc8ab60a5683131a2bf6731c29d773d95eba3c"
+    },
+    {
+     "path": "test/rls.test.ts",
+     "blob": "3ad9cbba9d59ab1bdcebb1d1bafc0fa25436a7f5"
+    },
+    {
+     "path": "tsconfig.json",
+     "blob": "3a13f90a773b0facb675bf5b1a8239c8f33d36f5"
+    },
+    {
+     "path": "vitest.config.mts",
+     "blob": "0562200385d5e8064e0abd6a21b33bc24c48ba2c"
+    }
+   ]
+  },
+  {
+   "id": "dev",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npm run dev",
+   "out": [
+    "",
+    "> trainer-app@0.1.0 dev",
+    "> next dev",
+    "",
+    "▲ Next.js 16.4.3 (Turbopack)",
+    "- Local:         http://localhost:3000",
+    "- Network:       http://192.0.2.2:3000",
+    "- Environments: .env.local",
+    "✓ Ready in 309ms"
+   ],
+   "code": null
+  },
+  {
+   "id": "login-anna",
+   "kind": "browser",
+   "url": "http://localhost:3000/login",
+   "urlAfter": "http://localhost:3000/workouts",
+   "title": "Тренировка",
+   "fields": [
+    {
+     "label": "Почта",
+     "value": "anna@example.com"
+    },
+    {
+     "label": "Пароль",
+     "value": "demo-password"
+    }
+   ],
+   "buttons": [
+    "Войти"
+   ],
+   "before": [
+    "Вход",
+    "Почта",
+    "Пароль",
+    "Войти"
+   ],
+   "after": [
+    "Мои тренировки",
+    "Ноги",
+    "19 октября",
+    "Спина и бицепс",
+    "21 октября",
+    "Грудь и плечи",
+    "26 октября"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] rebuilding"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] done in 291ms"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] rebuilding"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] done in 386ms"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    "- Cache Components enabled",
+    "- Partial Prefetching enabled",
+    "",
+    " GET /login 200 in 282ms (next.js: 142ms, application-code: 140ms)",
+    " POST /api/login 200 in 107ms (next.js: 55ms, application-code: 52ms)",
+    "[sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day",
+    " GET /workouts 200 in 109ms (next.js: 16ms, application-code: 93ms)"
+   ]
+  },
+  {
+   "id": "quick-tap",
+   "kind": "browser",
+   "url": "http://localhost:3000/workouts/1",
+   "title": "Тренировка",
+   "fields": [],
+   "buttons": [
+    "Повторить подход (50 кг, 10 повторов)",
+    "Сохранить подход",
+    "Отправить"
+   ],
+   "before": [
+    "Ноги",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "Объём: 2000 кг",
+    "Повторить подход (50 кг, 10 повторов)",
+    "Вес, кг",
+    "Повторы",
+    "Заметка",
+    "Сохранить подход",
+    "Комментарии",
+    "Комментариев пока нет",
+    "Комментарий",
+    "Отправить"
+   ],
+   "after": [
+    "Ноги",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "Объём: 2500 кг",
+    "Повторить подход (50 кг, 10 повторов)",
+    "Вес, кг",
+    "Повторы",
+    "Заметка",
+    "Сохранить подход",
+    "Комментарии",
+    "Комментариев пока нет",
+    "Комментарий",
+    "Отправить"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select title from workouts where id = $1 background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author from comments cm join workouts w on w.id = cm.workout_id join clients c on c.id = w.client_id where cm.workout_id = $1 order by cm.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select title from workouts where id = $1 background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author from comments cm join workouts w on w.id = cm.workout_id join clients c on c.id = w.client_id where cm.workout_id = $1 order by cm.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    "[sql] select title from workouts where id = $1",
+    "[sql] select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id",
+    "[sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id",
+    "[sql] select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author from comments cm join workouts w on w.id = cm.workout_id join clients c on c.id = w.client_id where cm.workout_id = $1 order by cm.id",
+    " GET /workouts/1 200 in 598ms (next.js: 15ms, generate-params: 478ms, application-code: 105ms)",
+    "[sql] insert into sets (workout_id, weight, reps) select workout_id, weight, reps from sets where id = $2 and workout_id = $1",
+    "[sql] select title from workouts where id = $1",
+    "[sql] select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id",
+    "[sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id",
+    "[sql] select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author from comments cm join workouts w on w.id = cm.workout_id join clients c on c.id = w.client_id where cm.workout_id = $1 order by cm.id",
+    " GET /workouts/1 200 in 84ms (next.js: 1.8ms, generate-params: 0.0ms, application-code: 82ms)",
+    " POST /workouts/1 200 in 144ms (next.js: 2ms, generate-params: 19ms, application-code: 122ms)",
+    "  └─ ƒ repeatSet(\"1\", \"15\") in 12ms app/workouts/[id]/actions.ts"
+   ]
+  },
+  {
+   "id": "quick-after",
+   "kind": "browser",
+   "url": "http://localhost:3000/workouts/1",
+   "title": "Тренировка",
+   "fields": [],
+   "buttons": [
+    "Повторить подход (50 кг, 10 повторов)",
+    "Сохранить подход",
+    "Отправить"
+   ],
+   "before": [
+    "Ноги",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "Объём: 2500 кг",
+    "Повторить подход (50 кг, 10 повторов)",
+    "Вес, кг",
+    "Повторы",
+    "Заметка",
+    "Сохранить подход",
+    "Комментарии",
+    "Комментариев пока нет",
+    "Комментарий",
+    "Отправить"
+   ],
+   "after": [
+    "Ноги",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "50 кг × 10",
+    "Объём: 2500 кг",
+    "Повторить подход (50 кг, 10 повторов)",
+    "Вес, кг",
+    "Повторы",
+    "Заметка",
+    "Сохранить подход",
+    "Комментарии",
+    "Комментариев пока нет",
+    "Комментарий",
+    "Отправить"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select title from workouts where id = $1 background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author from comments cm join workouts w on w.id = cm.workout_id join clients c on c.id = w.client_id where cm.workout_id = $1 order by cm.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    "[sql] select title from workouts where id = $1",
+    "[sql] select id, exercise, sets, reps from workout_exercises where workout_id = $1 order by id",
+    "[sql] select id, weight::float8 as weight, reps from sets where workout_id = $1 order by id",
+    "[sql] select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author from comments cm join workouts w on w.id = cm.workout_id join clients c on c.id = w.client_id where cm.workout_id = $1 order by cm.id",
+    " GET /workouts/1 200 in 84ms (next.js: 1.2ms, generate-params: 16ms, application-code: 67ms)"
+   ]
+  },
+  {
+   "id": "login-marina",
+   "kind": "browser",
+   "url": "http://localhost:3000/login",
+   "urlAfter": "http://localhost:3000/clients",
+   "title": "Тренировка",
+   "fields": [
+    {
+     "label": "Почта",
+     "value": "marina@example.com"
+    },
+    {
+     "label": "Пароль",
+     "value": "demo-password"
+    }
+   ],
+   "buttons": [
+    "Войти"
+   ],
+   "before": [
+    "Вход",
+    "Почта",
+    "Пароль",
+    "Войти"
+   ],
+   "after": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Последний подход: 50 кг × 10, Ноги",
+    "Вес не растёт",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Последний подход: 55 кг × 8, Жим лёжа",
+    "Вес растёт",
+    "Имя",
+    "Добавить",
+    "Приглашения",
+    "Ссылка действует 48 часов, по ней регистрируются один раз.",
+    "Приглашений пока нет",
+    "Создать приглашение"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] rebuilding"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] done in 246ms"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1 background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    " GET /login 200 in 35ms (next.js: 1.9ms, application-code: 33ms)",
+    " POST /api/login 200 in 16ms (next.js: 4ms, application-code: 13ms)",
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
+    "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
+    " GET /clients 200 in 59ms (next.js: 11ms, application-code: 47ms)"
+   ]
+  },
+  {
+   "id": "clients-last",
+   "kind": "browser",
+   "url": "http://localhost:3000/clients",
+   "title": "Подопечные",
+   "fields": [],
+   "buttons": [
+    "Добавить",
+    "Создать приглашение"
+   ],
+   "before": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Последний подход: 50 кг × 10, Ноги",
+    "Вес не растёт",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Последний подход: 55 кг × 8, Жим лёжа",
+    "Вес растёт",
+    "Имя",
+    "Добавить",
+    "Приглашения",
+    "Ссылка действует 48 часов, по ней регистрируются один раз.",
+    "Приглашений пока нет",
+    "Создать приглашение"
+   ],
+   "after": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Последний подход: 50 кг × 10, Ноги",
+    "Вес не растёт",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Последний подход: 55 кг × 8, Жим лёжа",
+    "Вес растёт",
+    "Имя",
+    "Добавить",
+    "Приглашения",
+    "Ссылка действует 48 часов, по ней регистрируются один раз.",
+    "Приглашений пока нет",
+    "Создать приглашение"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1 background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
+    "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
+    " GET /clients 200 in 108ms (next.js: 2ms, application-code: 106ms)"
+   ]
+  }
+ ]
+}

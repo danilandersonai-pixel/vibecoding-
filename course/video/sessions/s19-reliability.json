@@ -1,0 +1,1473 @@
+{
+ "id": "s19-reliability",
+ "from": "s18-quick-set",
+ "recorded": "2026-11-10",
+ "events": [
+  {
+   "id": "typegen",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npx next typegen",
+   "out": [
+    "Generating route types...",
+    "✓ Types generated successfully"
+   ],
+   "code": 0
+  },
+  {
+   "id": "check-run",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npm run check",
+   "out": [
+    "",
+    "> trainer-app@0.1.0 check",
+    "> npm run lint && npx tsc --noEmit && npm test && npm run build",
+    "",
+    "",
+    "> trainer-app@0.1.0 lint",
+    "> eslint",
+    "",
+    "",
+    "> trainer-app@0.1.0 test",
+    "> vitest run",
+    "",
+    "",
+    " RUN  v5.0.5 ~/trainer-app",
+    "",
+    " ✓ test/programs.test.ts (1 test) 33ms",
+    " ✓ test/comments.test.ts (5 tests) 40ms",
+    " ✓ test/invites.test.ts (6 tests) 74ms",
+    " ✓ lib/report.test.ts (3 tests) 5ms",
+    " ✓ test/rls.test.ts (3 tests) 43ms",
+    " ✓ lib/progress.test.ts (3 tests) 4ms",
+    " ✓ lib/names.test.ts (9 tests) 6ms",
+    " ✓ lib/records.test.ts (3 tests) 6ms",
+    " ✓ lib/notify.test.ts (2 tests) 23ms",
+    " ✓ lib/weight.test.ts (5 tests) 4ms",
+    " ✓ lib/volume.test.ts (2 tests) 3ms",
+    "",
+    " Test Files  11 passed (11)",
+    "      Tests  42 passed (42)",
+    "   Start at  20:14:05",
+    "   Duration  727ms (transform 45%, tests 28%, import 22%, worker 5%)",
+    "",
+    "    Isolate  11 workers spawned · ~96ms startup each (spawn + environment, per file)",
+    "             at least ~255ms faster with isolate: false — reuses workers across files instead of one per file",
+    "",
+    "",
+    "> trainer-app@0.1.0 build",
+    "> next build",
+    "",
+    "▲ Next.js 16.4.3 (Turbopack)",
+    "- Environments: .env.local",
+    "✓ Running next.config.ts took 28ms",
+    "- Cache Components enabled",
+    "- Partial Prefetching enabled",
+    "",
+    "  Creating an optimized production build ...",
+    "✓ Compiled successfully in 3.9s",
+    "  Running TypeScript ...",
+    "  Finished TypeScript in 2.8s ...",
+    "  Collecting page data using 3 workers ...",
+    "  Generating static pages using 3 workers (0/17) ...",
+    "  Generating static pages using 3 workers (4/17) ",
+    "  Generating static pages using 3 workers (8/17) ",
+    "  Generating static pages using 3 workers (12/17) ",
+    "✓ Generating static pages using 3 workers (17/17) in 684ms",
+    "  Finalizing page optimization ...",
+    "",
+    "Route (app)",
+    "┌ ○ /",
+    "├ ○ /_not-found",
+    "├ ƒ /api/clients/search",
+    "├ ƒ /api/login",
+    "├ ƒ /api/sets",
+    "├ ƒ /clients",
+    "├   /clients/[id]",
+    "│ └ ◐ /clients/[id]",
+    "├ ○ /icon",
+    "├   /join/[code]",
+    "│ └ ◐ /join/[code]",
+    "├ ○ /login",
+    "├ ○ /manifest.webmanifest",
+    "├ ƒ /programs",
+    "├ ƒ /report",
+    "├ ƒ /workouts",
+    "└   /workouts/[id]",
+    "  └ ◐ /workouts/[id]",
+    "",
+    "",
+    "○  (Static)             prerendered as static content",
+    "◐  (Partial Prerender)  prerendered as static HTML with dynamic server-streamed content",
+    "ƒ  (Dynamic)            server-rendered on demand"
+   ],
+   "code": 0
+  },
+  {
+   "id": "e2e-fix",
+   "kind": "file",
+   "path": "e2e/cycle.spec.ts",
+   "before": "import { expect, test, type Page } from \"@playwright/test\";\n\n// Сценарии 1–2 из docs/spec.md целиком: Марина назначает тренировку Анне, Анна вписывает подход, Марина видит объём.\n// Название каждый раз новое: тест не зависит от того, что уже есть в базе.\nconst title = `Сквозной тест ${Date.now()}`;\n\nasync function login(page: Page, email: string, home: RegExp) {\n  await page.goto(\"/login\");\n  await page.getByLabel(\"Почта\").fill(email);\n  await page.getByLabel(\"Пароль\").fill(\"demo-password\");\n  await page.getByRole(\"button\", { name: \"Войти\" }).click();\n  await expect(page).toHaveURL(home);\n}\n\ntest(\"Марина назначает тренировку, Анна вписывает подход, Марина видит объём\", async ({ browser }) => {\n  // у Марины и Анны — свои браузеры, у каждой своя cookie входа\n  const marina = await browser.newPage();\n  await login(marina, \"marina@example.com\", /\\/clients$/);\n  await marina.getByRole(\"link\", { name: \"Анна\" }).click();\n  await marina.getByLabel(\"Название\").fill(title);\n  await marina.getByLabel(\"Дата\").fill(\"2026-11-09\");\n  await marina.getByRole(\"button\", { name: \"Назначить\" }).click();\n  await expect(marina.getByRole(\"link\", { name: title })).toBeVisible();\n\n  const anna = await browser.newPage();\n  await login(anna, \"anna@example.com\", /\\/workouts$/);\n  await anna.getByRole(\"link\", { name: title }).click();\n  await anna.getByLabel(\"Вес, кг\").fill(\"50\");\n  await anna.getByLabel(\"Повторы\").fill(\"10\");\n  await anna.getByRole(\"button\", { name: \"Сохранить подход\" }).click();\n  await expect(anna.getByText(\"50 кг × 10\")).toBeVisible();\n\n  await marina.getByRole(\"link\", { name: title }).click();\n  await expect(marina.getByText(\"Объём: 500 кг\")).toBeVisible();\n});\n",
+   "after": "import { expect, test, type Page } from \"@playwright/test\";\n\n// Сценарии 1–2 из docs/spec.md целиком: Марина назначает тренировку Анне, Анна вписывает подход, Марина видит объём.\n// Название каждый раз новое: тест не зависит от того, что уже есть в базе.\nconst title = `Сквозной тест ${Date.now()}`;\n\nasync function login(page: Page, email: string, home: RegExp) {\n  await page.goto(\"/login\");\n  await page.getByLabel(\"Почта\").fill(email);\n  await page.getByLabel(\"Пароль\").fill(\"demo-password\");\n  await page.getByRole(\"button\", { name: \"Войти\" }).click();\n  await expect(page).toHaveURL(home);\n}\n\ntest(\"Марина назначает тренировку, Анна вписывает подход, Марина видит объём\", async ({ browser }) => {\n  // у Марины и Анны — свои браузеры, у каждой своя cookie входа\n  const marina = await browser.newPage();\n  await login(marina, \"marina@example.com\", /\\/clients$/);\n  await marina.getByRole(\"link\", { name: \"Анна\" }).click();\n  await marina.getByLabel(\"Название\").fill(title);\n  await marina.getByLabel(\"Дата\", { exact: true }).fill(\"2026-11-09\");\n  await marina.getByRole(\"button\", { name: \"Назначить\" }).click();\n  await expect(marina.getByRole(\"link\", { name: title })).toBeVisible();\n\n  const anna = await browser.newPage();\n  await login(anna, \"anna@example.com\", /\\/workouts$/);\n  await anna.getByRole(\"link\", { name: title }).click();\n  await anna.getByLabel(\"Вес, кг\").fill(\"50\");\n  await anna.getByLabel(\"Повторы\").fill(\"10\");\n  await anna.getByRole(\"button\", { name: \"Сохранить подход\" }).click();\n  await expect(anna.getByText(\"50 кг × 10\")).toBeVisible();\n\n  await marina.getByRole(\"link\", { name: title }).click();\n  await expect(marina.getByText(\"Объём: 500 кг\")).toBeVisible();\n});\n",
+   "diff": [
+    "diff --git a/e2e/cycle.spec.ts b/e2e/cycle.spec.ts",
+    "index d199de9..9fe12d7 100644",
+    "--- a/e2e/cycle.spec.ts",
+    "+++ b/e2e/cycle.spec.ts",
+    "@@ -18,7 +18,7 @@ test(\"Марина назначает тренировку, Анна вписы",
+    "   await login(marina, \"marina@example.com\", /\\/clients$/);",
+    "   await marina.getByRole(\"link\", { name: \"Анна\" }).click();",
+    "   await marina.getByLabel(\"Название\").fill(title);",
+    "-  await marina.getByLabel(\"Дата\").fill(\"2026-11-09\");",
+    "+  await marina.getByLabel(\"Дата\", { exact: true }).fill(\"2026-11-09\");",
+    "   await marina.getByRole(\"button\", { name: \"Назначить\" }).click();",
+    "   await expect(marina.getByRole(\"link\", { name: title })).toBeVisible();",
+    " "
+   ],
+   "blob": "9fe12d70c85a8038c58ae9f1463ac7a0ee2c6eb7"
+  },
+  {
+   "id": "e2e-all",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npx playwright test",
+   "out": [
+    "",
+    "Running 2 tests using 2 workers",
+    "",
+    "  ✓  2 [chromium] › e2e/quick-set.spec.ts:15:5 › Анна повторяет подход одним касанием, Марина видит его в списке подопечных (7.2s)",
+    "  ✓  1 [chromium] › e2e/cycle.spec.ts:15:5 › Марина назначает тренировку, Анна вписывает подход, Марина видит объём (7.6s)",
+    "",
+    "  2 passed (12.0s)"
+   ],
+   "code": 0
+  },
+  {
+   "id": "c-e2e-fix",
+   "kind": "commit",
+   "cmd": "git add -A && git commit -m \"Сквозной тест: точная подпись «Дата»\"",
+   "hash": "89822a8",
+   "message": "Сквозной тест: точная подпись «Дата»",
+   "branch": "main",
+   "parents": [
+    "8d28da0"
+   ],
+   "out": [
+    "[main 89822a8] Сквозной тест: точная подпись «Дата»",
+    " 1 file changed, 1 insertion(+), 1 deletion(-)"
+   ],
+   "files": [
+    {
+     "path": ".githooks/pre-commit",
+     "blob": "4fe231258086611cd45d79cbd7d7e319e68b76f9"
+    },
+    {
+     "path": ".gitignore",
+     "blob": "9babaf7a7576684d1e6f19db4afa2cefd91640d3"
+    },
+    {
+     "path": "CLAUDE.md",
+     "blob": "eddd7ec69c49be4d9b10d0c43803834ac4ab4293"
+    },
+    {
+     "path": "README.md",
+     "blob": "e215bc4ccf138bbc38ad58ad57e92135484b3c0f"
+    },
+    {
+     "path": "app/api/clients/search/route.ts",
+     "blob": "780c06f4f652de71a19f4181be66c86857fcd5d5"
+    },
+    {
+     "path": "app/api/login/route.ts",
+     "blob": "427b6448156be34ccb617c8c35a5e16282a8fea4"
+    },
+    {
+     "path": "app/api/sets/route.ts",
+     "blob": "86d7c8e5b7f6716c088e4661438b2ab14cbe31bc"
+    },
+    {
+     "path": "app/clients/[id]/actions.ts",
+     "blob": "5eec7d6a8dc7a7d35ddf493f54d12c44c36a524d"
+    },
+    {
+     "path": "app/clients/[id]/not-found.tsx",
+     "blob": "d3ecd96388b66eaa569bd8895275f5200bb3a85a"
+    },
+    {
+     "path": "app/clients/[id]/page.tsx",
+     "blob": "9c8a80abed61c077137ec92210315b7cca6454f0"
+    },
+    {
+     "path": "app/clients/actions.ts",
+     "blob": "ab5d0e77f906f6dcf618cb398a172a67390ea7fe"
+    },
+    {
+     "path": "app/clients/page.tsx",
+     "blob": "1b365e7dd3c7355ce848185e5993d330077f3318"
+    },
+    {
+     "path": "app/favicon.ico",
+     "blob": "af98450595e8b8efd9e505cddc5ed705b665a4d8"
+    },
+    {
+     "path": "app/globals.css",
+     "blob": "eed3b35f34ff5c8f6d0dfb90aaae81581dbe798c"
+    },
+    {
+     "path": "app/icon.tsx",
+     "blob": "17f2f42e653179751c4644305031303484fb9eea"
+    },
+    {
+     "path": "app/join/[code]/actions.ts",
+     "blob": "706def01ab2c040e1bb2ce51b76d4424694c50b7"
+    },
+    {
+     "path": "app/join/[code]/page.tsx",
+     "blob": "7e9481cd7b7de7dcc7530b32de7546d455b6eab6"
+    },
+    {
+     "path": "app/layout.tsx",
+     "blob": "8515cad45d81c7b1929badb5a9da485bd379b523"
+    },
+    {
+     "path": "app/login/page.tsx",
+     "blob": "57a869356b632ea695f249ccf7802a0942141ab6"
+    },
+    {
+     "path": "app/manifest.ts",
+     "blob": "9dbb36a2f2fe2ec302d3dd0e1d8c80ccb41ca71c"
+    },
+    {
+     "path": "app/page.tsx",
+     "blob": "58c27d1e76bd2f9f7e7763f3d6256ea6a157749d"
+    },
+    {
+     "path": "app/programs/actions.ts",
+     "blob": "dcd541fe06f5492687a0ea1cf620c192b6bc64d4"
+    },
+    {
+     "path": "app/programs/page.tsx",
+     "blob": "afac09dd15a93bb1775b65096db6bfff25dbeb70"
+    },
+    {
+     "path": "app/report/page.tsx",
+     "blob": "f10ded0acd8bd2ac60b7f3c31449bfb298aaf94d"
+    },
+    {
+     "path": "app/workouts/[id]/actions.ts",
+     "blob": "2f6a6ad88f19d5f2ef0dcd9640b3d0cb3c0ebeee"
+    },
+    {
+     "path": "app/workouts/[id]/comments.ts",
+     "blob": "5cf9a284eb26545757c2c104919fe593425887e2"
+    },
+    {
+     "path": "app/workouts/[id]/page.tsx",
+     "blob": "c0823ff6ce7a78edf113e73a75e332938d0022c6"
+    },
+    {
+     "path": "app/workouts/page.tsx",
+     "blob": "728769dd02c5244cccfca97dfcbff45fe901d8df"
+    },
+    {
+     "path": "components/Comments.tsx",
+     "blob": "3d337b64d15a4667a38c040559b8f498f2c1318a"
+    },
+    {
+     "path": "components/ProgressChart.tsx",
+     "blob": "77e64ac8860f1a46c395ffe50848c38423679a04"
+    },
+    {
+     "path": "components/SetList.tsx",
+     "blob": "2c715947f996c357c227fb7f2d88d8f689bbd6bb"
+    },
+    {
+     "path": "docs/complaints.md",
+     "blob": "9b1c59e095311045de8d5e001a2ea161d9c41a0a"
+    },
+    {
+     "path": "docs/design.md",
+     "blob": "d4f7691cb131c13ea47a613c9d17e8e02b0aed9a"
+    },
+    {
+     "path": "docs/etalons.md",
+     "blob": "fdfe7da9d3ffc22d6f656c0f62158b898645c1d2"
+    },
+    {
+     "path": "docs/feedback.md",
+     "blob": "a7460f95f2740430a7216a333ab57eb79b887050"
+    },
+    {
+     "path": "docs/idea.md",
+     "blob": "df36eb1f1505a363fadd7ad7fdb3975ccfdd2ffb"
+    },
+    {
+     "path": "docs/mini-set.md",
+     "blob": "423696ff8c914a7cd24f5e11a3c0d1855c251c6a"
+    },
+    {
+     "path": "docs/parity.md",
+     "blob": "b1b7d4389f95d6e155a98d2cee54bae4b4ba0992"
+    },
+    {
+     "path": "docs/plan-weeks-2-3.md",
+     "blob": "94eb8518bed0420f3fe7434edc9ccb896eb04096"
+    },
+    {
+     "path": "docs/prompts.md",
+     "blob": "bc4298e80af8ab9afbccd1b77985bd312f00b26c"
+    },
+    {
+     "path": "docs/report.md",
+     "blob": "a6562754e58b0e8fbeb0ed59013c66c9b8e541e2"
+    },
+    {
+     "path": "docs/spec.md",
+     "blob": "491b7a53d9b628346315e33365aefd7fc7e3a8cf"
+    },
+    {
+     "path": "docs/tasks/notes.md",
+     "blob": "cb71ccb1a0bf09ae4ebba4f14aa214be10729bae"
+    },
+    {
+     "path": "docs/tasks/records.md",
+     "blob": "db9abf41775b6851fb35442a8204275b9a669e04"
+    },
+    {
+     "path": "e2e/cycle.spec.ts",
+     "blob": "9fe12d70c85a8038c58ae9f1463ac7a0ee2c6eb7"
+    },
+    {
+     "path": "e2e/quick-set.spec.ts",
+     "blob": "c2db2c02e86024897b2ab91db914a1b6878766c1"
+    },
+    {
+     "path": "eslint.config.mjs",
+     "blob": "05e726d1b4201bc8c7716d2b058279676582e8c0"
+    },
+    {
+     "path": "lib/dates.ts",
+     "blob": "604f906e3dc4c58d9489abf84950ae071ceafed5"
+    },
+    {
+     "path": "lib/db.ts",
+     "blob": "bea1677f27da982934d297189b74b60017148c33"
+    },
+    {
+     "path": "lib/names.test.ts",
+     "blob": "d6890ca72d4e9cf0dcfe414e472266a38881a512"
+    },
+    {
+     "path": "lib/names.ts",
+     "blob": "e805924b33930951cfc371393ca87c8a0f8995fb"
+    },
+    {
+     "path": "lib/notify.test.ts",
+     "blob": "d74f2fee04f22ac2ccb60f91831ab8db86b9eb8e"
+    },
+    {
+     "path": "lib/notify.ts",
+     "blob": "4a0e8d5c643239ea470cf2d1c158d05b2525f4b5"
+    },
+    {
+     "path": "lib/payments.ts",
+     "blob": "510e71445c634695ed1430647ec1f6f95e46368a"
+    },
+    {
+     "path": "lib/progress.test.ts",
+     "blob": "c83c2100822d3f81e8ef67a2d807957ef83a3b4a"
+    },
+    {
+     "path": "lib/progress.ts",
+     "blob": "473f33d0e627b4627df5cb776d2ebb3f26f6c4fd"
+    },
+    {
+     "path": "lib/rate-limit.ts",
+     "blob": "1173b80e31f5a1aed29826b2c7bb8b90f1973871"
+    },
+    {
+     "path": "lib/records.test.ts",
+     "blob": "43b4ad5e54a06df184118b4a8945d53326d77f03"
+    },
+    {
+     "path": "lib/records.ts",
+     "blob": "7c0fabdcea67e71f837798fc5013f74db68f6a02"
+    },
+    {
+     "path": "lib/report.test.ts",
+     "blob": "d13a57d9455db9a518b5419cff96167b85a95d66"
+    },
+    {
+     "path": "lib/report.ts",
+     "blob": "c2fc54105f1531b1f304e5f69958e6c3bb5ce36b"
+    },
+    {
+     "path": "lib/session.ts",
+     "blob": "ced1148dc6236d6801f8931198ea2feb6a5d6b87"
+    },
+    {
+     "path": "lib/volume.test.ts",
+     "blob": "4e9f9a42b6b37446b8cab4c83062c2135c4b20e4"
+    },
+    {
+     "path": "lib/volume.ts",
+     "blob": "00d8286c3020ec0800698c190f02c8edcbf151ab"
+    },
+    {
+     "path": "lib/weight.test.ts",
+     "blob": "eb7b55ea11479f8d43d61a53e08af9b780a27179"
+    },
+    {
+     "path": "lib/weight.ts",
+     "blob": "5534e4676b0358eaf2665bfa0f498d168ad7705b"
+    },
+    {
+     "path": "next.config.ts",
+     "blob": "a0cf0c7313a86b713eb9d9bcac6539bc5d0bd1a9"
+    },
+    {
+     "path": "package-lock.json",
+     "blob": "71dc629fde4984efe6bfc757b2116700222d44c2"
+    },
+    {
+     "path": "package.json",
+     "blob": "6ab56583cc817522e1595c6f6770bd01510a1cfa"
+    },
+    {
+     "path": "playwright.config.ts",
+     "blob": "595220c1a2b5022019ab262c9f15b538f80ce466"
+    },
+    {
+     "path": "public/file.svg",
+     "blob": "004145cddf3f9db91b57b9cb596683c8eb420862"
+    },
+    {
+     "path": "public/globe.svg",
+     "blob": "567f17b0d7c7fb662c16d4357dd74830caf2dccb"
+    },
+    {
+     "path": "public/next.svg",
+     "blob": "5174b28c565c285e3e312ec5178be64fbeca8398"
+    },
+    {
+     "path": "public/vercel.svg",
+     "blob": "77053960334e2e34dc584dea8019925c3b4ccca9"
+    },
+    {
+     "path": "public/window.svg",
+     "blob": "b2b2a44f6ebc70c450043c05a002e7a93ba5d651"
+    },
+    {
+     "path": "supabase/migrations/0001_init.sql",
+     "blob": "ca60aa2319df6786876d0481231f2d7d8f24650f"
+    },
+    {
+     "path": "supabase/migrations/0002_rls.sql",
+     "blob": "9f3c19c1164504275cbfc78368afbe6ab5090f49"
+    },
+    {
+     "path": "supabase/migrations/0003_set_note.sql",
+     "blob": "88f05938526d33b6e393e5db1132ecc4aaae304f"
+    },
+    {
+     "path": "supabase/migrations/0004_programs.sql",
+     "blob": "6e31f64935c0792ed04414fde9cf2473dddb2971"
+    },
+    {
+     "path": "supabase/migrations/0005_programs_copy.sql",
+     "blob": "606da9ade911fa66a50d5705122590f6a71c3621"
+    },
+    {
+     "path": "supabase/migrations/0006_comments.sql",
+     "blob": "70db2a965660677fe1d3ffecf2be764d2bdbe5fb"
+    },
+    {
+     "path": "supabase/migrations/0007_comments_rls.sql",
+     "blob": "904c10716be7844bbf0cebb577a70b06a4ca77ad"
+    },
+    {
+     "path": "supabase/migrations/0008_invites.sql",
+     "blob": "6671c51bbb8e9b56bfe5764398594fa85c78b4a7"
+    },
+    {
+     "path": "supabase/seed-load.sql",
+     "blob": "d1da7ddb2ae113d9be8de99917d110b18748e85a"
+    },
+    {
+     "path": "supabase/seed.sql",
+     "blob": "e9921b84a8400b48b89436d0ec1888f8d1bb6985"
+    },
+    {
+     "path": "supabase/tests/as-marina.sql",
+     "blob": "99304779f4762abc87793067ecd67c50a22946a0"
+    },
+    {
+     "path": "supabase/tests/as-sveta-write.sql",
+     "blob": "b0e5f9fa329449360016bc91bd7d3210a2b79e00"
+    },
+    {
+     "path": "supabase/tests/as-sveta.sql",
+     "blob": "d9c23ae84ff0acb4b52c5bd00598782e8c99c77a"
+    },
+    {
+     "path": "test/comments.test.ts",
+     "blob": "294e59b3081a8e6d73346af01a7e428a8eb9b7ed"
+    },
+    {
+     "path": "test/invites.test.ts",
+     "blob": "ebb453a9d2a65c185d2967a8029585aeb42b34d9"
+    },
+    {
+     "path": "test/programs.test.ts",
+     "blob": "cbfc8ab60a5683131a2bf6731c29d773d95eba3c"
+    },
+    {
+     "path": "test/rls.test.ts",
+     "blob": "3ad9cbba9d59ab1bdcebb1d1bafc0fa25436a7f5"
+    },
+    {
+     "path": "tsconfig.json",
+     "blob": "3a13f90a773b0facb675bf5b1a8239c8f33d36f5"
+    },
+    {
+     "path": "vitest.config.mts",
+     "blob": "0562200385d5e8064e0abd6a21b33bc24c48ba2c"
+    }
+   ]
+  },
+  {
+   "id": "speed-file",
+   "kind": "file",
+   "path": "supabase/seed-speed.sql",
+   "before": null,
+   "after": "-- Данные для замера скорости: у Анны 2000 тренировок, в каждой по 20 подходов — 40 000 строк в sets.\n-- Это не демо-данные и не миграция: запускается вручную (psql -f), чтобы EXPLAIN ANALYZE показал план на настоящем объёме.\n-- Повторный запуск ничего не добавит: тренировки — только если их ещё нет, подходы — только в тренировки без подходов.\n\n-- 2000 тренировок Анны, по одной в день, в прошлом\ninsert into workouts (client_id, title, day)\nselect c.id, 'Замер ' || n, date '2026-10-01' - n\nfrom clients c, generate_series(1, 2000) as n\nwhere c.user_id = '33333333-3333-3333-3333-333333333333'\n  and not exists (select 1 from workouts where title like 'Замер %');\n\n-- В каждой — 20 подходов: вес 40–60 кг, 6–12 повторов\ninsert into sets (workout_id, weight, reps)\nselect w.id, 40 + s % 5 * 5, 6 + s % 7\nfrom workouts w, generate_series(1, 20) as s\nwhere w.title like 'Замер %'\n  and not exists (select 1 from sets where sets.workout_id = w.id);\n",
+   "diff": [
+    "diff --git a/supabase/seed-speed.sql b/supabase/seed-speed.sql",
+    "new file mode 100644",
+    "index 0000000..5acc829",
+    "--- /dev/null",
+    "+++ b/supabase/seed-speed.sql",
+    "@@ -0,0 +1,17 @@",
+    "+-- Данные для замера скорости: у Анны 2000 тренировок, в каждой по 20 подходов — 40 000 строк в sets.",
+    "+-- Это не демо-данные и не миграция: запускается вручную (psql -f), чтобы EXPLAIN ANALYZE показал план на настоящем объёме.",
+    "+-- Повторный запуск ничего не добавит: тренировки — только если их ещё нет, подходы — только в тренировки без подходов.",
+    "+",
+    "+-- 2000 тренировок Анны, по одной в день, в прошлом",
+    "+insert into workouts (client_id, title, day)",
+    "+select c.id, 'Замер ' || n, date '2026-10-01' - n",
+    "+from clients c, generate_series(1, 2000) as n",
+    "+where c.user_id = '33333333-3333-3333-3333-333333333333'",
+    "+  and not exists (select 1 from workouts where title like 'Замер %');",
+    "+",
+    "+-- В каждой — 20 подходов: вес 40–60 кг, 6–12 повторов",
+    "+insert into sets (workout_id, weight, reps)",
+    "+select w.id, 40 + s % 5 * 5, 6 + s % 7",
+    "+from workouts w, generate_series(1, 20) as s",
+    "+where w.title like 'Замер %'",
+    "+  and not exists (select 1 from sets where sets.workout_id = w.id);"
+   ],
+   "blob": "5acc829666b75e864de50280eeb936f913854a3a"
+  },
+  {
+   "id": "speed-load",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "psql -f supabase/seed-speed.sql",
+   "out": [
+    "INSERT 0 2000",
+    "INSERT 0 40000"
+   ],
+   "code": 0
+  },
+  {
+   "id": "explain",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "psql -c \"explain analyze select weight, reps from sets where workout_id = 1500\"",
+   "out": [
+    "                                             QUERY PLAN                                             ",
+    "----------------------------------------------------------------------------------------------------",
+    " Seq Scan on sets  (cost=0.00..545.75 rows=100 width=36) (actual time=0.108..3.035 rows=20 loops=1)",
+    "   Filter: (workout_id = 1500)",
+    "   Rows Removed by Filter: 39996",
+    " Planning Time: 0.351 ms",
+    " Execution Time: 3.074 ms",
+    "(5 rows)"
+   ],
+   "code": 0
+  },
+  {
+   "id": "ask-index",
+   "kind": "agent",
+   "prompt": "Вот вывод EXPLAIN ANALYZE: Seq Scan on sets по workout_id. Добавь индекс миграцией, применяй с подтверждения",
+   "reply": "Индекс sets_workout_id_idx на sets (workout_id): внешний ключ сам индекса не создаёт. Проверь тем же EXPLAIN ANALYZE.",
+   "steps": [
+    "index-sql",
+    "index-apply"
+   ]
+  },
+  {
+   "id": "index-sql",
+   "kind": "file",
+   "path": "supabase/migrations/0009_sets_workout_index.sql",
+   "before": null,
+   "after": "-- Индекс подходов по тренировке: по workout_id подходы ищут страница тренировки, карточка подопечного и отчёт тренера.\n-- Внешний ключ sets.workout_id индекса не создаёт (сам Postgres строит его только для первичного ключа и unique),\n-- поэтому без него база перебирала всю таблицу — в EXPLAIN ANALYZE это Seq Scan on sets.\ncreate index sets_workout_id_idx on sets (workout_id);\n",
+   "diff": [
+    "diff --git a/supabase/migrations/0009_sets_workout_index.sql b/supabase/migrations/0009_sets_workout_index.sql",
+    "new file mode 100644",
+    "index 0000000..bc9e7c7",
+    "--- /dev/null",
+    "+++ b/supabase/migrations/0009_sets_workout_index.sql",
+    "@@ -0,0 +1,4 @@",
+    "+-- Индекс подходов по тренировке: по workout_id подходы ищут страница тренировки, карточка подопечного и отчёт тренера.",
+    "+-- Внешний ключ sets.workout_id индекса не создаёт (сам Postgres строит его только для первичного ключа и unique),",
+    "+-- поэтому без него база перебирала всю таблицу — в EXPLAIN ANALYZE это Seq Scan on sets.",
+    "+create index sets_workout_id_idx on sets (workout_id);"
+   ],
+   "blob": "bc9e7c706bb3b62da501173507a50475a130e440",
+   "by": "agent"
+  },
+  {
+   "id": "index-apply",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "psql -f supabase/migrations/0009_sets_workout_index.sql",
+   "out": [
+    "CREATE INDEX"
+   ],
+   "code": 0,
+   "by": "agent"
+  },
+  {
+   "id": "explain2",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "psql -c \"explain analyze select weight, reps from sets where workout_id = 1500\"",
+   "out": [
+    "                                                          QUERY PLAN                                                           ",
+    "-------------------------------------------------------------------------------------------------------------------------------",
+    " Bitmap Heap Scan on sets  (cost=5.84..287.46 rows=200 width=36) (actual time=0.068..0.173 rows=20 loops=1)",
+    "   Recheck Cond: (workout_id = 1500)",
+    "   Heap Blocks: exact=20",
+    "   ->  Bitmap Index Scan on sets_workout_id_idx  (cost=0.00..5.79 rows=200 width=0) (actual time=0.051..0.051 rows=20 loops=1)",
+    "         Index Cond: (workout_id = 1500)",
+    " Planning Time: 0.415 ms",
+    " Execution Time: 0.234 ms",
+    "(7 rows)"
+   ],
+   "code": 0
+  },
+  {
+   "id": "backup-ignore",
+   "kind": "file",
+   "path": ".gitignore",
+   "before": "# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.\n\n# dependencies\n/node_modules\n/.pnp\n.pnp.*\n.yarn/*\n!.yarn/patches\n!.yarn/plugins\n!.yarn/releases\n!.yarn/versions\n\n# testing\n/coverage\n/test-results/\n/playwright-report/\n\n# next.js\n/.next/\n/out/\n\n# production\n/build\n\n# misc\n.DS_Store\n*.pem\n\n# debug\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\n.pnpm-debug.log*\n\n# env files (can opt-in for committing if needed)\n.env*\n\n# vercel\n.vercel\n\n# typescript\n*.tsbuildinfo\nnext-env.d.ts\n",
+   "after": "# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.\n\n# dependencies\n/node_modules\n/.pnp\n.pnp.*\n.yarn/*\n!.yarn/patches\n!.yarn/plugins\n!.yarn/releases\n!.yarn/versions\n\n# testing\n/coverage\n/test-results/\n/playwright-report/\n\n# next.js\n/.next/\n/out/\n\n# production\n/build\n\n# misc\n.DS_Store\n*.pem\n\n# debug\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\n.pnpm-debug.log*\n\n# env files (can opt-in for committing if needed)\n.env*\n\n# копии базы (pg_dump): в них почты и хеши паролей\n/backups/\n\n# vercel\n.vercel\n\n# typescript\n*.tsbuildinfo\nnext-env.d.ts\n",
+   "diff": [
+    "diff --git a/.gitignore b/.gitignore",
+    "index 9babaf7..4bca077 100644",
+    "--- a/.gitignore",
+    "+++ b/.gitignore",
+    "@@ -35,6 +35,9 @@ yarn-error.log*",
+    " # env files (can opt-in for committing if needed)",
+    " .env*",
+    " ",
+    "+# копии базы (pg_dump): в них почты и хеши паролей",
+    "+/backups/",
+    "+",
+    " # vercel",
+    " .vercel",
+    " "
+   ],
+   "blob": "4bca0771ee48ca59facf36bf30478be7de5c06e2"
+  },
+  {
+   "id": "dump-public",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "mkdir -p backups && pg_dump -n public -Fc -f backups/trainer.dump",
+   "out": [],
+   "code": 0
+  },
+  {
+   "id": "restore-try",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "createdb restore_check && pg_restore -d restore_check backups/trainer.dump",
+   "out": [
+    "pg_restore: error: could not execute query: ERROR:  schema \"public\" already exists",
+    "Command was: CREATE SCHEMA public;",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"extensions\" does not exist",
+    "LINE 3:     code text DEFAULT encode(extensions.gen_random_bytes(16)...",
+    "                                     ^",
+    "Command was: CREATE TABLE public.invites (",
+    "    id bigint NOT NULL,",
+    "    code text DEFAULT encode(extensions.gen_random_bytes(16), 'hex'::text) NOT NULL,",
+    "    coach_id uuid NOT NULL,",
+    "    created_at timestamp with time zone DEFAULT now() NOT NULL,",
+    "    expires_at timestamp with time zone DEFAULT (now() + '48:00:00'::interval) NOT NULL,",
+    "    accepted_by uuid,",
+    "    revoked_at timestamp with time zone",
+    ");",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites\" does not exist",
+    "Command was: ALTER TABLE public.invites OWNER TO postgres;",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites\" does not exist",
+    "Command was: ALTER TABLE public.invites ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (",
+    "    SEQUENCE NAME public.invites_id_seq",
+    "    START WITH 1",
+    "    INCREMENT BY 1",
+    "    NO MINVALUE",
+    "    NO MAXVALUE",
+    "    CACHE 1",
+    ");",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites\" does not exist",
+    "Command was: COPY public.invites (id, code, coach_id, created_at, expires_at, accepted_by, revoked_at) FROM stdin;",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites_id_seq\" does not exist",
+    "LINE 1: SELECT pg_catalog.setval('public.invites_id_seq', 7, true);",
+    "                                 ^",
+    "Command was: SELECT pg_catalog.setval('public.invites_id_seq', 7, true);",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites\" does not exist",
+    "Command was: ALTER TABLE ONLY public.invites",
+    "    ADD CONSTRAINT invites_code_key UNIQUE (code);",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites\" does not exist",
+    "Command was: ALTER TABLE ONLY public.invites",
+    "    ADD CONSTRAINT invites_pkey PRIMARY KEY (id);",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites\" does not exist",
+    "Command was: ALTER TABLE ONLY public.invites",
+    "    ADD CONSTRAINT invites_accepted_by_fkey FOREIGN KEY (accepted_by) REFERENCES public.profiles(id);",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites\" does not exist",
+    "Command was: ALTER TABLE ONLY public.invites",
+    "    ADD CONSTRAINT invites_coach_id_fkey FOREIGN KEY (coach_id) REFERENCES public.profiles(id);",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: ALTER TABLE ONLY public.profiles",
+    "    ADD CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites\" does not exist",
+    "Command was: ALTER TABLE public.invites ENABLE ROW LEVEL SECURITY;",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"подопечный видит подходы\" ON public.sets FOR SELECT TO authenticated USING ((workout_id IN ( SELECT w.id",
+    "   FROM (public.workouts w",
+    "     JOIN public.clients c ON ((c.id = w.client_id)))",
+    "  WHERE (c.user_id = auth.uid()))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"подопечный видит программы\" ON public.programs FOR SELECT TO authenticated USING ((coach_id IN ( SELECT clients.coach_id",
+    "   FROM public.clients",
+    "  WHERE (clients.user_id = auth.uid()))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"подопечный видит свои строки\" ON public.workout_items FOR SELECT TO authenticated USING ((workout_id IN ( SELECT w.id",
+    "   FROM (public.workouts w",
+    "     JOIN public.clients c ON ((c.id = w.client_id)))",
+    "  WHERE (c.user_id = auth.uid()))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"подопечный видит себя\" ON public.clients FOR SELECT TO authenticated USING ((user_id = auth.uid()));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"подопечный видит строки шаблона\" ON public.program_items FOR SELECT TO authenticated USING ((program_id IN ( SELECT p.id",
+    "   FROM (public.programs p",
+    "     JOIN public.clients c ON ((c.coach_id = p.coach_id)))",
+    "  WHERE (c.user_id = auth.uid()))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"подопечный видит тренировки\" ON public.workouts FOR SELECT TO authenticated USING ((client_id IN ( SELECT clients.id",
+    "   FROM public.clients",
+    "  WHERE (clients.user_id = auth.uid()))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"подопечный добавляет подходы\" ON public.sets FOR INSERT TO authenticated WITH CHECK ((workout_id IN ( SELECT w.id",
+    "   FROM (public.workouts w",
+    "     JOIN public.clients c ON ((c.id = w.client_id)))",
+    "  WHERE (c.user_id = auth.uid()))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"подопечный и тренер пишут\" ON public.comments FOR INSERT TO authenticated WITH CHECK (((author_id = auth.uid()) AND (workout_id IN ( SELECT w.id",
+    "   FROM (public.workouts w",
+    "     JOIN public.clients c ON ((c.id = w.client_id)))",
+    "  WHERE ((c.user_id = auth.uid()) OR (c.coach_id = auth.uid()))))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"подопечный и тренер читают\" ON public.comments FOR SELECT TO authenticated USING ((workout_id IN ( SELECT w.id",
+    "   FROM (public.workouts w",
+    "     JOIN public.clients c ON ((c.id = w.client_id)))",
+    "  WHERE ((c.user_id = auth.uid()) OR (c.coach_id = auth.uid())))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"свой профиль\" ON public.profiles FOR SELECT TO authenticated USING ((id = auth.uid()));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"тренер ведёт свои программы\" ON public.programs TO authenticated USING ((coach_id = auth.uid())) WITH CHECK ((coach_id = auth.uid()));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"тренер ведёт строки программ\" ON public.program_items TO authenticated USING ((program_id IN ( SELECT programs.id",
+    "   FROM public.programs",
+    "  WHERE (programs.coach_id = auth.uid())))) WITH CHECK ((program_id IN ( SELECT programs.id",
+    "   FROM public.programs",
+    "  WHERE (programs.coach_id = auth.uid()))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"тренер видит подходы\" ON public.sets FOR SELECT TO authenticated USING ((workout_id IN ( SELECT w.id",
+    "   FROM (public.workouts w",
+    "     JOIN public.clients c ON ((c.id = w.client_id)))",
+    "  WHERE (c.coach_id = auth.uid()))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites\" does not exist",
+    "Command was: CREATE POLICY \"тренер видит свои приглашения\" ON public.invites FOR SELECT TO authenticated USING ((coach_id = auth.uid()));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"тренер видит своих\" ON public.clients FOR SELECT TO authenticated USING ((coach_id = auth.uid()));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"тренер видит строки тренировок\" ON public.workout_items FOR SELECT TO authenticated USING ((workout_id IN ( SELECT w.id",
+    "   FROM (public.workouts w",
+    "     JOIN public.clients c ON ((c.id = w.client_id)))",
+    "  WHERE (c.coach_id = auth.uid()))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"тренер видит тренировки\" ON public.workouts FOR SELECT TO authenticated USING ((client_id IN ( SELECT clients.id",
+    "   FROM public.clients",
+    "  WHERE (clients.coach_id = auth.uid()))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"тренер добавляет подходы\" ON public.sets FOR INSERT TO authenticated WITH CHECK ((workout_id IN ( SELECT w.id",
+    "   FROM (public.workouts w",
+    "     JOIN public.clients c ON ((c.id = w.client_id)))",
+    "  WHERE (c.coach_id = auth.uid()))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"тренер добавляет своих\" ON public.clients FOR INSERT TO authenticated WITH CHECK ((coach_id = auth.uid()));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"тренер добавляет строки\" ON public.workout_items FOR INSERT TO authenticated WITH CHECK (((workout_id IN ( SELECT w.id",
+    "   FROM (public.workouts w",
+    "     JOIN public.clients c ON ((c.id = w.client_id)))",
+    "  WHERE (c.coach_id = auth.uid()))) AND (program_item_id IN ( SELECT pi.id",
+    "   FROM (public.program_items pi",
+    "     JOIN public.programs p ON ((p.id = pi.program_id)))",
+    "  WHERE (p.coach_id = auth.uid())))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"тренер добавляет тренировки\" ON public.workouts FOR INSERT TO authenticated WITH CHECK ((client_id IN ( SELECT clients.id",
+    "   FROM public.clients",
+    "  WHERE (clients.coach_id = auth.uid()))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"тренер меняет подходы\" ON public.sets FOR UPDATE TO authenticated USING ((workout_id IN ( SELECT w.id",
+    "   FROM (public.workouts w",
+    "     JOIN public.clients c ON ((c.id = w.client_id)))",
+    "  WHERE (c.coach_id = auth.uid()))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"тренер меняет своих\" ON public.clients FOR UPDATE TO authenticated USING ((coach_id = auth.uid()));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  schema \"auth\" does not exist",
+    "Command was: CREATE POLICY \"тренер меняет тренировки\" ON public.workouts FOR UPDATE TO authenticated USING ((client_id IN ( SELECT clients.id",
+    "   FROM public.clients",
+    "  WHERE (clients.coach_id = auth.uid()))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites\" does not exist",
+    "Command was: CREATE POLICY \"тренер отзывает приглашения\" ON public.invites FOR UPDATE TO authenticated USING ((coach_id = auth.uid()));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites\" does not exist",
+    "Command was: CREATE POLICY \"тренер создаёт приглашения\" ON public.invites FOR INSERT TO authenticated WITH CHECK (((coach_id = auth.uid()) AND (auth.uid() IN ( SELECT profiles.id",
+    "   FROM public.profiles",
+    "  WHERE (profiles.role = 'coach'::text)))));",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites\" does not exist",
+    "Command was: GRANT ALL ON TABLE public.invites TO service_role;",
+    "GRANT SELECT ON TABLE public.invites TO authenticated;",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites\" does not exist",
+    "Command was: GRANT INSERT(coach_id) ON TABLE public.invites TO authenticated;",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites\" does not exist",
+    "Command was: GRANT UPDATE(revoked_at) ON TABLE public.invites TO authenticated;",
+    "",
+    "",
+    "pg_restore: error: could not execute query: ERROR:  relation \"public.invites_id_seq\" does not exist",
+    "Command was: GRANT ALL ON SEQUENCE public.invites_id_seq TO anon;",
+    "GRANT ALL ON SEQUENCE public.invites_id_seq TO authenticated;",
+    "GRANT ALL ON SEQUENCE public.invites_id_seq TO service_role;",
+    "",
+    "",
+    "pg_restore: warning: errors ignored on restore: 42"
+   ],
+   "code": 1
+  },
+  {
+   "id": "restore-users",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "psql -d restore_check -c \"select count(*) from auth.users\"",
+   "out": [
+    "ERROR:  relation \"auth.users\" does not exist",
+    "LINE 1: select count(*) from auth.users",
+    "                             ^"
+   ],
+   "code": 1
+  },
+  {
+   "id": "dump-all",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "pg_dump -Fc -f backups/trainer-full.dump",
+   "out": [],
+   "code": 0
+  },
+  {
+   "id": "restore-full",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "createdb restore_full && pg_restore -d restore_full backups/trainer-full.dump",
+   "out": [],
+   "code": 0
+  },
+  {
+   "id": "restore-count",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "psql -At -c \"select count(*) from sets\" && psql -At -d restore_full -c \"select count(*) from sets\"",
+   "out": [
+    "40016",
+    "40016"
+   ],
+   "code": 0
+  },
+  {
+   "id": "restore-login",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "psql -At -d restore_full -c \"select count(*) from auth.users where email = 'anna@example.com' and encrypted_password = crypt('demo-password', encrypted_password)\"",
+   "out": [
+    "ERROR:  function crypt(unknown, text) does not exist",
+    "LINE 1: ...ail = 'anna@example.com' and encrypted_password = crypt('dem...",
+    "                                                             ^",
+    "HINT:  No function matches the given name and argument types. You might need to add explicit type casts."
+   ],
+   "code": 1
+  },
+  {
+   "id": "restore-path",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "psql -c 'alter database restore_full set search_path to \"$user\", public, extensions'",
+   "out": [
+    "ALTER DATABASE"
+   ],
+   "code": 0
+  },
+  {
+   "id": "restore-login2",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "psql -At -c \"select count(*) from auth.users\" && psql -At -d restore_full -c \"select count(*) from auth.users\" -c \"select count(*) from auth.users where email = 'anna@example.com' and encrypted_password = crypt('demo-password', encrypted_password)\"",
+   "out": [
+    "5",
+    "5",
+    "1"
+   ],
+   "code": 0
+  },
+  {
+   "id": "restore-doc",
+   "kind": "file",
+   "path": "docs/restore.md",
+   "before": null,
+   "after": "# Учения: восстановление из копии\n\nКопия, из которой ни разу не восстанавливались, — не копия. Поэтому копию базы мы не только делаем, но и восстанавливаем — в отдельную учебную базу — и сверяем с рабочей. Рабочую базу учения не трогают.\n\n## Где лежит копия\n\n- `backups/trainer-full.dump` в папке проекта — копия всей базы (`pg_dump -Fc`).\n- В git её нет: `/backups/` в `.gitignore`. В копии — почты пользователей и хеши паролей.\n- Папка проекта годится только для учений: пропадёт компьютер — пропадёт и копия. Копию на случай беды держат там, куда не дотянутся ни агент, ни его команды.\n\n## Шаги\n\n1. Копия всей базы: `mkdir -p backups && pg_dump -Fc -f backups/trainer-full.dump`.\n   Копия одной схемы `public` (`pg_dump -n public`) не годится: `profiles` и политики RLS ссылаются на схему `auth`, а её в такой копии нет, как и схемы `extensions` (из неё `invites` берёт код приглашения). `pg_restore` кончается ошибками, таблиц `invites` и `auth.users` в копии нет — войти некому.\n2. Пустая учебная база и восстановление в неё: `createdb restore_full && pg_restore -d restore_full backups/trainer-full.dump` — без ошибок.\n3. Настройки самой базы `pg_restore -d` не переносит, а `search_path` со схемой `extensions` задан именно в них. В `extensions` лежит `crypt()`, которым вход сверяет пароль, поэтому копии задать тот же `search_path`, что у рабочей: `psql -c 'alter database restore_full set search_path to \"$user\", public, extensions'`.\n4. Сверить копию с рабочей базой — список ниже.\n5. Записать дату и что не сошлось. Учебную базу удалить: `dropdb restore_full`.\n\n## Что сверять\n\n- Подходы: `select count(*) from sets` — в рабочей базе и в копии одно число.\n- Пользователи: `select count(*) from auth.users` — тоже одно число. Без них в приложение никто не войдёт.\n- Вход: проверка пароля, как в `app/api/login`, на копии — `select count(*) from auth.users where email = 'anna@example.com' and encrypted_password = crypt('demo-password', encrypted_password)` — 1. Без шага 3 она падает: `function crypt(unknown, text) does not exist`.\n\n## Журнал\n\n- 10 ноября: копия одной `public` не восстановилась — 42 ошибки: нет схем `auth` и `extensions`, в копии нет таблиц `invites` и `auth.users`. Копия всей базы восстановилась без ошибок, подходов в рабочей базе и в копии поровну. Вход на копии сначала упал — `crypt()` не нашлась: `search_path` базы в копию не перешёл. После шага 3 пользователей в рабочей базе и в копии поровну, пароль `anna@example.com` подходит.\n",
+   "diff": [
+    "diff --git a/docs/restore.md b/docs/restore.md",
+    "new file mode 100644",
+    "index 0000000..44d8cee",
+    "--- /dev/null",
+    "+++ b/docs/restore.md",
+    "@@ -0,0 +1,28 @@",
+    "+# Учения: восстановление из копии",
+    "+",
+    "+Копия, из которой ни разу не восстанавливались, — не копия. Поэтому копию базы мы не только делаем, но и восстанавливаем — в отдельную учебную базу — и сверяем с рабочей. Рабочую базу учения не трогают.",
+    "+",
+    "+## Где лежит копия",
+    "+",
+    "+- `backups/trainer-full.dump` в папке проекта — копия всей базы (`pg_dump -Fc`).",
+    "+- В git её нет: `/backups/` в `.gitignore`. В копии — почты пользователей и хеши паролей.",
+    "+- Папка проекта годится только для учений: пропадёт компьютер — пропадёт и копия. Копию на случай беды держат там, куда не дотянутся ни агент, ни его команды.",
+    "+",
+    "+## Шаги",
+    "+",
+    "+1. Копия всей базы: `mkdir -p backups && pg_dump -Fc -f backups/trainer-full.dump`.",
+    "+   Копия одной схемы `public` (`pg_dump -n public`) не годится: `profiles` и политики RLS ссылаются на схему `auth`, а её в такой копии нет, как и схемы `extensions` (из неё `invites` берёт код приглашения). `pg_restore` кончается ошибками, таблиц `invites` и `auth.users` в копии нет — войти некому.",
+    "+2. Пустая учебная база и восстановление в неё: `createdb restore_full && pg_restore -d restore_full backups/trainer-full.dump` — без ошибок.",
+    "+3. Настройки самой базы `pg_restore -d` не переносит, а `search_path` со схемой `extensions` задан именно в них. В `extensions` лежит `crypt()`, которым вход сверяет пароль, поэтому копии задать тот же `search_path`, что у рабочей: `psql -c 'alter database restore_full set search_path to \"$user\", public, extensions'`.",
+    "+4. Сверить копию с рабочей базой — список ниже.",
+    "+5. Записать дату и что не сошлось. Учебную базу удалить: `dropdb restore_full`.",
+    "+",
+    "+## Что сверять",
+    "+",
+    "+- Подходы: `select count(*) from sets` — в рабочей базе и в копии одно число.",
+    "+- Пользователи: `select count(*) from auth.users` — тоже одно число. Без них в приложение никто не войдёт.",
+    "+- Вход: проверка пароля, как в `app/api/login`, на копии — `select count(*) from auth.users where email = 'anna@example.com' and encrypted_password = crypt('demo-password', encrypted_password)` — 1. Без шага 3 она падает: `function crypt(unknown, text) does not exist`.",
+    "+",
+    "+## Журнал",
+    "+",
+    "+- 10 ноября: копия одной `public` не восстановилась — 42 ошибки: нет схем `auth` и `extensions`, в копии нет таблиц `invites` и `auth.users`. Копия всей базы восстановилась без ошибок, подходов в рабочей базе и в копии поровну. Вход на копии сначала упал — `crypt()` не нашлась: `search_path` базы в копию не перешёл. После шага 3 пользователей в рабочей базе и в копии поровну, пароль `anna@example.com` подходит."
+   ],
+   "blob": "44d8ceeca859f71b1ce581c111bdfdc7962a0c60"
+  },
+  {
+   "id": "c-reliability",
+   "kind": "commit",
+   "cmd": "git add -A && git commit -m \"Индекс подходов; учения по восстановлению\"",
+   "hash": "ea6a757",
+   "message": "Индекс подходов; учения по восстановлению",
+   "branch": "main",
+   "parents": [
+    "89822a8"
+   ],
+   "out": [
+    "[main ea6a757] Индекс подходов; учения по восстановлению",
+    " 4 files changed, 52 insertions(+)",
+    " create mode 100644 docs/restore.md",
+    " create mode 100644 supabase/migrations/0009_sets_workout_index.sql",
+    " create mode 100644 supabase/seed-speed.sql"
+   ],
+   "files": [
+    {
+     "path": ".githooks/pre-commit",
+     "blob": "4fe231258086611cd45d79cbd7d7e319e68b76f9"
+    },
+    {
+     "path": ".gitignore",
+     "blob": "4bca0771ee48ca59facf36bf30478be7de5c06e2"
+    },
+    {
+     "path": "CLAUDE.md",
+     "blob": "eddd7ec69c49be4d9b10d0c43803834ac4ab4293"
+    },
+    {
+     "path": "README.md",
+     "blob": "e215bc4ccf138bbc38ad58ad57e92135484b3c0f"
+    },
+    {
+     "path": "app/api/clients/search/route.ts",
+     "blob": "780c06f4f652de71a19f4181be66c86857fcd5d5"
+    },
+    {
+     "path": "app/api/login/route.ts",
+     "blob": "427b6448156be34ccb617c8c35a5e16282a8fea4"
+    },
+    {
+     "path": "app/api/sets/route.ts",
+     "blob": "86d7c8e5b7f6716c088e4661438b2ab14cbe31bc"
+    },
+    {
+     "path": "app/clients/[id]/actions.ts",
+     "blob": "5eec7d6a8dc7a7d35ddf493f54d12c44c36a524d"
+    },
+    {
+     "path": "app/clients/[id]/not-found.tsx",
+     "blob": "d3ecd96388b66eaa569bd8895275f5200bb3a85a"
+    },
+    {
+     "path": "app/clients/[id]/page.tsx",
+     "blob": "9c8a80abed61c077137ec92210315b7cca6454f0"
+    },
+    {
+     "path": "app/clients/actions.ts",
+     "blob": "ab5d0e77f906f6dcf618cb398a172a67390ea7fe"
+    },
+    {
+     "path": "app/clients/page.tsx",
+     "blob": "1b365e7dd3c7355ce848185e5993d330077f3318"
+    },
+    {
+     "path": "app/favicon.ico",
+     "blob": "af98450595e8b8efd9e505cddc5ed705b665a4d8"
+    },
+    {
+     "path": "app/globals.css",
+     "blob": "eed3b35f34ff5c8f6d0dfb90aaae81581dbe798c"
+    },
+    {
+     "path": "app/icon.tsx",
+     "blob": "17f2f42e653179751c4644305031303484fb9eea"
+    },
+    {
+     "path": "app/join/[code]/actions.ts",
+     "blob": "706def01ab2c040e1bb2ce51b76d4424694c50b7"
+    },
+    {
+     "path": "app/join/[code]/page.tsx",
+     "blob": "7e9481cd7b7de7dcc7530b32de7546d455b6eab6"
+    },
+    {
+     "path": "app/layout.tsx",
+     "blob": "8515cad45d81c7b1929badb5a9da485bd379b523"
+    },
+    {
+     "path": "app/login/page.tsx",
+     "blob": "57a869356b632ea695f249ccf7802a0942141ab6"
+    },
+    {
+     "path": "app/manifest.ts",
+     "blob": "9dbb36a2f2fe2ec302d3dd0e1d8c80ccb41ca71c"
+    },
+    {
+     "path": "app/page.tsx",
+     "blob": "58c27d1e76bd2f9f7e7763f3d6256ea6a157749d"
+    },
+    {
+     "path": "app/programs/actions.ts",
+     "blob": "dcd541fe06f5492687a0ea1cf620c192b6bc64d4"
+    },
+    {
+     "path": "app/programs/page.tsx",
+     "blob": "afac09dd15a93bb1775b65096db6bfff25dbeb70"
+    },
+    {
+     "path": "app/report/page.tsx",
+     "blob": "f10ded0acd8bd2ac60b7f3c31449bfb298aaf94d"
+    },
+    {
+     "path": "app/workouts/[id]/actions.ts",
+     "blob": "2f6a6ad88f19d5f2ef0dcd9640b3d0cb3c0ebeee"
+    },
+    {
+     "path": "app/workouts/[id]/comments.ts",
+     "blob": "5cf9a284eb26545757c2c104919fe593425887e2"
+    },
+    {
+     "path": "app/workouts/[id]/page.tsx",
+     "blob": "c0823ff6ce7a78edf113e73a75e332938d0022c6"
+    },
+    {
+     "path": "app/workouts/page.tsx",
+     "blob": "728769dd02c5244cccfca97dfcbff45fe901d8df"
+    },
+    {
+     "path": "components/Comments.tsx",
+     "blob": "3d337b64d15a4667a38c040559b8f498f2c1318a"
+    },
+    {
+     "path": "components/ProgressChart.tsx",
+     "blob": "77e64ac8860f1a46c395ffe50848c38423679a04"
+    },
+    {
+     "path": "components/SetList.tsx",
+     "blob": "2c715947f996c357c227fb7f2d88d8f689bbd6bb"
+    },
+    {
+     "path": "docs/complaints.md",
+     "blob": "9b1c59e095311045de8d5e001a2ea161d9c41a0a"
+    },
+    {
+     "path": "docs/design.md",
+     "blob": "d4f7691cb131c13ea47a613c9d17e8e02b0aed9a"
+    },
+    {
+     "path": "docs/etalons.md",
+     "blob": "fdfe7da9d3ffc22d6f656c0f62158b898645c1d2"
+    },
+    {
+     "path": "docs/feedback.md",
+     "blob": "a7460f95f2740430a7216a333ab57eb79b887050"
+    },
+    {
+     "path": "docs/idea.md",
+     "blob": "df36eb1f1505a363fadd7ad7fdb3975ccfdd2ffb"
+    },
+    {
+     "path": "docs/mini-set.md",
+     "blob": "423696ff8c914a7cd24f5e11a3c0d1855c251c6a"
+    },
+    {
+     "path": "docs/parity.md",
+     "blob": "b1b7d4389f95d6e155a98d2cee54bae4b4ba0992"
+    },
+    {
+     "path": "docs/plan-weeks-2-3.md",
+     "blob": "94eb8518bed0420f3fe7434edc9ccb896eb04096"
+    },
+    {
+     "path": "docs/prompts.md",
+     "blob": "bc4298e80af8ab9afbccd1b77985bd312f00b26c"
+    },
+    {
+     "path": "docs/report.md",
+     "blob": "a6562754e58b0e8fbeb0ed59013c66c9b8e541e2"
+    },
+    {
+     "path": "docs/restore.md",
+     "blob": "44d8ceeca859f71b1ce581c111bdfdc7962a0c60"
+    },
+    {
+     "path": "docs/spec.md",
+     "blob": "491b7a53d9b628346315e33365aefd7fc7e3a8cf"
+    },
+    {
+     "path": "docs/tasks/notes.md",
+     "blob": "cb71ccb1a0bf09ae4ebba4f14aa214be10729bae"
+    },
+    {
+     "path": "docs/tasks/records.md",
+     "blob": "db9abf41775b6851fb35442a8204275b9a669e04"
+    },
+    {
+     "path": "e2e/cycle.spec.ts",
+     "blob": "9fe12d70c85a8038c58ae9f1463ac7a0ee2c6eb7"
+    },
+    {
+     "path": "e2e/quick-set.spec.ts",
+     "blob": "c2db2c02e86024897b2ab91db914a1b6878766c1"
+    },
+    {
+     "path": "eslint.config.mjs",
+     "blob": "05e726d1b4201bc8c7716d2b058279676582e8c0"
+    },
+    {
+     "path": "lib/dates.ts",
+     "blob": "604f906e3dc4c58d9489abf84950ae071ceafed5"
+    },
+    {
+     "path": "lib/db.ts",
+     "blob": "bea1677f27da982934d297189b74b60017148c33"
+    },
+    {
+     "path": "lib/names.test.ts",
+     "blob": "d6890ca72d4e9cf0dcfe414e472266a38881a512"
+    },
+    {
+     "path": "lib/names.ts",
+     "blob": "e805924b33930951cfc371393ca87c8a0f8995fb"
+    },
+    {
+     "path": "lib/notify.test.ts",
+     "blob": "d74f2fee04f22ac2ccb60f91831ab8db86b9eb8e"
+    },
+    {
+     "path": "lib/notify.ts",
+     "blob": "4a0e8d5c643239ea470cf2d1c158d05b2525f4b5"
+    },
+    {
+     "path": "lib/payments.ts",
+     "blob": "510e71445c634695ed1430647ec1f6f95e46368a"
+    },
+    {
+     "path": "lib/progress.test.ts",
+     "blob": "c83c2100822d3f81e8ef67a2d807957ef83a3b4a"
+    },
+    {
+     "path": "lib/progress.ts",
+     "blob": "473f33d0e627b4627df5cb776d2ebb3f26f6c4fd"
+    },
+    {
+     "path": "lib/rate-limit.ts",
+     "blob": "1173b80e31f5a1aed29826b2c7bb8b90f1973871"
+    },
+    {
+     "path": "lib/records.test.ts",
+     "blob": "43b4ad5e54a06df184118b4a8945d53326d77f03"
+    },
+    {
+     "path": "lib/records.ts",
+     "blob": "7c0fabdcea67e71f837798fc5013f74db68f6a02"
+    },
+    {
+     "path": "lib/report.test.ts",
+     "blob": "d13a57d9455db9a518b5419cff96167b85a95d66"
+    },
+    {
+     "path": "lib/report.ts",
+     "blob": "c2fc54105f1531b1f304e5f69958e6c3bb5ce36b"
+    },
+    {
+     "path": "lib/session.ts",
+     "blob": "ced1148dc6236d6801f8931198ea2feb6a5d6b87"
+    },
+    {
+     "path": "lib/volume.test.ts",
+     "blob": "4e9f9a42b6b37446b8cab4c83062c2135c4b20e4"
+    },
+    {
+     "path": "lib/volume.ts",
+     "blob": "00d8286c3020ec0800698c190f02c8edcbf151ab"
+    },
+    {
+     "path": "lib/weight.test.ts",
+     "blob": "eb7b55ea11479f8d43d61a53e08af9b780a27179"
+    },
+    {
+     "path": "lib/weight.ts",
+     "blob": "5534e4676b0358eaf2665bfa0f498d168ad7705b"
+    },
+    {
+     "path": "next.config.ts",
+     "blob": "a0cf0c7313a86b713eb9d9bcac6539bc5d0bd1a9"
+    },
+    {
+     "path": "package-lock.json",
+     "blob": "71dc629fde4984efe6bfc757b2116700222d44c2"
+    },
+    {
+     "path": "package.json",
+     "blob": "6ab56583cc817522e1595c6f6770bd01510a1cfa"
+    },
+    {
+     "path": "playwright.config.ts",
+     "blob": "595220c1a2b5022019ab262c9f15b538f80ce466"
+    },
+    {
+     "path": "public/file.svg",
+     "blob": "004145cddf3f9db91b57b9cb596683c8eb420862"
+    },
+    {
+     "path": "public/globe.svg",
+     "blob": "567f17b0d7c7fb662c16d4357dd74830caf2dccb"
+    },
+    {
+     "path": "public/next.svg",
+     "blob": "5174b28c565c285e3e312ec5178be64fbeca8398"
+    },
+    {
+     "path": "public/vercel.svg",
+     "blob": "77053960334e2e34dc584dea8019925c3b4ccca9"
+    },
+    {
+     "path": "public/window.svg",
+     "blob": "b2b2a44f6ebc70c450043c05a002e7a93ba5d651"
+    },
+    {
+     "path": "supabase/migrations/0001_init.sql",
+     "blob": "ca60aa2319df6786876d0481231f2d7d8f24650f"
+    },
+    {
+     "path": "supabase/migrations/0002_rls.sql",
+     "blob": "9f3c19c1164504275cbfc78368afbe6ab5090f49"
+    },
+    {
+     "path": "supabase/migrations/0003_set_note.sql",
+     "blob": "88f05938526d33b6e393e5db1132ecc4aaae304f"
+    },
+    {
+     "path": "supabase/migrations/0004_programs.sql",
+     "blob": "6e31f64935c0792ed04414fde9cf2473dddb2971"
+    },
+    {
+     "path": "supabase/migrations/0005_programs_copy.sql",
+     "blob": "606da9ade911fa66a50d5705122590f6a71c3621"
+    },
+    {
+     "path": "supabase/migrations/0006_comments.sql",
+     "blob": "70db2a965660677fe1d3ffecf2be764d2bdbe5fb"
+    },
+    {
+     "path": "supabase/migrations/0007_comments_rls.sql",
+     "blob": "904c10716be7844bbf0cebb577a70b06a4ca77ad"
+    },
+    {
+     "path": "supabase/migrations/0008_invites.sql",
+     "blob": "6671c51bbb8e9b56bfe5764398594fa85c78b4a7"
+    },
+    {
+     "path": "supabase/migrations/0009_sets_workout_index.sql",
+     "blob": "bc9e7c706bb3b62da501173507a50475a130e440"
+    },
+    {
+     "path": "supabase/seed-load.sql",
+     "blob": "d1da7ddb2ae113d9be8de99917d110b18748e85a"
+    },
+    {
+     "path": "supabase/seed-speed.sql",
+     "blob": "5acc829666b75e864de50280eeb936f913854a3a"
+    },
+    {
+     "path": "supabase/seed.sql",
+     "blob": "e9921b84a8400b48b89436d0ec1888f8d1bb6985"
+    },
+    {
+     "path": "supabase/tests/as-marina.sql",
+     "blob": "99304779f4762abc87793067ecd67c50a22946a0"
+    },
+    {
+     "path": "supabase/tests/as-sveta-write.sql",
+     "blob": "b0e5f9fa329449360016bc91bd7d3210a2b79e00"
+    },
+    {
+     "path": "supabase/tests/as-sveta.sql",
+     "blob": "d9c23ae84ff0acb4b52c5bd00598782e8c99c77a"
+    },
+    {
+     "path": "test/comments.test.ts",
+     "blob": "294e59b3081a8e6d73346af01a7e428a8eb9b7ed"
+    },
+    {
+     "path": "test/invites.test.ts",
+     "blob": "ebb453a9d2a65c185d2967a8029585aeb42b34d9"
+    },
+    {
+     "path": "test/programs.test.ts",
+     "blob": "cbfc8ab60a5683131a2bf6731c29d773d95eba3c"
+    },
+    {
+     "path": "test/rls.test.ts",
+     "blob": "3ad9cbba9d59ab1bdcebb1d1bafc0fa25436a7f5"
+    },
+    {
+     "path": "tsconfig.json",
+     "blob": "3a13f90a773b0facb675bf5b1a8239c8f33d36f5"
+    },
+    {
+     "path": "vitest.config.mts",
+     "blob": "0562200385d5e8064e0abd6a21b33bc24c48ba2c"
+    }
+   ]
+  }
+ ]
+}

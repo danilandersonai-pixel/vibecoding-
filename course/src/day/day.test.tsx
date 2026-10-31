@@ -72,7 +72,7 @@ describe('страница дня', () => {
     expect(hero.getByText(day.goal)).toBeInTheDocument()
     // Состав дня — пары «подпись — значение» (dl), только то, что в дне есть
     expect(hero.getAllByRole('term').map((dt) => dt.textContent)).toEqual(['видеоуроки', 'теория', 'практика', 'тест'])
-    expect(hero.getAllByRole('definition').map((dd) => dd.textContent)).toEqual(['2 (8:42)', '≈ 40 мин', '≈ 80 мин', '6 вопросов'])
+    expect(hero.getAllByRole('definition').map((dd) => dd.textContent)).toEqual(['2 (8:58)', '≈ 40 мин', '≈ 80 мин', '6 вопросов'])
     for (const dt of hero.getAllByRole('term')) expect(dt.nextElementSibling?.tagName).toBe('DD')
     // «Результат дня» — строка диффа: «+ » только для глаз
     expect(hero.getByText('Результат дня')).toBeInTheDocument()
@@ -197,7 +197,7 @@ describe('страница дня', () => {
     expect(screen.queryByText('Результат дня')).toBeNull()
     const hero = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
     expect(hero.getAllByRole('term').map((dt) => dt.textContent)).toEqual(['видеоуроки'])
-    expect(hero.getAllByRole('definition').map((dd) => dd.textContent)).toEqual(['1 (2:44)'])
+    expect(hero.getAllByRole('definition').map((dd) => dd.textContent)).toEqual(['1 (2:48)'])
     // строка в пунктирной рамке, без «бумаги» и без героя
     const notice = screen.getByText(/Остальное готовится/).closest('.draft-notice')!
     expect(notice).not.toBeNull()
