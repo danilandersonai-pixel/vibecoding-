@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { formatDay } from "@/lib/dates";
 import { asUser } from "@/lib/db";
@@ -13,6 +14,9 @@ export const instant = false;
 // Месяц отчёта — из адреса, ГГГГ-ММ: от сегодняшней даты отчёт не зависит
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+// Месяц «ГГГГ-ММ» по-русски, без числа: «октябрь»
+const monthName = (month: string) => new Date(`${month}-01T00:00`).toLocaleDateString("ru-RU", { month: "long" });
+
 // День «ГГГГ-ММ-ДД» по-русски: «19 октября» (полночь по времени сервера — formatDay покажет тот же день)
 const dayOf = (day: string) => formatDay(new Date(`${day}T00:00`));
 
@@ -23,16 +27,46 @@ function weekLabel(start: string, end: string): string {
 }
 
 // Отчёт тренера за месяц по неделям (docs/report.md): у каждого подопечного по неделе — тренировок, объём, средний объём и рекорды.
-// Подопечных и тренировки база отдаёт от имени тренера: чужих не будет (RLS)
+// Без месяца в адресе — месяцы, в которых у подопечных есть тренировки (из базы, а не по сегодняшней дате); тренировок нет —
+// пустой экран в три части. Подопечных и тренировки база отдаёт от имени тренера: чужих не будет (RLS)
 export default async function ReportPage({ searchParams }: PageProps<"/report">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
   const { month } = await searchParams;
   if (typeof month !== "string" || !MONTH.test(month)) {
+    const months = await asUser(uid, async (db) => {
+      const { rows } = await db.query<{ month: string }>(
+        `select distinct to_char(w.day, 'YYYY-MM') as month
+           from workouts w join clients c on c.id = w.client_id
+          where c.coach_id = $1
+          order by month desc`,
+        [uid],
+      );
+      return rows.map((row) => row.month);
+    });
     return (
       <main className="mx-auto w-full max-w-md p-8">
         <h1 className="text-3xl font-semibold">Отчёт</h1>
-        <p className="mt-6 text-zinc-500">Месяц — в адресе: /report?month=2026-10</p>
+        {months.length === 0 ? (
+          <section className="mt-6 rounded border border-zinc-300 p-4">
+            <h2 className="text-xl font-semibold">Отчёта пока нет</h2>
+            <p className="mt-2 text-zinc-500">Здесь будет отчёт за месяц по неделям: тренировки, объём и рекорды каждого подопечного.</p>
+            <p className="mt-2">Отчёт соберётся из тренировок: назначьте первую на карточке подопечного.</p>
+            <Link href="/clients" className="mt-4 inline-block rounded bg-zinc-900 px-4 py-2 text-white">
+              К подопечным
+            </Link>
+          </section>
+        ) : (
+          <ul className="mt-6 flex flex-col gap-2">
+            {months.map((m) => (
+              <li key={m}>
+                <Link href={`/report?month=${m}`} className="underline">
+                  Отчёт за {monthName(m)} {m.slice(0, 4)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </main>
     );
   }
@@ -56,13 +90,10 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
     );
     return { clients: clients.rows, workouts: workouts.rows };
   });
-  // «октябрь»: название месяца без числа
-  const name = new Date(`${month}-01T00:00`).toLocaleDateString("ru-RU", { month: "long" });
-
   return (
     <main className="mx-auto w-full max-w-md p-8">
       <h1 className="text-3xl font-semibold">
-        Отчёт за {name} {month.slice(0, 4)}
+        Отчёт за {monthName(month)} {month.slice(0, 4)}
       </h1>
 
       {data.clients.length === 0 && <p className="mt-6 text-zinc-500">Подопечных пока нет</p>}

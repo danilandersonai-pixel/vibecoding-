@@ -10,7 +10,8 @@ export const metadata: Metadata = { title: "Мои тренировки" };
 // Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки
 export const instant = false;
 
-// Тренировки вошедшего подопечного — те, что назначил тренер. Чужих база не отдаст (RLS)
+// Тренировки вошедшего подопечного — те, что назначил тренер. Чужих база не отдаст (RLS).
+// Тренировок нет — пустой экран в три части: что здесь будет, что сделать и кнопка
 export default async function WorkoutsPage() {
   const uid = await currentUser();
   if (!uid) redirect("/login");
@@ -30,7 +31,14 @@ export default async function WorkoutsPage() {
       <h1 className="text-3xl font-semibold">Мои тренировки</h1>
 
       {workouts.length === 0 ? (
-        <p className="mt-6 text-zinc-500">Тренировок пока нет</p>
+        <section className="mt-6 rounded border border-zinc-300 p-4">
+          <h2 className="text-xl font-semibold">Тренировок пока нет</h2>
+          <p className="mt-2 text-zinc-500">Здесь будут тренировки от тренера: открываете тренировку и записываете вес и повторы.</p>
+          <p className="mt-2">Первую тренировку назначит тренер: как только назначит, она появится здесь.</p>
+          <Link href="/workouts" className="mt-4 inline-block rounded bg-zinc-900 px-4 py-2 text-white">
+            Обновить
+          </Link>
+        </section>
       ) : (
         <ul className="mt-6 flex flex-col gap-3">
           {workouts.map((workout) => (

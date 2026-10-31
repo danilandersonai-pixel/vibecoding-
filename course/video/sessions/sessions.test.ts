@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { execFileSync } from 'node:child_process'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -1979,4 +1980,189 @@ test('s19: проверки зелёные; индекс меняет план; 
     if (e.kind === 'commit') expect(e.files.filter((f) => f.path.startsWith('backups/')), e.id).toEqual([])
     if (e.kind === 'run') expect((e.files ?? []).filter((f) => f.path.startsWith('backups/')), e.id).toEqual([])
   }
+})
+
+test('s20: новичок без шага → пустой экран в три части; меню и выход; axe — красный, после токенов — зелёный', () => {
+  const events = sessions['s20-first-run'].events
+  expect(events.map((e) => e.id)).toEqual([
+    ...['typegen', 'e2e-wait', 'c-e2e-wait', 'dev', 'login-marina', 'invite-vera', 'vera-join'],
+    ...['natasha-file', 'natasha-apply', 'login-natasha', 'natasha-empty', 'ask-path', 'p-clients', 'p-workouts', 'p-layout', 'p-report'],
+    ...['ask-first', 'first-e2e', 'first-red', 'ask-first-go', 'first-nav', 'first-layout', 'first-logout', 'first-login'],
+    ...['first-clients', 'first-workouts', 'first-report', 'first-green', 'c-first'],
+    ...['natasha-hint', 'login-vera', 'vera-hint', 'a11y-install', 'ask-a11y', 'a11y-e2e', 'a11y-red'],
+    ...['ask-contrast', 'contrast-css', 'contrast-restart', 'a11y-green', 'c-a11y'],
+  ])
+  const run = (id: string) => find('s20-first-run', id, 'run')
+  const file = (id: string) => find('s20-first-run', id, 'file')
+  const read = (id: string) => find('s20-first-run', id, 'read')
+  const agent = (id: string) => find('s20-first-run', id, 'agent')
+  const browser = (id: string) => find('s20-first-run', id, 'browser')
+  const commit = (id: string) => find('s20-first-run', id, 'commit')
+  const at = (id: string) => events.findIndex((e) => e.id === id)
+  // шаги внутри запросов — агента, остальные — человека: правка теста, файл тренера, psql, браузер, npm install
+  const inner = new Set(['ask-path', 'ask-first', 'ask-first-go', 'ask-a11y', 'ask-contrast'].flatMap((id) => agent(id).steps))
+  for (const e of events) {
+    if (e.kind !== 'agent') expect((e as { by?: string }).by, e.id).toBe(inner.has(e.id) ? 'agent' : undefined)
+  }
+  const BASE = 'http://localhost:3000'
+
+  // подготовка: типы маршрутов и сквозной тест s18, который ждёт входа явно — 15 с вместо 5 по умолчанию
+  expect(run('typegen')).toMatchObject({ cmd: 'npx next typegen', code: 0 })
+  const wait = file('e2e-wait')
+  expect(wait.path).toBe('e2e/quick-set.spec.ts')
+  expect(wait.before).toContain('await expect(page).toHaveURL(home);')
+  expect(wait.after).toContain('await expect(page).toHaveURL(home, { timeout: 15_000 });')
+  expect(commit('c-e2e-wait')).toMatchObject({ message: 'Сквозной тест ждёт вход', branch: 'main', parents: [find('s19-reliability', 'c-reliability', 'commit').hash] })
+
+  // первый экран нового подопечного: Вера по приглашению Марины — «Тренировок пока нет», и дальше ни слова
+  expect(browser('login-marina').urlAfter).toBe(`${BASE}/clients`)
+  const link = browser('invite-vera').after.join('\n').match(/\/join\/[0-9a-f]{32}/)![0]
+  const joined = browser('vera-join')
+  expect(joined.url).toBe(`${BASE}${link}`)
+  expect(joined.fields).toEqual([
+    { label: 'Имя', value: 'Вера' },
+    { label: 'Почта', value: 'vera@example.com' },
+    { label: 'Пароль', value: 'demo-password' },
+  ])
+  expect(joined.urlAfter).toBe(`${BASE}/workouts`)
+  expect(joined.after).toContain('Тренировок пока нет')
+  expect(joined.after).toEqual(['Мои тренировки', 'Тренировок пока нет'])
+
+  // новый тренер — файл автора по образцу seed.sql: пароль только хешем, профиль тренера
+  const coach = file('natasha-file')
+  expect(coach).toMatchObject({ path: 'supabase/tests/new-coach.sql', before: null })
+  for (const part of ["'natasha@example.com'", "crypt('demo-password', gen_salt('bf'))", "'coach', 'Наташа'"]) expect(coach.after, part).toContain(part)
+  expect(run('natasha-apply')).toMatchObject({ cmd: 'psql -f supabase/tests/new-coach.sql', code: 0, out: ['INSERT 0 1', 'INSERT 0 1'] })
+  expect(browser('login-natasha').urlAfter).toBe(`${BASE}/clients`)
+  // пустой список без слова: заголовок, сразу форма «Имя / Добавить», потом «Приглашений пока нет»
+  const empty = browser('natasha-empty')
+  expect(empty.url).toBe(`${BASE}/clients`)
+  expect(empty.after.join('\n')).not.toContain('Подопечных пока нет')
+  expect(empty.after.slice(0, 2)).toEqual(['Подопечные', 'Имя'])
+  expect(empty.after).toContain('Приглашений пока нет')
+  expect(empty.buttons).toEqual(['Добавить', 'Создать приглашение'])
+
+  // путь новичка в Plan: только чтение четырёх страниц
+  expect(agent('ask-path').prompt).toBe('Пройди путь нового тренера и нового подопечного: что они видят первым, где пусто и куда идти дальше. Код не меняй')
+  expect(agent('ask-path').steps).toEqual(['p-clients', 'p-workouts', 'p-layout', 'p-report'])
+  expect(['p-clients', 'p-workouts', 'p-layout', 'p-report'].map((id) => read(id).path)).toEqual([
+    'app/clients/page.tsx',
+    'app/workouts/page.tsx',
+    'app/layout.tsx',
+    'app/report/page.tsx',
+  ])
+  expect(read('p-report').text).toContain('Месяц — в адресе: /report?month=2026-10')
+  for (const word of ['Меню', 'выхода', '«Программы»', '«Отчёт»', 'без входа', '/report']) expect(agent('ask-path').reply, word).toContain(word)
+
+  // первый экран: сначала сквозной тест — красный; вторым ходом («Делай») меню, выход и пустые экраны — зелёный
+  expect(agent('ask-first').prompt).toBe(
+    'Сделай первый экран: меню по роли с выходом, пустые экраны в три части — что здесь будет, что сделать, кнопка. Сначала сквозной тест',
+  )
+  expect(agent('ask-first').steps).toEqual(['first-e2e', 'first-red'])
+  expect(agent('ask-first-go').prompt).toBe('Делай')
+  expect(agent('ask-first-go').steps).toEqual([
+    ...['first-nav', 'first-layout', 'first-logout', 'first-login'],
+    ...['first-clients', 'first-workouts', 'first-report', 'first-green'],
+  ])
+  const e2e = file('first-e2e')
+  expect(e2e).toMatchObject({ path: 'e2e/first-run.spec.ts', before: null })
+  for (const part of ['natasha@example.com', 'vera@example.com', 'Подопечных пока нет', 'Создать приглашение', 'назначит тренер', 'Выйти']) expect(e2e.after, part).toContain(part)
+  const spec = 'npx playwright test e2e/first-run.spec.ts'
+  expect(run('first-red').cmd).toBe(spec)
+  expect(run('first-red').code).not.toBe(0)
+  expect(run('first-red').out.join('\n')).toContain('2 failed')
+  expect(file('first-nav')).toMatchObject({ path: 'components/Nav.tsx', before: null })
+  for (const label of ['Подопечные', 'Программы', 'Отчёт', 'Мои тренировки', 'Выйти', 'aria-label="Меню"']) expect(file('first-nav').after, label).toContain(label)
+  expect(file('first-layout').path).toBe('app/layout.tsx')
+  expect(file('first-layout').after).toContain('<Nav />')
+  expect(file('first-layout').after).toContain('<Suspense>')
+  expect(file('first-logout')).toMatchObject({ path: 'app/api/logout/route.ts', before: null })
+  expect(file('first-logout').after).toContain('.delete("session")')
+  expect(file('first-logout').after).toContain('status: 303')
+  // после входа меню в общем layout — только с сервера: вход обновляет страницу
+  expect(file('first-login').path).toBe('app/login/page.tsx')
+  expect(file('first-login').after).toContain('router.refresh();')
+  // пустые экраны в три части; подопечный по имени — «без входа» и с подписью
+  const clients = file('first-clients')
+  expect(clients.path).toBe('app/clients/page.tsx')
+  for (const part of ['Подопечных пока нет', 'Здесь будут', 'Создайте приглашение', 'Добавить без входа', 'Войти в приложение такой подопечный не сможет']) {
+    expect(clients.after, part).toContain(part)
+  }
+  expect(file('first-workouts').path).toBe('app/workouts/page.tsx')
+  expect(file('first-workouts').after).toContain('Первую тренировку назначит тренер')
+  // отчёт без месяца — месяцы из базы, без настоящих часов
+  const report = file('first-report')
+  expect(report.path).toBe('app/report/page.tsx')
+  expect(report.before).toContain('Месяц — в адресе: /report?month=2026-10')
+  expect(report.after).not.toContain('Месяц — в адресе')
+  expect(report.after).toContain("select distinct to_char(w.day, 'YYYY-MM') as month")
+  expect(report.after).not.toMatch(/new Date\(\)|Date\.now\(\)/)
+  expect(run('first-green')).toMatchObject({ cmd: spec, code: 0 })
+  expect(run('first-green').out.join('\n')).toContain('2 passed')
+  expect(commit('c-first')).toMatchObject({ message: 'Первый экран: меню, выход, пустые экраны с шагом', branch: 'main', parents: [commit('c-e2e-wait').hash] })
+  expect(commit('c-first').files.map((f) => f.path)).toEqual(
+    expect.arrayContaining(['components/Nav.tsx', 'app/api/logout/route.ts', 'e2e/first-run.spec.ts', 'supabase/tests/new-coach.sql']),
+  )
+
+  // после правок: у Наташи пустой экран в три части и меню, у Веры — что тренировку назначит тренер
+  const hint = browser('natasha-hint')
+  expect(hint.url).toBe(`${BASE}/clients`)
+  expect(hint.after).toContain('Подопечных пока нет')
+  expect(hint.after).toContain('Создать приглашение')
+  expect(hint.after.slice(0, 5)).toEqual(['Подопечные', 'Программы', 'Отчёт', 'Выйти', 'Подопечные'])
+  expect(hint.buttons.filter((name) => name === 'Создать приглашение')).toHaveLength(1)
+  expect(hint.buttons).toContain('Добавить без входа')
+  expect(browser('login-vera').urlAfter).toBe(`${BASE}/workouts`)
+  const vera = browser('vera-hint')
+  expect(vera.url).toBe(`${BASE}/workouts`)
+  expect(vera.after).toContain('Выйти')
+  expect(vera.after.slice(0, 4)).toEqual(['Мои тренировки', 'Выйти', 'Мои тренировки', 'Тренировок пока нет'])
+  expect(vera.after.some((line) => line.includes('Первую тренировку назначит тренер'))).toBe(true)
+
+  // axe — новая зависимость разработки, только командой npm; package.json — из состояния сессии, его хеш — тот, что записала команда
+  const install = run('a11y-install')
+  expect(install).toMatchObject({ cmd: 'npm install -D @axe-core/playwright', code: 0 })
+  const pkgBlob = install.files?.find((f) => f.path === 'package.json')?.blob
+  expect(install.files?.map((f) => f.path)).toEqual(expect.arrayContaining(['package.json', 'package-lock.json']))
+  const state = join(COURSE, '../demo-app/state/s20-first-run.tar.gz')
+  const pkgText = execFileSync('tar', ['-xzOf', state, 'package.json'], { encoding: 'utf8' })
+  expect(gitBlobHash(pkgText)).toBe(pkgBlob)
+  expect(JSON.parse(pkgText).devDependencies).toHaveProperty('@axe-core/playwright')
+
+  // доступность: axe по WCAG 2 A и AA в обеих схемах и вход одной клавиатурой — красный только тёмной схемой, правило color-contrast
+  expect(agent('ask-a11y').prompt).toBe(
+    'Проверь доступность: axe на входе, у тренера и у подопечного в светлой и тёмной схеме, и вход одной клавиатурой. Сначала тест, код не меняй',
+  )
+  expect(agent('ask-a11y').steps).toEqual(['a11y-e2e', 'a11y-red'])
+  const a11y = file('a11y-e2e')
+  expect(a11y).toMatchObject({ path: 'e2e/a11y.spec.ts', before: null })
+  for (const part of ['@axe-core/playwright', '"wcag2a", "wcag2aa"', 'colorScheme', '"light", "dark"', '"/login"', 'keyboard.press("Tab")', 'keyboard.press("Enter")']) {
+    expect(a11y.after, part).toContain(part)
+  }
+  const a11ySpec = 'npx playwright test e2e/a11y.spec.ts'
+  const red = run('a11y-red')
+  expect(red.cmd).toBe(a11ySpec)
+  expect(red.code).not.toBe(0)
+  expect(red.out.join('\n')).toContain('color-contrast')
+  const failed = red.out.filter((line) => /^\s+✘/.test(line))
+  expect(failed.length).toBeGreaterThan(0)
+  for (const line of failed) expect(line).toContain('тёмная схема')
+  expect(red.out.some((line) => /^\s+✓/.test(line) && line.includes('клавиатурой'))).toBe(true)
+  expect(at('a11y-install')).toBeLessThan(at('a11y-red'))
+  for (const word of ['color-contrast', 'тёмной схеме']) expect(agent('ask-a11y').reply, word).toContain(word)
+
+  // контраст — токеном тёмной схемы в globals.css; dev-сервер перезапускается со сбросом кэша, и тот же тест зелёный
+  expect(agent('ask-contrast').prompt).toBe('Исправь контраст в тёмной схеме токенами в globals.css, остальное не трогай')
+  expect(agent('ask-contrast').steps).toEqual(['contrast-css', 'contrast-restart', 'a11y-green'])
+  const css = file('contrast-css')
+  expect(css.path).toBe('app/globals.css')
+  const dark = css.after.slice(css.after.indexOf('@media (prefers-color-scheme: dark)'))
+  expect(dark).toContain('--color-zinc-500: #a1a1aa;')
+  expect(css.before).not.toContain('--color-zinc-500')
+  expect(run('contrast-restart')).toMatchObject({ cmd: "curl -sX POST 'localhost:3000/__nextjs_restart_dev?invalidateFileSystemCache=1' && sleep 5", code: 0 })
+  expect(run('a11y-green')).toMatchObject({ cmd: a11ySpec, code: 0 })
+  expect(run('a11y-green').out.join('\n')).toContain('7 passed')
+  expect(commit('c-a11y')).toMatchObject({ message: 'Доступность: axe и клавиатура, контраст тёмной схемы', branch: 'main', parents: [commit('c-first').hash] })
+  expect(commit('c-a11y').files.find((f) => f.path === 'package.json')?.blob).toBe(pkgBlob)
+  expect(commit('c-a11y').files.map((f) => f.path)).toEqual(expect.arrayContaining(['e2e/a11y.spec.ts', 'app/globals.css']))
 })

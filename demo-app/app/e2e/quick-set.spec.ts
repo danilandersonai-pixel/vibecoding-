@@ -9,7 +9,8 @@ async function login(page: Page, email: string, home: RegExp) {
   await page.getByLabel("Почта").fill(email);
   await page.getByLabel("Пароль").fill("demo-password");
   await page.getByRole("button", { name: "Войти" }).click();
-  await expect(page).toHaveURL(home);
+  // холодный dev собирает страницу после входа дольше 5 с (предел expect по умолчанию) — ждём до 15 с
+  await expect(page).toHaveURL(home, { timeout: 15_000 });
 }
 
 test("Анна повторяет подход одним касанием, Марина видит его в списке подопечных", async ({ browser }) => {

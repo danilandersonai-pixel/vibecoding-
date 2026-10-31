@@ -23,6 +23,8 @@ export default function LoginPage() {
     }
     // тренер — к своим подопечным, подопечный — к своим тренировкам
     router.push(data.role === "coach" ? "/clients" : "/workouts");
+    // cookie входа новая: меню в общем layout (components/Nav.tsx) перечитает её только с сервера
+    router.refresh();
   }
 
   return (

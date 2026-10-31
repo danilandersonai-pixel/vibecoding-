@@ -37,7 +37,8 @@ async function revokeInvite(id: string) {
   redirect("/clients");
 }
 
-// Подопечные вошедшего тренера, у каждого — дата последней тренировки, последний подход и растёт ли вес; под списком форма нового подопечного и приглашения
+// Подопечные вошедшего тренера, у каждого — дата последней тренировки, последний подход и растёт ли вес; ниже приглашения
+// и подопечный без входа. Подопечных нет — пустой экран в три части: что здесь будет, что сделать и кнопка
 export default async function ClientsPage({ searchParams }: PageProps<"/clients">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
@@ -91,6 +92,18 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
   return (
     <main className="mx-auto w-full max-w-md p-8">
       <h1 className="text-3xl font-semibold">Подопечные</h1>
+      {clients.length === 0 && (
+        <section className="mt-6 rounded border border-zinc-300 p-4">
+          <h2 className="text-xl font-semibold">Подопечных пока нет</h2>
+          <p className="mt-2 text-zinc-500">Здесь будут ваши подопечные: последняя тренировка, последний подход и растёт ли вес.</p>
+          <p className="mt-2">Создайте приглашение и отправьте ссылку подопечному: по ней он зарегистрируется и попадёт к вам.</p>
+          <form action={createInvite} className="mt-4">
+            <button type="submit" className="rounded bg-zinc-900 px-4 py-2 text-white">
+              Создать приглашение
+            </button>
+          </form>
+        </section>
+      )}
       <ul className="mt-6 flex flex-col gap-3">
         {clients.map((client) => (
           <li key={client.id}>
@@ -117,22 +130,6 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
         ))}
       </ul>
 
-      <form action={addClient} className="mt-8 flex flex-col gap-4">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="name">Имя</label>
-          <input id="name" name="name" required className="rounded border border-zinc-300 px-3 py-2" />
-        </div>
-        <button type="submit" className="rounded bg-zinc-900 px-4 py-2 text-white">
-          Добавить
-        </button>
-      </form>
-
-      {typeof error === "string" && (
-        <p role="alert" className="mt-4 text-red-600">
-          {error}
-        </p>
-      )}
-
       <h2 className="mt-8 text-xl font-semibold">Приглашения</h2>
       <p className="mt-2 text-zinc-500">Ссылка действует 48 часов, по ней регистрируются один раз.</p>
       {invites.length === 0 ? (
@@ -151,11 +148,32 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
           ))}
         </ul>
       )}
-      <form action={createInvite} className="mt-4">
+      {/* у пустого списка такая кнопка уже есть */}
+      {clients.length > 0 && (
+        <form action={createInvite} className="mt-4">
+          <button type="submit" className="rounded bg-zinc-900 px-4 py-2 text-white">
+            Создать приглашение
+          </button>
+        </form>
+      )}
+
+      <h2 className="mt-8 text-xl font-semibold">Подопечный без входа</h2>
+      <p className="mt-2 text-zinc-500">Войти в приложение такой подопечный не сможет, а значит, и записать подходы. Чтобы он вёл дневник сам, отправьте ему приглашение.</p>
+      <form action={addClient} className="mt-4 flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="name">Имя</label>
+          <input id="name" name="name" required className="rounded border border-zinc-300 px-3 py-2" />
+        </div>
         <button type="submit" className="rounded bg-zinc-900 px-4 py-2 text-white">
-          Создать приглашение
+          Добавить без входа
         </button>
       </form>
+
+      {typeof error === "string" && (
+        <p role="alert" className="mt-4 text-red-600">
+          {error}
+        </p>
+      )}
     </main>
   );
 }
