@@ -1,23 +1,28 @@
 import { expect, test } from '@playwright/test'
-import { day15Script } from '../video/day-15/script'
+import day21 from '../content/days/day-21.json' with { type: 'json' }
+import { day21Script } from '../video/day-21/script'
 
 // Кнопка панели — «Смотреть» / «Пауза» точно: у обложки имя длиннее («Смотреть ролик «…»»)
 const PLAY = { name: 'Смотреть', exact: true }
 const PAUSE = { name: 'Пауза', exact: true }
 
-// День 15 — старый ролик day-15 (1280 × 720): на нём проверяются обложка, пояснение зоны, отказ загрузки и телефон
-test('ролик дня 15 запускается с обложки, на паузе открывается пояснение зоны', async ({ page }) => {
-  await page.goto('/#/day/15')
+// День 21 — старый ролик day-21 (1280 × 720), который неделя 3 заменяет последним: на нём проверяются обложка, пояснение зоны,
+// отказ загрузки и телефон. Название дня и ролика — из day-21.json, зоны и реплики — из day21Script
+const DAY = day21.title
+const VIDEO = day21.blocks[0].title
+
+test('ролик дня 21 запускается с обложки, на паузе открывается пояснение зоны', async ({ page }) => {
+  await page.goto('/#/day/21')
   const time = page.getByTestId('video-time')
   await expect(time).toHaveText(/^0:00/)
-  await page.getByRole('button', { name: 'Смотреть ролик «Первое знакомство и полировка»' }).click()
+  await page.getByRole('button', { name: `Смотреть ролик «${VIDEO}»` }).click()
   await expect(time).not.toHaveText(/^0:00/, { timeout: 5000 })
   await page.getByRole('button', PAUSE).click()
 
-  const zone = day15Script.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
+  const zone = day21Script.hotspots[1]
   await page.getByRole('slider', { name: 'Перемотка' }).fill(String(zone.from + 15))
-  await page.getByRole('button', { name: 'Пустой экран с подсказкой' }).click()
-  await expect(page.getByText(/Пустой список видит каждый новый пользователь/)).toBeVisible()
+  await page.getByRole('button', { name: zone.title }).click()
+  await expect(page.getByText(zone.text)).toBeVisible()
 })
 
 test('если код ролика не загрузился, блок это говорит, а день остаётся на месте', async ({ page, request }) => {
@@ -27,17 +32,17 @@ test('если код ролика не загрузился, блок это г
   const main = [...html.matchAll(/\.\/assets\/([^"]+\.js)"/g)].map((m) => `/assets/${m[1]}`)
   expect(main.some((f) => f.startsWith('/assets/index-'))).toBe(true)
   await page.route('**/assets/*.js', (route) => (main.some((f) => route.request().url().endsWith(f)) ? route.continue() : route.abort()))
-  await page.goto('/#/day/15')
+  await page.goto('/#/day/21')
   await expect(page.getByText('Ролик не загрузился')).toBeVisible()
-  await expect(page.getByRole('heading', { level: 1, name: 'Первое знакомство и полировка' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: DAY })).toBeVisible()
   // ни кнопки панели, ни обложки «Смотреть ролик «…»» (имя ищется по вхождению), ни перемотки
   await expect(page.getByRole('button', { name: 'Смотреть' })).toHaveCount(0)
   await expect(page.getByRole('slider', { name: 'Перемотка' })).toHaveCount(0)
 })
 
-test('день 15 с роликом на телефоне (390 px) — без горизонтальной прокрутки', async ({ page }) => {
+test('день 21 с роликом на телефоне (390 px) — без горизонтальной прокрутки', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/#/day/15')
+  await page.goto('/#/day/21')
   await expect(page.getByRole('button', PLAY)).toBeVisible()
   // кадр ролика уже нарисован: ленивый код сцен загрузился (svg внутри плеера, а не значок ▶ на обложке)
   await expect(page.locator('.video-frame svg').first()).toBeVisible()
@@ -63,11 +68,11 @@ test('до запуска ролик не пустой: видна обложк�
   for (const r of rows) expect(Math.abs(r.width - grid)).toBeLessThan(2)
 })
 
-// День 15 — один старый ролик day-15 (1280 × 720): дня с двумя старыми роликами в курсе больше нет (на дне 7 оба ролика, ch-10
+// День 21 — один старый ролик day-21 (1280 × 720): дня с двумя старыми роликами в курсе больше нет (на дне 7 оба ролика, ch-10
 // и ch-11, — новые, тёмные 1920 × 1080; день 8 — новый ролик дня). Одинокий ролик сетки — во всю её ширину (правило :only-child
 // в video.css), а не в половину
 test('старый ролик (1280 × 720) один на дне — во всю ширину сетки', async ({ page }) => {
-  await page.goto('/#/day/15')
+  await page.goto('/#/day/21')
   await expect(page.locator('.video-grid .video-stage')).toHaveCount(1)
   await expect(page.locator('.video-grid .video-stage.is-dark')).toHaveCount(0)
   const stage = await page.locator('.video-grid .video-stage').evaluate((el) => el.getBoundingClientRect().width)
@@ -76,15 +81,15 @@ test('старый ролик (1280 × 720) один на дне — во всю
 })
 
 test('на обложке субтитров нет, после запуска — идут', async ({ page }) => {
-  const poster = day15Script.hotspots[0].from
-  const atPoster = day15Script.cues.find((c) => poster >= c.from && poster < c.to)!
-  await page.goto('/#/day/15')
+  const poster = day21Script.hotspots[0].from
+  const atPoster = day21Script.cues.find((c) => poster >= c.from && poster < c.to)!
+  await page.goto('/#/day/21')
   const frame = page.locator('.video-frame')
   // кадр обложки уже нарисован, но реплики этого кадра в нём нет
   await expect(frame.locator('svg').first()).toBeVisible()
   await expect(frame.getByText(atPoster.text)).toHaveCount(0)
-  await page.getByRole('button', { name: 'Смотреть ролик «Первое знакомство и полировка»' }).click()
-  await expect(frame.getByText(day15Script.cues[0].text)).toBeVisible({ timeout: 5000 })
+  await page.getByRole('button', { name: `Смотреть ролик «${VIDEO}»` }).click()
+  await expect(frame.getByText(day21Script.cues[0].text)).toBeVisible({ timeout: 5000 })
 })
 
 test('на дне 1 два ролика: запуск второго ставит первый на паузу', async ({ page }) => {

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { inflateSync } from 'node:zlib'
 import { chapterIndexAt, clock } from '../src/video/chapters'
 import type { VideoScript } from '../video/types'
-import { day15Script } from '../video/day-15/script'
+import { day21Script } from '../video/day-21/script'
 import ch01Data from '../video/lessons/ch-01/script.gen.json' with { type: 'json' }
 import ch02Data from '../video/lessons/ch-02/script.gen.json' with { type: 'json' }
 import ch03Data from '../video/lessons/ch-03/script.gen.json' with { type: 'json' }
@@ -37,9 +37,9 @@ import day11 from '../content/days/day-11.json' with { type: 'json' }
 import day12 from '../content/days/day-12.json' with { type: 'json' }
 import day13 from '../content/days/day-13.json' with { type: 'json' }
 import day14 from '../content/days/day-14.json' with { type: 'json' }
-import day15 from '../content/days/day-15.json' with { type: 'json' }
+import day21 from '../content/days/day-21.json' with { type: 'json' }
 
-// Главы новых роликов в плеере: список «Главы ролика», подпись текущей главы, переход по кнопке, телефон (дни 1–15),
+// Главы новых роликов в плеере: список «Главы ролика», подпись текущей главы, переход по кнопке, телефон (дни 1–14 и 21),
 // светлая тема страницы, пояснения на паузе тёмного ролика, два новых ролика на одной странице (дни 1 и 2)
 // и ролик дня (день 8): четыре главы дня и план «Что строим сегодня».
 
@@ -58,7 +58,7 @@ const chAbcScript = chAbcData as VideoScript
 const ch01Script = ch01Data as VideoScript
 const chapters = chAbcScript.chapters!
 
-// Сценарии роликов дней 2–14 и 15 по id ролика (как в video/catalog.ts): новые — снимки script.gen.json, старый день 15 — его script.ts
+// Сценарии роликов дней 2–14 и 21 по id ролика (как в video/catalog.ts): новые — снимки script.gen.json, старый день 21 — его script.ts
 const SCRIPTS: Record<string, VideoScript> = {
   'ch-02': ch02Data as VideoScript,
   'ch-12': ch12Data as VideoScript,
@@ -78,7 +78,7 @@ const SCRIPTS: Record<string, VideoScript> = {
   'day-12': day12Data as VideoScript,
   'day-13': day13Data as VideoScript,
   'day-14': day14Data as VideoScript,
-  'day-15': day15Script,
+  'day-21': day21Script,
 }
 type DayJson = { blocks: { type: string; videoId?: string; title?: string }[] }
 const DAYS: Record<number, DayJson> = {
@@ -95,7 +95,7 @@ const DAYS: Record<number, DayJson> = {
   12: day12,
   13: day13,
   14: day14,
-  15: day15,
+  21: day21,
 } as unknown as Record<number, DayJson>
 
 // Ролик дня (спецификация §6.2): главы — DAY_CHAPTERS из video/term/problems.ts, первая сцена — план agenda с items (что строим
@@ -649,12 +649,12 @@ function agendaParts(figure: Locator) {
   })
 }
 
-// Review Focus 5 недели 1 и Review Focus 3 недели 2: дни 2–14 и 15 на телефоне. Дни 2–7 — ролики глав, дни 8–14 — ролики дня,
-// день 15 — старый ролик 1280 × 720 (глав у него нет, списка тоже). Страница не шире экрана, списки «Главы ролика» видны
-// и переносятся (длинное название — в несколько строк внутри пункта, а не за край), а первое пояснение первого ролика дня открывается
+// Review Focus 5 недели 1 и Review Focus 3 недели 2: дни 2–14 и 21 на телефоне. Дни 2–7 — ролики глав, дни 8–14 — ролики дня,
+// день 21 — старый ролик 1280 × 720 (глав у него нет, списка тоже; уроки дней 15–20 добавляют свой день в цикл). Страница не шире
+// экрана, списки «Главы ролика» видны и переносятся (длинное название — в несколько строк внутри пункта, а не за край), а первое пояснение первого ролика дня открывается
 // по нажатию на паузе и встаёт под кадром, не закрывая его (как у дня 1 выше). У ролика дня план «Что строим сегодня» перечисляет
 // пункты из lesson.ts, и каждый пункт (перенесённый — обеими строками) стоит в SAFE кадра
-for (const day of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]) {
+for (const day of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 21]) {
   test(`день ${day} на телефоне 390 px — без горизонтальной прокрутки, пояснение под кадром`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto(`/#/day/${day}`)
@@ -668,7 +668,7 @@ for (const day of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]) {
     expect(await fitsWidth(page)).toBe(true)
 
     const withChapters = videos.filter((v) => v.script.chapters?.length)
-    if (day === 15) expect(withChapters).toEqual([])
+    if (day === 21) expect(withChapters).toEqual([])
     else expect(withChapters).toHaveLength(videos.length)
     await expect(page.getByRole('list', { name: 'Главы ролика' })).toHaveCount(withChapters.length)
     for (const { title, script } of withChapters) {

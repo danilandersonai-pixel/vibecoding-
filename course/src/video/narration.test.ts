@@ -57,6 +57,14 @@ describe('spokenText', () => {
     expect(spokenText('Анна сохранила подход.')).toBe('Анна сохранила подход.')
     expect(spokenText('Planner и APIs')).toBe('Planner и APIs')
   })
+  it('SAY: «test» и «git» внутри обычных слов и путей не переозвучиваются', () => {
+    const path = spokenText('e2e/first-run.spec.ts')
+    expect(path).not.toContain('тест')
+    expect(path).not.toContain('гит')
+    expect(spokenText('github')).not.toContain('гит')
+    expect(spokenText('latest tests digit')).not.toMatch(/тест|гит/)
+    expect(spokenText('git log')).toBe('гит лог')
+  })
   // Правила SAY общие: новое правило, нужное свежему ролику, срабатывает и на репликах старых (1280 × 720), и меняет их озвучку молча.
   // Снимок хранит произношение каждой реплики старых роликов; изменилось — разбираться, а не принимать -u вслепую (допустимо, когда
   // новое правило намеренно поправило и их, например латинское слово, которое раньше читалось по буквам).

@@ -1,7 +1,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { day15Script } from '../../video/day-15/script'
+import type { VideoScript } from '../../video/types'
+import oldVideo from './fixtures/old-video.json'
 import { videos } from './registry'
 import { VideoBlock } from './VideoBlock'
 
@@ -55,14 +56,14 @@ vi.mock('remotion', async (importOriginal) => ({ ...(await importOriginal<typeof
 
 vi.mock('./registry', async () => {
   const { createElement } = await import('react')
-  const { day15Script } = await import('../../video/day-15/script')
+  const oldVideoFixture = (await import('./fixtures/old-video.json')).default as VideoScript
   const { Subtitles } = await import('../../video/lib/Subtitles')
   const ok = () => Promise.resolve({ default: () => null })
   // Ролик с настоящими субтитрами: реплика идёт с первого кадра
   const withSubtitles = () => Promise.resolve({ default: () => createElement(Subtitles, { cues: [{ from: 0, to: 6000, text: 'Первая реплика' }] }) })
   // Ролик набора «Репозиторий»: кадр 1920 × 1080, три главы (1800 / 2400 / 1800 кадров из 6000), адреса MP4 нет
   const chaptered = {
-    ...day15Script,
+    ...oldVideoFixture,
     id: 'chaptered',
     width: 1920,
     height: 1080,
@@ -82,13 +83,13 @@ vi.mock('./registry', async () => {
       // Тот же ролик с пустым списком глав — для плеера это ролик без глав
       unchaptered: { script: { ...chaptered, chapters: [] }, load: ok },
       // Старый ролик с адресом MP4 в хранилище страницы
-      withMp4: { script: day15Script, load: ok, mp4Url: '/_blob/00000000000000000000000000000000' },
-      a: { script: day15Script, load: ok },
-      b: { script: day15Script, load: ok },
-      subs: { script: day15Script, load: withSubtitles },
+      withMp4: { script: oldVideoFixture, load: ok, mp4Url: '/_blob/00000000000000000000000000000000' },
+      a: { script: oldVideoFixture, load: ok },
+      b: { script: oldVideoFixture, load: ok },
+      subs: { script: oldVideoFixture, load: withSubtitles },
       // 7789 кадров = 259,6 с: полная длительность округляется до 4:20, последний кадр — 4:19 целых секунд
-      long: { script: { ...day15Script, scenes: [{ id: 'всё', durationInFrames: 7789 }] }, load: ok },
-      broken: { script: day15Script, load: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) },
+      long: { script: { ...oldVideoFixture, scenes: [{ id: 'всё', durationInFrames: 7789 }] }, load: ok },
+      broken: { script: oldVideoFixture, load: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) },
       brokenWide: { script: chaptered, load: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) },
     },
   }
@@ -96,7 +97,10 @@ vi.mock('./registry', async () => {
 
 const play = (id: string, instance: string) => window.dispatchEvent(new CustomEvent('vibecourse:video-play', { detail: { videoId: id, instance } }))
 const cover = (title = 'Ролик') => screen.queryByRole('button', { name: `Смотреть ролик «${title}»` })
-const poster = day15Script.hotspots[0].from
+// Замороженный сценарий старого ролика 1280 × 720: тесты не зависят от роликов каталога. Длительность в тестах — 4683 кадра = «2:36»,
+// три зоны, вторая — «Пустой экран с подсказкой» (текст зоны начинается с «Пустой список видит каждый новый пользователь»).
+const oldVideoFixture = oldVideo as VideoScript
+const poster = oldVideoFixture.hotspots[0].from
 
 // Полноэкранный режим jsdom не умеет — подменяем его: вход и выход сообщают fullscreenchange, как браузер
 function stubFullscreen() {
@@ -180,7 +184,7 @@ describe('VideoBlock', () => {
     expect(cover()).toBeInTheDocument()
     expect(screen.getByText('Видеоурок 2')).toBeInTheDocument()
     expect(screen.getByText('2:36')).toBeInTheDocument()
-    for (const h of day15Script.hotspots) expect(screen.queryByRole('button', { name: h.title })).toBeNull()
+    for (const h of oldVideoFixture.hotspots) expect(screen.queryByRole('button', { name: h.title })).toBeNull()
     expect(screen.queryByText(/Нажмите на подсвеченное/)).toBeNull()
     // время в панели — с начала ролика, полная длительность — та же, что на обложке
     expect(screen.getByTestId('video-time')).toHaveTextContent('0:00 / 2:36')
@@ -214,7 +218,7 @@ describe('VideoBlock', () => {
     await act(async () => {})
     const player = fake.players[0]
     await user.click(cover()!)
-    const zone = day15Script.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
+    const zone = oldVideoFixture.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
     act(() => {
       player.emit('play')
       player.emit('frameupdate', { frame: zone.from + 5 })
@@ -233,7 +237,7 @@ describe('VideoBlock', () => {
     await act(async () => {})
     const player = fake.players[0]
     await user.click(cover()!)
-    const zone = day15Script.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
+    const zone = oldVideoFixture.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
     act(() => {
       player.emit('play')
       player.emit('frameupdate', { frame: zone.from + 5 })
@@ -309,7 +313,7 @@ describe('VideoBlock', () => {
     const [againFirst] = screen.getAllByRole('button', { name: 'Смотреть ещё раз' })
     const [nextFirst, nextSecond] = screen.getAllByRole('button', { name: 'Дальше' })
     // на экране конца рамок точек нет
-    for (const h of day15Script.hotspots) expect(screen.queryByRole('button', { name: h.title })).toBeNull()
+    for (const h of oldVideoFixture.hotspots) expect(screen.queryByRole('button', { name: h.title })).toBeNull()
 
     // «Дальше» — к следующему материалу: после первого ролика второй, после последнего — то, что идёт за сеткой
     await user.click(nextFirst)
@@ -604,7 +608,7 @@ describe('VideoBlock: главы ролика', () => {
 
     const old = render(<VideoBlock videoId="a" title="Старый" />)
     await act(async () => {})
-    const zone = day15Script.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
+    const zone = oldVideoFixture.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
     playTo(fake.players[0], zone.from + 5)
     act(() => fake.players[0].emit('pause'))
     expect(old.container.querySelector('.hotspot-layer')).not.toBeNull()
@@ -649,7 +653,7 @@ describe('VideoBlock: главы ролика', () => {
     render(<VideoBlock videoId="a" title="Ролик" />)
     await act(async () => {})
     const player = fake.players[0]
-    const zone = day15Script.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
+    const zone = oldVideoFixture.hotspots.find((h) => h.title === 'Пустой экран с подсказкой')!
     playTo(player, zone.from + 5)
     act(() => player.emit('pause'))
     expect(screen.getByRole('button', { name: 'Пустой экран с подсказкой' })).toHaveStyle({

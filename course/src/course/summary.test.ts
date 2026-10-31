@@ -2,11 +2,15 @@ import { describe, expect, it } from 'vitest'
 import { getDays } from '../content/load'
 import fixture from '../content/fixtures/valid-day.json'
 import { DaySchema, type Day } from '../content/schema'
-import { day15Script } from '../../video/day-15/script'
+import type { VideoScript } from '../../video/types'
+import oldVideo from '../video/fixtures/old-video.json'
 import { videos } from '../video/registry'
 import { daySummaryLine, dayVideoSummary, formatDuration, plural, readinessLine, videoMeta } from './summary'
 
 const days = getDays()
+// Замороженный сценарий старого ролика 1280 × 720: тесты не зависят от роликов каталога
+const oldVideoFixture = oldVideo as VideoScript
+const noVideo = () => Promise.resolve({ default: () => null })
 
 // Синтетический день на основе фикстуры: меняются номер, id, статус и блоки. Без роликов — пустой черновик.
 function makeDay(number: number, status: Day['status'], withVideos: boolean): Day {
@@ -22,16 +26,21 @@ describe('summary', () => {
   })
 
   it('обложка ролика — начало первой горячей точки', () => {
-    const meta = videoMeta('day-15')!
-    expect(meta.posterFrame).toBe(day15Script.hotspots[0].from)
-    expect(meta.seconds).toBe(156)
-    expect(meta.hotspots).toBe(day15Script.hotspots.length)
-    expect(videoMeta('нет')).toBeNull()
+    videos['old-video-test'] = { script: oldVideoFixture, load: noVideo }
+    try {
+      const meta = videoMeta('old-video-test')!
+      expect(meta.posterFrame).toBe(oldVideoFixture.hotspots[0].from)
+      expect(meta.seconds).toBe(156)
+      expect(meta.hotspots).toBe(oldVideoFixture.hotspots.length)
+      expect(videoMeta('нет')).toBeNull()
+    } finally {
+      delete videos['old-video-test']
+    }
   })
 
   it('обложка ролика с poster — этот кадр (середина первого примера), а не горячая точка', () => {
-    const script = { ...day15Script, id: 'poster-test', width: 1920 as const, height: 1080 as const, poster: 1234 }
-    videos['poster-test'] = { script, load: videos['day-15'].load }
+    const script = { ...oldVideoFixture, id: 'poster-test', width: 1920 as const, height: 1080 as const, poster: 1234 }
+    videos['poster-test'] = { script, load: noVideo }
     try {
       expect(videoMeta('poster-test')!.posterFrame).toBe(1234)
     } finally {
