@@ -32,6 +32,6 @@ test("новый подопечный знает, что тренировку н
   await expect(page.getByText("Тренировок пока нет")).toBeVisible();
   await expect(page.getByText("Первую тренировку назначит тренер")).toBeVisible();
   const menu = page.getByRole("navigation", { name: "Меню" });
-  await expect(menu.getByRole("link")).toHaveText(["Мои тренировки", "Питание", "Замеры", "Сообщить о проблеме"]);
+  await expect(menu.getByRole("link")).toHaveText(["Мои тренировки", "Питание", "Замеры", "Аккаунт", "Сообщить о проблеме"]);
   await expect(menu.getByRole("button", { name: "Выйти" })).toBeVisible();
 });

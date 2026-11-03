@@ -14,3 +14,10 @@ export function photoPath(clientId: string, day: string): string {
 export function photoFile(clientId: string, day: string): string {
   return join(/*turbopackIgnore: true*/ process.cwd(), photoPath(clientId, day));
 }
+
+// Папка снимков подопечного на диске: её целиком удаляет «Удалить аккаунт» (app/account/actions.ts). Только номер —
+// рекурсивное удаление не получит ни «../», ни пустой путь, который значил бы всю папку storage/photos
+export function photoDir(clientId: string): string {
+  if (!/^\d+$/.test(clientId)) throw new Error(`Нет папки снимков для «${clientId}»`);
+  return join(/*turbopackIgnore: true*/ process.cwd(), "storage/photos", clientId);
+}

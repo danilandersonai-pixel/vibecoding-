@@ -3199,9 +3199,9 @@ test('s26: главная о продукте; удалить аккаунт н�
     ...['typegen', 'dev', 'home-before', 'ask-home', 'home-page', 'home-api', 'c-home', 'home-after'],
     ...['ask-data', 'd-tables', 'd-photos', 'd-note', 'privacy-doc', 'ask-privacy-page', 'pv-read', 'pv-page', 'c-privacy'],
     ...['vera-file', 'vera-apply', 'del-try', 'ask-delete', 'del-test', 'del-red'],
-    ...['ask-delete-go', 'del-sql', 'del-apply', 'del-action', 'del-page', 'del-green', 'c-delete'],
-    ...['login-vera', 'vera-delete', 'del-count'],
-    ...['ask-checklist', 'cl-rls', 'cl-env', 'cl-err', 'cl-e2e', 'cl-restore', 'cl-invite'],
+    ...['ask-delete-go', 'del-sql', 'del-apply', 'del-photos', 'del-action', 'del-page', 'del-green'],
+    ...['ask-menu', 'menu-nav', 'menu-e2e', 'c-delete', 'dev-restart', 'login-vera', 'vera-delete', 'del-count'],
+    ...['ask-checklist', 'cl-rls', 'cl-rls-all', 'cl-env', 'cl-err', 'ask-checklist-go', 'cl-e2e', 'cl-restore', 'cl-invite'],
     ...['typegen-again', 'check-run', 'e2e-seed', 'e2e-seed-apply', 'e2e-all', 'roadmap-doc', 'c-launch'],
   ])
   const run = (id: string) => find(S, id, 'run')
@@ -3215,7 +3215,7 @@ test('s26: главная о продукте; удалить аккаунт н�
   const text = (lines: string[]) => lines.join('\n')
   const BASE = 'http://localhost:3000'
   // шаги внутри запросов — агента, остальные — человека: политика, тестовый аккаунт, люди для сквозных тестов, план, psql, браузер
-  const asks = ['ask-home', 'ask-data', 'ask-privacy-page', 'ask-delete', 'ask-delete-go', 'ask-checklist']
+  const asks = ['ask-home', 'ask-data', 'ask-privacy-page', 'ask-delete', 'ask-delete-go', 'ask-menu', 'ask-checklist', 'ask-checklist-go']
   const inner = new Set(asks.flatMap((id) => agent(id).steps))
   for (const e of events) {
     if (e.kind !== 'agent') expect((e as { by?: string }).by, e.id).toBe(inner.has(e.id) ? 'agent' : undefined)
@@ -3264,13 +3264,16 @@ test('s26: главная о продукте; удалить аккаунт н�
   expect(privacy.after).toContain('**Программы тренера подопечный видит все** — не только назначенные ему, а все шаблоны своего тренера.')
   expect(privacy.after).toContain('в базе данных приложения')
   expect(privacy.after).toContain('`storage/photos/`')
-  expect(privacy.after).toContain('откройте страницу «Аккаунт» (`/account`) и нажмите «Удалить аккаунт»')
+  // неотправленные подходы — в браузере телефона; владельцы базы технически видят всё
+  expect(privacy.after).toContain('ждёт отправки в браузере телефона (`localStorage`)')
+  expect(privacy.after).toContain('Мы — владельцы базы: технически можем прочитать в ней всё.')
+  expect(privacy.after).toContain('откройте «Аккаунт» в меню (`/account`), впишите «удалить» и нажмите «Удалить аккаунт»')
   expect(privacy.after.trimEnd().split('\n').at(-1)).toBe('Это не юридическая консультация: правила различаются по странам.')
   expect(privacy.after).not.toMatch(/Анна|Анн[уыео]/)
   expect(agent('ask-privacy-page')).toMatchObject({ prompt: 'Страница /privacy по docs/privacy.md', steps: ['pv-read', 'pv-page'] })
   expect(read('pv-read')).toMatchObject({ path: 'docs/privacy.md', blob: privacy.blob })
   expect(file('pv-page')).toMatchObject({ path: 'app/privacy/page.tsx', before: null })
-  for (const part of ['Программы тренера подопечный видит все', 'storage/photos/', '<Link href="/account"', 'Это не юридическая консультация: правила различаются по странам.']) {
+  for (const part of ['Программы тренера подопечный видит все', 'storage/photos/', 'localStorage', 'Мы — владельцы базы', '<Link href="/account"', 'Это не юридическая консультация: правила различаются по странам.']) {
     expect(file('pv-page').after, part).toContain(part)
   }
   expect(commit('c-privacy')).toMatchObject({ message: 'Политика конфиденциальности', branch: 'main', parents: [commit('c-home').hash] })
@@ -3289,10 +3292,23 @@ test('s26: главная о продукте; удалить аккаунт н�
   // исправление: сначала тест — красный; миграция — с подтверждения («Делай»), действие, страница — зелёный
   expect(agent('ask-delete').steps).toEqual(['del-test', 'del-red'])
   expect(agent('ask-delete').reply).toMatch(/Делать миграцию\?$/)
-  expect(agent('ask-delete-go')).toMatchObject({ prompt: 'Делай', steps: ['del-sql', 'del-apply', 'del-action', 'del-page', 'del-green'] })
+  expect(agent('ask-delete-go')).toMatchObject({ prompt: 'Делай', steps: ['del-sql', 'del-apply', 'del-photos', 'del-action', 'del-page', 'del-green'] })
   const test = file('del-test')
   expect(test).toMatchObject({ path: 'test/delete-account.test.ts', before: null })
-  for (const part of ['import { deleteAccount } from "../app/account/actions";', 'expect(await left(gone.rows)).toEqual([]);', 'expect(existsSync(dirname(gone.photo))).toBe(false);', 'expect(existsSync(stays.photo)).toBe(true);', '"Удалить можно только свой аккаунт подопечного"']) {
+  for (const part of [
+    'import { deleteAccount } from "../app/account/actions";',
+    // без вписанного «удалить» — ошибка под формой, и не удалено ничего
+    'test("без вписанного «удалить» ничего не удаляется: ошибка под формой"',
+    'for (const word of ["", "удали", "не удалять"]) {',
+    'expect(await left(gone.rows)).toEqual(all(gone));',
+    'expect(await redirectOf(deleteAccount(formWith("удалить")))).toBe("/");',
+    'expect(await left(gone.rows)).toEqual([]);',
+    'expect(existsSync(dirname(gone.photo))).toBe(false);',
+    'expect(existsSync(stays.photo)).toBe(true);',
+    '"Удалить можно только свой аккаунт подопечного"',
+    // программа, которую подопечный создал сам, — тоже его строка
+    '"insert into programs (coach_id, title) values ($1, \'Своя программа\') returning id"',
+  ]) {
     expect(test.after, part).toContain(part)
   }
   const vitest = 'npx vitest run test/delete-account.test.ts'
@@ -3300,39 +3316,62 @@ test('s26: главная о продукте; удалить аккаунт н�
   expect(run('del-red').code).not.toBe(0)
   expect(out('del-red')).toContain("Error: Cannot find module '/app/account/actions'")
   expect(run('del-green')).toMatchObject({ cmd: vitest, code: 0 })
-  expect(out('del-green')).toMatch(/^ {6}Tests {2}2 passed \(2\)$/m)
+  expect(out('del-green')).toMatch(/^ {6}Tests {2}3 passed \(3\)$/m)
   // тест после красного прогона не меняется
   expect(events.filter((e) => e.kind === 'file' && e.path === test.path).map((e) => e.id)).toEqual(['del-test'])
-  for (const id of ['del-sql', 'del-action', 'del-page']) expect(at(id), id).toBeGreaterThan(at('del-red'))
+  for (const id of ['del-sql', 'del-photos', 'del-action', 'del-page']) expect(at(id), id).toBeGreaterThan(at('del-red'))
   const sql = file('del-sql')
   expect(sql).toMatchObject({ path: 'supabase/migrations/0017_delete_account.sql', before: null })
   for (const part of ['create function delete_account() returns bigint', 'security definer', 'me uuid := auth.uid();', 'grant execute on function delete_account() to authenticated;']) {
     expect(sql.after, part).toContain(part)
   }
   // строки — по порядку: сначала те, что ссылаются на другие, в конце — пользователь
-  const order = ['delete from sets ', 'delete from workout_items ', 'delete from comments ', 'delete from workouts ', 'delete from photos ', 'delete from invites ', 'delete from feedback ', 'delete from clients ', 'delete from auth.users ']
+  const order = ['delete from sets ', 'delete from workout_items ', 'delete from comments ', 'delete from workouts ', 'delete from photos ', 'delete from invites ', 'delete from feedback ', 'delete from programs ', 'delete from clients ', 'delete from auth.users ']
   const positions = order.map((part) => sql.after.indexOf(part))
   expect(positions.every((p) => p > 0)).toBe(true)
   expect([...positions].sort((a, b) => a - b)).toEqual(positions)
   expect(run('del-apply')).toMatchObject({ cmd: 'psql -f supabase/migrations/0017_delete_account.sql', code: 0, out: ['CREATE FUNCTION', 'REVOKE', 'GRANT'] })
-  expect(file('del-action')).toMatchObject({ path: 'app/account/actions.ts', before: null })
-  for (const part of ['"use server";', 'db.query<{ client: string }>("select delete_account() as client")', '"storage/photos", rows[0].client', '(await cookies()).delete("session");', 'redirect("/");']) {
-    expect(file('del-action').after, part).toContain(part)
+  // папка снимков — только по номеру из цифр: рекурсивное удаление не получит непроверенный путь
+  const photos = file('del-photos')
+  expect(photos.path).toBe('lib/photos.ts')
+  expect(photos.before).not.toContain('photoDir')
+  expect(photos.after).toContain('export function photoDir(clientId: string): string {\n  if (!/^\\d+$/.test(clientId)) throw new Error(')
+  const action = file('del-action')
+  expect(action).toMatchObject({ path: 'app/account/actions.ts', before: null })
+  for (const part of ['"use server";', 'const CONFIRM = "удалить";', 'db.query<{ client: string }>("select delete_account() as client")', 'await rm(photoDir(rows[0].client), { recursive: true, force: true });', '(await cookies()).delete("session");', 'redirect("/");']) {
+    expect(action.after, part).toContain(part)
   }
+  // слово проверяет сервер — до удаления
+  const check = action.after.indexOf('if (String(form.get("confirm") ?? "").trim().toLowerCase() !== CONFIRM) {')
+  expect(check).toBeGreaterThan(0)
+  expect(action.after.indexOf('select delete_account()')).toBeGreaterThan(check)
   expect(file('del-page')).toMatchObject({ path: 'app/account/page.tsx', before: null })
-  expect(file('del-page').after).toContain('<form action={deleteAccount}')
+  for (const part of ['<form action={deleteAccount}', '<label htmlFor="confirm">Впишите «удалить»</label>', 'role="alert"']) expect(file('del-page').after, part).toContain(part)
+  // удаление — где найти: «Аккаунт» в меню подопечного, ожидаемое меню в сквозном тесте s20 — с ним
+  expect(agent('ask-menu').steps).toEqual(['menu-nav', 'menu-e2e'])
+  expect(file('menu-nav').path).toBe('components/Nav.tsx')
+  expect(file('menu-nav').after).toContain('    ["/measurements", "Замеры"],\n    ["/account", "Аккаунт"],\n  ],')
+  expect(file('menu-e2e').path).toBe('e2e/first-run.spec.ts')
+  expect(file('menu-e2e').after).toContain('toHaveText(["Мои тренировки", "Питание", "Замеры", "Аккаунт", "Сообщить о проблеме"])')
+  expect(file('menu-e2e').after).toContain('toHaveText(["Подопечные", "Программы", "Отчёт", "Сообщить о проблеме"])')
   const deleted = commit('c-delete')
   expect(deleted).toMatchObject({ message: 'Удаление аккаунта', branch: 'main', parents: [commit('c-privacy').hash] })
   expect(deleted.files.find((f) => f.path === test.path)?.blob).toBe(test.blob)
   for (const path of ['supabase/migrations/0017_delete_account.sql', 'app/account/actions.ts', 'app/account/page.tsx', 'supabase/tests/test-account.sql']) {
     expect(deleted.files.map((f) => f.path), path).toContain(path)
   }
+  for (const id of ['del-photos', 'menu-nav', 'menu-e2e']) expect(deleted.files.find((f) => f.path === file(id).path)?.blob, id).toBe(file(id).blob)
 
-  // Вера удаляет свой аккаунт сама: главная без меню, её почты в auth.users нет
+  // Вера удаляет свой аккаунт сама: «Аккаунт» в меню, вписывает «удалить» — главная без меню, её почты в auth.users нет
+  // после правки меню dev перезапущен со сбросом кэша, как в s24: иначе страницы шли со старым меню
+  expect(run('dev-restart')).toMatchObject({ code: 0 })
+  expect(run('dev-restart').cmd).toContain('__nextjs_restart_dev?invalidateFileSystemCache=1')
   expect(browser('login-vera')).toMatchObject({ url: `${BASE}/login`, urlAfter: `${BASE}/workouts` })
+  expect(browser('login-vera').after.slice(0, 6)).toEqual(['Мои тренировки', 'Питание', 'Замеры', 'Аккаунт', 'Сообщить о проблеме', 'Выйти'])
   const remove = browser('vera-delete')
   expect(remove.url).toBe(`${BASE}/account`)
-  expect(remove.before).toContain('Вера')
+  expect(remove.fields).toEqual([{ label: 'Впишите «удалить»', value: 'удалить' }])
+  expect(remove.before.slice(0, 8)).toEqual(['Мои тренировки', 'Питание', 'Замеры', 'Аккаунт', 'Сообщить о проблеме', 'Выйти', 'Аккаунт', 'Вера'])
   expect(remove.buttons).toEqual(['Выйти', 'Удалить аккаунт'])
   expect(remove.urlAfter).toBe(`${BASE}/`)
   expect(remove.after).toContain('Политика конфиденциальности')
@@ -3340,8 +3379,17 @@ test('s26: главная о продукте; удалить аккаунт н�
   expect(run('del-count')).toMatchObject({ cmd: `psql -At -c "select count(*) from auth.users where email = 'vera@example.com'"`, code: 0 })
   expect(run('del-count').out.at(-1)).toBe('0')
 
-  // чек-лист перед первым релизом — Plan: только чтение и ls; ответ — по пунктам, откат и Host — честно
-  expect(agent('ask-checklist').steps).toEqual(['cl-rls', 'cl-env', 'cl-err', 'cl-e2e', 'cl-restore', 'cl-invite'])
+  // чек-лист перед первым релизом — Plan, два хода: только чтение, запрос к каталогу и ls; ответ — по пунктам и по прочитанному
+  expect(agent('ask-checklist').steps).toEqual(['cl-rls', 'cl-rls-all', 'cl-env', 'cl-err'])
+  expect(agent('ask-checklist-go')).toMatchObject({ prompt: 'Делай', steps: ['cl-e2e', 'cl-restore', 'cl-invite'] })
+  // RLS — на каждой таблице public: те же 16 таблиц, что в d-tables, у всех t
+  expect(run('cl-rls-all')).toMatchObject({ cmd: `psql -c "select tablename, rowsecurity from pg_tables where schemaname = 'public' order by tablename"`, code: 0 })
+  const rls = run('cl-rls-all').out.filter((line) => /^ \w+ +\| [tf]$/.test(line))
+  const tables = run('d-tables').out.filter((line) => line.startsWith(' public | ')).map((line) => line.split('|')[1].trim())
+  expect(tables).toHaveLength(16)
+  expect(rls.map((line) => line.split('|')[0].trim())).toEqual(tables)
+  expect(rls.every((line) => line.endsWith('| t'))).toBe(true)
+  expect(run('cl-rls-all').out.at(-1)).toBe('(16 rows)')
   expect(['cl-rls', 'cl-env', 'cl-err', 'cl-restore', 'cl-invite'].map((id) => read(id).path)).toEqual([
     'supabase/migrations/0002_rls.sql',
     '.gitignore',
@@ -3354,18 +3402,26 @@ test('s26: главная о продукте; удалить аккаунт н�
   expect(run('cl-e2e')).toMatchObject({ cmd: 'ls e2e', code: 0 })
   const specs = run('cl-e2e').out
   expect(specs).toHaveLength(8)
-  for (const part of ['Проверка ввода на сервере — не знаю', 'RLS в 0002_rls.sql', '.env* в .gitignore', 'app/error.tsx', 'восемь файлов', 'учения 10 ноября', 'проверенный способ отката релиза — не сделано: выкладки ещё нет', 'Host: не знаю, проверить на хостинге']) {
+  for (const part of ['Проверка ввода на сервере — не знаю', 'RLS включена на всех 16 таблицах', '.env* в .gitignore, ключей в коде не искал — не знаю', 'app/error.tsx']) {
     expect(agent('ask-checklist').reply, part).toContain(part)
   }
+  // копия — как в docs/restore.md, который агент прочитал: папка проекта — только для учений
+  expect(read('cl-restore').text).toContain('Папка проекта годится только для учений')
+  for (const part of ['восемь файлов', 'Копия базы — не сделано: копия в папке проекта — только для учений, рабочей копии вне досягаемости нет', 'Проверенный способ отката релиза — не сделано: выкладки ещё нет', 'Host: не знаю, проверить на хостинге']) {
+    expect(agent('ask-checklist-go').reply, part).toContain(part)
+  }
+  for (const id of ['ask-checklist', 'ask-checklist-go']) expect(agent(id).reply, id).not.toMatch(/Копия базы — сделано/)
 
   // руками: все проверки и общий прогон всех сквозных тестов — после людей, которых ждёт e2e/first-run.spec.ts.
   // Перед проверками типы маршрутов — заново: первые ещё знали удалённый app/api/sets/route.ts
   expect(run('typegen-again')).toMatchObject({ cmd: 'npx next typegen', code: 0 })
   expect(run('check-run')).toMatchObject({ cmd: 'npm run check', code: 0 })
   expect(out('check-run')).not.toContain('app/api/sets')
-  expect(out('check-run')).toMatch(/✓ test\/delete-account\.test\.ts \(2 tests\)/)
+  expect(out('check-run')).toMatch(/✓ test\/delete-account\.test\.ts \(3 tests\)/)
   expect(file('e2e-seed')).toMatchObject({ path: 'supabase/tests/e2e-users.sql', before: null })
   for (const part of ["'natasha@example.com'", "'vera@example.com'", "'coach', 'Наташа'", "'client', 'Вера'"]) expect(file('e2e-seed').after, part).toContain(part)
+  // повторный запуск не падает: on conflict do nothing
+  expect(file('e2e-seed').after.match(/^on conflict \((id|user_id)\) do nothing;$/gm)).toEqual(['on conflict (id) do nothing;', 'on conflict (id) do nothing;', 'on conflict (user_id) do nothing;'])
   expect(run('e2e-seed-apply')).toMatchObject({ cmd: 'psql -f supabase/tests/e2e-users.sql', code: 0, out: ['INSERT 0 2', 'INSERT 0 2', 'INSERT 0 1'] })
   expect(run('e2e-all')).toMatchObject({ cmd: 'npx playwright test', code: 0 })
   for (const spec of specs) expect(out('e2e-all'), spec).toContain(`e2e/${spec}:`)

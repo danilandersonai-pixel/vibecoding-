@@ -1,8 +1,9 @@
 // @vitest-environment node
 // Удаление аккаунта (docs/privacy.md, «Как удалить аккаунт»): подопечный удаляет свой аккаунт — все свои строки и файлы фото.
 // Тест заводит двух подопечных Марины (supabase/seed.sql) со всем, что бывает у подопечного: тренировка со строкой и подходом,
-// комментарии его и тренера, цели и дневник питания, замер, снимок (строка и файл), принятое приглашение и замечание.
-// Первый нажимает «Удалить аккаунт»: от него не остаётся ни строки, ни файла, а у второго всё на месте. Подопечные — новые
+// комментарии его и тренера, цели и дневник питания, замер, снимок (строка и файл), принятое приглашение, замечание и программа,
+// которую он создал сам (политика программ сверяет хозяина, но не роль). Без вписанного «удалить» не удаляется ничего.
+// Со словом первый удаляет аккаунт: от него не остаётся ни строки, ни файла, а у второго всё на месте. Подопечные — новые
 // при каждом запуске, второго тест в конце удаляет тем же действием.
 // Вход подменён (currentUser из lib/session), cookie тоже: действие стирает её, а запроса в тесте нет.
 // Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения, как у test/rls.test.ts.
@@ -22,6 +23,24 @@ vi.mock("next/headers", () => ({ cookies: async () => ({ delete: () => undefined
 
 const MARINA = "11111111-1111-1111-1111-111111111111";
 const DAY = "2026-11-13";
+
+// Форма «Удалить аккаунт»: что вписано в поле подтверждения
+function formWith(word: string): FormData {
+  const form = new FormData();
+  form.append("confirm", word);
+  return form;
+}
+
+// Куда ведёт действие: redirect бросает ошибку NEXT_REDIRECT, адрес — в её digest («NEXT_REDIRECT;replace;/;307;»)
+async function redirectOf(action: Promise<unknown>): Promise<string> {
+  const err = await action.then(
+    () => null,
+    (error: unknown) => error,
+  );
+  const digest = String((err as { digest?: unknown } | null)?.digest ?? "");
+  expect(digest).toMatch(/^NEXT_REDIRECT;/);
+  return digest.split(";")[2];
+}
 
 // Строки подопечного: таблица, столбец и значение, по которым строку найти
 type Row = [table: string, column: string, value: string];
@@ -69,6 +88,11 @@ async function newClient(): Promise<Client> {
     "insert into feedback (author_id, page, did, expected, got) values ($1, '/workouts', 'Открыла', 'Тренировку', 'Пусто') returning id",
     [user],
   );
+  const program = await id("insert into programs (coach_id, title) values ($1, 'Своя программа') returning id", [user]);
+  const programItem = await id(
+    "insert into program_items (program_id, exercise_id, sets, reps) select $1, id, 3, 8 from exercises where name = 'Тяга' returning id",
+    [program],
+  );
   const rows: Row[] = [
     ["auth.users", "id", user],
     ["profiles", "id", user],
@@ -84,6 +108,8 @@ async function newClient(): Promise<Client> {
     ["photos", "id", photo],
     ["invites", "id", invite],
     ["feedback", "id", feedback],
+    ["programs", "id", program],
+    ["program_items", "id", programItem],
   ];
   return { user, rows, photo: photoFile(client, DAY) };
 }
@@ -110,23 +136,35 @@ beforeAll(async () => {
 afterAll(async () => {
   for (const client of [gone, stays]) {
     login.uid = client.user;
-    await deleteAccount().catch(() => undefined);
+    await deleteAccount(formWith("удалить")).catch(() => undefined);
   }
   await pool.end();
 });
 
+// Все строки подопечного — «таблица.столбец» по строке, как их вернёт left
+const all = (client: Client) => client.rows.map(([table, column]) => `${table}.${column}`);
+
+test("без вписанного «удалить» ничего не удаляется: ошибка под формой", async () => {
+  login.uid = gone.user;
+  for (const word of ["", "удали", "не удалять"]) {
+    expect(await redirectOf(deleteAccount(formWith(word))), word).toMatch(/^\/account\?error=/);
+  }
+  expect(await left(gone.rows)).toEqual(all(gone));
+  expect(existsSync(gone.photo)).toBe(true);
+});
+
 test("подопечный удаляет аккаунт: ни строки, ни файла снимка; у другого подопечного всё на месте", async () => {
   login.uid = gone.user;
-  // после удаления — на главную: redirect в действии бросает NEXT_REDIRECT
-  await expect(deleteAccount()).rejects.toThrow("NEXT_REDIRECT");
+  // после удаления — на главную
+  expect(await redirectOf(deleteAccount(formWith("удалить")))).toBe("/");
   expect(await left(gone.rows)).toEqual([]);
   expect(existsSync(dirname(gone.photo))).toBe(false);
-  expect(await left(stays.rows)).toEqual(stays.rows.map(([table, column]) => `${table}.${column}`));
+  expect(await left(stays.rows)).toEqual(all(stays));
   expect(existsSync(stays.photo)).toBe(true);
 });
 
 test("тренер так аккаунт не удалит: у него подопечные", async () => {
   login.uid = MARINA;
-  await expect(deleteAccount()).rejects.toThrow("Удалить можно только свой аккаунт подопечного");
+  await expect(deleteAccount(formWith("удалить"))).rejects.toThrow("Удалить можно только свой аккаунт подопечного");
   expect((await pool.query("select 1 from profiles where id = $1", [MARINA])).rowCount).toBe(1);
 });

@@ -3,7 +3,8 @@ import ProblemLink from "@/components/ProblemLink";
 import { asUser } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 
-// Разделы по роли: тренеру — подопечные, программы и отчёт, подопечному — его тренировки, дневник питания и замеры
+// Разделы по роли: тренеру — подопечные, программы и отчёт, подопечному — его тренировки, дневник питания, замеры и аккаунт
+// (там удаление аккаунта, docs/privacy.md)
 const LINKS: Record<string, [href: string, label: string][]> = {
   coach: [
     ["/clients", "Подопечные"],
@@ -14,6 +15,7 @@ const LINKS: Record<string, [href: string, label: string][]> = {
     ["/workouts", "Мои тренировки"],
     ["/nutrition", "Питание"],
     ["/measurements", "Замеры"],
+    ["/account", "Аккаунт"],
   ],
 };
 

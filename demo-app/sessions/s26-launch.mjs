@@ -6,36 +6,48 @@
 // Данные людей: агент в Plan перечисляет таблицы (psql -c '\dt public.*'), читает маршрут фото и миграцию заметки к подходу
 // (d-note, сверх таблицы плана: в списке таблиц заметки не видно) — данные о здоровье: подходы с заметкой, комментарии, питание,
 // замеры, фото (строка в photos, файл — storage/photos/). Человек пишет docs/privacy.md (текст авторский): что храним, зачем,
-// кто видит — прямо сказано, что подопечный видит все шаблоны программ своего тренера, — где лежит (база и папка фото), как
-// удалить аккаунт («Аккаунт», /account); внизу — «Это не юридическая консультация: правила различаются по странам». Агент делает
-// /privacy по документу (pv-read, сверх таблицы плана: агент читает документ, прежде чем писать страницу).
+// кто видит — прямо сказано, что подопечный видит все шаблоны программ своего тренера, и что владельцы базы технически могут
+// прочитать в ней всё, — где лежит (база, папка фото и очередь неотправленных подходов в localStorage телефона), как удалить
+// аккаунт («Аккаунт» в меню, /account, вписать «удалить»); внизу — «Это не юридическая консультация: правила различаются по
+// странам». Агент делает /privacy по документу (pv-read, сверх таблицы плана: агент читает документ, прежде чем писать страницу).
 // Подводный камень — настоящий вывод (проверен черновым прогоном): политика обещает удаление, а удалить нечем. Человек пишет
 // supabase/tests/test-account.sql — Вера, подопечная Марины, с тренировкой, подходом, комментарием и замером — и применяет его;
 // delete from auth.users падает: ERROR: update or delete on table "profiles" violates foreign key constraint
 // "clients_user_id_fkey" on table "clients" (каскад от auth.users доходит до profiles, а clients ссылается на профиль без каскада).
 // Исправление, сначала тест (Accept edits; правки — без вопроса, vitest и psql — с вопросом [y / n]): test/delete-account.test.ts
-// заводит двух подопечных Марины со всеми их строками и файлом снимка, первый удаляет аккаунт — ни строки, ни файла, у второго
-// всё на месте; тренер так аккаунт не удалит. Красный — действия app/account/actions.ts нет. «Миграцию — с подтверждения» (CLAUDE.md
-// приложения: схему — только с подтверждения): агент останавливается до миграции, второй ход — «Делай» (ask-delete-go, сверх
-// таблицы плана). 0017_delete_account.sql — delete_account(): только вошедший подопечный, строки по порядку одной транзакцией,
-// в конце — пользователь (профиль — каскадом); возвращает номер подопечного. Действие удаляет папку storage/photos/<номер> в той же
-// транзакции, до commit, стирает cookie и ведёт на главную; страница /account — «Удалить аккаунт» (del-page, сверх таблицы плана:
-// один шаг — один файл). Вера входит, нажимает «Удалить аккаунт» — главная без меню; в auth.users её почты нет — 0.
-// Чек-лист перед первым релизом (книга, s45) — агент в Plan читает RLS, .gitignore, страницу ошибки, docs/restore.md, смотрит e2e
-// и страницу подопечных (cl-invite, сверх таблицы плана: адрес ссылки-приглашения — из заголовка Host); ответ — по пунктам:
-// сделано, не сделано, не знаю и где видно; откат релиза — не сделано: выкладки ещё нет; Host — не знаю, проверить на хостинге.
+// заводит двух подопечных Марины со всеми их строками (и программой, которую подопечный создал сам) и файлом снимка; без
+// вписанного «удалить» не удаляется ничего; со словом первый удаляет аккаунт — ни строки, ни файла, у второго всё на месте; тренер
+// так аккаунт не удалит. Красный — действия app/account/actions.ts нет. «Миграцию — с подтверждения» (CLAUDE.md приложения:
+// схему — только с подтверждения): агент останавливается до миграции, второй ход — «Делай» (ask-delete-go, сверх таблицы плана).
+// 0017_delete_account.sql — delete_account(): только вошедший подопечный, строки по порядку одной транзакцией (и его программы),
+// в конце — пользователь (профиль — каскадом); возвращает номер подопечного. lib/photos.ts — photoDir: папка снимков только по
+// номеру из цифр (del-photos, сверх таблицы плана). Действие сначала сверяет вписанное слово (иначе ошибка под формой), удаляет
+// папку снимков в той же транзакции, до commit, стирает cookie и ведёт на главную; страница /account — поле «Впишите «удалить»»
+// и «Удалить аккаунт» (del-page, сверх таблицы плана: один шаг — один файл). Удаление должно быть где найти: «Аккаунт» в меню
+// подопечного и ожидаемое меню в e2e/first-run.spec.ts (ask-menu, сверх таблицы плана; тест меню — в общем прогоне). После
+// коммита человек перезапускает dev со сбросом кэша (dev-restart, сверх таблицы плана, тот же запрос, что в s20 и s24): в записи
+// без него страницы после входа Веры шли со старым меню — без «Аккаунт». Вера входит — «Аккаунт» в меню, — вписывает «удалить»,
+// нажимает «Удалить аккаунт» — главная без меню; в auth.users её почты нет — 0.
+// Чек-лист перед первым релизом (книга, s45) — агент в Plan читает 0002_rls.sql и проверяет RLS на каждой таблице public
+// (cl-rls-all, сверх таблицы плана), читает .gitignore и страницу ошибки; вторым ходом («Делай», ask-checklist-go, сверх таблицы
+// плана: одним ходом в окно агента не помещается) — ls e2e, docs/restore.md и страницу подопечных (cl-invite, сверх таблицы
+// плана: адрес ссылки-приглашения — из заголовка Host). Ответ — по пунктам и только по прочитанному: сделано, не сделано, не знаю;
+// копия базы — не сделано: копия в папке проекта — только для учений; откат релиза — не сделано: выкладки ещё нет; Host — не знаю,
+// проверить на хостинге.
 // Перед npm run check — снова npx next typegen (typegen-again, сверх таблицы плана): типы маршрутов от первого typegen ещё знали
 // удалённый app/api/sets/route.ts, и в первой записи tsc падал — «Cannot find module '../../app/api/sets/route.js'» в
 // .next/types/validator.ts; npm run dev эти типы не обновляет.
 // Руками — npm run check и общий прогон всех сквозных тестов (npx playwright test, впервые все файлы e2e/ разом). Перед ним
-// человек пишет и применяет supabase/tests/e2e-users.sql (e2e-seed, e2e-seed-apply): Наташа — тренер без подопечных и Вера —
-// подопечная без тренировок, их ждёт e2e/first-run.spec.ts (база сбрасывается на старте сессии, а Веру удалили).
+// человек пишет и применяет supabase/tests/e2e-users.sql (e2e-seed, e2e-seed-apply; повторный запуск ничего не меняет — on conflict
+// do nothing): Наташа — тренер без подопечных и Вера — подопечная без тренировок, их ждёт e2e/first-run.spec.ts (база
+// сбрасывается на старте сессии, а Веру удалили).
 // План на месяц — docs/roadmap.md (человек): «позже» из паритета, бета, после первой выкладки, раз в неделю журнал сбоев, раз
 // в месяц учения с копией, одна область сопровождения — агенту на месяц (книга, s76).
 // Домен, DNS и хостинг — доска в ролике, в сессии их нет.
 // Строки для кадра сессия создаёт сама: Вера — psql -f, удаление — браузером; люди для сквозных тестов — psql -f.
 // Запись с середины цепочки: node scripts/record-session.mjs --from s26-launch (из course/). Id шагов постоянные: на них ссылаются уроки.
-// Режимы в ролике: ask-data и ask-checklist — Plan; ask-home, ask-privacy-page, ask-delete, ask-delete-go — Accept edits.
+// Режимы в ролике: ask-data, ask-checklist и ask-checklist-go — Plan; ask-home, ask-privacy-page, ask-delete, ask-delete-go и
+// ask-menu — Accept edits.
 // Разработчица в репликах агента и в документах по имени не названа: подопечная тоже Анна.
 
 // Главная — страница о продукте, пишет агент
@@ -125,16 +137,18 @@ const PRIVACY_DOC = `# Политика конфиденциальности
 - Другие тренеры и подопечные этого не видят: это проверяет сама база, а не только страница.
 - **Программы тренера подопечный видит все** — не только назначенные ему, а все шаблоны своего тренера. Поэтому в названии программы не пишите имён и диагнозов.
 - Замечания и журнал сбоев читаем только мы, в приложении их не видит никто.
+- Мы — владельцы базы: технически можем прочитать в ней всё. Открываем данные, только чтобы разобрать сбой или замечание.
 
 ## Где лежит
 
-- Всё, кроме фото, — в базе данных приложения.
+- Всё, кроме фото и неотправленных подходов, — в базе данных приложения.
+- Подход, записанный без связи, ждёт отправки в браузере телефона (\`localStorage\`) и лежит только там, пока не уйдёт на сервер.
 - Фото — файлами в папке \`storage/photos/\` на сервере, у каждого подопечного своя папка. Открыть снимок можно только через приложение после входа — подопечному и его тренеру.
 - Копия базы на случай сбоя — с теми же данными.
 
 ## Как удалить аккаунт
 
-Подопечный удаляет свой аккаунт сам: войдите, откройте страницу «Аккаунт» (\`/account\`) и нажмите «Удалить аккаунт». Удалится всё, что о вас хранится: тренировки и подходы, комментарии под вашими тренировками, питание, замеры и фото — строки в базе и файлы снимков. Вернуть их после этого нельзя. В копии базы, сделанной до удаления, данные остаются, пока её не заменит новая.
+Подопечный удаляет свой аккаунт сам: войдите, откройте «Аккаунт» в меню (\`/account\`), впишите «удалить» и нажмите «Удалить аккаунт». Удалится всё, что о вас хранится: тренировки и подходы, комментарии под вашими тренировками, питание, замеры и фото — строки в базе и файлы снимков. Вернуть их после этого нельзя. В копии базы, сделанной до удаления, данные остаются, пока её не заменит новая. Подходы, которые ещё ждут отправки в браузере телефона, удаление не стирает: их сотрёт очистка данных сайта в браузере.
 
 Аккаунт тренера удаляем вручную: у тренера подопечные. Напишите нам через «Сообщить о проблеме».
 
@@ -170,12 +184,14 @@ const SECTIONS: Section[] = [
       "Другие тренеры и подопечные этого не видят: это проверяет сама база, а не только страница.",
       "Программы тренера подопечный видит все — не только назначенные ему, а все шаблоны своего тренера. Поэтому в названии программы не пишите имён и диагнозов.",
       "Замечания и журнал сбоев читаем только мы, в приложении их не видит никто.",
+      "Мы — владельцы базы: технически можем прочитать в ней всё. Открываем данные, только чтобы разобрать сбой или замечание.",
     ],
   },
   {
     title: "Где лежит",
     items: [
-      "Всё, кроме фото, — в базе данных приложения.",
+      "Всё, кроме фото и неотправленных подходов, — в базе данных приложения.",
+      "Подход, записанный без связи, ждёт отправки в браузере телефона (localStorage) и лежит только там, пока не уйдёт на сервер.",
       "Фото — файлами в папке storage/photos/ на сервере, у каждого подопечного своя папка. Открыть снимок можно только через приложение после входа — подопечному и его тренеру.",
       "Копия базы на случай сбоя — с теми же данными.",
     ],
@@ -239,13 +255,14 @@ export default function PrivacyPage() {
 
       <h2 className="mt-8 text-xl font-semibold">Как удалить аккаунт</h2>
       <p className="mt-2">
-        Подопечный удаляет свой аккаунт сам: войдите, откройте страницу{" "}
+        Подопечный удаляет свой аккаунт сам: войдите, откройте{" "}
         <Link href="/account" className="underline">
           «Аккаунт»
         </Link>{" "}
-        и нажмите «Удалить аккаунт». Удалится всё, что о вас хранится: тренировки и подходы, комментарии под вашими тренировками,
-        питание, замеры и фото — строки в базе и файлы снимков. Вернуть их после этого нельзя. В копии базы, сделанной до удаления,
-        данные остаются, пока её не заменит новая.
+        в меню, впишите «удалить» и нажмите «Удалить аккаунт». Удалится всё, что о вас хранится: тренировки и подходы, комментарии
+        под вашими тренировками, питание, замеры и фото — строки в базе и файлы снимков. Вернуть их после этого нельзя. В копии базы,
+        сделанной до удаления, данные остаются, пока её не заменит новая. Подходы, которые ещё ждут отправки в браузере телефона,
+        удаление не стирает: их сотрёт очистка данных сайта в браузере.
       </p>
       <p className="mt-2">Аккаунт тренера удаляем вручную: у тренера подопечные. Напишите нам через «Сообщить о проблеме».</p>
 
@@ -291,8 +308,9 @@ insert into comments (workout_id, author_id, body)
 const DELETE_TEST = `// @vitest-environment node
 // Удаление аккаунта (docs/privacy.md, «Как удалить аккаунт»): подопечный удаляет свой аккаунт — все свои строки и файлы фото.
 // Тест заводит двух подопечных Марины (supabase/seed.sql) со всем, что бывает у подопечного: тренировка со строкой и подходом,
-// комментарии его и тренера, цели и дневник питания, замер, снимок (строка и файл), принятое приглашение и замечание.
-// Первый нажимает «Удалить аккаунт»: от него не остаётся ни строки, ни файла, а у второго всё на месте. Подопечные — новые
+// комментарии его и тренера, цели и дневник питания, замер, снимок (строка и файл), принятое приглашение, замечание и программа,
+// которую он создал сам (политика программ сверяет хозяина, но не роль). Без вписанного «удалить» не удаляется ничего.
+// Со словом первый удаляет аккаунт: от него не остаётся ни строки, ни файла, а у второго всё на месте. Подопечные — новые
 // при каждом запуске, второго тест в конце удаляет тем же действием.
 // Вход подменён (currentUser из lib/session), cookie тоже: действие стирает её, а запроса в тесте нет.
 // Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения, как у test/rls.test.ts.
@@ -312,6 +330,24 @@ vi.mock("next/headers", () => ({ cookies: async () => ({ delete: () => undefined
 
 const MARINA = "11111111-1111-1111-1111-111111111111";
 const DAY = "2026-11-13";
+
+// Форма «Удалить аккаунт»: что вписано в поле подтверждения
+function formWith(word: string): FormData {
+  const form = new FormData();
+  form.append("confirm", word);
+  return form;
+}
+
+// Куда ведёт действие: redirect бросает ошибку NEXT_REDIRECT, адрес — в её digest («NEXT_REDIRECT;replace;/;307;»)
+async function redirectOf(action: Promise<unknown>): Promise<string> {
+  const err = await action.then(
+    () => null,
+    (error: unknown) => error,
+  );
+  const digest = String((err as { digest?: unknown } | null)?.digest ?? "");
+  expect(digest).toMatch(/^NEXT_REDIRECT;/);
+  return digest.split(";")[2];
+}
 
 // Строки подопечного: таблица, столбец и значение, по которым строку найти
 type Row = [table: string, column: string, value: string];
@@ -359,6 +395,11 @@ async function newClient(): Promise<Client> {
     "insert into feedback (author_id, page, did, expected, got) values ($1, '/workouts', 'Открыла', 'Тренировку', 'Пусто') returning id",
     [user],
   );
+  const program = await id("insert into programs (coach_id, title) values ($1, 'Своя программа') returning id", [user]);
+  const programItem = await id(
+    "insert into program_items (program_id, exercise_id, sets, reps) select $1, id, 3, 8 from exercises where name = 'Тяга' returning id",
+    [program],
+  );
   const rows: Row[] = [
     ["auth.users", "id", user],
     ["profiles", "id", user],
@@ -374,6 +415,8 @@ async function newClient(): Promise<Client> {
     ["photos", "id", photo],
     ["invites", "id", invite],
     ["feedback", "id", feedback],
+    ["programs", "id", program],
+    ["program_items", "id", programItem],
   ];
   return { user, rows, photo: photoFile(client, DAY) };
 }
@@ -400,30 +443,42 @@ beforeAll(async () => {
 afterAll(async () => {
   for (const client of [gone, stays]) {
     login.uid = client.user;
-    await deleteAccount().catch(() => undefined);
+    await deleteAccount(formWith("удалить")).catch(() => undefined);
   }
   await pool.end();
 });
 
+// Все строки подопечного — «таблица.столбец» по строке, как их вернёт left
+const all = (client: Client) => client.rows.map(([table, column]) => \`\${table}.\${column}\`);
+
+test("без вписанного «удалить» ничего не удаляется: ошибка под формой", async () => {
+  login.uid = gone.user;
+  for (const word of ["", "удали", "не удалять"]) {
+    expect(await redirectOf(deleteAccount(formWith(word))), word).toMatch(/^\\/account\\?error=/);
+  }
+  expect(await left(gone.rows)).toEqual(all(gone));
+  expect(existsSync(gone.photo)).toBe(true);
+});
+
 test("подопечный удаляет аккаунт: ни строки, ни файла снимка; у другого подопечного всё на месте", async () => {
   login.uid = gone.user;
-  // после удаления — на главную: redirect в действии бросает NEXT_REDIRECT
-  await expect(deleteAccount()).rejects.toThrow("NEXT_REDIRECT");
+  // после удаления — на главную
+  expect(await redirectOf(deleteAccount(formWith("удалить")))).toBe("/");
   expect(await left(gone.rows)).toEqual([]);
   expect(existsSync(dirname(gone.photo))).toBe(false);
-  expect(await left(stays.rows)).toEqual(stays.rows.map(([table, column]) => \`\${table}.\${column}\`));
+  expect(await left(stays.rows)).toEqual(all(stays));
   expect(existsSync(stays.photo)).toBe(true);
 });
 
 test("тренер так аккаунт не удалит: у него подопечные", async () => {
   login.uid = MARINA;
-  await expect(deleteAccount()).rejects.toThrow("Удалить можно только свой аккаунт подопечного");
+  await expect(deleteAccount(formWith("удалить"))).rejects.toThrow("Удалить можно только свой аккаунт подопечного");
   expect((await pool.query("select 1 from profiles where id = $1", [MARINA])).rowCount).toBe(1);
 });
 `
 const DELETE_SQL = `-- Удаление аккаунта (docs/privacy.md, «Как удалить аккаунт»): подопечный удаляет свой аккаунт — все свои строки.
 -- Удалить пользователя из auth.users напрямую нельзя: каскад доходит до profiles, а на профиль без каскада ссылаются clients,
--- comments, invites и feedback — база отказывает (clients_user_id_fkey). Поэтому строки удаляются по порядку: сначала те,
+-- comments, invites, feedback и programs — база отказывает (clients_user_id_fkey). Поэтому строки удаляются по порядку: сначала те,
 -- что ссылаются на другие, в конце — сам пользователь. Функция — одна транзакция: не удалилось что-то одно, не удалится ничего.
 -- Удаляет только вошедшего (auth.uid()): чужой аккаунт так не удалить. Тренер так аккаунт не удалит — у него подопечные.
 -- Файлы фото удаляет приложение (app/account/actions.ts): функция возвращает номер подопечного, по нему — папка снимков.
@@ -454,6 +509,9 @@ begin
   -- приглашение, по которому пришёл, и замечания
   delete from invites where accepted_by = me;
   delete from feedback where author_id = me;
+  -- программы, если он их создал: политика программ (0004) сверяет хозяина, но не роль («Подождёт» беты).
+  -- Строки программ уйдут каскадом, у строк чужих тренировок пропадёт только ссылка на шаблон (0005)
+  delete from programs where coach_id = me;
   delete from clients where id = my_client;
   -- профиль удалит каскад от auth.users (0001_init.sql)
   delete from auth.users where id = me;
@@ -468,24 +526,29 @@ grant execute on function delete_account() to authenticated;
 const ACCOUNT_ACTIONS = `"use server";
 
 import { rm } from "node:fs/promises";
-import { join } from "node:path";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { asUser } from "@/lib/db";
+import { photoDir } from "@/lib/photos";
 import { currentUser } from "@/lib/session";
 
+// Слово, которое человек вписывает, чтобы удалить аккаунт: одно нажатие по ошибке ничего не удалит
+const CONFIRM = "удалить";
+
 // «Удалить аккаунт» (docs/privacy.md): подопечный удаляет свой аккаунт — все свои строки и файлы фото.
-// Строки удаляет функция базы delete_account() (0017_delete_account.sql): только вошедшего и по порядку. Файлы снимков — папка
-// storage/photos/<номер подопечного> (lib/photos.ts); её удаляем в той же транзакции, до commit: не удалились файлы — строки
-// вернутся, и удаление можно повторить. Потом выход — cookie сессии стирается — и главная
-export async function deleteAccount() {
+// Сначала подтверждение: в поле формы вписано «удалить» — проверяет сервер, а не только браузер; иначе ошибка под формой
+// и ничего не удаляется. Строки удаляет функция базы delete_account() (0017_delete_account.sql): только вошедшего и по порядку.
+// Файлы снимков — папка storage/photos/<номер подопечного> (photoDir в lib/photos.ts); её удаляем в той же транзакции,
+// до commit: не удалились файлы — строки вернутся, и удаление можно повторить. Потом выход — cookie сессии стирается — и главная
+export async function deleteAccount(form: FormData) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
+  if (String(form.get("confirm") ?? "").trim().toLowerCase() !== CONFIRM) {
+    redirect(\`/account?error=\${encodeURIComponent(\`Чтобы удалить аккаунт, впишите «\${CONFIRM}»\`)}\`);
+  }
   await asUser(uid, async (db) => {
     const { rows } = await db.query<{ client: string }>("select delete_account() as client");
-    // номер подопечного — из базы, только цифры. turbopackIgnore: путь вычисляется, и next build иначе приложил бы
-    // к серверной сборке весь проект — как у photoFile в lib/photos.ts
-    await rm(join(/*turbopackIgnore: true*/ process.cwd(), "storage/photos", rows[0].client), { recursive: true, force: true });
+    await rm(photoDir(rows[0].client), { recursive: true, force: true });
   });
   // имя cookie — как в lib/session.ts
   (await cookies()).delete("session");
@@ -503,11 +566,13 @@ export const metadata: Metadata = { title: "Аккаунт" };
 // Страница читает cookie входа и отдаётся целиком, без заглушки загрузки
 export const instant = false;
 
-// Аккаунт вошедшего. Подопечный удаляет его сам вместе со всеми данными (docs/privacy.md, «Как удалить аккаунт»);
-// аккаунт тренера так не удалить — у него подопечные. Роль и имя — из своего профиля: чужие база не отдаст (RLS)
-export default async function AccountPage() {
+// Аккаунт вошедшего. Подопечный удаляет его сам вместе со всеми данными (docs/privacy.md, «Как удалить аккаунт»): вписывает
+// «удалить» и нажимает кнопку — слово проверяет сервер (app/account/actions.ts), ошибка — под формой. Аккаунт тренера так
+// не удалить — у него подопечные. Роль и имя — из своего профиля: чужие база не отдаст (RLS)
+export default async function AccountPage({ searchParams }: PageProps<"/account">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
+  const { error } = await searchParams;
   const profile = await asUser(uid, async (db) => {
     const { rows } = await db.query<{ name: string; role: string }>("select name, role from profiles where id = $1", [uid]);
     return rows[0];
@@ -524,7 +589,24 @@ export default async function AccountPage() {
           <p className="mt-2">
             Удалится всё, что о вас хранится: тренировки и подходы, комментарии, питание, замеры и фото. Вернуть их будет нельзя.
           </p>
-          <form action={deleteAccount} className="mt-4">
+          <form action={deleteAccount} className="mt-4 flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="confirm">Впишите «удалить»</label>
+              <input
+                id="confirm"
+                name="confirm"
+                required
+                autoComplete="off"
+                aria-invalid={typeof error === "string" ? true : undefined}
+                aria-describedby={typeof error === "string" ? "confirm-error" : undefined}
+                className="rounded border border-zinc-300 px-3 py-2"
+              />
+            </div>
+            {typeof error === "string" && (
+              <p id="confirm-error" role="alert" className="text-red-600">
+                {error}
+              </p>
+            )}
             <button type="submit" className="rounded bg-red-700 px-4 py-2 text-white">
               Удалить аккаунт
             </button>
@@ -537,23 +619,77 @@ export default async function AccountPage() {
   );
 }
 `
+// Папка снимков подопечного — через проверенный номер, как пути файлов (lib/photos.ts): правка агента
+const PHOTOS_FIND = `export function photoFile(clientId: string, day: string): string {
+  return join(/*turbopackIgnore: true*/ process.cwd(), photoPath(clientId, day));
+}
+`
+const PHOTOS_DIR = `export function photoFile(clientId: string, day: string): string {
+  return join(/*turbopackIgnore: true*/ process.cwd(), photoPath(clientId, day));
+}
+
+// Папка снимков подопечного на диске: её целиком удаляет «Удалить аккаунт» (app/account/actions.ts). Только номер —
+// рекурсивное удаление не получит ни «../», ни пустой путь, который значил бы всю папку storage/photos
+export function photoDir(clientId: string): string {
+  if (!/^\\d+$/.test(clientId)) throw new Error(\`Нет папки снимков для «\${clientId}»\`);
+  return join(/*turbopackIgnore: true*/ process.cwd(), "storage/photos", clientId);
+}
+`
+
+// «Аккаунт» в меню подопечного и ожидаемый список ссылок меню в сквозном тесте s20 — правки агента
+const NAV_FIND = `// Разделы по роли: тренеру — подопечные, программы и отчёт, подопечному — его тренировки, дневник питания и замеры
+const LINKS: Record<string, [href: string, label: string][]> = {
+  coach: [
+    ["/clients", "Подопечные"],
+    ["/programs", "Программы"],
+    ["/report", "Отчёт"],
+  ],
+  client: [
+    ["/workouts", "Мои тренировки"],
+    ["/nutrition", "Питание"],
+    ["/measurements", "Замеры"],
+  ],
+`
+const NAV_ACCOUNT = `// Разделы по роли: тренеру — подопечные, программы и отчёт, подопечному — его тренировки, дневник питания, замеры и аккаунт
+// (там удаление аккаунта, docs/privacy.md)
+const LINKS: Record<string, [href: string, label: string][]> = {
+  coach: [
+    ["/clients", "Подопечные"],
+    ["/programs", "Программы"],
+    ["/report", "Отчёт"],
+  ],
+  client: [
+    ["/workouts", "Мои тренировки"],
+    ["/nutrition", "Питание"],
+    ["/measurements", "Замеры"],
+    ["/account", "Аккаунт"],
+  ],
+`
+const MENU_E2E = `  await expect(menu.getByRole("link")).toHaveText(["Мои тренировки", "Питание", "Замеры", "Сообщить о проблеме"]);
+`
+const MENU_E2E_ACCOUNT = `  await expect(menu.getByRole("link")).toHaveText(["Мои тренировки", "Питание", "Замеры", "Аккаунт", "Сообщить о проблеме"]);
+`
 
 // Люди, которых ждут сквозные тесты, — пишет человек
 const E2E_USERS = `-- Люди, которых ждут сквозные тесты e2e/first-run.spec.ts: Наташа — тренер без подопечных, Вера — подопечная Марины
 -- (supabase/seed.sql) без тренировок. В seed.sql их нет: Наташу заводил supabase/tests/new-coach.sql, Веру — приглашение Марины,
 -- а тестовый аккаунт Веры (supabase/tests/test-account.sql) удалён на странице «Аккаунт».
--- Это не демо-данные и не миграция: запускается вручную (psql -f) перед общим прогоном npx playwright test.
+-- Это не демо-данные и не миграция: запускается вручную (psql -f) перед общим прогоном npx playwright test. Повторный запуск
+-- ничего не меняет и не падает (on conflict do nothing) — и там, где Наташу уже завёл new-coach.sql.
 -- Пароль у обеих demo-password, в auth.users — только его хеш (bcrypt).
 insert into auth.users (id, email, encrypted_password) values
   ('66666666-6666-6666-6666-666666666666', 'natasha@example.com', crypt('demo-password', gen_salt('bf'))),
-  ('77777777-7777-7777-7777-777777777777', 'vera@example.com', crypt('demo-password', gen_salt('bf')));
+  ('77777777-7777-7777-7777-777777777777', 'vera@example.com', crypt('demo-password', gen_salt('bf')))
+on conflict (id) do nothing;
 
 insert into profiles (id, role, name) values
   ('66666666-6666-6666-6666-666666666666', 'coach', 'Наташа'),
-  ('77777777-7777-7777-7777-777777777777', 'client', 'Вера');
+  ('77777777-7777-7777-7777-777777777777', 'client', 'Вера')
+on conflict (id) do nothing;
 
 insert into clients (coach_id, user_id, name) values
-  ('11111111-1111-1111-1111-111111111111', '77777777-7777-7777-7777-777777777777', 'Вера');
+  ('11111111-1111-1111-1111-111111111111', '77777777-7777-7777-7777-777777777777', 'Вера')
+on conflict (user_id) do nothing;
 `
 
 // План на месяц — пишет человек, текст авторский
@@ -596,6 +732,15 @@ const ROADMAP = `# План на месяц после запуска
 
 const login = (email) => ({ url: '/login', fill: { Почта: email, Пароль: 'demo-password' }, click: 'Войти' })
 
+// Перезапуск dev со сбросом кэша — как contrast-restart в s20 и dev-restart в s24 (тот же запрос шлёт кнопка Restart Dev Server
+// в Next.js DevTools). -f: ответ не 2xx — код ошибки; сервер поднимается заново на том же порту — ждём, пока /login снова отвечает
+const RESTART =
+  "curl -fsS -X POST 'localhost:3000/__nextjs_restart_dev?invalidateFileSystemCache=1' && sleep 2 && " +
+  'until curl -fs -o /dev/null localhost:3000/login; do sleep 1; done'
+
+// Включена ли RLS на каждой таблице схемы public: rowsecurity — t или f
+const RLS_ALL = `psql -c "select tablename, rowsecurity from pg_tables where schemaname = 'public' order by tablename"`
+
 // Ответы агента — авторские, по выводу его шагов; что видно в строках Reading / Edited / Run, ответ не повторяет
 const ASK_HOME_REPLY =
   'Главная — о продукте: для кого, что умеет, как начать; внизу «Войти» и «Политика конфиденциальности». Подходов в памяти ' +
@@ -609,12 +754,16 @@ const ASK_DELETE_REPLY =
   'Тест красный: удалять нечем — app/account/actions.ts нет. Дальше — миграция 0017: функция удаляет строки подопечного ' +
   'по порядку, потом действие и страница /account. Делать миграцию?'
 const ASK_DELETE_GO_REPLY =
-  'delete_account() удаляет только вошедшего подопечного: строки по порядку, в конце — пользователя. Папку снимков действие ' +
-  'удаляет до commit: не удалились файлы — вернутся и строки.'
+  'delete_account() — только вошедший подопечный, строки по порядку, в конце пользователь. Удаляет, только если вписано ' +
+  '«удалить»: слово проверяет сервер. Папка снимков — до commit: не удалились файлы — вернутся и строки.'
+const ASK_MENU_REPLY = 'В меню подопечного — «Аккаунт», он ведёт на /account. Ожидаемый список ссылок меню в тесте — с ним же.'
 const ASK_CHECKLIST_REPLY =
-  'Проверка ввода на сервере — не знаю. Владелец — сделано: RLS в 0002_rls.sql. Секреты — сделано: .env* в .gitignore. ' +
-  'Ошибки — сделано: app/error.tsx, сбои — в журнал errors. Сквозные тесты — восемь файлов, проходят ли — не знаю. ' +
-  'Копия базы — сделано: учения 10 ноября; проверенный способ отката релиза — не сделано: выкладки ещё нет. ' +
+  'Проверка ввода на сервере — не знаю: в прочитанном её не видно. Владелец — сделано: RLS включена на всех 16 таблицах. ' +
+  'Секреты — .env* в .gitignore, ключей в коде не искал — не знаю. Ошибки — сделано: app/error.tsx, сбои — в журнал errors. ' +
+  'Дальше — тесты, копия и откат?'
+const ASK_CHECKLIST_GO_REPLY =
+  'Сквозные тесты — восемь файлов, проходят ли — не знаю. Копия базы — не сделано: копия в папке проекта — только для учений, ' +
+  'рабочей копии вне досягаемости нет. Проверенный способ отката релиза — не сделано: выкладки ещё нет. ' +
   'Ссылка-приглашение — из заголовка Host: не знаю, проверить на хостинге.'
 
 export default {
@@ -696,16 +845,30 @@ export default {
       steps: [
         { id: 'del-sql', write: 'supabase/migrations/0017_delete_account.sql', content: DELETE_SQL },
         { id: 'del-apply', run: 'psql -f supabase/migrations/0017_delete_account.sql' },
+        // сверх таблицы плана: рекурсивное удаление — только по проверенному номеру
+        { id: 'del-photos', edit: 'lib/photos.ts', find: PHOTOS_FIND, replace: PHOTOS_DIR },
         { id: 'del-action', write: 'app/account/actions.ts', content: ACCOUNT_ACTIONS },
         // сверх таблицы плана: один шаг — один файл
         { id: 'del-page', write: 'app/account/page.tsx', content: ACCOUNT_PAGE },
         { id: 'del-green', run: 'npx vitest run test/delete-account.test.ts' },
       ],
     },
+    {
+      // сверх таблицы плана, Accept edits: удаление должно быть где найти — пункт меню; тест меню (s20) идёт в общем прогоне
+      id: 'ask-menu',
+      agent: { prompt: '«Аккаунт» — в меню подопечного, и поправь ожидаемое меню в e2e/first-run.spec.ts', reply: ASK_MENU_REPLY },
+      steps: [
+        { id: 'menu-nav', edit: 'components/Nav.tsx', find: NAV_FIND, replace: NAV_ACCOUNT },
+        { id: 'menu-e2e', edit: 'e2e/first-run.spec.ts', find: MENU_E2E, replace: MENU_E2E_ACCOUNT },
+      ],
+    },
     { id: 'c-delete', commit: 'Удаление аккаунта' },
-    // Вера удаляет свой аккаунт сама — и попадает на главную
+    // сверх таблицы плана — человек: правку меню запущенный dev отдавал страницам со старым меню, без «Аккаунт» (первая запись
+    // с меню: login-vera и vera-delete), как в s24 — перезапуск со сбросом кэша
+    { id: 'dev-restart', run: RESTART },
+    // Вера удаляет свой аккаунт сама: «Аккаунт» в меню, вписывает «удалить» — и попадает на главную
     { id: 'login-vera', browser: login('vera@example.com') },
-    { id: 'vera-delete', browser: { url: '/account', click: 'Удалить аккаунт' } },
+    { id: 'vera-delete', browser: { url: '/account', fill: { 'Впишите «удалить»': 'удалить' }, click: 'Удалить аккаунт' } },
     { id: 'del-count', run: `psql -At -c "select count(*) from auth.users where email = 'vera@example.com'"` },
     {
       // Plan: только чтение и ответ, код агент не меняет
@@ -717,8 +880,17 @@ export default {
       },
       steps: [
         { id: 'cl-rls', read: 'supabase/migrations/0002_rls.sql' },
+        // сверх таблицы плана: RLS — на каждой таблице public, а не только на четырёх из 0002
+        { id: 'cl-rls-all', run: RLS_ALL },
         { id: 'cl-env', read: '.gitignore' },
         { id: 'cl-err', read: 'app/error.tsx' },
+      ],
+    },
+    {
+      // сверх таблицы плана, Plan: тот же запрос, второй ход — одним ходом шаги и ответ в окно агента не помещаются
+      id: 'ask-checklist-go',
+      agent: { prompt: 'Делай', reply: ASK_CHECKLIST_GO_REPLY },
+      steps: [
         { id: 'cl-e2e', run: 'ls e2e' },
         { id: 'cl-restore', read: 'docs/restore.md' },
         // сверх таблицы плана: адрес ссылки-приглашения — из заголовка Host
