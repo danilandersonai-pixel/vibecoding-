@@ -2,25 +2,29 @@
 // Первый шаг typegen (npx next typegen): в состоянии сессии нет папки .next, а tsc ищет типы маршрутов Next (как в s13, s19 и s20).
 // Человек пишет правила словами — docs/nutrition.md: значения на этикетке — на 100 г, порция = значение × граммы / 100, число без единицы
 // не пишем, больше 900 ккал на 100 г — переспросить «это кДж?», итог дня у подопечного и сводка тренера — одна функция, округление
-// один раз, при показе; цели тренера на день — ккал, белки, жиры, углеводы. Коммит — до схемы и кода.
-// Схема (Accept edits): 0010_nutrition.sql — nutrition_goals (цели на день, строка на подопечного) и food_entries (день, продукт, граммы,
-// ккал, белки, жиры, углеводы на 100 г); RLS сразу, в той же миграции (урок дня 11: таблица из SQL без RLS открыта любому вошедшему).
-// psql -f — с подтверждения. Тест с базой test/nutrition.test.ts, как test/comments.test.ts: Анна пишет своё, Марина видит, Света не видит
-// и записать не может — зелёный с первого раза. С s22 миграцию 0010 применяет рекордер.
+// один раз, при показе; цели тренера на день — ккал, белки, жиры, углеводы; день и неделя — в адресе, неделя с понедельника,
+// дня нет в календаре (30 февраля) — страница так и говорит. Коммит — до схемы и кода.
+// Схема (Accept edits): 0010_nutrition.sql — nutrition_goals (цели на день, строка на подопечного, с разумными границами) и food_entries
+// (день, продукт, граммы, ккал, белки, жиры, углеводы на 100 г); RLS сразу, в той же миграции (урок дня 11: таблица из SQL без RLS
+// открыта любому вошедшему). psql -f — с подтверждения. Тест с базой test/nutrition.test.ts, как test/comments.test.ts: Анна пишет своё,
+// Марина видит, Света не видит и записать не может — зелёный с первого раза. С s22 миграцию 0010 применяет рекордер.
 // Расчёт: сначала тесты lib/nutrition.test.ts — красные (модуля нет), потом lib/nutrition.ts — зелёные: portion, checkPer100, parseAmount
-// («52,5» с запятой; parseWeight из lib/weight.ts не годится — он не принимает 0, а жиров бывает 0 г), dayTotal — сумма порций без округления.
+// («52,5» с запятой; parseWeight из lib/weight.ts не годится — он не принимает 0, а жиров бывает 0 г), isDay («2026-02-30» — не день:
+// без проверки страница упала бы в базе с 500), dayTotal — сумма порций без округления.
 // Страницы: дневник /nutrition?day=2026-11-12 — день в адресе, настоящие часы в кадр не попадают; на карточке подопечного у тренера —
-// цели на день и сводка недели /clients/1?week=2026-11-09 (дни недели считает база). Подводный камень «один день — два итога»: дневник
-// округляет ккал каждой строки и складывает показанные строки, а сводка — dayTotal и одно округление. Продукты — настоящие, числа
+// цели на день и сводка недели /clients/1?week=2026-11-09 (неделя — с понедельника дня из адреса, дни считает база). Строки и итог обоих
+// экранов — функции lib/nutrition.ts: dayLines у подопечного, daySummary у тренера. Подводный камень «один день — два итога»: dayLines
+// округляет ккал каждой строки и складывает показанные строки, а daySummary — dayTotal и одно округление. Продукты — настоящие, числа
 // с этикеток на 100 г, порции — обычные: овсяные хлопья 45 г (352 ккал → 158,4), молоко 2,5 % 200 г (53 → 106), гречка ядрица 80 г
-// (308 → 246,4). Строки 158 + 106 + 246 = 510 — «Итого: 510 ккал» у Анны; сумма порций 510,8 → «12 ноября: 511 ккал из 1800» у Марины.
-// Исправление — сначала тест (итог дня на тех же трёх строках показывает одна функция — 511 ккал), красный: функции нет; потом
-// shown в lib/nutrition.ts (до целых и с единицей — округление только здесь), «Итого» у Анны — shown(dayTotal(…)), сводка — тоже через
-// shown; тест зелёный, у Анны «Итого: 511 ккал».
-// Сверх таблицы плана (шаг — один файл): pages-actions (app/nutrition/actions.ts — его называет и план), pages-goals (действие целей
-// в app/clients/[id]/actions.ts), pages-e2e (меню подопечного в e2e/first-run.spec.ts стало длиннее: без правки тест s20 упал бы
-// в общем прогоне s26; запустить его здесь нельзя — Наташи и Веры в базе этой сессии нет), one-lib и one-coach (одна функция показа:
-// тест в lib/nutrition.test.ts может покраснеть и позеленеть только от правки модуля, а «для обоих экранов» — правка и сводки тренера).
+// (308 → 246,4). Строки 158 + 106 + 246 = 510 — «Итого: 510 ккал» у Анны; сумма порций 510,8 → «12 ноября: 511 ккал из 1800 ккал» у Марины.
+// Исправление — сначала тест: «Итого» экрана подопечного = итог сводки на тех же трёх строках; красный на самом расхождении —
+// «expected 510 to be 511». Потом dayLines берёт итог из daySummary — одна функция и одно округление для обоих экранов; тест зелёный,
+// у Анны «Итого: 511 ккал». Правка — в lib/nutrition.ts (one-code): «Итого» страницы считает dayLines, саму страницу менять не нужно.
+// Сверх таблицы плана (шаг — один файл): pages-lib (строки и сводка — в lib/nutrition.ts, чтобы тест видел «Итого» экрана),
+// pages-actions (app/nutrition/actions.ts — его называет и план), pages-goals (действие целей в app/clients/[id]/actions.ts), pages-e2e
+// (меню подопечного в e2e/first-run.spec.ts стало длиннее: без правки тест s20 упал бы в общем прогоне s26; запустить его здесь нельзя —
+// Наташи и Веры в базе этой сессии нет); marina-logout, anna-logout, marina-logout2 — перед входом другого человека прежний выходит
+// через меню, как natasha-logout в s20: над формой входа нет чужого меню.
 // Строки для кадра сессия создаёт сама: цели — Марина в браузере, записи дневника — Анна в браузере. Браузер один на сессию: вход меняет cookie.
 // Запись с середины цепочки: node scripts/record-session.mjs --from s21-nutrition (из course/). Id шагов постоянные: на них ссылаются уроки.
 // Режимы в ролике: все запросы — Accept edits (правки без вопроса, psql и vitest — с вопросом [y / n]).
@@ -54,6 +58,12 @@ const NUTRITION_DOC = `# Питание
 - Цели на день ставит тренер: ккал, белки, жиры, углеводы.
 - В сводке тренера у каждого дня недели — итог дня и цель.
 
+## День и неделя — в адресе
+
+- День дневника и неделя сводки — в адресе: \`?day=2026-11-12\`, \`?week=2026-11-09\`. От сегодняшней даты страницы не зависят.
+- Неделя — с понедельника: любой день в \`?week=\` открывает неделю, в которую он входит.
+- Дня, которого нет в календаре (30 февраля), нет и в дневнике: страница так и говорит.
+
 Это решения нашего приложения.
 `
 
@@ -63,13 +73,13 @@ const NUTRITION_SQL = `-- Питание (docs/nutrition.md): цели трен�
 -- Дневник — данные о здоровье, поэтому RLS включается здесь же, сразу: таблица из SQL без RLS открыта любому вошедшему
 -- (так было с comments: в 0006 Света видела комментарии Анны, закрыла их только 0007).
 
--- Цели на день — одна строка на подопечного, ставит тренер: ккал, белки, жиры и углеводы, г
+-- Цели на день — одна строка на подопечного, ставит тренер: ккал, белки, жиры и углеводы, г. Границы — с запасом, но не выше разумного
 create table nutrition_goals (
   client_id bigint primary key references clients (id),
-  kcal int not null check (kcal > 0),
-  protein int not null check (protein >= 0),
-  fat int not null check (fat >= 0),
-  carbs int not null check (carbs >= 0)
+  kcal int not null check (kcal between 1 and 10000),
+  protein int not null check (protein between 0 and 1000),
+  fat int not null check (fat between 0 and 1000),
+  carbs int not null check (carbs between 0 and 1000)
 );
 
 -- Запись дневника: день, продукт, граммы порции и значения с этикетки на 100 г — ккал, белки, жиры и углеводы, г.
@@ -179,7 +189,7 @@ test("Света не может записать в дневник Анны", a
 // Тесты расчёта — пишет агент до кода, по docs/nutrition.md: 60 г × 350 = 210; 1464 — «это кДж?»; «52,5» с запятой; итог дня без округления.
 // Три строки дня — те же продукты и граммы, что Анна вписывает в браузере (food-1 … food-3)
 const CALC_TEST = `import { expect, test } from "vitest";
-import { checkPer100, dayTotal, parseAmount, portion } from "./nutrition";
+import { checkPer100, dayTotal, isDay, parseAmount, portion } from "./nutrition";
 
 // Правила — docs/nutrition.md: значения с этикетки на 100 г, порция = значение × граммы / 100
 
@@ -200,6 +210,13 @@ test("числа как на этикетке: «52,5» с запятой — 52
   expect(parseAmount("60 г")).toBeNull();
 });
 
+test("день из адреса: «2026-11-12» — день, «2026-02-30» и «12.11.2026» — нет", () => {
+  expect(isDay("2026-11-12")).toBe(true);
+  // по формату годится, но 30 февраля в календаре нет
+  expect(isDay("2026-02-30")).toBe(false);
+  expect(isDay("12.11.2026")).toBe(false);
+});
+
 // День 12 ноября: граммы порции и значения с этикеток на 100 г
 const DAY = [
   // овсяные хлопья: 352 × 45 / 100 = 158,4 ккал
@@ -217,8 +234,9 @@ test("итог дня — сумма порций без округления: 1
 });
 `
 
-// Расчёт — пишет агент после красных тестов. parseAmount — запятая, как в lib/weight.ts; parseWeight не годится: 0 г жиров — тоже число
-const CALC_LIB = `// Питание: порция, правдоподобие ккал, числа из формы и итог дня. Правила — docs/nutrition.md, тесты — lib/nutrition.test.ts.
+// Расчёт — пишет агент после красных тестов. parseAmount — запятая, как в lib/weight.ts; parseWeight не годится: 0 г жиров — тоже число.
+// isDay — день из адреса: «2026-02-30» по формату годится, но такого дня нет (страница без него упала бы в базе с 500)
+const CALC_LIB = `// Питание: порция, правдоподобие ккал, числа из формы, день из адреса и итог дня. Правила — docs/nutrition.md, тесты — lib/nutrition.test.ts.
 // Значения с этикетки — на 100 г, граммы — вес порции. Расчёт ничего не округляет: округляют при показе.
 
 // Запись дневника для расчёта: граммы порции и значения с этикетки на 100 г — ккал, белки, жиры и углеводы, г
@@ -249,20 +267,54 @@ export function parseAmount(text: string): number | null {
   return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
+// День из адреса — «ГГГГ-ММ-ДД», и такой день есть в календаре. «2026-02-30» по формату годится, но Date перенесёт его
+// на 2 марта — сверяем с тем, что вышло; год с 1-го (нулевого года нет и в базе)
+export function isDay(text: string): boolean {
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(text) || text < "0001") return false;
+  const date = new Date(\`\${text}T00:00:00Z\`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === text;
+}
+
 // Итог дня — сумма порций за день, без округления: ккал или другое значение с этикетки
 export function dayTotal(entries: FoodEntry[], value: Value = "kcal"): number {
   return entries.reduce((sum, entry) => sum + portion(entry[value], entry.grams), 0);
 }
 `
 
-// Дневник подопечного — пишет агент. Правдоподобная ошибка: ккал каждой строки округлены «как на экране», а «Итого» — сумма показанных
-// строк, чтобы столбец сходился. Сводка тренера считает итог через dayTotal и округляет один раз — у одного дня два итога
+// Строки дня и сводка — правка агента (pages-lib): у экрана подопечного и у сводки тренера — по своей функции. Правдоподобная ошибка:
+// ккал каждой строки округлены «как на экране», а «Итого» — сумма показанных строк, чтобы столбец сходился; сводка — dayTotal
+// и одно округление. У одного дня два итога
+const PAGES_LIB = chain(CALC_LIB, [
+  [
+    `  return entries.reduce((sum, entry) => sum + portion(entry[value], entry.grams), 0);
+}
+`,
+    `  return entries.reduce((sum, entry) => sum + portion(entry[value], entry.grams), 0);
+}
+
+// Экран дня у подопечного: ккал каждой порции — до целых, как в строке, и «Итого» — сумма показанных строк, чтобы столбец сходился
+export function dayLines(entries: FoodEntry[]): { kcal: number[]; total: number } {
+  const kcal = entries.map((entry) => Math.round(portion(entry.kcal, entry.grams)));
+  return { kcal, total: kcal.reduce((sum, value) => sum + value, 0) };
+}
+
+// Сводка тренера за день: итоги ккал, белков, жиров и углеводов — dayTotal, округление одно, при показе
+export function daySummary(entries: FoodEntry[]): Record<Value, number> {
+  const total = (value: Value) => Math.round(dayTotal(entries, value));
+  return { kcal: total("kcal"), protein: total("protein"), fat: total("fat"), carbs: total("carbs") };
+}
+`,
+  ],
+])
+
+// Дневник подопечного — пишет агент: строки и «Итого» — dayLines из lib/nutrition.ts. День — из адреса (isDay); дневник ведёт
+// подопечный — тренеру страница так и говорит
 const NUTRITION_PAGE = `import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { formatDay } from "@/lib/dates";
 import { asUser } from "@/lib/db";
-import { portion, type FoodEntry } from "@/lib/nutrition";
+import { dayLines, isDay, type FoodEntry } from "@/lib/nutrition";
 import { currentUser } from "@/lib/session";
 import { addEntry } from "./actions";
 
@@ -270,9 +322,6 @@ export const metadata: Metadata = { title: "Питание" };
 
 // Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки
 export const instant = false;
-
-// День дневника — из адреса, ГГГГ-ММ-ДД: от сегодняшней даты страница не зависит
-const DAY = /^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$/;
 
 // День «ГГГГ-ММ-ДД» по-русски: «12 ноября» (полночь по времени сервера — formatDay покажет тот же день)
 const dayOf = (day: string) => formatDay(new Date(\`\${day}T00:00\`));
@@ -290,27 +339,47 @@ const PER_100: [name: string, label: string][] = [
   ["carbs", "Углеводы, г"],
 ];
 
-// Дневник питания вошедшего подопечного за день из адреса: что съедено, ккал каждой порции и итог; ниже — новая запись.
-// Без дня в адресе — дни, за которые есть записи, и выбор дня. Чужой дневник база не отдаст (RLS)
+// Дневник питания вошедшего подопечного за день из адреса (docs/nutrition.md): что съедено, ккал каждой порции и итог; ниже — новая запись.
+// Без дня в адресе — дни, за которые есть записи, и выбор дня; дня нет в календаре — страница так и говорит.
+// Дневник ведёт подопечный: у тренера своего дневника нет. Чужой дневник база не отдаст (RLS)
 export default async function NutritionPage({ searchParams }: PageProps<"/nutrition">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
   const { day, error } = await searchParams;
 
-  if (typeof day !== "string" || !DAY.test(day)) {
+  // дневник есть только у подопечного: вошедший — подопечный, если у него есть строка в clients
+  const client = await asUser(uid, async (db) => {
+    const { rows } = await db.query<{ id: string }>("select id from clients where user_id = $1", [uid]);
+    return rows[0];
+  });
+  if (!client) {
+    return (
+      <main className="mx-auto w-full max-w-md p-8">
+        <h1 className="text-3xl font-semibold">Питание</h1>
+        <p className="mt-6">Дневник питания ведёт подопечный. Цели и сводка его дневника — на карточке подопечного.</p>
+        <Link href="/clients" className="mt-4 inline-block rounded bg-zinc-900 px-4 py-2 text-white">
+          К подопечным
+        </Link>
+      </main>
+    );
+  }
+
+  if (typeof day !== "string" || !isDay(day)) {
     const days = await asUser(uid, async (db) => {
       const { rows } = await db.query<{ day: string }>(
-        \`select distinct f.day::text as day
-           from food_entries f join clients c on c.id = f.client_id
-          where c.user_id = $1
-          order by day desc\`,
-        [uid],
+        "select distinct day::text as day from food_entries where client_id = $1 order by day desc",
+        [client.id],
       );
       return rows.map((row) => row.day);
     });
     return (
       <main className="mx-auto w-full max-w-md p-8">
         <h1 className="text-3xl font-semibold">Питание</h1>
+        {typeof day === "string" && day !== "" && (
+          <p role="alert" className="mt-6 text-red-600">
+            Дня «{day}» в календаре нет — выберите день ниже.
+          </p>
+        )}
         {days.length === 0 ? (
           <section className="mt-6 rounded border border-zinc-300 p-4">
             <h2 className="text-xl font-semibold">Записей пока нет</h2>
@@ -342,26 +411,20 @@ export default async function NutritionPage({ searchParams }: PageProps<"/nutrit
   }
 
   const data = await asUser(uid, async (db) => {
-    // записи подопечного за день — по его входу; значения из numeric — числами (float8)
+    // записи подопечного за день; значения из numeric — числами (float8)
     const entries = await db.query<Entry>(
-      \`select f.id, f.product, f.grams::float8 as grams, f.kcal::float8 as kcal, f.protein::float8 as protein,
-              f.fat::float8 as fat, f.carbs::float8 as carbs
-         from food_entries f join clients c on c.id = f.client_id
-        where c.user_id = $1 and f.day = $2
-        order by f.id\`,
-      [uid, day],
+      \`select id, product, grams::float8 as grams, kcal::float8 as kcal, protein::float8 as protein,
+              fat::float8 as fat, carbs::float8 as carbs
+         from food_entries
+        where client_id = $1 and day = $2
+        order by id\`,
+      [client.id, day],
     );
-    const goals = await db.query<Goals>(
-      \`select g.kcal, g.protein, g.fat, g.carbs
-         from nutrition_goals g join clients c on c.id = g.client_id
-        where c.user_id = $1\`,
-      [uid],
-    );
+    const goals = await db.query<Goals>("select kcal, protein, fat, carbs from nutrition_goals where client_id = $1", [client.id]);
     return { entries: entries.rows, goals: goals.rows[0] };
   });
-  // ккал каждой порции — до целых, как на экране; «Итого» — сумма показанных строк
-  const lines = data.entries.map((entry) => ({ ...entry, portionKcal: Math.round(portion(entry.kcal, entry.grams)) }));
-  const total = lines.reduce((sum, line) => sum + line.portionKcal, 0);
+  // ккал строк и «Итого» для экрана — lib/nutrition.ts
+  const lines = dayLines(data.entries);
   // день — в действии формы: запись попадёт в этот день
   const add = addEntry.bind(null, day);
 
@@ -378,7 +441,7 @@ export default async function NutritionPage({ searchParams }: PageProps<"/nutrit
         <p className="mt-2 text-zinc-500">Цели на день поставит тренер</p>
       )}
 
-      {lines.length === 0 ? (
+      {data.entries.length === 0 ? (
         <section className="mt-6 rounded border border-zinc-300 p-4">
           <h2 className="text-xl font-semibold">Записей за день нет</h2>
           <p className="mt-2 text-zinc-500">Здесь будет всё, что вы съели за день: ккал каждой порции и итог.</p>
@@ -387,13 +450,13 @@ export default async function NutritionPage({ searchParams }: PageProps<"/nutrit
       ) : (
         <>
           <ul className="mt-6 flex flex-col gap-2">
-            {lines.map((line) => (
-              <li key={line.id}>
-                {line.product}, {line.grams.toLocaleString("ru-RU")} г — {line.portionKcal} ккал
+            {data.entries.map((entry, i) => (
+              <li key={entry.id}>
+                {entry.product}, {entry.grams.toLocaleString("ru-RU")} г — {lines.kcal[i]} ккал
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-xl font-semibold">Итого: {total} ккал</p>
+          <p className="mt-4 text-xl font-semibold">Итого: {lines.total} ккал</p>
         </>
       )}
 
@@ -433,12 +496,13 @@ export default async function NutritionPage({ searchParams }: PageProps<"/nutrit
 }
 `
 
-// Запись в дневник — пишет агент: числа с этикетки разбирает parseAmount, больше 900 ккал на 100 г — вопрос «это кДж?» под формой
+// Запись в дневник — пишет агент: числа с этикетки разбирает parseAmount, больше 900 ккал на 100 г — вопрос «это кДж?» под формой;
+// у тренера строки в clients нет — не записалось ничего, и форма так и говорит
 const NUTRITION_ACTIONS = `"use server";
 
 import { redirect } from "next/navigation";
 import { asUser } from "@/lib/db";
-import { checkPer100, parseAmount } from "@/lib/nutrition";
+import { checkPer100, isDay, parseAmount } from "@/lib/nutrition";
 import { currentUser } from "@/lib/session";
 
 // Запись в дневник за день day: продукт, граммы порции и значения с этикетки на 100 г (docs/nutrition.md).
@@ -446,8 +510,8 @@ import { currentUser } from "@/lib/session";
 export async function addEntry(day: string, form: FormData) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
-  // день — ГГГГ-ММ-ДД, как в адресе страницы
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(day)) redirect("/nutrition");
+  // день — как в адресе страницы, и такой день есть в календаре
+  if (!isDay(day)) redirect("/nutrition");
   const page = \`/nutrition?day=\${day}\`;
   // ошибку страница покажет под формой: её текст — в адресе
   const fail = (error: string) => \`\${page}&error=\${encodeURIComponent(error)}\`;
@@ -466,13 +530,15 @@ export async function addEntry(day: string, form: FormData) {
   const question = checkPer100(kcal);
   if (question) redirect(fail(question));
 
-  await asUser(uid, (db) =>
+  // запись — в дневник вошедшего подопечного; у тренера строки в clients нет, и не запишется ничего
+  const { rowCount } = await asUser(uid, (db) =>
     db.query(
       \`insert into food_entries (client_id, day, product, grams, kcal, protein, fat, carbs)
        select id, $2::date, $3, $4::numeric, $5::numeric, $6::numeric, $7::numeric, $8::numeric from clients where user_id = $1\`,
       [uid, day, product, grams, kcal, protein, fat, carbs],
     ),
   );
+  if (rowCount === 0) redirect(fail("Дневник питания ведёт подопечный"));
   // тот же день заново — с новой записью и без прежней ошибки в адресе
   redirect(page);
 }
@@ -599,15 +665,15 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
 }
 `
 
-// Карточка подопечного — правка агента (pages-coach): цели на день и сводка недели из адреса (?week=2026-11-09). Итог дня — dayTotal
-// и одно округление, Math.round при показе; дни недели считает база (дата + 0 … 6), без часов сервера
+// Карточка подопечного — правка агента (pages-coach): цели на день и сводка недели из адреса (?week=2026-11-09). Итоги дня — daySummary;
+// неделя — с понедельника того дня, что в адресе: дни считает база, без часов сервера. У каждого числа — единица, и у цели тоже
 const CLIENT_PAGE_NUTRITION = chain(CLIENT_PAGE, [
   [
     `import { asUser } from "@/lib/db";
 import { progress } from "@/lib/progress";
 `,
     `import { asUser } from "@/lib/db";
-import { dayTotal, type FoodEntry } from "@/lib/nutrition";
+import { daySummary, isDay, type FoodEntry } from "@/lib/nutrition";
 import { progress } from "@/lib/progress";
 `,
   ],
@@ -640,22 +706,19 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
   const uid = await currentUser();
 `,
     `
-// Неделя сводки — из адреса, ?week=ГГГГ-ММ-ДД, первый день недели: от сегодняшней даты сводка не зависит
-const DAY = /^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$/;
-
 // День «ГГГГ-ММ-ДД» по-русски: «12 ноября» (полночь по времени сервера — formatDay покажет тот же день)
 const dayOf = (day: string) => formatDay(new Date(\`\${day}T00:00\`));
 
-// Поля целей: имя в форме и подпись
-const GOALS: [name: keyof Goals, label: string][] = [
-  ["kcal", "Ккал"],
-  ["protein", "Белки, г"],
-  ["fat", "Жиры, г"],
-  ["carbs", "Углеводы, г"],
+// Поля целей: имя в форме, подпись и границы — как в 0010_nutrition.sql
+const GOALS: [name: keyof Goals, label: string, min: number, max: number][] = [
+  ["kcal", "Ккал", 1, 10000],
+  ["protein", "Белки, г", 0, 1000],
+  ["fat", "Жиры, г", 0, 1000],
+  ["carbs", "Углеводы, г", 0, 1000],
 ];
 
-// Карточка подопечного по id из адреса: имя; питание — цели на день и сводка недели из адреса; форма «Назначить»
-// и тренировки с подходами, объёмом и комментариями
+// Карточка подопечного по id из адреса: имя; питание — цели на день и сводка недели из адреса (?week=ГГГГ-ММ-ДД, неделя
+// с понедельника — docs/nutrition.md); форма «Назначить» и тренировки с подходами, объёмом и комментариями
 export default async function ClientPage({ params, searchParams }: PageProps<"/clients/[id]">) {
   const uid = await currentUser();
 `,
@@ -665,8 +728,10 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
   const card = await asUser(uid, async (db) => {
 `,
     `  const { id } = await params;
-  const { week } = await searchParams;
-  const weekStart = typeof week === "string" && DAY.test(week) ? week : null;
+  const { week, error } = await searchParams;
+  // неделя — из адреса, от сегодняшней даты сводка не зависит; дня нет в календаре — страница так и говорит
+  const weekDay = typeof week === "string" && isDay(week) ? week : null;
+  const badWeek = typeof week === "string" && week !== "" && !weekDay ? week : null;
   const card = await asUser(uid, async (db) => {
 `,
   ],
@@ -677,20 +742,21 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
     `    );
     // цели на день — одна строка на подопечного (0010_nutrition.sql)
     const goals = await db.query<Goals>("select kcal, protein, fat, carbs from nutrition_goals where client_id = $1", [id]);
-    // неделя из адреса: семь дней от weekStart, у каждого — записи дневника. Дни считает база (дата + число дней)
-    const days = weekStart
+    // неделя из адреса: с понедельника той недели, где день weekDay, семь дней, у каждого — записи дневника.
+    // Дни считает база: понедельник — день минус (номер дня недели − 1), дальше + 0 … 6
+    const days = weekDay
       ? await db.query<NutritionDay>(
           \`select d.day::text as day,
                   coalesce(json_agg(json_build_object('grams', f.grams, 'kcal', f.kcal, 'protein', f.protein, 'fat', f.fat,
                                                       'carbs', f.carbs) order by f.id) filter (where f.id is not null), '[]') as entries
-             from (select $2::date + n as day from generate_series(0, 6) as n) d
+             from (select $2::date - (extract(isodow from $2::date)::int - 1) + n as day from generate_series(0, 6) as n) d
              left join food_entries f on f.client_id = $1 and f.day = d.day
             group by d.day
             order by d.day\`,
-          [id, weekStart],
+          [id, weekDay],
         )
       : null;
-    // без недели в адресе — недели, за которые есть записи: понедельник каждой (день минус номер дня недели и ещё 1)
+    // без недели в адресе — недели, за которые есть записи: понедельник каждой
     const weeks = await db.query<{ week: string }>(
       \`select distinct (day - (extract(isodow from day)::int - 1))::text as week
          from food_entries where client_id = $1
@@ -741,14 +807,15 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
             : "Целей на день пока нет"}
         </p>
         <form action={setGoals} className="mt-4 flex flex-col gap-4">
-          {GOALS.map(([name, label]) => (
+          {GOALS.map(([name, label, min, max]) => (
             <div key={name} className="flex flex-col gap-1">
               <label htmlFor={name}>{label}</label>
               <input
                 id={name}
                 name={name}
                 type="number"
-                min={0}
+                min={min}
+                max={max}
                 required
                 defaultValue={goals?.[name]}
                 className="rounded border border-zinc-300 px-3 py-2"
@@ -759,28 +826,41 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
             Сохранить
           </button>
         </form>
+        {typeof error === "string" && (
+          <p role="alert" className="mt-4 text-red-600">
+            {error}
+          </p>
+        )}
 
+        {badWeek && (
+          <p role="alert" className="mt-6 text-red-600">
+            Дня «{badWeek}» в календаре нет — выберите неделю ниже.
+          </p>
+        )}
         {card.days ? (
           <>
             <h3 className="mt-6 font-semibold">Неделя с {dayOf(card.days[0].day)}</h3>
             <ul className="mt-2 flex flex-col gap-2">
-              {card.days.map(({ day, entries }) =>
-                entries.length === 0 ? (
-                  <li key={day} className="text-zinc-500">
-                    {dayOf(day)}: нет записей
-                  </li>
-                ) : (
-                  // итог дня — dayTotal, сумма порций; округление одно, при показе
+              {card.days.map(({ day, entries }) => {
+                if (entries.length === 0) {
+                  return (
+                    <li key={day} className="text-zinc-500">
+                      {dayOf(day)}: нет записей
+                    </li>
+                  );
+                }
+                // итоги дня — daySummary: dayTotal и одно округление; у каждого числа — единица
+                const sum = daySummary(entries);
+                return (
                   <li key={day}>
-                    {dayOf(day)}: {Math.round(dayTotal(entries))} ккал{goals && \` из \${goals.kcal}\`}
+                    {dayOf(day)}: {sum.kcal} ккал{goals && \` из \${goals.kcal} ккал\`}
                     <span className="block text-sm text-zinc-500">
-                      белки {Math.round(dayTotal(entries, "protein"))} г{goals && \` из \${goals.protein}\`}, жиры{" "}
-                      {Math.round(dayTotal(entries, "fat"))} г{goals && \` из \${goals.fat}\`}, углеводы{" "}
-                      {Math.round(dayTotal(entries, "carbs"))} г{goals && \` из \${goals.carbs}\`}
+                      белки {sum.protein} г{goals && \` из \${goals.protein} г\`}, жиры {sum.fat} г{goals && \` из \${goals.fat} г\`}, углеводы{" "}
+                      {sum.carbs} г{goals && \` из \${goals.carbs} г\`}
                     </span>
                   </li>
-                ),
-              )}
+                );
+              })}
             </ul>
           </>
         ) : card.weeks.length === 0 ? (
@@ -809,15 +889,24 @@ const ASSIGN_END = `  // карточка подопечного покажет 
 `
 
 const GOALS_ACTION = `
-// Тренер ставит подопечному clientId цели на день из формы: ккал, белки, жиры и углеводы, г (docs/nutrition.md) — целые числа.
-// Целей у подопечного одна строка: новые заменяют прежние. Цели чужому подопечному не даст поставить RLS
+// Тренер ставит подопечному clientId цели на день из формы: ккал, белки, жиры и углеводы, г (docs/nutrition.md) — целые числа
+// в границах 0010_nutrition.sql. Целей у подопечного одна строка: новые заменяют прежние. Цели чужому подопечному не даст поставить RLS
 // (политика «тренер ведёт цели своих»)
 export async function saveGoals(clientId: string, form: FormData) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
-  const goals = ["kcal", "protein", "fat", "carbs"].map((name) => Number(form.get(name)));
-  // целые, не меньше нуля, ккал — больше нуля; иначе ничего не сохраняем (пустое поле Number превращает в 0)
-  if (!goals.every((n) => Number.isInteger(n) && n >= 0) || goals[0] === 0) return;
+  const page = \`/clients/\${clientId}\`;
+  // пустое поле — не число (Number("") дал бы 0)
+  const goals = ["kcal", "protein", "fat", "carbs"].map((name) => {
+    const text = String(form.get(name) ?? "").trim();
+    return text === "" ? NaN : Number(text);
+  });
+  const [kcal, ...grams] = goals;
+  // ошибку карточка покажет под формой целей: её текст — в адресе
+  const fits = (n: number, min: number, max: number) => Number.isInteger(n) && n >= min && n <= max;
+  if (!fits(kcal, 1, 10000) || !grams.every((n) => fits(n, 0, 1000))) {
+    redirect(\`\${page}?error=\${encodeURIComponent("Цели — целые числа: ккал от 1 до 10 000, белки, жиры и углеводы от 0 до 1000 г")}\`);
+  }
   await asUser(uid, (db) =>
     db.query(
       \`insert into nutrition_goals (client_id, kcal, protein, fat, carbs) values ($1, $2, $3, $4, $5)
@@ -826,8 +915,8 @@ export async function saveGoals(clientId: string, form: FormData) {
       [clientId, ...goals],
     ),
   );
-  // карточка покажет новые цели сразу после нажатия
-  revalidatePath(\`/clients/\${clientId}\`);
+  // карточка заново — с новыми целями и без прежней ошибки в адресе
+  redirect(page);
 }
 `
 
@@ -865,16 +954,16 @@ const VERA_MENU = `  await expect(menu.getByRole("link")).toHaveText(["Мои т
 const VERA_MENU_NUTRITION = `  await expect(menu.getByRole("link")).toHaveText(["Мои тренировки", "Питание"]);
 `
 
-// Тест на правило «одна функция, одно округление» — агент дописывает его в lib/nutrition.test.ts: итог дня на тех же трёх строках
-// показывает shown(dayTotal(…)) — 511 ккал. До правки красный: одной функции показа нет
+// Тест на правило «одна функция, одно округление» — агент дописывает его в lib/nutrition.test.ts: «Итого» экрана подопечного
+// на тех же трёх строках — то же число, что в сводке тренера. До правки красный: 510 против 511
 const ONE_TEST = chain(CALC_TEST, [
   [
     `import { expect, test } from "vitest";
-import { checkPer100, dayTotal, parseAmount, portion } from "./nutrition";
+import { checkPer100, dayTotal, isDay, parseAmount, portion } from "./nutrition";
 
 `,
     `import { expect, test } from "vitest";
-import { checkPer100, dayTotal, parseAmount, portion, shown } from "./nutrition";
+import { checkPer100, dayLines, daySummary, dayTotal, isDay, parseAmount, portion } from "./nutrition";
 
 `,
   ],
@@ -885,149 +974,36 @@ import { checkPer100, dayTotal, parseAmount, portion, shown } from "./nutrition"
     `  expect(dayTotal(DAY, "protein")).toBeCloseTo(21.215);
 });
 
-// Один итог на двоих (docs/nutrition.md): экран подопечного и сводка тренера показывают итог дня одинаково — shown(dayTotal(…)),
-// одно округление при показе. Сумма уже округлённых строк — 158 + 106 + 246 = 510 — другой итог того же дня
-test("итог дня у подопечного и в сводке тренера — одно число: 511 ккал", () => {
-  expect(shown(dayTotal(DAY), "ккал")).toBe("511 ккал");
-  // строка порции — тем же показом: 158,4 → 158 ккал
-  expect(shown(portion(352, 45), "ккал")).toBe("158 ккал");
+// Один итог на двоих (docs/nutrition.md): «Итого» на экране подопечного — то же число, что в сводке тренера, на тех же трёх строках.
+// Сводка — dayTotal и одно округление: 510,8 → 511
+test("итог экрана подопечного = итог сводки тренера: 511 ккал", () => {
+  expect(dayLines(DAY).total).toBe(daySummary(DAY).kcal);
 });
 `,
   ],
 ])
 
-// Одна функция показа — правка агента (one-lib): до целых и с единицей, округление только здесь
-const ONE_LIB = chain(CALC_LIB, [
-  [
-    `// Питание: порция, правдоподобие ккал, числа из формы и итог дня. Правила — docs/nutrition.md, тесты — lib/nutrition.test.ts.
-// Значения с этикетки — на 100 г, граммы — вес порции. Расчёт ничего не округляет: округляют при показе.
-
-`,
-    `// Питание: порция, правдоподобие ккал, числа из формы и итог дня. Правила — docs/nutrition.md, тесты — lib/nutrition.test.ts.
-// Значения с этикетки — на 100 г, граммы — вес порции. Расчёт ничего не округляет: округляет shown, при показе.
-
-`,
-  ],
-  [
-    `  return entries.reduce((sum, entry) => sum + portion(entry[value], entry.grams), 0);
-}
-`,
-    `  return entries.reduce((sum, entry) => sum + portion(entry[value], entry.grams), 0);
-}
-
-// Число для показа — одна функция для экрана подопечного и сводки тренера: до целых и с единицей, «511 ккал».
-// Округление только здесь, один раз: порции и итог дня приходят сюда как есть
-export function shown(value: number, unit: string): string {
-  return \`\${Math.round(value)} \${unit}\`;
-}
-`,
-  ],
-])
-
-// Дневник — правка агента (one-code): «Итого» — dayTotal, как в сводке тренера; порция и итог показываются через shown
-const NUTRITION_PAGE_ONE = chain(NUTRITION_PAGE, [
-  [
-    `import { asUser } from "@/lib/db";
-import { portion, type FoodEntry } from "@/lib/nutrition";
-import { currentUser } from "@/lib/session";
-`,
-    `import { asUser } from "@/lib/db";
-import { dayTotal, portion, shown, type FoodEntry } from "@/lib/nutrition";
-import { currentUser } from "@/lib/session";
-`,
-  ],
-  [
-    `  });
-  // ккал каждой порции — до целых, как на экране; «Итого» — сумма показанных строк
-  const lines = data.entries.map((entry) => ({ ...entry, portionKcal: Math.round(portion(entry.kcal, entry.grams)) }));
-  const total = lines.reduce((sum, line) => sum + line.portionKcal, 0);
-  // день — в действии формы: запись попадёт в этот день
-`,
-    `  });
-  // ккал порции и итог дня — без округления, их показывает shown: один раз, при показе. Итог — dayTotal, как в сводке тренера
-  // день — в действии формы: запись попадёт в этот день
-`,
-  ],
+// Один итог — правка агента (one-code): «Итого» экрана подопечного берёт число из daySummary — той же функции, что сводка тренера
+const NUTRITION_LIB_ONE = chain(PAGES_LIB, [
   [
     `
-      {lines.length === 0 ? (
-        <section className="mt-6 rounded border border-zinc-300 p-4">
+// Экран дня у подопечного: ккал каждой порции — до целых, как в строке, и «Итого» — сумма показанных строк, чтобы столбец сходился
+export function dayLines(entries: FoodEntry[]): { kcal: number[]; total: number } {
 `,
     `
-      {data.entries.length === 0 ? (
-        <section className="mt-6 rounded border border-zinc-300 p-4">
+// Экран дня у подопечного: ккал каждой порции — до целых, как в строке. «Итого» — тот же итог, что в сводке тренера: одна функция
+// и одно округление (docs/nutrition.md), а не сумма показанных строк: столбец может с итогом не сойтись, верен итог
+export function dayLines(entries: FoodEntry[]): { kcal: number[]; total: number } {
 `,
   ],
   [
-    `          <ul className="mt-6 flex flex-col gap-2">
-            {lines.map((line) => (
-              <li key={line.id}>
-                {line.product}, {line.grams.toLocaleString("ru-RU")} г — {line.portionKcal} ккал
-              </li>
+    `  const kcal = entries.map((entry) => Math.round(portion(entry.kcal, entry.grams)));
+  return { kcal, total: kcal.reduce((sum, value) => sum + value, 0) };
+}
 `,
-    `          <ul className="mt-6 flex flex-col gap-2">
-            {data.entries.map((entry) => (
-              <li key={entry.id}>
-                {entry.product}, {entry.grams.toLocaleString("ru-RU")} г — {shown(portion(entry.kcal, entry.grams), "ккал")}
-              </li>
-`,
-  ],
-  [
-    `          </ul>
-          <p className="mt-4 text-xl font-semibold">Итого: {total} ккал</p>
-        </>
-`,
-    `          </ul>
-          <p className="mt-4 text-xl font-semibold">Итого: {shown(dayTotal(data.entries), "ккал")}</p>
-        </>
-`,
-  ],
-])
-
-// Сводка тренера — правка агента (one-coach): Math.round при показе — та же функция shown, что на экране подопечного
-const CLIENT_PAGE_ONE = chain(CLIENT_PAGE_NUTRITION, [
-  [
-    `import { asUser } from "@/lib/db";
-import { dayTotal, type FoodEntry } from "@/lib/nutrition";
-import { progress } from "@/lib/progress";
-`,
-    `import { asUser } from "@/lib/db";
-import { dayTotal, shown, type FoodEntry } from "@/lib/nutrition";
-import { progress } from "@/lib/progress";
-`,
-  ],
-  [
-    `                ) : (
-                  // итог дня — dayTotal, сумма порций; округление одно, при показе
-                  <li key={day}>
-`,
-    `                ) : (
-                  // итог дня — dayTotal, показывает shown: как на экране подопечного
-                  <li key={day}>
-`,
-  ],
-  [
-    `                  <li key={day}>
-                    {dayOf(day)}: {Math.round(dayTotal(entries))} ккал{goals && \` из \${goals.kcal}\`}
-                    <span className="block text-sm text-zinc-500">
-`,
-    `                  <li key={day}>
-                    {dayOf(day)}: {shown(dayTotal(entries), "ккал")}{goals && \` из \${goals.kcal}\`}
-                    <span className="block text-sm text-zinc-500">
-`,
-  ],
-  [
-    `                    <span className="block text-sm text-zinc-500">
-                      белки {Math.round(dayTotal(entries, "protein"))} г{goals && \` из \${goals.protein}\`}, жиры{" "}
-                      {Math.round(dayTotal(entries, "fat"))} г{goals && \` из \${goals.fat}\`}, углеводы{" "}
-                      {Math.round(dayTotal(entries, "carbs"))} г{goals && \` из \${goals.carbs}\`}
-                    </span>
-`,
-    `                    <span className="block text-sm text-zinc-500">
-                      белки {shown(dayTotal(entries, "protein"), "г")}{goals && \` из \${goals.protein}\`}, жиры{" "}
-                      {shown(dayTotal(entries, "fat"), "г")}{goals && \` из \${goals.fat}\`}, углеводы{" "}
-                      {shown(dayTotal(entries, "carbs"), "г")}{goals && \` из \${goals.carbs}\`}
-                    </span>
+    `  const kcal = entries.map((entry) => Math.round(portion(entry.kcal, entry.grams)));
+  return { kcal, total: daySummary(entries).kcal };
+}
 `,
   ],
 ])
@@ -1045,9 +1021,13 @@ function chain(text, pairs) {
 }
 
 const login = (email) => ({ url: '/login', fill: { Почта: email, Пароль: 'demo-password' }, click: 'Войти' })
+// Выход через меню перед входом другого человека, как natasha-logout в s20: над формой входа — уже без чужого меню
+const logout = (url) => ({ url, click: 'Выйти' })
 
 // Дневник Анны за 12 ноября — день в адресе; продукт, порция и числа с этикетки на 100 г, как на упаковке — с запятой
 const DIARY = '/nutrition?day=2026-11-12'
+// Сводка недели у Марины — неделя в адресе, с понедельника 9 ноября
+const COACH_WEEK = '/clients/1?week=2026-11-09'
 const food = (product, grams, kcal, protein, fat, carbs) => ({
   url: DIARY,
   fill: { Продукт: product, 'Порция, г': grams, Ккал: kcal, 'Белки, г': protein, 'Жиры, г': fat, 'Углеводы, г': carbs },
@@ -1059,15 +1039,15 @@ const ASK_SCHEMA_REPLY =
   'Цели на день — nutrition_goals, дневник — food_entries: продукт, граммы и значения с этикетки на 100 г. ' +
   'RLS сразу: подопечный ведёт свой дневник, тренер читает дневник своих; Света дневник Анны не видит.'
 const ASK_CALC_REPLY =
-  'portion — значение × граммы / 100, checkPer100 выше 900 ккал на 100 г спрашивает «это кДж?», ' +
-  'parseAmount понимает запятую, dayTotal складывает порции без округления.'
+  'portion — значение × граммы / 100, checkPer100 выше 900 ккал на 100 г спрашивает «это кДж?», parseAmount понимает запятую, ' +
+  'isDay не пускает 30 февраля, dayTotal складывает порции без округления.'
 const ASK_PAGES_REPLY =
-  'Дневник — /nutrition?day=…: ккал каждой порции до целых и «Итого» — сумма этих строк; запись — граммы и числа с этикетки. ' +
-  'На карточке подопечного — цели на день и сводка недели по ?week=…: итог дня через dayTotal. ' +
+  'Дневник — /nutrition?day=…: dayLines даёт ккал каждой порции до целых и «Итого» — сумму этих строк. ' +
+  'На карточке подопечного — цели на день и сводка недели по ?week=…: daySummary, dayTotal и одно округление. ' +
   'В меню подопечного — «Питание», в e2e/first-run.spec.ts тоже.'
 const ASK_ONE_REPLY =
-  'Одна функция показа — shown: округляет один раз, при показе. «Итого» у подопечной теперь shown(dayTotal(…)), ' +
-  'как и в сводке тренера.'
+  'Тест красный: «Итого» на экране — 510, в сводке — 511. Теперь dayLines берёт итог из daySummary — ' +
+  'одна функция и одно округление для обоих экранов.'
 
 export default {
   id: 's21-nutrition',
@@ -1116,11 +1096,13 @@ export default {
         reply: ASK_PAGES_REPLY,
       },
       steps: [
-        // подводный камень: «Итого» — сумма уже округлённых строк
+        // сверх таблицы плана: строки и итог экрана подопечного и сводка тренера — функции в lib/nutrition.ts, их видит тест.
+        // Подводный камень: «Итого» — сумма уже округлённых строк
+        { id: 'pages-lib', edit: 'lib/nutrition.ts', find: CALC_LIB, replace: PAGES_LIB },
         { id: 'pages-anna', write: 'app/nutrition/page.tsx', content: NUTRITION_PAGE },
         // сверх таблицы плана: действие записи — свой файл (план называет его в pages-anna)
         { id: 'pages-actions', write: 'app/nutrition/actions.ts', content: NUTRITION_ACTIONS },
-        // сводка тренера: dayTotal и одно округление
+        // сводка тренера: daySummary — dayTotal и одно округление
         { id: 'pages-coach', edit: 'app/clients/[id]/page.tsx', find: CLIENT_PAGE, replace: CLIENT_PAGE_NUTRITION },
         // сверх таблицы плана: действие формы целей — к действиям карточки
         { id: 'pages-goals', edit: 'app/clients/[id]/actions.ts', find: ASSIGN_END, replace: ASSIGN_END + GOALS_ACTION },
@@ -1134,6 +1116,8 @@ export default {
     { id: 'login-marina', browser: login('marina@example.com') },
     // цели на день — Марина на карточке Анны (подопечная 1 в seed.sql)
     { id: 'goals-set', browser: { url: '/clients/1', fill: { Ккал: '1800', 'Белки, г': '120', 'Жиры, г': '60', 'Углеводы, г': '200' }, click: 'Сохранить' } },
+    // сверх таблицы плана: Марина выходит, прежде чем войдёт Анна
+    { id: 'marina-logout', browser: logout('/clients/1') },
     { id: 'login-anna', browser: login('anna@example.com') },
     // три продукта 12 ноября: числа с этикеток на 100 г, порции — граммы
     { id: 'food-1', browser: food('Овсяные хлопья', '45', '352', '12,3', '6,2', '61,8') },
@@ -1141,11 +1125,13 @@ export default {
     { id: 'food-3', browser: food('Гречка ядрица', '80', '308', '12,6', '3,3', '57,1') },
     // строки 158 + 106 + 246 — «Итого: 510 ккал»
     { id: 'anna-day', browser: { url: DIARY } },
+    // сверх таблицы плана: Анна выходит, прежде чем войдёт Марина
+    { id: 'anna-logout', browser: logout(DIARY) },
     { id: 'login-marina2', browser: login('marina@example.com') },
-    // сводка недели с понедельника 9 ноября: 158,4 + 106 + 246,4 = 510,8 — «12 ноября: 511 ккал из 1800»
-    { id: 'coach-day', browser: { url: '/clients/1?week=2026-11-09' } },
+    // сводка недели с понедельника 9 ноября: 158,4 + 106 + 246,4 = 510,8 — «12 ноября: 511 ккал из 1800 ккал»
+    { id: 'coach-day', browser: { url: COACH_WEEK } },
     {
-      // Accept edits: сначала тест — красный, потом одна функция показа для обоих экранов — зелёный
+      // Accept edits: сначала тест — красный на 510 против 511, потом одна функция для обоих экранов — зелёный
       id: 'ask-one',
       agent: {
         prompt: 'У подопечной и у тренера за один день разные итоги. Одна функция и одно округление для обоих экранов, сначала тест',
@@ -1153,16 +1139,16 @@ export default {
       },
       steps: [
         { id: 'one-test', edit: 'lib/nutrition.test.ts', find: CALC_TEST, replace: ONE_TEST },
+        // красный на самом расхождении: «Итого» экрана — 510, сводка — 511
         { id: 'one-red', run: 'npx vitest run lib/nutrition.test.ts' },
-        // сверх таблицы плана: функция показа — в модуле расчёта, тест красный от её отсутствия
-        { id: 'one-lib', edit: 'lib/nutrition.ts', find: CALC_LIB, replace: ONE_LIB },
-        { id: 'one-code', edit: 'app/nutrition/page.tsx', find: NUTRITION_PAGE, replace: NUTRITION_PAGE_ONE },
-        // сверх таблицы плана: «для обоих экранов» — сводка тренера через ту же функцию
-        { id: 'one-coach', edit: 'app/clients/[id]/page.tsx', find: CLIENT_PAGE_NUTRITION, replace: CLIENT_PAGE_ONE },
+        // правка — в lib/nutrition.ts: «Итого» экрана считает dayLines, страницу менять не нужно
+        { id: 'one-code', edit: 'lib/nutrition.ts', find: PAGES_LIB, replace: NUTRITION_LIB_ONE },
         { id: 'one-green', run: 'npx vitest run lib/nutrition.test.ts' },
       ],
     },
     { id: 'c-one', commit: 'Один итог дня на двоих' },
+    // сверх таблицы плана: Марина выходит, прежде чем войдёт Анна
+    { id: 'marina-logout2', browser: logout(COACH_WEEK) },
     { id: 'login-anna2', browser: login('anna@example.com') },
     // тот же день — «Итого: 511 ккал», как в сводке Марины
     { id: 'anna-day2', browser: { url: DIARY } },

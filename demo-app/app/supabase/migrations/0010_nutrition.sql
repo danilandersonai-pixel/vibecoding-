@@ -2,13 +2,13 @@
 -- Дневник — данные о здоровье, поэтому RLS включается здесь же, сразу: таблица из SQL без RLS открыта любому вошедшему
 -- (так было с comments: в 0006 Света видела комментарии Анны, закрыла их только 0007).
 
--- Цели на день — одна строка на подопечного, ставит тренер: ккал, белки, жиры и углеводы, г
+-- Цели на день — одна строка на подопечного, ставит тренер: ккал, белки, жиры и углеводы, г. Границы — с запасом, но не выше разумного
 create table nutrition_goals (
   client_id bigint primary key references clients (id),
-  kcal int not null check (kcal > 0),
-  protein int not null check (protein >= 0),
-  fat int not null check (fat >= 0),
-  carbs int not null check (carbs >= 0)
+  kcal int not null check (kcal between 1 and 10000),
+  protein int not null check (protein between 0 and 1000),
+  fat int not null check (fat between 0 and 1000),
+  carbs int not null check (carbs between 0 and 1000)
 );
 
 -- Запись дневника: день, продукт, граммы порции и значения с этикетки на 100 г — ккал, белки, жиры и углеводы, г.

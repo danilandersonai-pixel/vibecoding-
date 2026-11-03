@@ -7,7 +7,7 @@ import ProgressChart from "@/components/ProgressChart";
 import SetList from "@/components/SetList";
 import { formatDay } from "@/lib/dates";
 import { asUser } from "@/lib/db";
-import { dayTotal, shown, type FoodEntry } from "@/lib/nutrition";
+import { daySummary, isDay, type FoodEntry } from "@/lib/nutrition";
 import { progress } from "@/lib/progress";
 import { currentUser } from "@/lib/session";
 import { volume } from "@/lib/volume";
@@ -25,28 +25,27 @@ type Goals = { kcal: number; protein: number; fat: number; carbs: number };
 // День недели в сводке питания: ГГГГ-ММ-ДД и записи дневника за этот день (значения из json — числа)
 type NutritionDay = { day: string; entries: FoodEntry[] };
 
-// Неделя сводки — из адреса, ?week=ГГГГ-ММ-ДД, первый день недели: от сегодняшней даты сводка не зависит
-const DAY = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
-
 // День «ГГГГ-ММ-ДД» по-русски: «12 ноября» (полночь по времени сервера — formatDay покажет тот же день)
 const dayOf = (day: string) => formatDay(new Date(`${day}T00:00`));
 
-// Поля целей: имя в форме и подпись
-const GOALS: [name: keyof Goals, label: string][] = [
-  ["kcal", "Ккал"],
-  ["protein", "Белки, г"],
-  ["fat", "Жиры, г"],
-  ["carbs", "Углеводы, г"],
+// Поля целей: имя в форме, подпись и границы — как в 0010_nutrition.sql
+const GOALS: [name: keyof Goals, label: string, min: number, max: number][] = [
+  ["kcal", "Ккал", 1, 10000],
+  ["protein", "Белки, г", 0, 1000],
+  ["fat", "Жиры, г", 0, 1000],
+  ["carbs", "Углеводы, г", 0, 1000],
 ];
 
-// Карточка подопечного по id из адреса: имя; питание — цели на день и сводка недели из адреса; форма «Назначить»
-// и тренировки с подходами, объёмом и комментариями
+// Карточка подопечного по id из адреса: имя; питание — цели на день и сводка недели из адреса (?week=ГГГГ-ММ-ДД, неделя
+// с понедельника — docs/nutrition.md); форма «Назначить» и тренировки с подходами, объёмом и комментариями
 export default async function ClientPage({ params, searchParams }: PageProps<"/clients/[id]">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
   const { id } = await params;
-  const { week } = await searchParams;
-  const weekStart = typeof week === "string" && DAY.test(week) ? week : null;
+  const { week, error } = await searchParams;
+  // неделя — из адреса, от сегодняшней даты сводка не зависит; дня нет в календаре — страница так и говорит
+  const weekDay = typeof week === "string" && isDay(week) ? week : null;
+  const badWeek = typeof week === "string" && week !== "" && !weekDay ? week : null;
   const card = await asUser(uid, async (db) => {
     const client = await db.query<{ name: string }>("select name from clients where id = $1", [id]);
     // тренировки с подходами одним запросом: left join берёт и тренировки без подходов, json_agg собирает подходы в массив
@@ -70,20 +69,21 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
     );
     // цели на день — одна строка на подопечного (0010_nutrition.sql)
     const goals = await db.query<Goals>("select kcal, protein, fat, carbs from nutrition_goals where client_id = $1", [id]);
-    // неделя из адреса: семь дней от weekStart, у каждого — записи дневника. Дни считает база (дата + число дней)
-    const days = weekStart
+    // неделя из адреса: с понедельника той недели, где день weekDay, семь дней, у каждого — записи дневника.
+    // Дни считает база: понедельник — день минус (номер дня недели − 1), дальше + 0 … 6
+    const days = weekDay
       ? await db.query<NutritionDay>(
           `select d.day::text as day,
                   coalesce(json_agg(json_build_object('grams', f.grams, 'kcal', f.kcal, 'protein', f.protein, 'fat', f.fat,
                                                       'carbs', f.carbs) order by f.id) filter (where f.id is not null), '[]') as entries
-             from (select $2::date + n as day from generate_series(0, 6) as n) d
+             from (select $2::date - (extract(isodow from $2::date)::int - 1) + n as day from generate_series(0, 6) as n) d
              left join food_entries f on f.client_id = $1 and f.day = d.day
             group by d.day
             order by d.day`,
-          [id, weekStart],
+          [id, weekDay],
         )
       : null;
-    // без недели в адресе — недели, за которые есть записи: понедельник каждой (день минус номер дня недели и ещё 1)
+    // без недели в адресе — недели, за которые есть записи: понедельник каждой
     const weeks = await db.query<{ week: string }>(
       `select distinct (day - (extract(isodow from day)::int - 1))::text as week
          from food_entries where client_id = $1
@@ -121,14 +121,15 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
             : "Целей на день пока нет"}
         </p>
         <form action={setGoals} className="mt-4 flex flex-col gap-4">
-          {GOALS.map(([name, label]) => (
+          {GOALS.map(([name, label, min, max]) => (
             <div key={name} className="flex flex-col gap-1">
               <label htmlFor={name}>{label}</label>
               <input
                 id={name}
                 name={name}
                 type="number"
-                min={0}
+                min={min}
+                max={max}
                 required
                 defaultValue={goals?.[name]}
                 className="rounded border border-zinc-300 px-3 py-2"
@@ -139,28 +140,41 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
             Сохранить
           </button>
         </form>
+        {typeof error === "string" && (
+          <p role="alert" className="mt-4 text-red-600">
+            {error}
+          </p>
+        )}
 
+        {badWeek && (
+          <p role="alert" className="mt-6 text-red-600">
+            Дня «{badWeek}» в календаре нет — выберите неделю ниже.
+          </p>
+        )}
         {card.days ? (
           <>
             <h3 className="mt-6 font-semibold">Неделя с {dayOf(card.days[0].day)}</h3>
             <ul className="mt-2 flex flex-col gap-2">
-              {card.days.map(({ day, entries }) =>
-                entries.length === 0 ? (
-                  <li key={day} className="text-zinc-500">
-                    {dayOf(day)}: нет записей
-                  </li>
-                ) : (
-                  // итог дня — dayTotal, показывает shown: как на экране подопечного
+              {card.days.map(({ day, entries }) => {
+                if (entries.length === 0) {
+                  return (
+                    <li key={day} className="text-zinc-500">
+                      {dayOf(day)}: нет записей
+                    </li>
+                  );
+                }
+                // итоги дня — daySummary: dayTotal и одно округление; у каждого числа — единица
+                const sum = daySummary(entries);
+                return (
                   <li key={day}>
-                    {dayOf(day)}: {shown(dayTotal(entries), "ккал")}{goals && ` из ${goals.kcal}`}
+                    {dayOf(day)}: {sum.kcal} ккал{goals && ` из ${goals.kcal} ккал`}
                     <span className="block text-sm text-zinc-500">
-                      белки {shown(dayTotal(entries, "protein"), "г")}{goals && ` из ${goals.protein}`}, жиры{" "}
-                      {shown(dayTotal(entries, "fat"), "г")}{goals && ` из ${goals.fat}`}, углеводы{" "}
-                      {shown(dayTotal(entries, "carbs"), "г")}{goals && ` из ${goals.carbs}`}
+                      белки {sum.protein} г{goals && ` из ${goals.protein} г`}, жиры {sum.fat} г{goals && ` из ${goals.fat} г`}, углеводы{" "}
+                      {sum.carbs} г{goals && ` из ${goals.carbs} г`}
                     </span>
                   </li>
-                ),
-              )}
+                );
+              })}
             </ul>
           </>
         ) : card.weeks.length === 0 ? (

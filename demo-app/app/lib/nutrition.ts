@@ -1,5 +1,5 @@
-// Питание: порция, правдоподобие ккал, числа из формы и итог дня. Правила — docs/nutrition.md, тесты — lib/nutrition.test.ts.
-// Значения с этикетки — на 100 г, граммы — вес порции. Расчёт ничего не округляет: округляет shown, при показе.
+// Питание: порция, правдоподобие ккал, числа из формы, день из адреса и итог дня. Правила — docs/nutrition.md, тесты — lib/nutrition.test.ts.
+// Значения с этикетки — на 100 г, граммы — вес порции. Расчёт ничего не округляет: округляют при показе.
 
 // Запись дневника для расчёта: граммы порции и значения с этикетки на 100 г — ккал, белки, жиры и углеводы, г
 export type FoodEntry = { grams: number; kcal: number; protein: number; fat: number; carbs: number };
@@ -29,13 +29,28 @@ export function parseAmount(text: string): number | null {
   return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
+// День из адреса — «ГГГГ-ММ-ДД», и такой день есть в календаре. «2026-02-30» по формату годится, но Date перенесёт его
+// на 2 марта — сверяем с тем, что вышло; год с 1-го (нулевого года нет и в базе)
+export function isDay(text: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text) || text < "0001") return false;
+  const date = new Date(`${text}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === text;
+}
+
 // Итог дня — сумма порций за день, без округления: ккал или другое значение с этикетки
 export function dayTotal(entries: FoodEntry[], value: Value = "kcal"): number {
   return entries.reduce((sum, entry) => sum + portion(entry[value], entry.grams), 0);
 }
 
-// Число для показа — одна функция для экрана подопечного и сводки тренера: до целых и с единицей, «511 ккал».
-// Округление только здесь, один раз: порции и итог дня приходят сюда как есть
-export function shown(value: number, unit: string): string {
-  return `${Math.round(value)} ${unit}`;
+// Экран дня у подопечного: ккал каждой порции — до целых, как в строке. «Итого» — тот же итог, что в сводке тренера: одна функция
+// и одно округление (docs/nutrition.md), а не сумма показанных строк: столбец может с итогом не сойтись, верен итог
+export function dayLines(entries: FoodEntry[]): { kcal: number[]; total: number } {
+  const kcal = entries.map((entry) => Math.round(portion(entry.kcal, entry.grams)));
+  return { kcal, total: daySummary(entries).kcal };
+}
+
+// Сводка тренера за день: итоги ккал, белков, жиров и углеводов — dayTotal, округление одно, при показе
+export function daySummary(entries: FoodEntry[]): Record<Value, number> {
+  const total = (value: Value) => Math.round(dayTotal(entries, value));
+  return { kcal: total("kcal"), protein: total("protein"), fat: total("fat"), carbs: total("carbs") };
 }

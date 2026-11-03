@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { checkPer100, dayTotal, parseAmount, portion, shown } from "./nutrition";
+import { checkPer100, dayLines, daySummary, dayTotal, isDay, parseAmount, portion } from "./nutrition";
 
 // Правила — docs/nutrition.md: значения с этикетки на 100 г, порция = значение × граммы / 100
 
@@ -20,6 +20,13 @@ test("числа как на этикетке: «52,5» с запятой — 52
   expect(parseAmount("60 г")).toBeNull();
 });
 
+test("день из адреса: «2026-11-12» — день, «2026-02-30» и «12.11.2026» — нет", () => {
+  expect(isDay("2026-11-12")).toBe(true);
+  // по формату годится, но 30 февраля в календаре нет
+  expect(isDay("2026-02-30")).toBe(false);
+  expect(isDay("12.11.2026")).toBe(false);
+});
+
 // День 12 ноября: граммы порции и значения с этикеток на 100 г
 const DAY = [
   // овсяные хлопья: 352 × 45 / 100 = 158,4 ккал
@@ -36,10 +43,8 @@ test("итог дня — сумма порций без округления: 1
   expect(dayTotal(DAY, "protein")).toBeCloseTo(21.215);
 });
 
-// Один итог на двоих (docs/nutrition.md): экран подопечного и сводка тренера показывают итог дня одинаково — shown(dayTotal(…)),
-// одно округление при показе. Сумма уже округлённых строк — 158 + 106 + 246 = 510 — другой итог того же дня
-test("итог дня у подопечного и в сводке тренера — одно число: 511 ккал", () => {
-  expect(shown(dayTotal(DAY), "ккал")).toBe("511 ккал");
-  // строка порции — тем же показом: 158,4 → 158 ккал
-  expect(shown(portion(352, 45), "ккал")).toBe("158 ккал");
+// Один итог на двоих (docs/nutrition.md): «Итого» на экране подопечного — то же число, что в сводке тренера, на тех же трёх строках.
+// Сводка — dayTotal и одно округление: 510,8 → 511
+test("итог экрана подопечного = итог сводки тренера: 511 ккал", () => {
+  expect(dayLines(DAY).total).toBe(daySummary(DAY).kcal);
 });

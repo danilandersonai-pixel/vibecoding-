@@ -2196,9 +2196,10 @@ test('s21: тесты расчёта до кода; два итога за де�
   expect(events.map((e) => e.id)).toEqual([
     ...['typegen', 'nutrition-doc', 'c-nutrition-doc', 'ask-schema', 'n-sql', 'n-apply', 'n-test', 'n-run'],
     ...['ask-calc', 'calc-test', 'calc-red', 'calc-code', 'calc-green', 'c-calc'],
-    ...['ask-pages', 'pages-anna', 'pages-actions', 'pages-coach', 'pages-goals', 'pages-nav', 'pages-e2e', 'c-pages'],
-    ...['dev', 'login-marina', 'goals-set', 'login-anna', 'food-1', 'food-2', 'food-3', 'anna-day', 'login-marina2', 'coach-day'],
-    ...['ask-one', 'one-test', 'one-red', 'one-lib', 'one-code', 'one-coach', 'one-green', 'c-one', 'login-anna2', 'anna-day2'],
+    ...['ask-pages', 'pages-lib', 'pages-anna', 'pages-actions', 'pages-coach', 'pages-goals', 'pages-nav', 'pages-e2e', 'c-pages'],
+    ...['dev', 'login-marina', 'goals-set', 'marina-logout', 'login-anna', 'food-1', 'food-2', 'food-3', 'anna-day'],
+    ...['anna-logout', 'login-marina2', 'coach-day', 'ask-one', 'one-test', 'one-red', 'one-code', 'one-green', 'c-one'],
+    ...['marina-logout2', 'login-anna2', 'anna-day2'],
   ])
   const run = (id: string) => find('s21-nutrition', id, 'run')
   const file = (id: string) => find('s21-nutrition', id, 'file')
@@ -2217,7 +2218,7 @@ test('s21: тесты расчёта до кода; два итога за де�
   // правила словами — пишет человек, до схемы и кода
   const doc = file('nutrition-doc')
   expect(doc).toMatchObject({ path: 'docs/nutrition.md', before: null })
-  for (const rule of ['на 100 г', 'значение × граммы / 100', 'Число без единицы не пишем', 'Больше 900 ккал на 100 г', '«это кДж?»', 'одна функция', 'Округление один раз, при показе', 'ккал, белки, жиры, углеводы']) {
+  for (const rule of ['на 100 г', 'значение × граммы / 100', 'Число без единицы не пишем', 'Больше 900 ккал на 100 г', '«это кДж?»', 'одна функция', 'Округление один раз, при показе', 'ккал, белки, жиры, углеводы', 'Неделя — с понедельника', '30 февраля']) {
     expect(doc.after, rule).toContain(rule)
   }
   expect(doc.after.trimEnd().split('\n').at(-1)).toBe('Это решения нашего приложения.')
@@ -2231,7 +2232,7 @@ test('s21: тесты расчёта до кода; два итога за де�
   expect(agent('ask-schema').steps).toEqual(['n-sql', 'n-apply', 'n-test', 'n-run'])
   const sql = file('n-sql')
   expect(sql).toMatchObject({ path: 'supabase/migrations/0010_nutrition.sql', before: null })
-  for (const part of ['create table nutrition_goals', 'create table food_entries', 'day date not null', 'grams numeric', 'alter table nutrition_goals enable row level security', 'alter table food_entries enable row level security']) {
+  for (const part of ['create table nutrition_goals', 'create table food_entries', 'day date not null', 'grams numeric', 'kcal int not null check (kcal between 1 and 10000)', 'alter table nutrition_goals enable row level security', 'alter table food_entries enable row level security']) {
     expect(sql.after, part).toContain(part)
   }
   expect(sql.after.match(/create policy/g)).toHaveLength(4)
@@ -2250,18 +2251,21 @@ test('s21: тесты расчёта до кода; два итога за де�
   expect(agent('ask-calc').steps).toEqual(['calc-test', 'calc-red', 'calc-code', 'calc-green'])
   const calcTest = file('calc-test')
   expect(calcTest).toMatchObject({ path: 'lib/nutrition.test.ts', before: null })
-  for (const part of ['expect(portion(350, 60)).toBe(210);', 'checkPer100(1464)', 'parseAmount("52,5")).toBe(52.5)', 'expect(dayTotal(DAY)).toBeCloseTo(510.8);']) {
+  for (const part of ['expect(portion(350, 60)).toBe(210);', 'checkPer100(1464)', 'это кДж?', 'parseAmount("52,5")).toBe(52.5)', 'expect(isDay("2026-02-30")).toBe(false);', 'expect(dayTotal(DAY)).toBeCloseTo(510.8);']) {
     expect(calcTest.after, part).toContain(part)
   }
   const unit = 'npx vitest run lib/nutrition.test.ts'
   expect(run('calc-red').cmd).toBe(unit)
   expect(run('calc-red').code).not.toBe(0)
+  // красный потому, что модуля ещё нет, а не по другой причине
+  expect(run('calc-red').out.join('\n')).toContain("Error: Cannot find module './nutrition' imported from ~/trainer-app/lib/nutrition.test.ts")
   const lib = file('calc-code')
   expect(lib).toMatchObject({ path: 'lib/nutrition.ts', before: null })
-  for (const signature of ['export function portion(per100: number, grams: number): number', 'export function checkPer100(kcal: number): string | null', 'export function dayTotal(']) {
+  for (const signature of ['export function portion(per100: number, grams: number): number', 'export function checkPer100(kcal: number): string | null', 'export function isDay(text: string): boolean', 'export function dayTotal(']) {
     expect(lib.after, signature).toContain(signature)
   }
   expect(run('calc-green')).toMatchObject({ cmd: unit, code: 0 })
+  expect(run('calc-green').out.join('\n')).toMatch(/Tests\s+5 passed \(5\)/)
   expect(at('calc-test')).toBeLessThan(at('calc-red'))
   expect(at('calc-red')).toBeLessThan(at('calc-code'))
   expect(commit('c-calc')).toMatchObject({ message: 'Питание: схема, RLS, расчёт порции', branch: 'main', parents: [commit('c-nutrition-doc').hash] })
@@ -2269,10 +2273,12 @@ test('s21: тесты расчёта до кода; два итога за де�
     expect.arrayContaining(['supabase/migrations/0010_nutrition.sql', 'test/nutrition.test.ts', 'lib/nutrition.test.ts', 'lib/nutrition.ts']),
   )
 
-  // страницы: день и неделя — в адресе, настоящих часов нет; «Итого» у подопечного — сумма уже округлённых строк
+  // страницы: день и неделя — в адресе, настоящих часов нет; «Итого» у подопечного — сумма уже округлённых строк, у тренера — dayTotal
   expect(agent('ask-pages').prompt).toBe('Страницы: дневник подопечного за день и цели со сводкой у тренера на карточке. День и неделя — в адресе')
-  expect(agent('ask-pages').steps).toEqual(['pages-anna', 'pages-actions', 'pages-coach', 'pages-goals', 'pages-nav', 'pages-e2e'])
-  expect(['pages-anna', 'pages-actions', 'pages-coach', 'pages-goals', 'pages-nav', 'pages-e2e'].map((id) => file(id).path)).toEqual([
+  const pageSteps = ['pages-lib', 'pages-anna', 'pages-actions', 'pages-coach', 'pages-goals', 'pages-nav', 'pages-e2e']
+  expect(agent('ask-pages').steps).toEqual(pageSteps)
+  expect(pageSteps.map((id) => file(id).path)).toEqual([
+    'lib/nutrition.ts',
     'app/nutrition/page.tsx',
     'app/nutrition/actions.ts',
     'app/clients/[id]/page.tsx',
@@ -2280,18 +2286,24 @@ test('s21: тесты расчёта до кода; два итога за де�
     'components/Nav.tsx',
     'e2e/first-run.spec.ts',
   ])
-  expect(file('pages-anna').after).toContain('const total = lines.reduce((sum, line) => sum + line.portionKcal, 0);')
-  expect(file('pages-coach').after).toContain('{Math.round(dayTotal(entries))} ккал')
+  expect(file('pages-lib').after).toContain('return { kcal, total: kcal.reduce((sum, value) => sum + value, 0) };')
+  expect(file('pages-lib').after).toContain('const total = (value: Value) => Math.round(dayTotal(entries, value));')
+  expect(file('pages-anna').after).toContain('const lines = dayLines(data.entries);')
+  expect(file('pages-coach').after).toContain('const sum = daySummary(entries);')
+  expect(file('pages-coach').after).toContain('{goals && ` из ${goals.kcal} ккал`}')
+  // день из адреса — isDay: «2026-02-30» не дойдёт до базы
+  for (const id of ['pages-anna', 'pages-actions', 'pages-coach']) expect(file(id).after, id).toMatch(/isDay\((day|week)\)/)
   expect(file('pages-nav').after).toContain('["/nutrition", "Питание"]')
   expect(file('pages-e2e').after).toContain('toHaveText(["Мои тренировки", "Питание"])')
-  for (const id of ['pages-anna', 'pages-actions', 'pages-coach', 'pages-goals', 'one-code', 'one-coach']) expect(file(id).after, id).not.toMatch(/new Date\(\)|Date\.now\(\)/)
+  for (const id of [...pageSteps, 'one-code']) expect(file(id).after, id).not.toMatch(/new Date\(\)|Date\.now\(\)/)
   expect(commit('c-pages')).toMatchObject({ message: 'Питание: дневник и сводка', branch: 'main', parents: [commit('c-calc').hash] })
 
-  // цели Марины на карточке Анны
+  // цели Марины на карточке Анны; перед входом другого человека прежний выходит через меню
   expect(run('dev')).toMatchObject({ cmd: 'npm run dev', code: null })
   expect(browser('login-marina').urlAfter).toBe(`${BASE}/clients`)
   const goals = browser('goals-set')
   expect(goals.url).toBe(`${BASE}/clients/1`)
+  expect(goals.urlAfter).toBeUndefined()
   expect(goals.fields).toEqual([
     { label: 'Ккал', value: '1800' },
     { label: 'Белки, г', value: '120' },
@@ -2299,8 +2311,15 @@ test('s21: тесты расчёта до кода; два итога за де�
     { label: 'Углеводы, г', value: '200' },
   ])
   expect(goals.after).toContain('Цель на день: 1800 ккал, белки 120 г, жиры 60 г, углеводы 200 г')
+  for (const [out, next] of [['marina-logout', 'login-anna'], ['anna-logout', 'login-marina2'], ['marina-logout2', 'login-anna2']]) {
+    expect(browser(out).urlAfter, out).toBe(`${BASE}/login`)
+    expect(browser(out).after, out).toEqual(['Вход', 'Почта', 'Пароль', 'Войти'])
+    expect(at(out) + 1, out).toBe(at(next))
+    // над формой входа — без чужого меню
+    expect(browser(next).buttons, next).toEqual(['Войти'])
+  }
 
-  // дневник Анны за 12 ноября — день в адресе; три продукта с числами с этикеток, «52,5»-запятые — как на этикетке
+  // дневник Анны за 12 ноября — день в адресе; три продукта с числами с этикеток, «12,3» — с запятой, как на этикетке
   expect(browser('login-anna').urlAfter).toBe(`${BASE}/workouts`)
   const DAY = `${BASE}/nutrition?day=2026-11-12`
   for (const id of ['food-1', 'food-2', 'food-3']) {
@@ -2325,26 +2344,28 @@ test('s21: тесты расчёта до кода; два итога за де�
   expect(coach.url).toBe(`${BASE}/clients/1?week=2026-11-09`)
   expect(coach.after.join('\n')).toContain('12 ноября')
   expect(coach.after).toContain('Неделя с 9 ноября')
-  const coachTotal = kcalOf(coach.after, /^12 ноября: (\d+) ккал из 1800$/m)
+  // у каждого числа — единица, и у цели тоже
+  const coachTotal = kcalOf(coach.after, /^12 ноября: (\d+) ккал из 1800 ккал$/m)
   expect(coachTotal - annaTotal).toBe(1)
+  expect(coach.after).toContain('белки 21 г из 120 г, жиры 10 г из 60 г, углеводы 83 г из 200 г')
 
-  // одна функция и одно округление для обоих экранов: сначала тест — красный, потом код — зелёный
+  // одна функция и одно округление для обоих экранов: сначала тест — красный на самом расхождении, потом код — зелёный
   expect(agent('ask-one').prompt).toBe('У подопечной и у тренера за один день разные итоги. Одна функция и одно округление для обоих экранов, сначала тест')
-  expect(agent('ask-one').steps).toEqual(['one-test', 'one-red', 'one-lib', 'one-code', 'one-coach', 'one-green'])
+  expect(agent('ask-one').steps).toEqual(['one-test', 'one-red', 'one-code', 'one-green'])
   expect(file('one-test').path).toBe('lib/nutrition.test.ts')
-  expect(file('one-test').after).toContain(`expect(shown(dayTotal(DAY), "ккал")).toBe("${coachTotal} ккал");`)
+  expect(file('one-test').after).toContain('expect(dayLines(DAY).total).toBe(daySummary(DAY).kcal);')
   expect(run('one-red').cmd).toBe(unit)
   expect(run('one-red').code).not.toBe(0)
-  expect(file('one-lib').path).toBe('lib/nutrition.ts')
-  expect(file('one-lib').after).toContain('export function shown(value: number, unit: string): string')
-  expect(file('one-code').path).toBe('app/nutrition/page.tsx')
-  expect(file('one-code').after).toContain('Итого: {shown(dayTotal(data.entries), "ккал")}')
-  expect(file('one-code').after).not.toContain('line.portionKcal')
-  expect(file('one-coach').path).toBe('app/clients/[id]/page.tsx')
-  expect(file('one-coach').after).toContain('{shown(dayTotal(entries), "ккал")}')
-  expect(file('one-coach').after).not.toContain('Math.round')
+  // ожидали итог сводки, получили итог экрана — те же числа, что в кадрах браузера
+  expect(run('one-red').out).toContain(`AssertionError: expected ${annaTotal} to be ${coachTotal} // Object.is equality`)
+  expect(file('one-code').path).toBe('lib/nutrition.ts')
+  expect(file('one-code').before).toBe(file('pages-lib').after)
+  expect(file('one-code').after).toContain('return { kcal, total: daySummary(entries).kcal };')
+  expect(file('one-code').after).not.toContain('kcal.reduce')
   expect(run('one-green')).toMatchObject({ cmd: unit, code: 0 })
+  expect(run('one-green').out.join('\n')).toMatch(/Tests\s+6 passed \(6\)/)
   expect(commit('c-one')).toMatchObject({ message: 'Один итог дня на двоих', branch: 'main', parents: [commit('c-pages').hash] })
+  expect(commit('c-one').files.map((f) => f.path)).toEqual(expect.arrayContaining(['lib/nutrition.ts', 'lib/nutrition.test.ts']))
 
   // после одной функции у Анны тот же итог, что в сводке Марины
   expect(browser('login-anna2').urlAfter).toBe(`${BASE}/workouts`)

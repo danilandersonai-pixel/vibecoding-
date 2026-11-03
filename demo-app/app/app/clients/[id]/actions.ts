@@ -21,15 +21,24 @@ export async function assignWorkout(clientId: string, form: FormData) {
   revalidatePath(`/clients/${clientId}`);
 }
 
-// Тренер ставит подопечному clientId цели на день из формы: ккал, белки, жиры и углеводы, г (docs/nutrition.md) — целые числа.
-// Целей у подопечного одна строка: новые заменяют прежние. Цели чужому подопечному не даст поставить RLS
+// Тренер ставит подопечному clientId цели на день из формы: ккал, белки, жиры и углеводы, г (docs/nutrition.md) — целые числа
+// в границах 0010_nutrition.sql. Целей у подопечного одна строка: новые заменяют прежние. Цели чужому подопечному не даст поставить RLS
 // (политика «тренер ведёт цели своих»)
 export async function saveGoals(clientId: string, form: FormData) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
-  const goals = ["kcal", "protein", "fat", "carbs"].map((name) => Number(form.get(name)));
-  // целые, не меньше нуля, ккал — больше нуля; иначе ничего не сохраняем (пустое поле Number превращает в 0)
-  if (!goals.every((n) => Number.isInteger(n) && n >= 0) || goals[0] === 0) return;
+  const page = `/clients/${clientId}`;
+  // пустое поле — не число (Number("") дал бы 0)
+  const goals = ["kcal", "protein", "fat", "carbs"].map((name) => {
+    const text = String(form.get(name) ?? "").trim();
+    return text === "" ? NaN : Number(text);
+  });
+  const [kcal, ...grams] = goals;
+  // ошибку карточка покажет под формой целей: её текст — в адресе
+  const fits = (n: number, min: number, max: number) => Number.isInteger(n) && n >= min && n <= max;
+  if (!fits(kcal, 1, 10000) || !grams.every((n) => fits(n, 0, 1000))) {
+    redirect(`${page}?error=${encodeURIComponent("Цели — целые числа: ккал от 1 до 10 000, белки, жиры и углеводы от 0 до 1000 г")}`);
+  }
   await asUser(uid, (db) =>
     db.query(
       `insert into nutrition_goals (client_id, kcal, protein, fat, carbs) values ($1, $2, $3, $4, $5)
@@ -38,6 +47,6 @@ export async function saveGoals(clientId: string, form: FormData) {
       [clientId, ...goals],
     ),
   );
-  // карточка покажет новые цели сразу после нажатия
-  revalidatePath(`/clients/${clientId}`);
+  // карточка заново — с новыми целями и без прежней ошибки в адресе
+  redirect(page);
 }

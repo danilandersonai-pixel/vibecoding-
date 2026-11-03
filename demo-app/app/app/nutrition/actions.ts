@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { asUser } from "@/lib/db";
-import { checkPer100, parseAmount } from "@/lib/nutrition";
+import { checkPer100, isDay, parseAmount } from "@/lib/nutrition";
 import { currentUser } from "@/lib/session";
 
 // Запись в дневник за день day: продукт, граммы порции и значения с этикетки на 100 г (docs/nutrition.md).
@@ -10,8 +10,8 @@ import { currentUser } from "@/lib/session";
 export async function addEntry(day: string, form: FormData) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
-  // день — ГГГГ-ММ-ДД, как в адресе страницы
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) redirect("/nutrition");
+  // день — как в адресе страницы, и такой день есть в календаре
+  if (!isDay(day)) redirect("/nutrition");
   const page = `/nutrition?day=${day}`;
   // ошибку страница покажет под формой: её текст — в адресе
   const fail = (error: string) => `${page}&error=${encodeURIComponent(error)}`;
@@ -30,13 +30,15 @@ export async function addEntry(day: string, form: FormData) {
   const question = checkPer100(kcal);
   if (question) redirect(fail(question));
 
-  await asUser(uid, (db) =>
+  // запись — в дневник вошедшего подопечного; у тренера строки в clients нет, и не запишется ничего
+  const { rowCount } = await asUser(uid, (db) =>
     db.query(
       `insert into food_entries (client_id, day, product, grams, kcal, protein, fat, carbs)
        select id, $2::date, $3, $4::numeric, $5::numeric, $6::numeric, $7::numeric, $8::numeric from clients where user_id = $1`,
       [uid, day, product, grams, kcal, protein, fat, carbs],
     ),
   );
+  if (rowCount === 0) redirect(fail("Дневник питания ведёт подопечный"));
   // тот же день заново — с новой записью и без прежней ошибки в адресе
   redirect(page);
 }
