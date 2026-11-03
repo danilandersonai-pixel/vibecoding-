@@ -17,19 +17,23 @@
 // Из заголовков curl -sI в кадр идут строка статуса и Content-Type (| grep): в Date и Last-Modified — настоящие часы записи.
 // Исправление — сначала тест test/photos.test.ts: маршруты app/api/photos вызываются, как их вызывает сервер, вход подменён
 // (vi.mock currentUser); для импортов «@/…» в vitest — resolve.tsconfigPaths (pr-vitest). Красный на самой беде: в public появился
-// снимок теста, маршрута по id нет. Вторым ходом («Делай»): файлы — в storage/photos/<подопечный>/…, вне public и вне git
-// (/storage/ в .gitignore); GET /api/photos/[id] — без входа 401, строку ищет asUser (RLS: подопечный и его тренер), чужому 404;
-// DELETE — строка и файл одной транзакцией; ссылки страниц — на /api/photos/<id>; папка public/uploads удаляется буквальным путём.
-// Тест зелёный.
-// turbopackIgnore в путях к storage/ — из чернового прогона: next build по пути из кода иначе кладёт в собранный серверный код
+// снимок теста, PNG под именем photo.jpg загрузка приняла (тип из запроса ставит клиент), маршрута по id нет. Вторым ходом («Делай»):
+// файлы — в storage/photos/<подопечный>/<день>.jpg, вне public и вне git (/storage/ в .gitignore); путь собирает lib/photos.ts из
+// номера подопечного и дня — строке пути из базы файлы не доверяют; загрузка — JPEG по первым байтам FF D8 FF, до 10 МБ (больше — 413);
+// GET /api/photos/[id] — без входа 401, строку ищет asUser (RLS: подопечный и его тренер), чужим (Света, Игорь, Олег) 404, строка
+// без файла — тоже 404, а не 500, ответ — с nosniff; DELETE — строка и файл одной транзакцией; ссылки страниц — на /api/photos/<id>;
+// папка public/uploads удаляется буквальным путём. Тест зелёный.
+// turbopackIgnore в пути к storage/ — из чернового прогона: по вычисленному пути next build иначе прикладывает к серверной сборке
 // файлы storage/ (снимки людей), а по пути из базы — весь проект, с backups/.
-// Проверки curl: тот же снимок — новый адрес /api/photos/1 (один снимок в день: строка та же); без cookie — 401, cookie Светы — 404,
+// Проверки: тот же снимок — новый адрес /api/photos/1 (один снимок в день: строка та же); git status --short молчит — снимок на диске,
+// а в git не просится (photo-git2); curl без cookie — 401, cookie Светы — 404,
 // cookie Марины — 200 и image/jpeg; старый /uploads/… — 404. Марина на карточке видит замеры Анны по датам и снимок; Анна удаляет
 // снимок curl -X DELETE — в storage/photos/1 пусто, строк в photos — 0.
 // Сверх таблицы плана (шаг — один файл): m-actions (действие формы замеров), ph-coach (снимки на карточке — их видит тренер),
-// pr-vitest (импорты «@/…» в тесте), pr-page и pr-coach (ссылки на /api/photos/<id>); m-nav и m-e2e — правки человека (меню
+// pr-vitest (импорты «@/…» в тесте), pr-lib (где лежат снимки — для загрузки, выдачи и удаления), pr-page и pr-coach (ссылки на
+// /api/photos/<id>), photo-git2 («Верно» для git status); m-nav и m-e2e — правки человека (меню
 // подопечного и его сквозной тест): в окне агента ask-measure им нет места; ask-private-go — второй ход агента («Делай», как
-// ask-first-go в s20): десять шагов в одно окно не помещаются; anna-logout — перед входом Марины Анна выходит через меню, как
+// ask-first-go в s20): одиннадцать шагов в одно окно не помещаются; anna-logout — перед входом Марины Анна выходит через меню, как
 // natasha-logout в s20.
 // Файлы людей — вне git: ни в одном коммите сессии нет public/uploads/, storage/, backups/, cookie и снимка.
 // Запись с середины цепочки: node scripts/record-session.mjs --from s22-progress (из course/). Id шагов постоянные: на них ссылаются уроки.
@@ -917,12 +921,14 @@ type Photo = { id: string; day: string; path: string };
 ])
 
 // Тест — пишет агент до исправления: маршруты app/api/photos вызываются, как их вызывает сервер, вход подменён (vi.mock currentUser).
-// Красный на самой беде: снимок теста появился в public; маршрута по id (выдача с проверкой и удаление) нет
+// Красный на самой беде: снимок теста появился в public, PNG под именем photo.jpg загрузка приняла; маршрута по id (выдача
+// с проверкой и удаление) нет. Чужие снимку — Света, Игорь и Олег; строка без файла — 404, а не 500
 const PHOTOS_TEST = `// @vitest-environment node
 // Фото прогресса — снимок тела, данные о здоровье. Файл лежит вне public и вне git; открыть его можно только через маршрут
 // с проверкой, кто вошёл: снимок видят подопечный и его тренер (RLS, supabase/migrations/0012_photos.sql), удаляет — сам подопечный,
-// строку вместе с файлом. Тест вызывает маршруты app/api/photos, как их вызывает сервер; вход подменён (currentUser из lib/session):
-// подпись cookie проверяет вход, здесь проверяются права. Снимок теста — за 13 октября, в конце тест убирает его строку и файл.
+// строку вместе с файлом. Загрузка принимает только JPEG — по первым байтам файла, а не по типу из запроса — и до 10 МБ.
+// Тест вызывает маршруты app/api/photos, как их вызывает сервер; вход подменён (currentUser из lib/session): подпись cookie
+// проверяет вход, здесь проверяются права. Снимок теста — за 13 октября, в конце тест убирает его строки и файл.
 // Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения, как у test/rls.test.ts.
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
@@ -935,19 +941,36 @@ import { pool } from "../lib/db";
 const login = vi.hoisted(() => ({ uid: null as string | null }));
 vi.mock("@/lib/session", () => ({ currentUser: async () => login.uid }));
 
-// id из supabase/seed.sql: Марина — тренер Анны, Света — подопечная Игоря; Анна в clients — id 1
+// id из supabase/seed.sql: Марина — тренер Анны и Олега, Игорь — тренер Светы; Анна в clients — id 1
 const MARINA = "11111111-1111-1111-1111-111111111111";
+const IGOR = "22222222-2222-2222-2222-222222222222";
 const ANNA = "33333333-3333-3333-3333-333333333333";
+const OLEG = "44444444-4444-4444-4444-444444444444";
 const SVETA = "55555555-5555-5555-5555-555555555555";
+// чужие снимку Анны: подопечная другого тренера, другой тренер, другой подопечный того же тренера
+const OTHERS = [SVETA, IGOR, OLEG];
 const DAY = "2026-10-13";
 const STORED = \`storage/photos/1/\${DAY}.jpg\`;
-// начало и конец файла JPEG: содержимое снимка маршрутам не важно
+// строка снимка без файла: файла за этот день нет
+const LOST_DAY = "2026-09-13";
+// начало и конец файла JPEG: FF D8 FF … FF D9
 const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+// начало файла PNG — не снимок JPEG, как бы ни назывался файл
+const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
 
 // маршрут снимка по id — GET и DELETE
 const byId = () => import("../app/api/photos/[id]/route");
 // файлы и папки внутри dir, пути от dir
 const filesIn = (dir: string) => readdirSync(dir, { recursive: true, encoding: "utf8" }).sort();
+
+// Загрузка от имени Анны за DAY: файл photo.jpg с типом image/jpeg и содержимым bytes
+function upload(bytes: BlobPart) {
+  login.uid = ANNA;
+  const form = new FormData();
+  form.append("photo", new File([bytes], "photo.jpg", { type: "image/jpeg" }));
+  form.append("day", DAY);
+  return POST(new Request("http://localhost/api/photos", { method: "POST", body: form }));
+}
 
 let id = "";
 let publicBefore: string[] = [];
@@ -955,17 +978,12 @@ let publicBefore: string[] = [];
 // Анна загружает снимок за 13 октября
 beforeAll(async () => {
   publicBefore = filesIn("public");
-  login.uid = ANNA;
-  const form = new FormData();
-  form.append("photo", new File([JPEG], "photo.jpg", { type: "image/jpeg" }));
-  form.append("day", DAY);
-  const response = await POST(new Request("http://localhost/api/photos", { method: "POST", body: form }));
-  id = (await response.json()).id;
+  id = (await (await upload(JPEG)).json()).id;
 });
 
-// строка и файл снимка теста — прочь, даже если тест упал
+// строки и файл снимка теста — прочь, даже если тест упал
 afterAll(async () => {
-  await pool.query("delete from photos where client_id = 1 and day = $1", [DAY]);
+  await pool.query("delete from photos where client_id = 1 and day in ($1, $2)", [DAY, LOST_DAY]);
   await rm(STORED, { force: true });
   await pool.end();
 });
@@ -977,29 +995,50 @@ test("снимок лежит вне public и вне git", () => {
   expect(() => execFileSync("git", ["check-ignore", "-q", STORED])).not.toThrow();
 });
 
-test("открыть снимок: без входа — 401, Свете — 404, Марине и Анне — JPEG", async () => {
+test("загрузка: JPEG — по первым байтам, а не по типу из запроса; больше 10 МБ — 413", async () => {
+  // PNG под именем photo.jpg и с типом image/jpeg
+  expect((await upload(PNG)).status).toBe(400);
+  // JPEG на 10 МБ и 1 байт
+  const big = new Uint8Array(10 * 1024 * 1024 + 1);
+  big.set(JPEG);
+  expect((await upload(big)).status).toBe(413);
+});
+
+test("открыть снимок: без входа — 401, чужим — 404, Марине и Анне — JPEG", async () => {
   const { GET } = await byId();
   const open = (uid: string | null) => {
     login.uid = uid;
     return GET(new Request(\`http://localhost/api/photos/\${id}\`), { params: Promise.resolve({ id }) });
   };
   expect((await open(null)).status).toBe(401);
-  expect((await open(SVETA)).status).toBe(404);
+  for (const uid of OTHERS) expect((await open(uid)).status, uid).toBe(404);
   for (const uid of [MARINA, ANNA]) {
     const response = await open(uid);
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/jpeg");
+    // браузер не угадывает тип по содержимому
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
   }
 });
 
-test("удаляет снимок сам подопечный — строку и файл; Свете и Марине нельзя", async () => {
+test("строка есть, а файла нет — 404, а не 500", async () => {
+  const { GET } = await byId();
+  const { rows } = await pool.query<{ id: string }>(
+    "insert into photos (client_id, day, path) values (1, $1, $2) returning id",
+    [LOST_DAY, \`storage/photos/1/\${LOST_DAY}.jpg\`],
+  );
+  login.uid = ANNA;
+  const response = await GET(new Request(\`http://localhost/api/photos/\${rows[0].id}\`), { params: Promise.resolve({ id: rows[0].id }) });
+  expect(response.status).toBe(404);
+});
+
+test("удаляет снимок сам подопечный — строку и файл; чужим и Марине нельзя", async () => {
   const { DELETE } = await byId();
   const remove = (uid: string) => {
     login.uid = uid;
     return DELETE(new Request(\`http://localhost/api/photos/\${id}\`, { method: "DELETE" }), { params: Promise.resolve({ id }) });
   };
-  expect((await remove(SVETA)).status).toBe(404);
-  expect((await remove(MARINA)).status).toBe(404);
+  for (const uid of [...OTHERS, MARINA]) expect((await remove(uid)).status, uid).toBe(404);
   expect(existsSync(STORED)).toBe(true);
   expect((await remove(ANNA)).status).toBe(204);
   expect(existsSync(STORED)).toBe(false);
@@ -1018,28 +1057,82 @@ export default defineConfig({
   resolve: { tsconfigPaths: true },
 `
 
-// Загрузка — правка агента (pr-store): файл — в storage/photos/<подопечный>/<день>.jpg, вне public и вне git; ответ — адрес
-// /api/photos/<id>. turbopackIgnore — черновой прогон: next build по пути из кода иначе кладёт файлы storage/ в серверный код
+// Где лежат снимки — пишет агент (pr-lib): путь собирает сервер из номера подопечного и дня (не строкой из базы), «../» не пройдёт.
+// turbopackIgnore — из чернового прогона: по вычисленному пути next build иначе прикладывает к серверной сборке storage/ и backups/
+const PHOTOS_LIB = `import { join } from "node:path";
+
+// Где лежат снимки прогресса: storage/photos/<подопечный>/<день>.jpg — вне public (сервер сам их не отдаёт) и вне git
+// (/storage/ в .gitignore). Путь к файлу собирает сервер из номера подопечного и дня: строке пути из базы файлы не доверяют.
+
+// Путь снимка от корня проекта. Только номер и день ГГГГ-ММ-ДД — «../» и чужая папка в путь не пройдут
+export function photoPath(clientId: string, day: string): string {
+  if (!/^\\d+$/.test(clientId) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(day)) throw new Error(\`Нет пути снимка для «\${clientId}», «\${day}»\`);
+  return \`storage/photos/\${clientId}/\${day}.jpg\`;
+}
+
+// Файл снимка на диске. turbopackIgnore: путь вычисляется, и next build иначе приложил бы к серверной сборке весь проект —
+// со storage/ (снимки людей) и backups/ (копии базы)
+export function photoFile(clientId: string, day: string): string {
+  return join(/*turbopackIgnore: true*/ process.cwd(), photoPath(clientId, day));
+}
+`
+
+// Загрузка — правка агента (pr-store): файл — в storage/photos/<подопечный>/<день>.jpg (lib/photos.ts), вне public и вне git;
+// JPEG — по первым байтам FF D8 FF, а не по типу из запроса; до 10 МБ, больше — 413; ответ — адрес /api/photos/<id>
 const PHOTOS_ROUTE_PRIVATE = chain(PHOTOS_ROUTE, [
   [
     `import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { asUser } from "@/lib/db";
+import { isDay } from "@/lib/nutrition";
+import { currentUser } from "@/lib/session";
+
+// POST /api/photos — снимок прогресса вошедшего подопечного: form-data photo (JPEG) и day — день снимка, ГГГГ-ММ-ДД.
+// Файл — public/uploads/<подопечный>/<день>.jpg, в photos — строка с его адресом /uploads/…: по нему снимок и открывается.
+// За один день — один снимок: новый заменяет прежний. Ответ — id строки и адрес снимка
+export async function POST(request: Request) {
 `,
     `import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import { asUser } from "@/lib/db";
+import { isDay } from "@/lib/nutrition";
+import { photoFile, photoPath } from "@/lib/photos";
+import { currentUser } from "@/lib/session";
+
+// Предел снимка — 10 МБ: снимок с телефона меньше
+const MAX_BYTES = 10 * 1024 * 1024;
+
+// POST /api/photos — снимок прогресса вошедшего подопечного: form-data photo (JPEG до 10 МБ) и day — день снимка, ГГГГ-ММ-ДД.
+// Файл — storage/photos/<подопечный>/<день>.jpg (lib/photos.ts): вне public и вне git. В photos — строка снимка; открыть его
+// можно только через GET /api/photos/<id>, где проверяют, кто вошёл. За один день — один снимок: новый заменяет прежний.
+// Ответ — id строки и адрес снимка
+export async function POST(request: Request) {
 `,
   ],
   [
-    `// POST /api/photos — снимок прогресса вошедшего подопечного: form-data photo (JPEG) и day — день снимка, ГГГГ-ММ-ДД.
-// Файл — public/uploads/<подопечный>/<день>.jpg, в photos — строка с его адресом /uploads/…: по нему снимок и открывается.
-// За один день — один снимок: новый заменяет прежний. Ответ — id строки и адрес снимка
+    `  if (!uid) return Response.json({ error: "Нужно войти" }, { status: 401 });
+  // не form-data — ответ 400, а не падение сервера с 500
 `,
-    `// POST /api/photos — снимок прогресса вошедшего подопечного: form-data photo (JPEG) и day — день снимка, ГГГГ-ММ-ДД.
-// Файл — storage/photos/<подопечный>/<день>.jpg: вне public (сервер сам его не отдаёт) и вне git (/storage/ в .gitignore).
-// В photos — строка с этим путём; открыть снимок можно только через GET /api/photos/<id>, где проверяют, кто вошёл.
-// За один день — один снимок: новый заменяет прежний. Ответ — id строки и адрес снимка
+    `  if (!uid) return Response.json({ error: "Нужно войти" }, { status: 401 });
+  // Content-Length — размер всего запроса: снимок и поля формы (на них — запас 64 КБ). Больше предела — 413, запрос не читаем
+  if (Number(request.headers.get("content-length")) > MAX_BYTES + 64 * 1024) {
+    return Response.json({ error: "Снимок — до 10 МБ" }, { status: 413 });
+  }
+  // не form-data — ответ 400, а не падение сервера с 500
+`,
+  ],
+  [
+    `  const day = String(form?.get("day") ?? "");
+  if (!(photo instanceof File) || photo.type !== "image/jpeg") {
+    return Response.json({ error: "Нужен снимок JPEG в поле photo" }, { status: 400 });
+`,
+    `  const day = String(form?.get("day") ?? "");
+  if (!(photo instanceof File)) return Response.json({ error: "Нужен снимок JPEG в поле photo" }, { status: 400 });
+  if (photo.size > MAX_BYTES) return Response.json({ error: "Снимок — до 10 МБ" }, { status: 413 });
+  // JPEG — по первым байтам файла (FF D8 FF), а не по типу из запроса: тип ставит клиент, curl -F — по расширению имени
+  const bytes = Buffer.from(await photo.arrayBuffer());
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[2] !== 0xff) {
+    return Response.json({ error: "Нужен снимок JPEG в поле photo" }, { status: 400 });
 `,
   ],
   [
@@ -1050,40 +1143,42 @@ import { asUser } from "@/lib/db";
     const { rows } = await db.query<{ id: string }>(
 `,
     `    const clientId = client.rows[0].id;
-    const path = \`storage/photos/\${clientId}/\${day}.jpg\`;
-    // turbopackIgnore: next build не кладёт файлы storage/ — снимки людей — в собранный серверный код
-    const file = join(/*turbopackIgnore: true*/ process.cwd(), path);
+    const file = photoFile(clientId, day);
     await mkdir(dirname(file), { recursive: true });
-    await writeFile(file, Buffer.from(await photo.arrayBuffer()));
+    await writeFile(file, bytes);
     const { rows } = await db.query<{ id: string }>(
 `,
   ],
   [
-    `    );
+    `       returning id\`,
+      [clientId, day, path],
+    );
     return { id: rows[0].id, path };
   });
 `,
-    `    );
+    `       returning id\`,
+      [clientId, day, photoPath(clientId, day)],
+    );
     return { id: rows[0].id, url: \`/api/photos/\${rows[0].id}\` };
   });
 `,
   ],
 ])
 
-// Снимок по id — пишет агент: GET — без входа 401, строку ищет asUser (RLS: подопечный и его тренер), чужому 404;
-// DELETE — строка и файл одной транзакцией, удаляет только подопечный
+// Снимок по id — пишет агент: GET — без входа 401, строку ищет asUser (RLS: подопечный и его тренер), чужому 404, строка без файла —
+// тоже 404; файл — по номеру подопечного и дню из строки; nosniff. DELETE — строка и файл одной транзакцией, удаляет только подопечный
 const PHOTO_ROUTE = `import { readFile, rm } from "node:fs/promises";
-import { join } from "node:path";
 import { asUser } from "@/lib/db";
+import { photoFile } from "@/lib/photos";
 import { currentUser } from "@/lib/session";
 
 // Снимок прогресса по id: файл лежит в storage/photos, вне public, — отдаёт и удаляет его только этот маршрут.
 // Строку снимка ищет запрос от имени вошедшего (asUser): RLS отдаёт её подопечному и его тренеру. Остальным строки нет,
 // и ответ им тот же, что на несуществующий снимок, — 404: чужой не узнает даже, что снимок есть.
+// Файл — по номеру подопечного и дню из строки (photoFile в lib/photos.ts), а не по строке пути.
 
-// Файл снимка по пути из строки photos (storage/photos/…). turbopackIgnore: по пути из базы next build иначе положил бы
-// в собранный серверный код весь проект — и storage/ со снимками людей
-const fileOf = (path: string) => join(/*turbopackIgnore: true*/ process.cwd(), path);
+// Строка снимка: чей и за какой день
+type Photo = { client_id: string; day: string };
 
 // GET /api/photos/<id> — файл снимка: без входа 401, чужому 404, подопечному и его тренеру — JPEG
 export async function GET(_request: Request, { params }: RouteContext<"/api/photos/[id]">) {
@@ -1093,14 +1188,17 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/phot
   // id — число: «abc» не дойдёт до базы
   const photo = /^\\d+$/.test(id)
     ? await asUser(uid, async (db) => {
-        const { rows } = await db.query<{ path: string }>("select path from photos where id = $1", [id]);
+        const { rows } = await db.query<Photo>("select client_id, day::text as day from photos where id = $1", [id]);
         return rows[0];
       })
     : undefined;
-  if (!photo) return Response.json({ error: "Снимка нет" }, { status: 404 });
-  const file = await readFile(fileOf(photo.path));
-  // снимок личный: ни браузер, ни прокси его не сохраняют
-  return new Response(file, { headers: { "Content-Type": "image/jpeg", "Cache-Control": "private, no-store" } });
+  // строки нет — или строка есть, а файла нет: тот же ответ 404, а не 500
+  const file = photo && (await readFile(photoFile(photo.client_id, photo.day)).catch(() => null));
+  if (!file) return Response.json({ error: "Снимка нет" }, { status: 404 });
+  // тип ставит сервер, nosniff — браузер не угадывает его по содержимому; снимок личный — ни браузер, ни прокси его не сохраняют
+  return new Response(file, {
+    headers: { "Content-Type": "image/jpeg", "X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-store" },
+  });
 }
 
 // DELETE /api/photos/<id> — подопечный удаляет свой снимок: строку и файл, одной транзакцией — не удалился файл, вернётся строка.
@@ -1111,9 +1209,9 @@ export async function DELETE(_request: Request, { params }: RouteContext<"/api/p
   const { id } = await params;
   const deleted = /^\\d+$/.test(id)
     ? await asUser(uid, async (db) => {
-        // returning вернёт путь, только если RLS дала удалить строку
-        const { rows } = await db.query<{ path: string }>("delete from photos where id = $1 returning path", [id]);
-        if (rows[0]) await rm(fileOf(rows[0].path), { force: true });
+        // returning вернёт строку, только если RLS дала её удалить
+        const { rows } = await db.query<Photo>("delete from photos where id = $1 returning client_id, day::text as day", [id]);
+        if (rows[0]) await rm(photoFile(rows[0].client_id, rows[0].day), { force: true });
         return rows[0];
       })
     : undefined;
@@ -1252,11 +1350,11 @@ const ASK_PHOTOS_REPLY =
   'POST /api/photos кладёт снимок в public/uploads/<подопечный>/<день>.jpg и пишет строку с его адресом. ' +
   'Ссылки на снимки — на странице замеров и на карточке подопечного.'
 const ASK_PRIVATE_REPLY =
-  'Тест красный: снимок теста лёг в public, а маршрута по id — выдачи с проверкой и удаления — нет. Дальше: файлы — ' +
-  'в storage/photos вне git, GET и DELETE /api/photos/<id> через RLS, ссылки страниц — на этот адрес. Делать?'
+  'Тест красный: снимок теста лёг в public, PNG под именем photo.jpg загрузка приняла, маршрута по id нет. Дальше: файлы — ' +
+  'в storage/photos вне git, JPEG по первым байтам и до 10 МБ, GET и DELETE /api/photos/<id> через RLS. Делать?'
 const ASK_PRIVATE_GO_REPLY =
-  'Снимки — в storage/photos, вне public и вне git. /api/photos/<id> отдаёт снимок подопечному и его тренеру, ' +
-  'без входа — 401, чужому — 404; DELETE удаляет строку и файл.'
+  'Снимки — в storage/photos, вне public и вне git; путь сервер собирает из номера подопечного и дня. Загрузка — JPEG по первым ' +
+  'байтам, до 10 МБ. /api/photos/<id>: без входа 401, чужим 404, подопечному и тренеру — JPEG; DELETE — строка и файл.'
 
 export default {
   id: 's22-progress',
@@ -1337,10 +1435,12 @@ export default {
       ],
     },
     {
-      // сверх таблицы плана: тот же запрос, второй ход — правки и зелёный тест (одним ходом десять шагов в окно агента не помещаются)
+      // сверх таблицы плана: тот же запрос, второй ход — правки и зелёный тест (одним ходом одиннадцать шагов в окно агента не помещаются)
       id: 'ask-private-go',
       agent: { prompt: 'Делай', reply: ASK_PRIVATE_GO_REPLY },
       steps: [
+        // сверх таблицы плана: где лежат снимки — в одном месте для загрузки, выдачи и удаления
+        { id: 'pr-lib', write: 'lib/photos.ts', content: PHOTOS_LIB },
         { id: 'pr-store', edit: 'app/api/photos/route.ts', find: PHOTOS_ROUTE, replace: PHOTOS_ROUTE_PRIVATE },
         { id: 'pr-get', write: 'app/api/photos/[id]/route.ts', content: PHOTO_ROUTE },
         // сверх таблицы плана: ссылки на снимки — на маршрут с проверкой
@@ -1355,6 +1455,8 @@ export default {
     { id: 'c-private', commit: 'Фото — только своим, удаление вместе с файлом' },
     // тот же снимок за тот же день — та же строка, новый адрес
     { id: 'photo-upload2', run: UPLOAD },
+    // сверх таблицы плана: снимок на диске, а git его не видит — «Верно» для git-половины камня (photo-git)
+    { id: 'photo-git2', run: 'git status --short' },
     { id: 'photo-anon', run: `curl -sI ${NEW_URL} ${STATUS}` },
     { id: 'sveta-curl', run: curlLogin('sveta') },
     { id: 'photo-sveta', run: `curl -sI -b ~/sveta.txt ${NEW_URL} ${STATUS}` },

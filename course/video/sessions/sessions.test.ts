@@ -2380,8 +2380,9 @@ test('s22: фото в public открывается без входа и про
     ...['typegen', 'ask-measure', 'm-sql', 'm-apply', 'm-page', 'm-actions', 'm-coach', 'm-test', 'm-run', 'm-nav', 'm-e2e', 'c-measure'],
     ...['m-data-file', 'm-data-apply', 'ask-photos', 'ph-sql', 'ph-apply', 'ph-route', 'ph-page', 'ph-coach', 'c-photos'],
     ...['dev', 'login-anna', 'anna-measure', 'photo-make', 'anna-curl', 'photo-upload', 'photo-open', 'photo-git'],
-    ...['ask-private', 'pr-test', 'pr-vitest', 'pr-red', 'ask-private-go', 'pr-store', 'pr-get', 'pr-page', 'pr-coach', 'pr-ignore', 'pr-clean', 'pr-green'],
-    ...['c-private', 'photo-upload2', 'photo-anon', 'sveta-curl', 'photo-sveta', 'marina-curl', 'photo-marina', 'photo-old'],
+    ...['ask-private', 'pr-test', 'pr-vitest', 'pr-red'],
+    ...['ask-private-go', 'pr-lib', 'pr-store', 'pr-get', 'pr-page', 'pr-coach', 'pr-ignore', 'pr-clean', 'pr-green'],
+    ...['c-private', 'photo-upload2', 'photo-git2', 'photo-anon', 'sveta-curl', 'photo-sveta', 'marina-curl', 'photo-marina', 'photo-old'],
     ...['anna-logout', 'login-marina', 'coach-measure', 'photo-del', 'photo-ls'],
   ])
   const run = (id: string) => find('s22-progress', id, 'run')
@@ -2414,7 +2415,7 @@ test('s22: фото в public открывается без входа и про
   expect(['m-page', 'm-actions', 'm-coach'].map((id) => file(id).path)).toEqual(['app/measurements/page.tsx', 'app/measurements/actions.ts', 'app/clients/[id]/page.tsx'])
   // дата замера — в форме, не от часов
   expect(file('m-page').after).toContain('type="date"')
-  for (const id of ['m-page', 'm-actions', 'm-coach', 'ph-route', 'pr-store', 'pr-get']) expect(file(id).after, id).not.toMatch(/new Date\(\)|Date\.now\(\)/)
+  for (const id of ['m-page', 'm-actions', 'm-coach', 'ph-route', 'pr-lib', 'pr-store', 'pr-get']) expect(file(id).after, id).not.toMatch(/new Date\(\)|Date\.now\(\)/)
   const dbTest = file('m-test')
   expect(dbTest).toMatchObject({ path: 'test/measurements.test.ts', before: null })
   for (const part of ['Марина, тренер Анны, видит её замеры', 'Света, подопечная Игоря, не видит замеры Анны', 'row-level security']) {
@@ -2473,27 +2474,50 @@ test('s22: фото в public открывается без входа и про
   expect(run('photo-git')).toMatchObject({ cmd: 'git status --short', code: 0 })
   expect(out('photo-git')).toContain('public/uploads/')
 
-  // исправление: сначала тест — красный на самой беде (снимок теста лёг в public), вторым ходом — правки, тест зелёный
+  // исправление: сначала тест — красный на самой беде (снимок теста лёг в public, PNG под именем photo.jpg принят), вторым ходом —
+  // правки, тест зелёный
   expect(agent('ask-private').prompt).toBe(
     'Фото открывается без входа по угадываемому адресу и лежит в public, рядом с кодом. Сделай: файлы вне public и вне git, ' +
       'выдача только вошедшему — подопечному и его тренеру — через RLS, удаление — строка и файл. Сначала тест',
   )
   expect(agent('ask-private').steps).toEqual(['pr-test', 'pr-vitest', 'pr-red'])
-  expect(agent('ask-private-go')).toMatchObject({ prompt: 'Делай', steps: ['pr-store', 'pr-get', 'pr-page', 'pr-coach', 'pr-ignore', 'pr-clean', 'pr-green'] })
-  expect(file('pr-test')).toMatchObject({ path: 'test/photos.test.ts', before: null })
+  expect(agent('ask-private-go')).toMatchObject({ prompt: 'Делай', steps: ['pr-lib', 'pr-store', 'pr-get', 'pr-page', 'pr-coach', 'pr-ignore', 'pr-clean', 'pr-green'] })
+  const photosTest = file('pr-test')
+  expect(photosTest).toMatchObject({ path: 'test/photos.test.ts', before: null })
+  // чужие снимку Анны — не только Света: другой тренер и другой подопечный того же тренера; строка без файла — 404
+  for (const part of ['const OTHERS = [SVETA, IGOR, OLEG];', 'for (const uid of OTHERS) expect((await open(uid)).status, uid).toBe(404);', 'строка есть, а файла нет — 404, а не 500', '"x-content-type-options"']) {
+    expect(photosTest.after, part).toContain(part)
+  }
   expect(file('pr-vitest').after).toContain('resolve: { tsconfigPaths: true }')
   const unit = 'npx vitest run test/photos.test.ts'
   expect(run('pr-red').cmd).toBe(unit)
   expect(run('pr-red').code).not.toBe(0)
   expect(run('pr-red').out).toContain('+   "uploads/1/2026-10-13.jpg",')
-  expect(out('pr-red')).toMatch(/Tests\s+3 failed \(3\)/)
-  expect(file('pr-store').after).toContain('const path = `storage/photos/${clientId}/${day}.jpg`;')
-  expect(file('pr-store').after).not.toContain('"public"')
+  // загрузка поверила типу из запроса: PNG под именем photo.jpg — 201
+  expect(run('pr-red').out).toContain('AssertionError: expected 201 to be 400 // Object.is equality')
+  expect(out('pr-red')).toMatch(/Tests\s+5 failed \(5\)/)
+  // где лежат снимки: путь — из номера подопечного и дня, «../» не пройдёт
+  const lib = file('pr-lib')
+  expect(lib).toMatchObject({ path: 'lib/photos.ts', before: null })
+  for (const part of ['return `storage/photos/${clientId}/${day}.jpg`;', "if (!/^\\d+$/.test(clientId) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(day)) throw", '/*turbopackIgnore: true*/']) {
+    expect(lib.after, part).toContain(part)
+  }
+  // загрузка: JPEG — по первым байтам, а не по типу из запроса; до 10 МБ
+  const store = file('pr-store').after
+  for (const part of ['const MAX_BYTES = 10 * 1024 * 1024;', 'status: 413', 'if (bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[2] !== 0xff) {', 'const file = photoFile(clientId, day);']) {
+    expect(store, part).toContain(part)
+  }
+  expect(store).not.toContain('photo.type')
+  expect(store).not.toContain('"public"')
   const byId = file('pr-get')
   expect(byId).toMatchObject({ path: 'app/api/photos/[id]/route.ts', before: null })
-  for (const part of ['export async function GET(', 'export async function DELETE(', 'status: 401', 'status: 404', 'asUser(uid', 'delete from photos where id = $1 returning path']) {
+  for (const part of ['export async function GET(', 'export async function DELETE(', 'status: 401', 'status: 404', 'asUser(uid', '"X-Content-Type-Options": "nosniff"']) {
     expect(byId.after, part).toContain(part)
   }
+  // файл — по номеру подопечного и дню из строки, а не по строке пути; нет файла — 404, а не 500
+  expect(byId.after).toContain('delete from photos where id = $1 returning client_id, day::text as day')
+  expect(byId.after).toContain('await readFile(photoFile(photo.client_id, photo.day)).catch(() => null)')
+  expect(byId.after).not.toContain('.path')
   for (const id of ['pr-page', 'pr-coach']) {
     expect(file(id).after, id).toContain('<a href={`/api/photos/${photo.id}`}')
     expect(file(id).after, id).not.toContain('photo.path')
@@ -2502,13 +2526,18 @@ test('s22: фото в public открывается без входа и про
   expect(file('pr-ignore').after).toContain('\n/storage/\n')
   expect(run('pr-clean')).toMatchObject({ cmd: 'rm -r public/uploads', code: 0 })
   expect(run('pr-green')).toMatchObject({ cmd: unit, code: 0 })
-  expect(out('pr-green')).toMatch(/Tests\s+3 passed \(3\)/)
+  expect(out('pr-green')).toMatch(/Tests\s+5 passed \(5\)/)
   expect(at('pr-red')).toBeLessThan(at('pr-store'))
   expect(commit('c-private')).toMatchObject({ message: 'Фото — только своим, удаление вместе с файлом', branch: 'main', parents: [commit('c-photos').hash] })
 
   // после: тот же снимок — новый адрес; без входа 401, Свете 404, Марине — снимок; старый адрес — 404
   const NEW = `${BASE}/api/photos/1`
   expect(run('photo-upload2')).toMatchObject({ cmd: upload, code: 0, out: ['{"id":"1","url":"/api/photos/1"}'] })
+  // снимок на диске, а git его не видит: в git ничего не просится
+  expect(run('photo-git2')).toMatchObject({ cmd: 'git status --short', code: 0 })
+  expect(out('photo-git2')).not.toMatch(/uploads|storage/)
+  expect(run('photo-git2').out).toEqual([])
+  expect(at('photo-upload2') + 1).toBe(at('photo-git2'))
   expect(run('photo-anon').cmd).toBe(`curl -sI ${NEW} ${STATUS}`)
   expect(out('photo-anon')).toContain('401')
   expect(run('photo-sveta').cmd).toBe(`curl -sI -b ~/sveta.txt ${NEW} ${STATUS}`)
