@@ -2575,3 +2575,144 @@ test('s22: фото в public открывается без входа и про
     expect(e.files.filter((f) => /^(public\/uploads|storage|backups)\//.test(f.path) || /\.(jpg|txt)$/.test(f.path)), e.id).toEqual([])
   }
 })
+
+test('s23: без сети подход пропадал; очередь; потерянный ответ даёт дубль, ключ — один раз', () => {
+  const events = sessions['s23-offline'].events
+  expect(events.map((e) => e.id)).toEqual([
+    ...['typegen', 'why-grep', 'ask-offline-test', 'off-e2e', 'off-red'],
+    ...['ask-queue', 'q-lib', 'q-route', 'q-form', 'q-page', 'q-actions', 'q-green', 'c-queue'],
+    ...['ask-lost', 'lost-e2e', 'lost-red', 'lost-db'],
+    ...['ask-key', 'key-sql', 'key-apply', 'key-route', 'key-green', 'c-key'],
+  ])
+  const run = (id: string) => find('s23-offline', id, 'run')
+  const file = (id: string) => find('s23-offline', id, 'file')
+  const agent = (id: string) => find('s23-offline', id, 'agent')
+  const commit = (id: string) => find('s23-offline', id, 'commit')
+  const at = (id: string) => events.findIndex((e) => e.id === id)
+  const out = (id: string) => run(id).out.join('\n')
+  // шаги внутри запросов — агента, остальные — человека: вопрос из отзывов, psql, коммиты
+  const inner = new Set(['ask-offline-test', 'ask-queue', 'ask-lost', 'ask-key'].flatMap((id) => agent(id).steps))
+  for (const e of events) {
+    if (e.kind !== 'agent') expect((e as { by?: string }).by, e.id).toBe(inner.has(e.id) ? 'agent' : undefined)
+  }
+  expect(run('typegen')).toMatchObject({ cmd: 'npx next typegen', code: 0 })
+  // в сессии нет ни браузера, ни часов: подходы пишет сквозной тест, в файлах агента нет «сегодня»
+  expect(events.filter((e) => e.kind === 'browser')).toEqual([])
+  for (const id of ['off-e2e', 'q-lib', 'q-route', 'q-form', 'lost-e2e', 'key-route']) expect(file(id).after, id).not.toMatch(/new Date\(\)|Date\.now\(\)/)
+
+  // повод — вопрос Анны в отзывах (s13)
+  expect(run('why-grep')).toMatchObject({ cmd: 'grep -n "интернет" docs/feedback.md', code: 0 })
+  expect(out('why-grep')).toContain('интернет')
+
+  // сначала сквозной тест: сеть отключает Playwright; без сети форма подход не сохраняет — пометки «не отправлено» нет
+  expect(agent('ask-offline-test')).toMatchObject({
+    prompt:
+      'Подход в зале без интернета: сначала сквозной тест — без сети подход сохраняется с пометкой «не отправлено», ' +
+      'сеть вернулась — уходит, тренер видит',
+    steps: ['off-e2e', 'off-red'],
+  })
+  const spec = file('off-e2e')
+  expect(spec).toMatchObject({ path: 'e2e/offline.spec.ts', before: null })
+  for (const part of ['await anna.context().setOffline(true);', 'await anna.context().setOffline(false);', 'anna.goto("/workouts/1")', 'marina.goto("/clients/1")', '"50 кг, 10 повторов — не отправлено"', '"50 кг, 10 повторов — отправлено"', 'const before = await seen.count();', 'toHaveCount(before + 1)']) {
+    expect(spec.after, part).toContain(part)
+  }
+  const E2E = 'npx playwright test e2e/offline.spec.ts'
+  expect(run('off-red').cmd).toBe(E2E)
+  expect(run('off-red').code).not.toBe(0)
+  // форма — серверное действие: без сети запрос не ушёл, браузер пишет об этом в журнал сервера
+  expect(out('off-red')).toContain('Uncaught TypeError: Failed to fetch')
+  expect(run('off-red').out).toContain("    Locator: getByText('50 кг, 10 повторов — не отправлено')")
+  expect(run('off-red').out).toContain('    Error: element(s) not found')
+  expect(out('off-red')).toMatch(/^ {2}1 failed$/m)
+
+  // очередь на телефоне: localStorage, номер подхода, отправка по порядку и по online; маршрут — JSON, cookie, asUser
+  expect(agent('ask-queue')).toMatchObject({
+    prompt:
+      'Сделай очередь на телефоне: подход сначала в очередь, отправка по порядку, «отправлено» — только после ответа сервера. ' +
+      'У каждого подхода свой номер',
+    steps: ['q-lib', 'q-route', 'q-form', 'q-page', 'q-actions', 'q-green'],
+  })
+  expect(file('q-lib')).toMatchObject({ path: 'lib/sets.ts', before: null })
+  expect(file('q-lib').after).toContain('export function parseSet(')
+  const route = file('q-route')
+  // прототип s02 /api/sets остаётся до s26 — новый маршрут под тренировкой
+  expect(route).toMatchObject({ path: 'app/api/workouts/[id]/sets/route.ts', before: null })
+  for (const part of ['export async function POST(request: Request, { params }: RouteContext<"/api/workouts/[id]/sets">)', 'await currentUser()', 'await request.json()', 'asUser(uid', 'status: 401', 'status: 404', 'Response.json({ status: "принято" }, { status: 201 })']) {
+    expect(route.after, part).toContain(part)
+  }
+  // номер подхода сервер пока не знает
+  expect(route.after).not.toMatch(/client_key|body\.key/)
+  const form = file('q-form')
+  expect(form).toMatchObject({ path: 'components/SetForm.tsx', before: null })
+  for (const part of ['"use client";', 'localStorage.setItem(QUEUE', 'key: crypto.randomUUID()', 'window.addEventListener("online", send)', 'navigator.onLine', '"не отправлено"', 'mark(item.key, "отправлено")']) {
+    expect(form.after, part).toContain(part)
+  }
+  // в очереди — «50 кг, 10 повторов», а не «50 кг × 10»: строку подхода e2e/cycle.spec.ts ищет по «50 кг × 10»
+  expect(form.after).not.toContain('кг ×')
+  expect(file('q-page')).toMatchObject({ path: 'app/workouts/[id]/page.tsx' })
+  expect(file('q-page').before).toContain('<form action={save}')
+  expect(file('q-page').after).toContain('<SetForm workoutId={id} />')
+  expect(file('q-page').after).not.toContain('saveSet')
+  expect(file('q-actions')).toMatchObject({ path: 'app/workouts/[id]/actions.ts' })
+  expect(file('q-actions').after).not.toContain('saveSet')
+  expect(file('q-actions').after).toContain('export async function repeatSet(')
+  expect(run('q-green')).toMatchObject({ cmd: E2E, code: 0 })
+  expect(out('q-green')).toMatch(/^ {2}1 passed /m)
+  expect(at('off-red')).toBeLessThan(at('q-form'))
+  expect(commit('c-queue')).toMatchObject({ message: 'Подход без связи: очередь на отправку', branch: 'main', parents: [find('s22-progress', 'c-private', 'commit').hash] })
+  expect(commit('c-queue').files.map((f) => f.path)).toEqual(
+    expect.arrayContaining(['e2e/offline.spec.ts', 'lib/sets.ts', 'app/api/workouts/[id]/sets/route.ts', 'components/SetForm.tsx', 'app/workouts/[id]/page.tsx']),
+  )
+
+  // подводный камень: ответ потерялся — телефон отправил снова, у тренера две строки (ожидали 1, получили 2)
+  expect(agent('ask-lost')).toMatchObject({
+    prompt: 'Проверь случай: сервер подход принял, а ответ потерялся — телефон отправит снова',
+    steps: ['lost-e2e', 'lost-red'],
+  })
+  const lost = file('lost-e2e')
+  expect(lost).toMatchObject({ path: 'e2e/offline.spec.ts', before: spec.after })
+  for (const part of ['test("ответ потерялся — один подход, одна строка"', 'await route.fetch();', 'await route.abort();', '{ times: 1 }', 'expect((await seen.count()) - before, "строк подхода у тренера").toBe(1);']) {
+    expect(lost.after, part).toContain(part)
+  }
+  expect(run('lost-red').cmd).toBe(E2E)
+  expect(run('lost-red').code).not.toBe(0)
+  expect(run('lost-red').out).toContain('    Error: строк подхода у тренера')
+  expect(run('lost-red').out).toContain('    Expected: 1')
+  expect(run('lost-red').out).toContain('    Received: 2')
+  // первый тест — очередь без сети — по-прежнему зелёный
+  expect(out('lost-red')).toMatch(/^ {2}1 failed$/m)
+  expect(out('lost-red')).toMatch(/^ {2}1 passed /m)
+  expect(run('lost-db')).toMatchObject({ cmd: 'psql -At -c "select count(*) from sets where workout_id = 1"', code: 0 })
+  // три подхода «Ног» из seed, по одному из очереди в q-green и lost-red и два — потерянный ответ
+  expect(run('lost-db').out).toEqual(['7'])
+
+  // номер подхода принимается один раз: unique в базе, on conflict do nothing, на повтор — тот же ответ
+  expect(agent('ask-key')).toMatchObject({
+    prompt: 'Сервер должен принимать номер подхода один раз: уникальный ключ в базе, на повтор — «принято». Миграцию — с подтверждения',
+    steps: ['key-sql', 'key-apply', 'key-route', 'key-green'],
+  })
+  const sql = file('key-sql')
+  expect(sql).toMatchObject({ path: 'supabase/migrations/0013_sets_client_key.sql', before: null })
+  // столбец допускает null: у подходов seed.sql номера нет (Review Focus 1 — 0013 применяется со следующей сессии, шаг schema в s24)
+  expect(sql.after).toContain('alter table sets add column client_key uuid unique;')
+  expect(sql.after).not.toContain('not null')
+  expect(run('key-apply')).toMatchObject({ cmd: 'psql -f supabase/migrations/0013_sets_client_key.sql', code: 0, out: ['ALTER TABLE'] })
+  const keyRoute = file('key-route')
+  expect(keyRoute).toMatchObject({ path: 'app/api/workouts/[id]/sets/route.ts', before: route.after })
+  for (const part of ['insert into sets (workout_id, weight, reps, note, client_key)', 'on conflict (client_key) do nothing', 'status: 400']) {
+    expect(keyRoute.after, part).toContain(part)
+  }
+  // ответ один — и на первый раз, и на повтор
+  expect(keyRoute.after.match(/Response\.json\(\{ status: "принято" \}/g)).toHaveLength(1)
+  expect(run('key-green')).toMatchObject({ cmd: E2E, code: 0 })
+  expect(out('key-green')).toMatch(/^ {2}2 passed /m)
+  expect(commit('c-key')).toMatchObject({ message: 'Без дублей: номер подхода принимается один раз', branch: 'main', parents: [commit('c-queue').hash] })
+  expect(commit('c-key').files.map((f) => f.path)).toEqual(
+    expect.arrayContaining(['supabase/migrations/0013_sets_client_key.sql', 'app/api/workouts/[id]/sets/route.ts', 'e2e/offline.spec.ts']),
+  )
+  expect(commit('c-queue').files.map((f) => f.path)).not.toContain('supabase/migrations/0013_sets_client_key.sql')
+  // отчёты Playwright — не в коммитах (test-results/ и playwright-report/ в .gitignore)
+  for (const e of events) {
+    if (e.kind === 'commit') expect(e.files.filter((f) => /^(test-results|playwright-report)\//.test(f.path)), e.id).toEqual([])
+  }
+})
