@@ -11,6 +11,8 @@ async function login(page: Page, email: string, home: RegExp) {
   await page.getByRole("button", { name: "Войти" }).click();
   // холодный dev собирает страницу после входа дольше 5 с — ждём до 15 с
   await expect(page).toHaveURL(home, { timeout: 15_000 });
+  // меню появляется после router.refresh(): axe проверяет страницу вместе с ним
+  await expect(page.getByRole("navigation", { name: "Меню" })).toBeVisible();
 }
 
 // Нарушения на открытой странице: правило, сколько элементов его нарушают и что не так с первым из них — словами axe

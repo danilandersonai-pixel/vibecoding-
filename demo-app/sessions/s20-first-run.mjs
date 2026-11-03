@@ -13,15 +13,20 @@
 // что здесь будет, что сделать и кнопка («Создать приглашение» у тренера). Форма по имени — «Добавить без входа» с подписью, что войти
 // такой подопечный не сможет. /report без месяца — ссылки на месяцы, в которых есть тренировки (из базы, а не по сегодняшней дате).
 // Сверх таблицы плана — правка входа first-login: после router.push вход вызывает router.refresh(). В черновом прогоне без неё меню
-// после входа не появлялось: общий layout при переходе на клиенте не перерисовывается. Тот же тест — зелёный.
+// после входа не появлялось: общий layout при переходе на клиенте не перерисовывается. Тот же тест — зелёный; он же проверяет выход:
+// после «Выйти» меню нет, а /clients ведёт на /login. Наташа выходит через меню и в браузере (natasha-logout, решение контролёра) —
+// форма входа Веры уже без чужого меню над ней.
 // Доступность: npm install -D @axe-core/playwright (решение автора), агент пишет e2e/a11y.spec.ts — axe с тегами wcag2a и wcag2aa
 // на /login, у Марины на /clients и у Анны на /workouts (seed.sql: на их страницах есть данные) в colorScheme light и dark, и вход
-// одной клавиатурой: Tab — «Почта» → «Пароль» → «Войти», Enter → /clients. Красный только в тёмной схеме: color-contrast — текст
+// одной клавиатурой: Tab — «Почта» → «Пароль» → «Войти», Enter → /clients. axe запускается, когда меню уже на странице (оно приходит
+// после router.refresh()), — иначе меню попадало бы под проверку не всегда. Красный только в тёмной схеме: color-contrast — текст
 // #71717b (zinc-500) на #0a0a0a, 4,1 при норме 4,5 : 1. Исправление — токен тёмной схемы в app/globals.css: --color-zinc-500: #a1a1aa.
 // Сверх таблицы плана — перезапуск dev-сервера со сбросом кэша (contrast-restart; тот же запрос шлёт кнопка Restart Dev Server
 // в Next.js DevTools). В черновом прогоне правка globals.css при запущенном npm run dev до страниц не дошла: загрузчик @tailwindcss/turbopack
 // собирает CSS заново, только если у файла сменилось время изменения, а Turbopack сначала зовёт его со старым текстом файла — и страницы
 // получают CSS на одну правку старше. Простой перезапуск берёт тот же испорченный кэш Turbopack, со сбросом кэша тот же тест зелёный.
+// curl -f: перезапуск без ответа 2xx — ошибка; дальше ждём, пока /login снова отвечает. Правила оформления — по коду: человек
+// дописывает в docs/design.md второстепенный текст тёмной темы (design-dark).
 // Сквозные тесты — только свои файлы (npx playwright test e2e/<файл>), по запущенному npm run dev (reuseExistingServer); общий прогон — в s26.
 // Строки для кадра сессия создаёт сама: приглашение и Вера — браузером, Наташа — psql -f. Браузер один на сессию: вход меняет cookie.
 // Запись с середины цепочки: node scripts/record-session.mjs --from s20-first-run (из course/). Id шагов постоянные: на них ссылаются уроки.
@@ -52,7 +57,8 @@ insert into profiles (id, role, name) values
 `
 
 // Сквозной тест первого дня — пишет агент до кода: Наташа видит «Подопечных пока нет» и «Создать приглашение», Вера — что
-// тренировку назначит тренер; в меню по роли есть «Выйти», и выход ведёт на /login. Вход ждёт до 15 с, как quick-set после e2e-wait
+// тренировку назначит тренер; в меню по роли есть «Выйти», после выхода меню нет, а /clients ведёт на вход. Вход ждёт до 15 с,
+// как quick-set после e2e-wait
 const FIRST_E2E = `import { expect, test, type Page } from "@playwright/test";
 
 // Первый день в приложении: новый тренер без подопечных и новый подопечный без тренировок. Пустой экран — в три части:
@@ -75,6 +81,10 @@ test("новый тренер видит, с чего начать, и може�
   const menu = page.getByRole("navigation", { name: "Меню" });
   await expect(menu.getByRole("link")).toHaveText(["Подопечные", "Программы", "Отчёт"]);
   await menu.getByRole("button", { name: "Выйти" }).click();
+  await expect(page).toHaveURL(/\\/login$/);
+  // cookie входа стёрта: меню нет, а страница тренера снова ведёт на вход
+  await expect(page.getByRole("navigation", { name: "Меню" })).toHaveCount(0);
+  await page.goto("/clients");
   await expect(page).toHaveURL(/\\/login$/);
 });
 
@@ -158,6 +168,8 @@ async function login(page: Page, email: string, home: RegExp) {
   await page.getByRole("button", { name: "Войти" }).click();
   // холодный dev собирает страницу после входа дольше 5 с — ждём до 15 с
   await expect(page).toHaveURL(home, { timeout: 15_000 });
+  // меню появляется после router.refresh(): axe проверяет страницу вместе с ним
+  await expect(page.getByRole("navigation", { name: "Меню" })).toBeVisible();
 }
 
 // Нарушения на открытой странице: правило, сколько элементов его нарушают и что не так с первым из них — словами axe
@@ -555,6 +567,8 @@ const ERROR_ALERT = `      {typeof error === "string" && (
         </p>
       )}
 `
+// Список подопечных — кусок страницы от <ul> до </ul> (правка ставит его под условие, с отступом)
+const CLIENT_LIST = between(CLIENTS_PAGE, '      <ul className="mt-6 flex flex-col gap-3">\n', '\n      </ul>\n')
 const CREATE_INVITE = `      <form action={createInvite} className="mt-4">
         <button type="submit" className="rounded bg-zinc-900 px-4 py-2 text-white">
           Создать приглашение
@@ -562,8 +576,8 @@ const CREATE_INVITE = `      <form action={createInvite} className="mt-4">
       </form>
 `
 
-// Пустой список у тренера — правка агента (first-clients): пустой экран в три части с кнопкой «Создать приглашение» над списком
-// (список без подопечных пуст и в кадре не виден), вторая такая же кнопка под приглашениями — только когда подопечные есть;
+// Пустой список у тренера — правка агента (first-clients): вместо пустого списка — пустой экран в три части с кнопкой
+// «Создать приглашение»; вторая такая же кнопка под приглашениями — только когда подопечные есть;
 // форма по имени — под приглашениями, «Добавить без входа» с подписью, что войти такой подопечный не сможет
 const CLIENTS_FIRST = chain(CLIENTS_PAGE, [
   [
@@ -573,10 +587,13 @@ const CLIENTS_FIRST = chain(CLIENTS_PAGE, [
   ],
   [
     `      <h1 className="text-3xl font-semibold">Подопечные</h1>
-      <ul className="mt-6 flex flex-col gap-3">
+${CLIENT_LIST}
+${ADD_FORM('Добавить', 'mt-8')}
+${ERROR_ALERT}
+      <h2 className="mt-8 text-xl font-semibold">Приглашения</h2>
 `,
     `      <h1 className="text-3xl font-semibold">Подопечные</h1>
-      {clients.length === 0 && (
+      {clients.length === 0 ? (
         <section className="mt-6 rounded border border-zinc-300 p-4">
           <h2 className="text-xl font-semibold">Подопечных пока нет</h2>
           <p className="mt-2 text-zinc-500">Здесь будут ваши подопечные: последняя тренировка, последний подход и растёт ли вес.</p>
@@ -587,18 +604,8 @@ const CLIENTS_FIRST = chain(CLIENTS_PAGE, [
             </button>
           </form>
         </section>
-      )}
-      <ul className="mt-6 flex flex-col gap-3">
-`,
-  ],
-  [
-    `      </ul>
-
-${ADD_FORM('Добавить', 'mt-8')}
-${ERROR_ALERT}
-      <h2 className="mt-8 text-xl font-semibold">Приглашения</h2>
-`,
-    `      </ul>
+      ) : (
+${indent(CLIENT_LIST)}      )}
 
       <h2 className="mt-8 text-xl font-semibold">Приглашения</h2>
 `,
@@ -763,11 +770,20 @@ const CSS_DARK_CONTRAST = `@media (prefers-color-scheme: dark) {
 }
 `
 
-// Перезапуск dev-сервера со сбросом кэша Turbopack — тот же запрос шлёт кнопка Restart Dev Server в Next.js DevTools.
-// Сервер поднимается заново на том же порту за секунду-две; sleep — чтобы Playwright не начал раньше и не запустил второй npm run dev
-const RESTART = "curl -sX POST 'localhost:3000/__nextjs_restart_dev?invalidateFileSystemCache=1' && sleep 5"
+// docs/design.md (s12) — правка человека: второстепенный текст в тёмной теме, как в app/globals.css после contrast-css
+const DESIGN_MUTED = '- второстепенный текст (даты, подсказки) — `zinc-500`;\n'
+const DESIGN_MUTED_DARK =
+  '- второстепенный текст (даты, подсказки) — `zinc-500`, в тёмной теме `#a1a1aa`: `#71717b` на `#0a0a0a` даёт 4,1 : 1, а тексту нужно ' +
+  '4,5 : 1 (токен `--color-zinc-500` в `app/globals.css`);\n'
 
-// Отступ на 2 пробела: кнопка приглашения под условием
+// Перезапуск dev-сервера со сбросом кэша Turbopack — тот же запрос шлёт кнопка Restart Dev Server в Next.js DevTools.
+// -f: ответ не 2xx — код ошибки, а не тихий 0. Сервер поднимается заново на том же порту за секунду-две: ждём, пока /login
+// снова отвечает, иначе Playwright (reuseExistingServer) запустит второй npm run dev; sleep 2 — старый сервер успевает выйти
+const RESTART =
+  "curl -fsS -X POST 'localhost:3000/__nextjs_restart_dev?invalidateFileSystemCache=1' && sleep 2 && " +
+  'until curl -fs -o /dev/null localhost:3000/login; do sleep 1; done'
+
+// Отступ на 2 пробела: список и кнопка приглашения под условием
 function indent(text) {
   return text.replace(/^(?=.)/gm, '  ')
 }
@@ -779,6 +795,14 @@ function replaceOnce(text, find, replace) {
   return text.slice(0, at) + replace + text.slice(at + find.length)
 }
 
+// Кусок text от первого start до ближайшего за ним end включительно; нет одного из них — сессия не загрузится
+function between(text, start, end) {
+  const from = text.indexOf(start)
+  const to = from < 0 ? -1 : text.indexOf(end, from)
+  if (to < 0) throw new Error(`s20-first-run: нет куска «${start.slice(0, 40)}…»`)
+  return text.slice(from, to + end.length)
+}
+
 // Несколько замен подряд, каждая — ровно одного вхождения
 function chain(text, pairs) {
   return pairs.reduce((acc, [find, replace]) => replaceOnce(acc, find, replace), text)
@@ -788,21 +812,21 @@ const login = (email) => ({ url: '/login', fill: { Почта: email, Парол
 
 // Ответы агента — авторские, по прочитанному и по выводу его шагов
 const ASK_PATH_REPLY =
-  'Новый тренер на /clients видит заголовок и сразу форму «Имя / Добавить»: о пустом списке ни слова, а эта форма заводит ' +
-  'подопечного без почты и пароля — без входа. Новый подопечный видит «Тренировок пока нет» — и не знает, что дальше. ' +
-  'Меню и выхода нет: в layout только страница, «Программы» и «Отчёт» открываются лишь по адресу, а /report без месяца ' +
-  'показывает подсказку для разработчика.'
+  'Новый тренер на /clients видит заголовок и сразу форму «Имя / Добавить»: о пустом списке ни слова, а в форме только имя, ' +
+  'без почты и пароля, — такой подопечный будет без входа. Новый подопечный видит «Тренировок пока нет» — и не знает, что дальше. ' +
+  'Меню и выхода нет: в layout только страница; ссылок на «Программы» и «Отчёт» нет ни там, ни на этих страницах — открываются ' +
+  'лишь по адресу, а /report без месяца показывает подсказку для разработчика.'
 const ASK_FIRST_REPLY =
-  'Тест красный, как и должен: у Наташи нет «Подопечных пока нет», у Веры — ни слова о том, что тренировку назначит тренер. ' +
+  'Тест красный, как и положено: у Наташи нет «Подопечных пока нет», у Веры — ни слова о том, что тренировку назначит тренер. ' +
   'Дальше — меню по роли с «Выйти» в layout, пустые экраны в три части и отчёт по месяцам. Делать?'
 const ASK_FIRST_GO_REPLY =
   'Меню по роли с «Выйти» (POST /api/logout), вход обновляет страницу — меню видно сразу. Пустые экраны в три части, ' +
   '«Добавить без входа» с подписью, отчёт без месяца — по месяцам с тренировками.'
 const ASK_A11Y_REPLY =
-  'Нарушено одно правило — color-contrast, и только в тёмной схеме: у тренера 10 элементов, у подопечного 3 — текст #71717b ' +
-  'на фоне #0a0a0a, 4,1 при норме 4,5 : 1. Вход, светлая схема и вход одной клавиатурой — без замечаний.'
+  'Нарушено одно правило — color-contrast, и только в тёмной схеме: у тренера 10 элементов, у подопечного 3; у первого из них — ' +
+  'текст #71717b на фоне #0a0a0a, 4,1 при норме 4,5 : 1. Вход, светлая схема и вход одной клавиатурой — без замечаний.'
 const ASK_CONTRAST_REPLY =
-  'Второстепенный текст (zinc-500) в тёмной схеме — #a1a1aa: 7,7 : 1 вместо 4,1. Запущенный dev отдаёт правку globals.css ' +
+  'Второстепенный текст (zinc-500) в тёмной схеме — #a1a1aa: 7,7 : 1 вместо 4,1. Правку globals.css запущенный dev может отдать ' +
   'с опозданием, поэтому перед проверкой перезапустил его со сбросом кэша. axe чист в обеих схемах.'
 
 const joinAs = (name, email) => ({ Имя: name, Почта: email, Пароль: 'demo-password' })
@@ -877,6 +901,8 @@ export default {
     { id: 'c-first', commit: 'Первый экран: меню, выход, пустые экраны с шагом' },
     // Наташа по-прежнему вошла: пустой экран в три части и меню
     { id: 'natasha-hint', browser: { url: '/clients' } },
+    // Наташа выходит из меню: форма входа — уже без её меню
+    { id: 'natasha-logout', browser: { url: '/clients', click: 'Выйти' } },
     { id: 'login-vera', browser: login('vera@example.com') },
     { id: 'vera-hint', browser: { url: '/workouts' } },
     // новая зависимость разработки — только командой npm (решение автора)
@@ -908,6 +934,8 @@ export default {
         { id: 'a11y-green', run: 'npx playwright test e2e/a11y.spec.ts' },
       ],
     },
+    // правила оформления — по коду: в тёмной теме второстепенный текст светлее; правит человек (агенту было «остальное не трогай»)
+    { id: 'design-dark', edit: 'docs/design.md', find: DESIGN_MUTED, replace: DESIGN_MUTED_DARK },
     { id: 'c-a11y', commit: 'Доступность: axe и клавиатура, контраст тёмной схемы' },
   ],
 }

@@ -457,7 +457,7 @@
     "- Local:         http://localhost:3000",
     "- Network:       http://192.0.2.2:3000",
     "- Environments: .env.local",
-    "✓ Ready in 301ms"
+    "✓ Ready in 512ms"
    ],
    "code": null
   },
@@ -518,7 +518,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 273ms"
+     "text": "[Fast Refresh] done in 325ms"
     },
     {
      "type": "log",
@@ -526,7 +526,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 426ms"
+     "text": "[Fast Refresh] done in 411ms"
     },
     {
      "type": "log",
@@ -546,12 +546,12 @@
     "- Cache Components enabled",
     "- Partial Prefetching enabled",
     "",
-    " GET /login 200 in 363ms (next.js: 181ms, application-code: 183ms)",
-    " POST /api/login 200 in 125ms (next.js: 57ms, application-code: 68ms)",
+    " GET /login 200 in 423ms (next.js: 219ms, application-code: 204ms)",
+    " POST /api/login 200 in 154ms (next.js: 84ms, application-code: 70ms)",
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
     "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
     "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
-    " GET /clients 200 in 99ms (next.js: 13ms, application-code: 86ms)"
+    " GET /clients 200 in 111ms (next.js: 14ms, application-code: 97ms)"
    ]
   },
   {
@@ -595,7 +595,7 @@
     "Добавить",
     "Приглашения",
     "Ссылка действует 48 часов, по ней регистрируются один раз.",
-    "http://localhost:3000/join/e2d6ec092492f7c5d98d76ad691d96bf",
+    "http://localhost:3000/join/9f342b5390d0e6db036535bc542c8da6",
     "Отозвать",
     "Создать приглашение"
    ],
@@ -638,20 +638,20 @@
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
     "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
     "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
-    " GET /clients 200 in 130ms (next.js: 1.6ms, application-code: 128ms)",
+    " GET /clients 200 in 201ms (next.js: 2ms, application-code: 198ms)",
     "[sql] insert into invites (coach_id) values ($1)",
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
     "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
     "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
-    " GET /clients 200 in 53ms (next.js: 1.3ms, application-code: 52ms)",
-    " POST /clients 200 in 85ms (next.js: 1.6ms, application-code: 84ms)",
+    " GET /clients 200 in 49ms (next.js: 1.2ms, application-code: 47ms)",
+    " POST /clients 200 in 82ms (next.js: 1.7ms, application-code: 80ms)",
     "  └─ ƒ <inline action>() in 9ms app/clients/page.tsx"
    ]
   },
   {
    "id": "vera-join",
    "kind": "browser",
-   "url": "http://localhost:3000/join/e2d6ec092492f7c5d98d76ad691d96bf",
+   "url": "http://localhost:3000/join/9f342b5390d0e6db036535bc542c8da6",
    "urlAfter": "http://localhost:3000/workouts",
    "title": "Приглашение",
    "fields": [
@@ -698,7 +698,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 254ms"
+     "text": "[Fast Refresh] done in 366ms"
     },
     {
      "type": "log",
@@ -707,11 +707,11 @@
    ],
    "network": [],
    "server": [
-    " GET /join/e2d6ec092492f7c5d98d76ad691d96bf 200 in 455ms (next.js: 11ms, generate-params: 387ms, application-code: 57ms)",
+    " GET /join/9f342b5390d0e6db036535bc542c8da6 200 in 716ms (next.js: 16ms, generate-params: 634ms, application-code: 66ms)",
     "[sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day",
-    " GET /workouts 200 in 73ms (next.js: 15ms, application-code: 58ms)",
-    " POST /join/e2d6ec092492f7c5d98d76ad691d96bf 200 in 515ms (next.js: 1.7ms, generate-params: 30ms, application-code: 484ms)",
-    "  └─ ƒ join(\"e2d6ec092492f7c5d98d76ad691d96bf\", {}) in 18ms app/join/[code]/actions.ts"
+    " GET /workouts 200 in 94ms (next.js: 33ms, application-code: 61ms)",
+    " POST /join/9f342b5390d0e6db036535bc542c8da6 200 in 624ms (next.js: 1.3ms, generate-params: 23ms, application-code: 600ms)",
+    "  └─ ƒ join(\"9f342b5390d0e6db036535bc542c8da6\", {}) in 15ms app/join/[code]/actions.ts"
    ]
   },
   {
@@ -807,12 +807,12 @@
    ],
    "network": [],
    "server": [
-    " GET /login 200 in 33ms (next.js: 1.6ms, application-code: 32ms)",
-    " POST /api/login 200 in 13ms (next.js: 1.3ms, application-code: 12ms)",
+    " GET /login 200 in 50ms (next.js: 1.5ms, application-code: 48ms)",
+    " POST /api/login 200 in 14ms (next.js: 1.2ms, application-code: 13ms)",
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
     "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
     "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
-    " GET /clients 200 in 41ms (next.js: 1.5ms, application-code: 39ms)"
+    " GET /clients 200 in 44ms (next.js: 1.6ms, application-code: 43ms)"
    ]
   },
   {
@@ -870,14 +870,14 @@
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
     "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
     "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
-    " GET /clients 200 in 63ms (next.js: 1.5ms, application-code: 61ms)"
+    " GET /clients 200 in 63ms (next.js: 0.9ms, application-code: 62ms)"
    ]
   },
   {
    "id": "ask-path",
    "kind": "agent",
    "prompt": "Пройди путь нового тренера и нового подопечного: что они видят первым, где пусто и куда идти дальше. Код не меняй",
-   "reply": "Новый тренер на /clients видит заголовок и сразу форму «Имя / Добавить»: о пустом списке ни слова, а эта форма заводит подопечного без почты и пароля — без входа. Новый подопечный видит «Тренировок пока нет» — и не знает, что дальше. Меню и выхода нет: в layout только страница, «Программы» и «Отчёт» открываются лишь по адресу, а /report без месяца показывает подсказку для разработчика.",
+   "reply": "Новый тренер на /clients видит заголовок и сразу форму «Имя / Добавить»: о пустом списке ни слова, а в форме только имя, без почты и пароля, — такой подопечный будет без входа. Новый подопечный видит «Тренировок пока нет» — и не знает, что дальше. Меню и выхода нет: в layout только страница; ссылок на «Программы» и «Отчёт» нет ни там, ни на этих страницах — открываются лишь по адресу, а /report без месяца показывает подсказку для разработчика.",
    "steps": [
     "p-clients",
     "p-workouts",
@@ -921,7 +921,7 @@
    "id": "ask-first",
    "kind": "agent",
    "prompt": "Сделай первый экран: меню по роли с выходом, пустые экраны в три части — что здесь будет, что сделать, кнопка. Сначала сквозной тест",
-   "reply": "Тест красный, как и должен: у Наташи нет «Подопечных пока нет», у Веры — ни слова о том, что тренировку назначит тренер. Дальше — меню по роли с «Выйти» в layout, пустые экраны в три части и отчёт по месяцам. Делать?",
+   "reply": "Тест красный, как и положено: у Наташи нет «Подопечных пока нет», у Веры — ни слова о том, что тренировку назначит тренер. Дальше — меню по роли с «Выйти» в layout, пустые экраны в три части и отчёт по месяцам. Делать?",
    "steps": [
     "first-e2e",
     "first-red"
@@ -932,14 +932,14 @@
    "kind": "file",
    "path": "e2e/first-run.spec.ts",
    "before": null,
-   "after": "import { expect, test, type Page } from \"@playwright/test\";\n\n// Первый день в приложении: новый тренер без подопечных и новый подопечный без тренировок. Пустой экран — в три части:\n// что здесь будет, что сделать и кнопка. Меню — по роли, в нём «Выйти».\n// Наташа — тренер из supabase/tests/new-coach.sql, Вера — подопечная Марины по приглашению; пароль у обеих demo-password.\n\nasync function login(page: Page, email: string, home: RegExp) {\n  await page.goto(\"/login\");\n  await page.getByLabel(\"Почта\").fill(email);\n  await page.getByLabel(\"Пароль\").fill(\"demo-password\");\n  await page.getByRole(\"button\", { name: \"Войти\" }).click();\n  // холодный dev собирает страницу после входа дольше 5 с — ждём до 15 с\n  await expect(page).toHaveURL(home, { timeout: 15_000 });\n}\n\ntest(\"новый тренер видит, с чего начать, и может выйти\", async ({ page }) => {\n  await login(page, \"natasha@example.com\", /\\/clients$/);\n  await expect(page.getByText(\"Подопечных пока нет\")).toBeVisible();\n  await expect(page.getByRole(\"button\", { name: \"Создать приглашение\" })).toBeVisible();\n  const menu = page.getByRole(\"navigation\", { name: \"Меню\" });\n  await expect(menu.getByRole(\"link\")).toHaveText([\"Подопечные\", \"Программы\", \"Отчёт\"]);\n  await menu.getByRole(\"button\", { name: \"Выйти\" }).click();\n  await expect(page).toHaveURL(/\\/login$/);\n});\n\ntest(\"новый подопечный знает, что тренировку назначит тренер\", async ({ page }) => {\n  await login(page, \"vera@example.com\", /\\/workouts$/);\n  await expect(page.getByText(\"Тренировок пока нет\")).toBeVisible();\n  await expect(page.getByText(\"Первую тренировку назначит тренер\")).toBeVisible();\n  const menu = page.getByRole(\"navigation\", { name: \"Меню\" });\n  await expect(menu.getByRole(\"link\")).toHaveText([\"Мои тренировки\"]);\n  await expect(menu.getByRole(\"button\", { name: \"Выйти\" })).toBeVisible();\n});\n",
+   "after": "import { expect, test, type Page } from \"@playwright/test\";\n\n// Первый день в приложении: новый тренер без подопечных и новый подопечный без тренировок. Пустой экран — в три части:\n// что здесь будет, что сделать и кнопка. Меню — по роли, в нём «Выйти».\n// Наташа — тренер из supabase/tests/new-coach.sql, Вера — подопечная Марины по приглашению; пароль у обеих demo-password.\n\nasync function login(page: Page, email: string, home: RegExp) {\n  await page.goto(\"/login\");\n  await page.getByLabel(\"Почта\").fill(email);\n  await page.getByLabel(\"Пароль\").fill(\"demo-password\");\n  await page.getByRole(\"button\", { name: \"Войти\" }).click();\n  // холодный dev собирает страницу после входа дольше 5 с — ждём до 15 с\n  await expect(page).toHaveURL(home, { timeout: 15_000 });\n}\n\ntest(\"новый тренер видит, с чего начать, и может выйти\", async ({ page }) => {\n  await login(page, \"natasha@example.com\", /\\/clients$/);\n  await expect(page.getByText(\"Подопечных пока нет\")).toBeVisible();\n  await expect(page.getByRole(\"button\", { name: \"Создать приглашение\" })).toBeVisible();\n  const menu = page.getByRole(\"navigation\", { name: \"Меню\" });\n  await expect(menu.getByRole(\"link\")).toHaveText([\"Подопечные\", \"Программы\", \"Отчёт\"]);\n  await menu.getByRole(\"button\", { name: \"Выйти\" }).click();\n  await expect(page).toHaveURL(/\\/login$/);\n  // cookie входа стёрта: меню нет, а страница тренера снова ведёт на вход\n  await expect(page.getByRole(\"navigation\", { name: \"Меню\" })).toHaveCount(0);\n  await page.goto(\"/clients\");\n  await expect(page).toHaveURL(/\\/login$/);\n});\n\ntest(\"новый подопечный знает, что тренировку назначит тренер\", async ({ page }) => {\n  await login(page, \"vera@example.com\", /\\/workouts$/);\n  await expect(page.getByText(\"Тренировок пока нет\")).toBeVisible();\n  await expect(page.getByText(\"Первую тренировку назначит тренер\")).toBeVisible();\n  const menu = page.getByRole(\"navigation\", { name: \"Меню\" });\n  await expect(menu.getByRole(\"link\")).toHaveText([\"Мои тренировки\"]);\n  await expect(menu.getByRole(\"button\", { name: \"Выйти\" })).toBeVisible();\n});\n",
    "diff": [
     "diff --git a/e2e/first-run.spec.ts b/e2e/first-run.spec.ts",
     "new file mode 100644",
-    "index 0000000..ca3395c",
+    "index 0000000..1da49f0",
     "--- /dev/null",
     "+++ b/e2e/first-run.spec.ts",
-    "@@ -0,0 +1,33 @@",
+    "@@ -0,0 +1,37 @@",
     "+import { expect, test, type Page } from \"@playwright/test\";",
     "+",
     "+// Первый день в приложении: новый тренер без подопечных и новый подопечный без тренировок. Пустой экран — в три части:",
@@ -963,6 +963,10 @@
     "+  await expect(menu.getByRole(\"link\")).toHaveText([\"Подопечные\", \"Программы\", \"Отчёт\"]);",
     "+  await menu.getByRole(\"button\", { name: \"Выйти\" }).click();",
     "+  await expect(page).toHaveURL(/\\/login$/);",
+    "+  // cookie входа стёрта: меню нет, а страница тренера снова ведёт на вход",
+    "+  await expect(page.getByRole(\"navigation\", { name: \"Меню\" })).toHaveCount(0);",
+    "+  await page.goto(\"/clients\");",
+    "+  await expect(page).toHaveURL(/\\/login$/);",
     "+});",
     "+",
     "+test(\"новый подопечный знает, что тренировку назначит тренер\", async ({ page }) => {",
@@ -974,7 +978,7 @@
     "+  await expect(menu.getByRole(\"button\", { name: \"Выйти\" })).toBeVisible();",
     "+});"
    ],
-   "blob": "ca3395c5d9290e7d828058033d1006abccb9453c",
+   "blob": "1da49f0751494486444eef1d4228588584e33477",
    "by": "agent"
   },
   {
@@ -986,8 +990,8 @@
     "",
     "Running 2 tests using 1 worker",
     "",
-    "  ✘  1 [chromium] › e2e/first-run.spec.ts:16:5 › новый тренер видит, с чего начать, и может выйти (5.9s)",
-    "  ✘  2 [chromium] › e2e/first-run.spec.ts:26:5 › новый подопечный знает, что тренировку назначит тренер (6.0s)",
+    "  ✘  1 [chromium] › e2e/first-run.spec.ts:16:5 › новый тренер видит, с чего начать, и может выйти (6.0s)",
+    "  ✘  2 [chromium] › e2e/first-run.spec.ts:30:5 › новый подопечный знает, что тренировку назначит тренер (6.1s)",
     "",
     "",
     "  1) [chromium] › e2e/first-run.spec.ts:16:5 › новый тренер видит, с чего начать, и может выйти ────",
@@ -1015,7 +1019,7 @@
     "",
     "    Error Context: test-results/first-run-новый-тренер-видит-с-чего-начать-и-может-выйти-chromium/error-context.md",
     "",
-    "  2) [chromium] › e2e/first-run.spec.ts:26:5 › новый подопечный знает, что тренировку назначит тренер ",
+    "  2) [chromium] › e2e/first-run.spec.ts:30:5 › новый подопечный знает, что тренировку назначит тренер ",
     "",
     "    Error: expect(locator).toBeVisible() failed",
     "",
@@ -1029,20 +1033,20 @@
     "      - waiting for getByText('Первую тренировку назначит тренер')",
     "",
     "",
-    "      27 |   await login(page, \"vera@example.com\", /\\/workouts$/);",
-    "      28 |   await expect(page.getByText(\"Тренировок пока нет\")).toBeVisible();",
-    "    > 29 |   await expect(page.getByText(\"Первую тренировку назначит тренер\")).toBeVisible();",
+    "      31 |   await login(page, \"vera@example.com\", /\\/workouts$/);",
+    "      32 |   await expect(page.getByText(\"Тренировок пока нет\")).toBeVisible();",
+    "    > 33 |   await expect(page.getByText(\"Первую тренировку назначит тренер\")).toBeVisible();",
     "         |                                                                     ^",
-    "      30 |   const menu = page.getByRole(\"navigation\", { name: \"Меню\" });",
-    "      31 |   await expect(menu.getByRole(\"link\")).toHaveText([\"Мои тренировки\"]);",
-    "      32 |   await expect(menu.getByRole(\"button\", { name: \"Выйти\" })).toBeVisible();",
-    "        at ~/trainer-app/e2e/first-run.spec.ts:29:69",
+    "      34 |   const menu = page.getByRole(\"navigation\", { name: \"Меню\" });",
+    "      35 |   await expect(menu.getByRole(\"link\")).toHaveText([\"Мои тренировки\"]);",
+    "      36 |   await expect(menu.getByRole(\"button\", { name: \"Выйти\" })).toBeVisible();",
+    "        at ~/trainer-app/e2e/first-run.spec.ts:33:69",
     "",
     "    Error Context: test-results/first-run-новый-подопечный-a8b83--тренировку-назначит-тренер-chromium/error-context.md",
     "",
     "  2 failed",
     "    [chromium] › e2e/first-run.spec.ts:16:5 › новый тренер видит, с чего начать, и может выйти ─────",
-    "    [chromium] › e2e/first-run.spec.ts:26:5 › новый подопечный знает, что тренировку назначит тренер "
+    "    [chromium] › e2e/first-run.spec.ts:30:5 › новый подопечный знает, что тренировку назначит тренер "
    ],
    "code": 1,
    "by": "agent"
@@ -1215,10 +1219,10 @@
    "kind": "file",
    "path": "app/clients/page.tsx",
    "before": "import type { Metadata } from \"next\";\nimport { headers } from \"next/headers\";\nimport Link from \"next/link\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { addClient } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Подопечный тренера с датой последней тренировки\ntype Client = { id: string; name: string; last: Date | null };\n// Последний подход подопечного, его тренировка и растёт ли вес; growing — null, если подход в тренировке один: сравнивать не с чем\ntype Latest = { id: string; workout: string; weight: number; reps: number; growing: boolean | null };\n// Действующее приглашение тренера: не принято, не отозвано, срок не вышел\ntype Invite = { id: string; code: string };\n\n// Тренер создаёт приглашение на себя: код и срок ставит база (0008_invites.sql), записать приглашение чужому не даст RLS\nasync function createInvite() {\n  \"use server\";\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  await asUser(uid, (db) => db.query(\"insert into invites (coach_id) values ($1)\", [uid]));\n  redirect(\"/clients\");\n}\n\n// Тренер отзывает приглашение: по ссылке больше не зарегистрироваться. Чужое приглашение отозвать не даст RLS\nasync function revokeInvite(id: string) {\n  \"use server\";\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  await asUser(uid, (db) => db.query(\"update invites set revoked_at = now() where id = $1\", [id]));\n  redirect(\"/clients\");\n}\n\n// Подопечные вошедшего тренера, у каждого — дата последней тренировки, последний подход и растёт ли вес; под списком форма нового подопечного и приглашения\nexport default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { error } = await searchParams;\n  const { clients, invites } = await asUser(uid, async (db) => {\n    // подопечные и дата последней тренировки — одним запросом: left join и max(day)\n    const found = await db.query<Client>(\n      `select c.id, c.name, max(w.day) as last\n         from clients c\n         left join workouts w on w.client_id = c.id\n        where c.coach_id = $1\n        group by c.id\n        order by c.id`,\n      [uid],\n    );\n    // действующие приглашения: срок сверяют часы базы, на странице дат нет\n    const active = await db.query<Invite>(\n      `select id, code from invites\n        where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now()\n        order by id`,\n      [uid],\n    );\n    // последний подход каждого — по порядку записи, с названием его тренировки. Вес растёт, если этот подход тяжелее прошлого\n    // подхода той же тренировки или с тем же весом повторов больше; подход в тренировке один — сравнивать не с чем (null).\n    // Только подопечные этого тренера — как в запросах выше; чужих база не отдаст и так (RLS)\n    const latest = await db.query<Latest>(\n      `with ranked as (\n         select w.client_id, w.title, s.weight, s.reps,\n                lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps,\n                row_number() over (partition by w.client_id order by s.id desc) as n\n           from sets s\n           join workouts w on w.id = s.workout_id\n           join clients c on c.id = w.client_id\n          where c.coach_id = $1\n         window by_workout as (partition by s.workout_id order by s.id)\n       )\n       select client_id as id, title as workout, weight::float8 as weight, reps,\n              case when prev_weight is null then null\n                   else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing\n         from ranked\n        where n = 1`,\n      [uid],\n    );\n    const byClient = new Map(latest.rows.map((row) => [row.id, row]));\n    return { clients: found.rows.map((client) => ({ ...client, latest: byClient.get(client.id) })), invites: active.rows };\n  });\n  // адрес сайта для ссылки — из запроса: localhost:3000 при разработке, свой домен на сервере\n  const head = await headers();\n  const origin = `${head.get(\"x-forwarded-proto\") ?? \"http\"}://${head.get(\"host\")}`;\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id}>\n            <Link\n              href={`/clients/${client.id}`}\n              className=\"block rounded border border-zinc-300 p-4 text-xl font-semibold\"\n            >\n              {client.name}\n              <span className=\"block text-sm font-normal text-zinc-500\">\n                {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : \"Тренировок пока нет\"}\n              </span>\n              {client.latest && (\n                <span className=\"block text-sm font-normal text-zinc-500\">\n                  Последний подход: {client.latest.weight} кг × {client.latest.reps}, {client.latest.workout}\n                </span>\n              )}\n              {client.latest && client.latest.growing !== null && (\n                <span className=\"block text-sm font-normal text-zinc-500\">\n                  {client.latest.growing ? \"Вес растёт\" : \"Вес не растёт\"}\n                </span>\n              )}\n            </Link>\n          </li>\n        ))}\n      </ul>\n\n      <form action={addClient} className=\"mt-8 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"name\">Имя</label>\n          <input id=\"name\" name=\"name\" required className=\"rounded border border-zinc-300 px-3 py-2\" />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Добавить\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Приглашения</h2>\n      <p className=\"mt-2 text-zinc-500\">Ссылка действует 48 часов, по ней регистрируются один раз.</p>\n      {invites.length === 0 ? (\n        <p className=\"mt-2 text-zinc-500\">Приглашений пока нет</p>\n      ) : (\n        <ul className=\"mt-2 flex flex-col gap-2\">\n          {invites.map((invite) => (\n            <li key={invite.id} className=\"flex items-center gap-2\">\n              <span className=\"break-all font-mono text-sm\">{`${origin}/join/${invite.code}`}</span>\n              <form action={revokeInvite.bind(null, invite.id)}>\n                <button type=\"submit\" className=\"rounded border border-zinc-300 px-3 py-1 text-sm\">\n                  Отозвать\n                </button>\n              </form>\n            </li>\n          ))}\n        </ul>\n      )}\n      <form action={createInvite} className=\"mt-4\">\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Создать приглашение\n        </button>\n      </form>\n    </main>\n  );\n}\n",
-   "after": "import type { Metadata } from \"next\";\nimport { headers } from \"next/headers\";\nimport Link from \"next/link\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { addClient } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Подопечный тренера с датой последней тренировки\ntype Client = { id: string; name: string; last: Date | null };\n// Последний подход подопечного, его тренировка и растёт ли вес; growing — null, если подход в тренировке один: сравнивать не с чем\ntype Latest = { id: string; workout: string; weight: number; reps: number; growing: boolean | null };\n// Действующее приглашение тренера: не принято, не отозвано, срок не вышел\ntype Invite = { id: string; code: string };\n\n// Тренер создаёт приглашение на себя: код и срок ставит база (0008_invites.sql), записать приглашение чужому не даст RLS\nasync function createInvite() {\n  \"use server\";\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  await asUser(uid, (db) => db.query(\"insert into invites (coach_id) values ($1)\", [uid]));\n  redirect(\"/clients\");\n}\n\n// Тренер отзывает приглашение: по ссылке больше не зарегистрироваться. Чужое приглашение отозвать не даст RLS\nasync function revokeInvite(id: string) {\n  \"use server\";\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  await asUser(uid, (db) => db.query(\"update invites set revoked_at = now() where id = $1\", [id]));\n  redirect(\"/clients\");\n}\n\n// Подопечные вошедшего тренера, у каждого — дата последней тренировки, последний подход и растёт ли вес; ниже приглашения\n// и подопечный без входа. Подопечных нет — пустой экран в три части: что здесь будет, что сделать и кнопка\nexport default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { error } = await searchParams;\n  const { clients, invites } = await asUser(uid, async (db) => {\n    // подопечные и дата последней тренировки — одним запросом: left join и max(day)\n    const found = await db.query<Client>(\n      `select c.id, c.name, max(w.day) as last\n         from clients c\n         left join workouts w on w.client_id = c.id\n        where c.coach_id = $1\n        group by c.id\n        order by c.id`,\n      [uid],\n    );\n    // действующие приглашения: срок сверяют часы базы, на странице дат нет\n    const active = await db.query<Invite>(\n      `select id, code from invites\n        where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now()\n        order by id`,\n      [uid],\n    );\n    // последний подход каждого — по порядку записи, с названием его тренировки. Вес растёт, если этот подход тяжелее прошлого\n    // подхода той же тренировки или с тем же весом повторов больше; подход в тренировке один — сравнивать не с чем (null).\n    // Только подопечные этого тренера — как в запросах выше; чужих база не отдаст и так (RLS)\n    const latest = await db.query<Latest>(\n      `with ranked as (\n         select w.client_id, w.title, s.weight, s.reps,\n                lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps,\n                row_number() over (partition by w.client_id order by s.id desc) as n\n           from sets s\n           join workouts w on w.id = s.workout_id\n           join clients c on c.id = w.client_id\n          where c.coach_id = $1\n         window by_workout as (partition by s.workout_id order by s.id)\n       )\n       select client_id as id, title as workout, weight::float8 as weight, reps,\n              case when prev_weight is null then null\n                   else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing\n         from ranked\n        where n = 1`,\n      [uid],\n    );\n    const byClient = new Map(latest.rows.map((row) => [row.id, row]));\n    return { clients: found.rows.map((client) => ({ ...client, latest: byClient.get(client.id) })), invites: active.rows };\n  });\n  // адрес сайта для ссылки — из запроса: localhost:3000 при разработке, свой домен на сервере\n  const head = await headers();\n  const origin = `${head.get(\"x-forwarded-proto\") ?? \"http\"}://${head.get(\"host\")}`;\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      {clients.length === 0 && (\n        <section className=\"mt-6 rounded border border-zinc-300 p-4\">\n          <h2 className=\"text-xl font-semibold\">Подопечных пока нет</h2>\n          <p className=\"mt-2 text-zinc-500\">Здесь будут ваши подопечные: последняя тренировка, последний подход и растёт ли вес.</p>\n          <p className=\"mt-2\">Создайте приглашение и отправьте ссылку подопечному: по ней он зарегистрируется и попадёт к вам.</p>\n          <form action={createInvite} className=\"mt-4\">\n            <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n              Создать приглашение\n            </button>\n          </form>\n        </section>\n      )}\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id}>\n            <Link\n              href={`/clients/${client.id}`}\n              className=\"block rounded border border-zinc-300 p-4 text-xl font-semibold\"\n            >\n              {client.name}\n              <span className=\"block text-sm font-normal text-zinc-500\">\n                {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : \"Тренировок пока нет\"}\n              </span>\n              {client.latest && (\n                <span className=\"block text-sm font-normal text-zinc-500\">\n                  Последний подход: {client.latest.weight} кг × {client.latest.reps}, {client.latest.workout}\n                </span>\n              )}\n              {client.latest && client.latest.growing !== null && (\n                <span className=\"block text-sm font-normal text-zinc-500\">\n                  {client.latest.growing ? \"Вес растёт\" : \"Вес не растёт\"}\n                </span>\n              )}\n            </Link>\n          </li>\n        ))}\n      </ul>\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Приглашения</h2>\n      <p className=\"mt-2 text-zinc-500\">Ссылка действует 48 часов, по ней регистрируются один раз.</p>\n      {invites.length === 0 ? (\n        <p className=\"mt-2 text-zinc-500\">Приглашений пока нет</p>\n      ) : (\n        <ul className=\"mt-2 flex flex-col gap-2\">\n          {invites.map((invite) => (\n            <li key={invite.id} className=\"flex items-center gap-2\">\n              <span className=\"break-all font-mono text-sm\">{`${origin}/join/${invite.code}`}</span>\n              <form action={revokeInvite.bind(null, invite.id)}>\n                <button type=\"submit\" className=\"rounded border border-zinc-300 px-3 py-1 text-sm\">\n                  Отозвать\n                </button>\n              </form>\n            </li>\n          ))}\n        </ul>\n      )}\n      {/* у пустого списка такая кнопка уже есть */}\n      {clients.length > 0 && (\n        <form action={createInvite} className=\"mt-4\">\n          <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n            Создать приглашение\n          </button>\n        </form>\n      )}\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Подопечный без входа</h2>\n      <p className=\"mt-2 text-zinc-500\">Войти в приложение такой подопечный не сможет, а значит, и записать подходы. Чтобы он вёл дневник сам, отправьте ему приглашение.</p>\n      <form action={addClient} className=\"mt-4 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"name\">Имя</label>\n          <input id=\"name\" name=\"name\" required className=\"rounded border border-zinc-300 px-3 py-2\" />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Добавить без входа\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport { headers } from \"next/headers\";\nimport Link from \"next/link\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { addClient } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Подопечный тренера с датой последней тренировки\ntype Client = { id: string; name: string; last: Date | null };\n// Последний подход подопечного, его тренировка и растёт ли вес; growing — null, если подход в тренировке один: сравнивать не с чем\ntype Latest = { id: string; workout: string; weight: number; reps: number; growing: boolean | null };\n// Действующее приглашение тренера: не принято, не отозвано, срок не вышел\ntype Invite = { id: string; code: string };\n\n// Тренер создаёт приглашение на себя: код и срок ставит база (0008_invites.sql), записать приглашение чужому не даст RLS\nasync function createInvite() {\n  \"use server\";\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  await asUser(uid, (db) => db.query(\"insert into invites (coach_id) values ($1)\", [uid]));\n  redirect(\"/clients\");\n}\n\n// Тренер отзывает приглашение: по ссылке больше не зарегистрироваться. Чужое приглашение отозвать не даст RLS\nasync function revokeInvite(id: string) {\n  \"use server\";\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  await asUser(uid, (db) => db.query(\"update invites set revoked_at = now() where id = $1\", [id]));\n  redirect(\"/clients\");\n}\n\n// Подопечные вошедшего тренера, у каждого — дата последней тренировки, последний подход и растёт ли вес; ниже приглашения\n// и подопечный без входа. Подопечных нет — пустой экран в три части: что здесь будет, что сделать и кнопка\nexport default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { error } = await searchParams;\n  const { clients, invites } = await asUser(uid, async (db) => {\n    // подопечные и дата последней тренировки — одним запросом: left join и max(day)\n    const found = await db.query<Client>(\n      `select c.id, c.name, max(w.day) as last\n         from clients c\n         left join workouts w on w.client_id = c.id\n        where c.coach_id = $1\n        group by c.id\n        order by c.id`,\n      [uid],\n    );\n    // действующие приглашения: срок сверяют часы базы, на странице дат нет\n    const active = await db.query<Invite>(\n      `select id, code from invites\n        where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now()\n        order by id`,\n      [uid],\n    );\n    // последний подход каждого — по порядку записи, с названием его тренировки. Вес растёт, если этот подход тяжелее прошлого\n    // подхода той же тренировки или с тем же весом повторов больше; подход в тренировке один — сравнивать не с чем (null).\n    // Только подопечные этого тренера — как в запросах выше; чужих база не отдаст и так (RLS)\n    const latest = await db.query<Latest>(\n      `with ranked as (\n         select w.client_id, w.title, s.weight, s.reps,\n                lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps,\n                row_number() over (partition by w.client_id order by s.id desc) as n\n           from sets s\n           join workouts w on w.id = s.workout_id\n           join clients c on c.id = w.client_id\n          where c.coach_id = $1\n         window by_workout as (partition by s.workout_id order by s.id)\n       )\n       select client_id as id, title as workout, weight::float8 as weight, reps,\n              case when prev_weight is null then null\n                   else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing\n         from ranked\n        where n = 1`,\n      [uid],\n    );\n    const byClient = new Map(latest.rows.map((row) => [row.id, row]));\n    return { clients: found.rows.map((client) => ({ ...client, latest: byClient.get(client.id) })), invites: active.rows };\n  });\n  // адрес сайта для ссылки — из запроса: localhost:3000 при разработке, свой домен на сервере\n  const head = await headers();\n  const origin = `${head.get(\"x-forwarded-proto\") ?? \"http\"}://${head.get(\"host\")}`;\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      {clients.length === 0 ? (\n        <section className=\"mt-6 rounded border border-zinc-300 p-4\">\n          <h2 className=\"text-xl font-semibold\">Подопечных пока нет</h2>\n          <p className=\"mt-2 text-zinc-500\">Здесь будут ваши подопечные: последняя тренировка, последний подход и растёт ли вес.</p>\n          <p className=\"mt-2\">Создайте приглашение и отправьте ссылку подопечному: по ней он зарегистрируется и попадёт к вам.</p>\n          <form action={createInvite} className=\"mt-4\">\n            <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n              Создать приглашение\n            </button>\n          </form>\n        </section>\n      ) : (\n        <ul className=\"mt-6 flex flex-col gap-3\">\n          {clients.map((client) => (\n            <li key={client.id}>\n              <Link\n                href={`/clients/${client.id}`}\n                className=\"block rounded border border-zinc-300 p-4 text-xl font-semibold\"\n              >\n                {client.name}\n                <span className=\"block text-sm font-normal text-zinc-500\">\n                  {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : \"Тренировок пока нет\"}\n                </span>\n                {client.latest && (\n                  <span className=\"block text-sm font-normal text-zinc-500\">\n                    Последний подход: {client.latest.weight} кг × {client.latest.reps}, {client.latest.workout}\n                  </span>\n                )}\n                {client.latest && client.latest.growing !== null && (\n                  <span className=\"block text-sm font-normal text-zinc-500\">\n                    {client.latest.growing ? \"Вес растёт\" : \"Вес не растёт\"}\n                  </span>\n                )}\n              </Link>\n            </li>\n          ))}\n        </ul>\n      )}\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Приглашения</h2>\n      <p className=\"mt-2 text-zinc-500\">Ссылка действует 48 часов, по ней регистрируются один раз.</p>\n      {invites.length === 0 ? (\n        <p className=\"mt-2 text-zinc-500\">Приглашений пока нет</p>\n      ) : (\n        <ul className=\"mt-2 flex flex-col gap-2\">\n          {invites.map((invite) => (\n            <li key={invite.id} className=\"flex items-center gap-2\">\n              <span className=\"break-all font-mono text-sm\">{`${origin}/join/${invite.code}`}</span>\n              <form action={revokeInvite.bind(null, invite.id)}>\n                <button type=\"submit\" className=\"rounded border border-zinc-300 px-3 py-1 text-sm\">\n                  Отозвать\n                </button>\n              </form>\n            </li>\n          ))}\n        </ul>\n      )}\n      {/* у пустого списка такая кнопка уже есть */}\n      {clients.length > 0 && (\n        <form action={createInvite} className=\"mt-4\">\n          <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n            Создать приглашение\n          </button>\n        </form>\n      )}\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Подопечный без входа</h2>\n      <p className=\"mt-2 text-zinc-500\">Войти в приложение такой подопечный не сможет, а значит, и записать подходы. Чтобы он вёл дневник сам, отправьте ему приглашение.</p>\n      <form action={addClient} className=\"mt-4 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"name\">Имя</label>\n          <input id=\"name\" name=\"name\" required className=\"rounded border border-zinc-300 px-3 py-2\" />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Добавить без входа\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n    </main>\n  );\n}\n",
    "diff": [
     "diff --git a/app/clients/page.tsx b/app/clients/page.tsx",
-    "index 1b365e7..60fd46e 100644",
+    "index 1b365e7..ecfa5e6 100644",
     "--- a/app/clients/page.tsx",
     "+++ b/app/clients/page.tsx",
     "@@ -37,7 +37,8 @@ async function revokeInvite(id: string) {",
@@ -1231,11 +1235,28 @@
     " export default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {",
     "   const uid = await currentUser();",
     "   if (!uid) redirect(\"/login\");",
-    "@@ -91,6 +92,18 @@ export default async function ClientsPage({ searchParams }: PageProps<\"/clients\"",
+    "@@ -91,46 +92,43 @@ export default async function ClientsPage({ searchParams }: PageProps<\"/clients\"",
     "   return (",
     "     <main className=\"mx-auto w-full max-w-md p-8\">",
     "       <h1 className=\"text-3xl font-semibold\">Подопечные</h1>",
-    "+      {clients.length === 0 && (",
+    "-      <ul className=\"mt-6 flex flex-col gap-3\">",
+    "-        {clients.map((client) => (",
+    "-          <li key={client.id}>",
+    "-            <Link",
+    "-              href={`/clients/${client.id}`}",
+    "-              className=\"block rounded border border-zinc-300 p-4 text-xl font-semibold\"",
+    "-            >",
+    "-              {client.name}",
+    "-              <span className=\"block text-sm font-normal text-zinc-500\">",
+    "-                {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : \"Тренировок пока нет\"}",
+    "-              </span>",
+    "-              {client.latest && (",
+    "-                <span className=\"block text-sm font-normal text-zinc-500\">",
+    "-                  Последний подход: {client.latest.weight} кг × {client.latest.reps}, {client.latest.workout}",
+    "-                </span>",
+    "-              )}",
+    "-              {client.latest && client.latest.growing !== null && (",
+    "+      {clients.length === 0 ? (",
     "+        <section className=\"mt-6 rounded border border-zinc-300 p-4\">",
     "+          <h2 className=\"text-xl font-semibold\">Подопечных пока нет</h2>",
     "+          <p className=\"mt-2 text-zinc-500\">Здесь будут ваши подопечные: последняя тренировка, последний подход и растёт ли вес.</p>",
@@ -1246,14 +1267,25 @@
     "+            </button>",
     "+          </form>",
     "+        </section>",
-    "+      )}",
-    "       <ul className=\"mt-6 flex flex-col gap-3\">",
-    "         {clients.map((client) => (",
-    "           <li key={client.id}>",
-    "@@ -117,22 +130,6 @@ export default async function ClientsPage({ searchParams }: PageProps<\"/clients\"",
-    "         ))}",
-    "       </ul>",
-    " ",
+    "+      ) : (",
+    "+        <ul className=\"mt-6 flex flex-col gap-3\">",
+    "+          {clients.map((client) => (",
+    "+            <li key={client.id}>",
+    "+              <Link",
+    "+                href={`/clients/${client.id}`}",
+    "+                className=\"block rounded border border-zinc-300 p-4 text-xl font-semibold\"",
+    "+              >",
+    "+                {client.name}",
+    "                 <span className=\"block text-sm font-normal text-zinc-500\">",
+    "-                  {client.latest.growing ? \"Вес растёт\" : \"Вес не растёт\"}",
+    "+                  {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : \"Тренировок пока нет\"}",
+    "                 </span>",
+    "-              )}",
+    "-            </Link>",
+    "-          </li>",
+    "-        ))}",
+    "-      </ul>",
+    "-",
     "-      <form action={addClient} className=\"mt-8 flex flex-col gap-4\">",
     "-        <div className=\"flex flex-col gap-1\">",
     "-          <label htmlFor=\"name\">Имя</label>",
@@ -1268,12 +1300,24 @@
     "-        <p role=\"alert\" className=\"mt-4 text-red-600\">",
     "-          {error}",
     "-        </p>",
-    "-      )}",
-    "-",
+    "+                {client.latest && (",
+    "+                  <span className=\"block text-sm font-normal text-zinc-500\">",
+    "+                    Последний подход: {client.latest.weight} кг × {client.latest.reps}, {client.latest.workout}",
+    "+                  </span>",
+    "+                )}",
+    "+                {client.latest && client.latest.growing !== null && (",
+    "+                  <span className=\"block text-sm font-normal text-zinc-500\">",
+    "+                    {client.latest.growing ? \"Вес растёт\" : \"Вес не растёт\"}",
+    "+                  </span>",
+    "+                )}",
+    "+              </Link>",
+    "+            </li>",
+    "+          ))}",
+    "+        </ul>",
+    "       )}",
+    " ",
     "       <h2 className=\"mt-8 text-xl font-semibold\">Приглашения</h2>",
-    "       <p className=\"mt-2 text-zinc-500\">Ссылка действует 48 часов, по ней регистрируются один раз.</p>",
-    "       {invites.length === 0 ? (",
-    "@@ -151,11 +148,32 @@ export default async function ClientsPage({ searchParams }: PageProps<\"/clients\"",
+    "@@ -151,11 +149,32 @@ export default async function ClientsPage({ searchParams }: PageProps<\"/clients\"",
     "           ))}",
     "         </ul>",
     "       )}",
@@ -1309,7 +1353,7 @@
     "   );",
     " }"
    ],
-   "blob": "60fd46e36e42a0b87c9dfece23e50529de6a67fe",
+   "blob": "ecfa5e627150c9e10255f9ffb6f12ce7d4ba542f",
    "by": "agent"
   },
   {
@@ -1457,10 +1501,10 @@
     "",
     "Running 2 tests using 1 worker",
     "",
-    "  ✓  1 [chromium] › e2e/first-run.spec.ts:16:5 › новый тренер видит, с чего начать, и может выйти (1.4s)",
-    "  ✓  2 [chromium] › e2e/first-run.spec.ts:26:5 › новый подопечный знает, что тренировку назначит тренер (929ms)",
+    "  ✓  1 [chromium] › e2e/first-run.spec.ts:16:5 › новый тренер видит, с чего начать, и может выйти (1.7s)",
+    "  ✓  2 [chromium] › e2e/first-run.spec.ts:30:5 › новый подопечный знает, что тренировку назначит тренер (983ms)",
     "",
-    "  2 passed (3.5s)"
+    "  2 passed (4.0s)"
    ],
    "code": 0,
    "by": "agent"
@@ -1469,15 +1513,15 @@
    "id": "c-first",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"Первый экран: меню, выход, пустые экраны с шагом\"",
-   "hash": "944de7b",
+   "hash": "c3bbca3",
    "message": "Первый экран: меню, выход, пустые экраны с шагом",
    "branch": "main",
    "parents": [
     "1044851"
    ],
    "out": [
-    "[main 944de7b] Первый экран: меню, выход, пустые экраны с шагом",
-    " 9 files changed, 185 insertions(+), 28 deletions(-)",
+    "[main c3bbca3] Первый экран: меню, выход, пустые экраны с шагом",
+    " 9 files changed, 212 insertions(+), 50 deletions(-)",
     " create mode 100644 app/api/logout/route.ts",
     " create mode 100644 components/Nav.tsx",
     " create mode 100644 e2e/first-run.spec.ts",
@@ -1534,7 +1578,7 @@
     },
     {
      "path": "app/clients/page.tsx",
-     "blob": "60fd46e36e42a0b87c9dfece23e50529de6a67fe"
+     "blob": "ecfa5e627150c9e10255f9ffb6f12ce7d4ba542f"
     },
     {
      "path": "app/favicon.ico",
@@ -1678,7 +1722,7 @@
     },
     {
      "path": "e2e/first-run.spec.ts",
-     "blob": "ca3395c5d9290e7d828058033d1006abccb9453c"
+     "blob": "1da49f0751494486444eef1d4228588584e33477"
     },
     {
      "path": "e2e/quick-set.spec.ts",
@@ -1969,7 +2013,88 @@
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
     "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
     "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
-    " GET /clients 200 in 104ms (next.js: 1.2ms, application-code: 102ms)"
+    " GET /clients 200 in 107ms (next.js: 1.1ms, application-code: 106ms)"
+   ]
+  },
+  {
+   "id": "natasha-logout",
+   "kind": "browser",
+   "url": "http://localhost:3000/clients",
+   "urlAfter": "http://localhost:3000/login",
+   "title": "Подопечные",
+   "fields": [],
+   "buttons": [
+    "Выйти",
+    "Создать приглашение",
+    "Добавить без входа"
+   ],
+   "before": [
+    "Подопечные",
+    "Программы",
+    "Отчёт",
+    "Выйти",
+    "Подопечные",
+    "Подопечных пока нет",
+    "Здесь будут ваши подопечные: последняя тренировка, последний подход и растёт ли вес.",
+    "Создайте приглашение и отправьте ссылку подопечному: по ней он зарегистрируется и попадёт к вам.",
+    "Создать приглашение",
+    "Приглашения",
+    "Ссылка действует 48 часов, по ней регистрируются один раз.",
+    "Приглашений пока нет",
+    "Подопечный без входа",
+    "Войти в приложение такой подопечный не сможет, а значит, и записать подходы. Чтобы он вёл дневник сам, отправьте ему приглашение.",
+    "Имя",
+    "Добавить без входа"
+   ],
+   "after": [
+    "Вход",
+    "Почта",
+    "Пароль",
+    "Войти"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select role from profiles where id = $1 background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1 background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    }
+   ],
+   "network": [],
+   "server": [
+    "[sql] select role from profiles where id = $1",
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
+    "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
+    " GET /clients 200 in 74ms (next.js: 1.0ms, application-code: 73ms)",
+    " POST /api/logout 303 in 6ms (next.js: 1.0ms, application-code: 5ms)",
+    " GET /login 200 in 34ms (next.js: 0.8ms, application-code: 33ms)"
    ]
   },
   {
@@ -1989,14 +2114,9 @@
     }
    ],
    "buttons": [
-    "Выйти",
     "Войти"
    ],
    "before": [
-    "Подопечные",
-    "Программы",
-    "Отчёт",
-    "Выйти",
     "Вход",
     "Почта",
     "Пароль",
@@ -2022,10 +2142,6 @@
     },
     {
      "type": "log",
-     "text": "%c%s%c [sql] select role from profiles where id = $1 background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
-    },
-    {
-     "type": "log",
      "text": "%c%s%c [sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
     },
     {
@@ -2039,14 +2155,13 @@
    ],
    "network": [],
    "server": [
-    "[sql] select role from profiles where id = $1",
-    " GET /login 200 in 61ms (next.js: 1.1ms, application-code: 60ms)",
-    " POST /api/login 200 in 12ms (next.js: 0.8ms, application-code: 11ms)",
+    " GET /login 200 in 39ms (next.js: 0.9ms, application-code: 39ms)",
+    " POST /api/login 200 in 15ms (next.js: 0.9ms, application-code: 14ms)",
     "[sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day",
-    " GET /workouts 200 in 22ms (next.js: 1.2ms, application-code: 21ms)",
+    " GET /workouts 200 in 28ms (next.js: 1.9ms, application-code: 27ms)",
     "[sql] select role from profiles where id = $1",
     "[sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day",
-    " GET /workouts 200 in 31ms (next.js: 1.5ms, application-code: 30ms)"
+    " GET /workouts 200 in 30ms (next.js: 1.5ms, application-code: 29ms)"
    ]
   },
   {
@@ -2098,7 +2213,7 @@
    "server": [
     "[sql] select role from profiles where id = $1",
     "[sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day",
-    " GET /workouts 200 in 80ms (next.js: 1.5ms, application-code: 79ms)"
+    " GET /workouts 200 in 70ms (next.js: 1.0ms, application-code: 69ms)"
    ]
   },
   {
@@ -2108,7 +2223,7 @@
    "cmd": "npm install -D @axe-core/playwright",
    "out": [
     "",
-    "added 1 package, and audited 419 packages in 25s",
+    "added 1 package, and audited 419 packages in 58s",
     "",
     "16 moderate severity vulnerabilities",
     "",
@@ -2136,7 +2251,7 @@
    "id": "ask-a11y",
    "kind": "agent",
    "prompt": "Проверь доступность: axe на входе, у тренера и у подопечного в светлой и тёмной схеме, и вход одной клавиатурой. Сначала тест, код не меняй",
-   "reply": "Нарушено одно правило — color-contrast, и только в тёмной схеме: у тренера 10 элементов, у подопечного 3 — текст #71717b на фоне #0a0a0a, 4,1 при норме 4,5 : 1. Вход, светлая схема и вход одной клавиатурой — без замечаний.",
+   "reply": "Нарушено одно правило — color-contrast, и только в тёмной схеме: у тренера 10 элементов, у подопечного 3; у первого из них — текст #71717b на фоне #0a0a0a, 4,1 при норме 4,5 : 1. Вход, светлая схема и вход одной клавиатурой — без замечаний.",
    "steps": [
     "a11y-e2e",
     "a11y-red"
@@ -2147,14 +2262,14 @@
    "kind": "file",
    "path": "e2e/a11y.spec.ts",
    "before": null,
-   "after": "import AxeBuilder from \"@axe-core/playwright\";\nimport { expect, test, type Page } from \"@playwright/test\";\n\n// Доступность: axe по правилам WCAG 2 уровней A и AA — на входе, у тренера и у подопечного, в светлой и тёмной схеме;\n// и вход одной клавиатурой. Тренер — Марина, подопечная — Анна (supabase/seed.sql): на их страницах есть данные.\n\nasync function login(page: Page, email: string, home: RegExp) {\n  await page.goto(\"/login\");\n  await page.getByLabel(\"Почта\").fill(email);\n  await page.getByLabel(\"Пароль\").fill(\"demo-password\");\n  await page.getByRole(\"button\", { name: \"Войти\" }).click();\n  // холодный dev собирает страницу после входа дольше 5 с — ждём до 15 с\n  await expect(page).toHaveURL(home, { timeout: 15_000 });\n}\n\n// Нарушения на открытой странице: правило, сколько элементов его нарушают и что не так с первым из них — словами axe\nasync function violations(page: Page): Promise<string[]> {\n  const result = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\"]).analyze();\n  return result.violations.map((rule) => `${rule.id}: ${rule.nodes.length} — ${rule.nodes[0].any[0]?.message ?? rule.help}`);\n}\n\nfor (const colorScheme of [\"light\", \"dark\"] as const) {\n  test.describe(colorScheme === \"light\" ? \"светлая схема\" : \"тёмная схема\", () => {\n    test.use({ colorScheme });\n\n    test(\"вход\", async ({ page }) => {\n      await page.goto(\"/login\");\n      expect(await violations(page)).toEqual([]);\n    });\n\n    test(\"тренер\", async ({ page }) => {\n      await login(page, \"marina@example.com\", /\\/clients$/);\n      expect(await violations(page)).toEqual([]);\n    });\n\n    test(\"подопечный\", async ({ page }) => {\n      await login(page, \"anna@example.com\", /\\/workouts$/);\n      expect(await violations(page)).toEqual([]);\n    });\n  });\n}\n\ntest(\"вход одной клавиатурой: Почта → Пароль → Войти, Enter\", async ({ page }) => {\n  await page.goto(\"/login\");\n  await page.keyboard.press(\"Tab\");\n  await expect(page.getByLabel(\"Почта\")).toBeFocused();\n  await page.keyboard.type(\"marina@example.com\");\n  await page.keyboard.press(\"Tab\");\n  await expect(page.getByLabel(\"Пароль\")).toBeFocused();\n  await page.keyboard.type(\"demo-password\");\n  await page.keyboard.press(\"Tab\");\n  await expect(page.getByRole(\"button\", { name: \"Войти\" })).toBeFocused();\n  await page.keyboard.press(\"Enter\");\n  await expect(page).toHaveURL(/\\/clients$/, { timeout: 15_000 });\n});\n",
+   "after": "import AxeBuilder from \"@axe-core/playwright\";\nimport { expect, test, type Page } from \"@playwright/test\";\n\n// Доступность: axe по правилам WCAG 2 уровней A и AA — на входе, у тренера и у подопечного, в светлой и тёмной схеме;\n// и вход одной клавиатурой. Тренер — Марина, подопечная — Анна (supabase/seed.sql): на их страницах есть данные.\n\nasync function login(page: Page, email: string, home: RegExp) {\n  await page.goto(\"/login\");\n  await page.getByLabel(\"Почта\").fill(email);\n  await page.getByLabel(\"Пароль\").fill(\"demo-password\");\n  await page.getByRole(\"button\", { name: \"Войти\" }).click();\n  // холодный dev собирает страницу после входа дольше 5 с — ждём до 15 с\n  await expect(page).toHaveURL(home, { timeout: 15_000 });\n  // меню появляется после router.refresh(): axe проверяет страницу вместе с ним\n  await expect(page.getByRole(\"navigation\", { name: \"Меню\" })).toBeVisible();\n}\n\n// Нарушения на открытой странице: правило, сколько элементов его нарушают и что не так с первым из них — словами axe\nasync function violations(page: Page): Promise<string[]> {\n  const result = await new AxeBuilder({ page }).withTags([\"wcag2a\", \"wcag2aa\"]).analyze();\n  return result.violations.map((rule) => `${rule.id}: ${rule.nodes.length} — ${rule.nodes[0].any[0]?.message ?? rule.help}`);\n}\n\nfor (const colorScheme of [\"light\", \"dark\"] as const) {\n  test.describe(colorScheme === \"light\" ? \"светлая схема\" : \"тёмная схема\", () => {\n    test.use({ colorScheme });\n\n    test(\"вход\", async ({ page }) => {\n      await page.goto(\"/login\");\n      expect(await violations(page)).toEqual([]);\n    });\n\n    test(\"тренер\", async ({ page }) => {\n      await login(page, \"marina@example.com\", /\\/clients$/);\n      expect(await violations(page)).toEqual([]);\n    });\n\n    test(\"подопечный\", async ({ page }) => {\n      await login(page, \"anna@example.com\", /\\/workouts$/);\n      expect(await violations(page)).toEqual([]);\n    });\n  });\n}\n\ntest(\"вход одной клавиатурой: Почта → Пароль → Войти, Enter\", async ({ page }) => {\n  await page.goto(\"/login\");\n  await page.keyboard.press(\"Tab\");\n  await expect(page.getByLabel(\"Почта\")).toBeFocused();\n  await page.keyboard.type(\"marina@example.com\");\n  await page.keyboard.press(\"Tab\");\n  await expect(page.getByLabel(\"Пароль\")).toBeFocused();\n  await page.keyboard.type(\"demo-password\");\n  await page.keyboard.press(\"Tab\");\n  await expect(page.getByRole(\"button\", { name: \"Войти\" })).toBeFocused();\n  await page.keyboard.press(\"Enter\");\n  await expect(page).toHaveURL(/\\/clients$/, { timeout: 15_000 });\n});\n",
    "diff": [
     "diff --git a/e2e/a11y.spec.ts b/e2e/a11y.spec.ts",
     "new file mode 100644",
-    "index 0000000..08ce6ba",
+    "index 0000000..8ea38c7",
     "--- /dev/null",
     "+++ b/e2e/a11y.spec.ts",
-    "@@ -0,0 +1,55 @@",
+    "@@ -0,0 +1,57 @@",
     "+import AxeBuilder from \"@axe-core/playwright\";",
     "+import { expect, test, type Page } from \"@playwright/test\";",
     "+",
@@ -2168,6 +2283,8 @@
     "+  await page.getByRole(\"button\", { name: \"Войти\" }).click();",
     "+  // холодный dev собирает страницу после входа дольше 5 с — ждём до 15 с",
     "+  await expect(page).toHaveURL(home, { timeout: 15_000 });",
+    "+  // меню появляется после router.refresh(): axe проверяет страницу вместе с ним",
+    "+  await expect(page.getByRole(\"navigation\", { name: \"Меню\" })).toBeVisible();",
     "+}",
     "+",
     "+// Нарушения на открытой странице: правило, сколько элементов его нарушают и что не так с первым из них — словами axe",
@@ -2211,7 +2328,7 @@
     "+  await expect(page).toHaveURL(/\\/clients$/, { timeout: 15_000 });",
     "+});"
    ],
-   "blob": "08ce6ba884092c054565f8bbb12ed17d11305191",
+   "blob": "8ea38c7885067236b4d4425aacff125014887465",
    "by": "agent"
   },
   {
@@ -2223,16 +2340,16 @@
     "",
     "Running 7 tests using 1 worker",
     "",
-    "  ✓  1 [chromium] › e2e/a11y.spec.ts:26:9 › светлая схема › вход (1.0s)",
-    "  ✓  2 [chromium] › e2e/a11y.spec.ts:31:9 › светлая схема › тренер (1.4s)",
-    "  ✓  3 [chromium] › e2e/a11y.spec.ts:36:9 › светлая схема › подопечный (1.4s)",
-    "  ✓  4 [chromium] › e2e/a11y.spec.ts:26:9 › тёмная схема › вход (905ms)",
-    "  ✘  5 [chromium] › e2e/a11y.spec.ts:31:9 › тёмная схема › тренер (1.4s)",
-    "  ✘  6 [chromium] › e2e/a11y.spec.ts:36:9 › тёмная схема › подопечный (1.4s)",
-    "  ✓  7 [chromium] › e2e/a11y.spec.ts:43:5 › вход одной клавиатурой: Почта → Пароль → Войти, Enter (747ms)",
+    "  ✓  1 [chromium] › e2e/a11y.spec.ts:28:9 › светлая схема › вход (1.0s)",
+    "  ✓  2 [chromium] › e2e/a11y.spec.ts:33:9 › светлая схема › тренер (1.6s)",
+    "  ✓  3 [chromium] › e2e/a11y.spec.ts:38:9 › светлая схема › подопечный (1.6s)",
+    "  ✓  4 [chromium] › e2e/a11y.spec.ts:28:9 › тёмная схема › вход (1.2s)",
+    "  ✘  5 [chromium] › e2e/a11y.spec.ts:33:9 › тёмная схема › тренер (1.6s)",
+    "  ✘  6 [chromium] › e2e/a11y.spec.ts:38:9 › тёмная схема › подопечный (1.6s)",
+    "  ✓  7 [chromium] › e2e/a11y.spec.ts:45:5 › вход одной клавиатурой: Почта → Пароль → Войти, Enter (1.1s)",
     "",
     "",
-    "  1) [chromium] › e2e/a11y.spec.ts:31:9 › тёмная схема › тренер ────────────────────────────────────",
+    "  1) [chromium] › e2e/a11y.spec.ts:33:9 › тёмная схема › тренер ────────────────────────────────────",
     "",
     "    Error: expect(received).toEqual(expected) // deep equality",
     "",
@@ -2244,18 +2361,18 @@
     "    +   \"color-contrast: 10 — Element has insufficient color contrast of 4.1 (foreground color: #71717b, background color: #0a0a0a, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1\",",
     "    + ]",
     "",
-    "      31 |     test(\"тренер\", async ({ page }) => {",
-    "      32 |       await login(page, \"marina@example.com\", /\\/clients$/);",
-    "    > 33 |       expect(await violations(page)).toEqual([]);",
+    "      33 |     test(\"тренер\", async ({ page }) => {",
+    "      34 |       await login(page, \"marina@example.com\", /\\/clients$/);",
+    "    > 35 |       expect(await violations(page)).toEqual([]);",
     "         |                                      ^",
-    "      34 |     });",
-    "      35 |",
-    "      36 |     test(\"подопечный\", async ({ page }) => {",
-    "        at ~/trainer-app/e2e/a11y.spec.ts:33:38",
+    "      36 |     });",
+    "      37 |",
+    "      38 |     test(\"подопечный\", async ({ page }) => {",
+    "        at ~/trainer-app/e2e/a11y.spec.ts:35:38",
     "",
     "    Error Context: test-results/a11y-тёмная-схема-тренер-chromium/error-context.md",
     "",
-    "  2) [chromium] › e2e/a11y.spec.ts:36:9 › тёмная схема › подопечный ────────────────────────────────",
+    "  2) [chromium] › e2e/a11y.spec.ts:38:9 › тёмная схема › подопечный ────────────────────────────────",
     "",
     "    Error: expect(received).toEqual(expected) // deep equality",
     "",
@@ -2267,21 +2384,21 @@
     "    +   \"color-contrast: 3 — Element has insufficient color contrast of 4.1 (foreground color: #71717b, background color: #0a0a0a, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1\",",
     "    + ]",
     "",
-    "      36 |     test(\"подопечный\", async ({ page }) => {",
-    "      37 |       await login(page, \"anna@example.com\", /\\/workouts$/);",
-    "    > 38 |       expect(await violations(page)).toEqual([]);",
+    "      38 |     test(\"подопечный\", async ({ page }) => {",
+    "      39 |       await login(page, \"anna@example.com\", /\\/workouts$/);",
+    "    > 40 |       expect(await violations(page)).toEqual([]);",
     "         |                                      ^",
-    "      39 |     });",
-    "      40 |   });",
-    "      41 | }",
-    "        at ~/trainer-app/e2e/a11y.spec.ts:38:38",
+    "      41 |     });",
+    "      42 |   });",
+    "      43 | }",
+    "        at ~/trainer-app/e2e/a11y.spec.ts:40:38",
     "",
     "    Error Context: test-results/a11y-тёмная-схема-подопечный-chromium/error-context.md",
     "",
     "  2 failed",
-    "    [chromium] › e2e/a11y.spec.ts:31:9 › тёмная схема › тренер ─────────────────────────────────────",
-    "    [chromium] › e2e/a11y.spec.ts:36:9 › тёмная схема › подопечный ─────────────────────────────────",
-    "  5 passed (11.0s)"
+    "    [chromium] › e2e/a11y.spec.ts:33:9 › тёмная схема › тренер ─────────────────────────────────────",
+    "    [chromium] › e2e/a11y.spec.ts:38:9 › тёмная схема › подопечный ─────────────────────────────────",
+    "  5 passed (13.2s)"
    ],
    "code": 1,
    "by": "agent"
@@ -2290,7 +2407,7 @@
    "id": "ask-contrast",
    "kind": "agent",
    "prompt": "Исправь контраст в тёмной схеме токенами в globals.css, остальное не трогай",
-   "reply": "Второстепенный текст (zinc-500) в тёмной схеме — #a1a1aa: 7,7 : 1 вместо 4,1. Запущенный dev отдаёт правку globals.css с опозданием, поэтому перед проверкой перезапустил его со сбросом кэша. axe чист в обеих схемах.",
+   "reply": "Второстепенный текст (zinc-500) в тёмной схеме — #a1a1aa: 7,7 : 1 вместо 4,1. Правку globals.css запущенный dev может отдать с опозданием, поэтому перед проверкой перезапустил его со сбросом кэша. axe чист в обеих схемах.",
    "steps": [
     "contrast-css",
     "contrast-restart",
@@ -2326,7 +2443,7 @@
    "id": "contrast-restart",
    "kind": "run",
    "cwd": "~/trainer-app",
-   "cmd": "curl -sX POST 'localhost:3000/__nextjs_restart_dev?invalidateFileSystemCache=1' && sleep 5",
+   "cmd": "curl -fsS -X POST 'localhost:3000/__nextjs_restart_dev?invalidateFileSystemCache=1' && sleep 2 && until curl -fs -o /dev/null localhost:3000/login; do sleep 1; done",
    "out": [],
    "code": 0,
    "by": "agent"
@@ -2340,32 +2457,55 @@
     "",
     "Running 7 tests using 1 worker",
     "",
-    "  ✓  1 [chromium] › e2e/a11y.spec.ts:26:9 › светлая схема › вход (1.4s)",
-    "  ✓  2 [chromium] › e2e/a11y.spec.ts:31:9 › светлая схема › тренер (3.0s)",
-    "  ✓  3 [chromium] › e2e/a11y.spec.ts:36:9 › светлая схема › подопечный (2.1s)",
-    "  ✓  4 [chromium] › e2e/a11y.spec.ts:26:9 › тёмная схема › вход (956ms)",
-    "  ✓  5 [chromium] › e2e/a11y.spec.ts:31:9 › тёмная схема › тренер (1.4s)",
-    "  ✓  6 [chromium] › e2e/a11y.spec.ts:36:9 › тёмная схема › подопечный (1.4s)",
-    "  ✓  7 [chromium] › e2e/a11y.spec.ts:43:5 › вход одной клавиатурой: Почта → Пароль → Войти, Enter (872ms)",
+    "  ✓  1 [chromium] › e2e/a11y.spec.ts:28:9 › светлая схема › вход (1.2s)",
+    "  ✓  2 [chromium] › e2e/a11y.spec.ts:33:9 › светлая схема › тренер (3.3s)",
+    "  ✓  3 [chromium] › e2e/a11y.spec.ts:38:9 › светлая схема › подопечный (2.1s)",
+    "  ✓  4 [chromium] › e2e/a11y.spec.ts:28:9 › тёмная схема › вход (1.1s)",
+    "  ✓  5 [chromium] › e2e/a11y.spec.ts:33:9 › тёмная схема › тренер (1.6s)",
+    "  ✓  6 [chromium] › e2e/a11y.spec.ts:38:9 › тёмная схема › подопечный (1.6s)",
+    "  ✓  7 [chromium] › e2e/a11y.spec.ts:45:5 › вход одной клавиатурой: Почта → Пароль → Войти, Enter (979ms)",
     "",
-    "  7 passed (14.8s)"
+    "  7 passed (13.3s)"
    ],
    "code": 0,
    "by": "agent"
   },
   {
+   "id": "design-dark",
+   "kind": "file",
+   "path": "docs/design.md",
+   "before": "# Дизайн-токены\n\nПравила оформления приложения: по ним я и агент делаем экраны в одном стиле. Цвета, отступы и шрифт — как в приложении сейчас, высота кнопки — новое правило.\n\n## Цвета\n\n- основной — `zinc-900` (`#18181b`, он же цвет темы в манифесте): кнопки, график;\n- текст на кнопке — белый;\n- фон — `#ffffff`, в тёмной теме `#0a0a0a`; текст — `#171717`, в тёмной теме `#ededed`;\n- второстепенный текст (даты, подсказки) — `zinc-500`;\n- рамка поля — `zinc-300`;\n- ошибка — `red-600`.\n\n## Отступы\n\nШаг — 4 px, все отступы кратны ему:\n\n- 4 px — между подписью и полем;\n- 16 px — между полями формы;\n- 24 px — от заголовка страницы до формы или списка;\n- 32 px — поля страницы и расстояние между разделами;\n- ширина страницы — не больше 448 px: на телефоне она во весь экран.\n\n## Кнопка\n\n- кнопка: высота 44 px — под палец;\n- углы — 4 px, по бокам — 16 px;\n- фон — основной цвет, текст — белый, 16 px.\n\n## Шрифт\n\n- системный: `system-ui`, без загрузки из сети;\n- текст — 16 px, заголовок страницы — 30 px, заголовок раздела — 20 px, даты и подписи — 14 px.\n",
+   "after": "# Дизайн-токены\n\nПравила оформления приложения: по ним я и агент делаем экраны в одном стиле. Цвета, отступы и шрифт — как в приложении сейчас, высота кнопки — новое правило.\n\n## Цвета\n\n- основной — `zinc-900` (`#18181b`, он же цвет темы в манифесте): кнопки, график;\n- текст на кнопке — белый;\n- фон — `#ffffff`, в тёмной теме `#0a0a0a`; текст — `#171717`, в тёмной теме `#ededed`;\n- второстепенный текст (даты, подсказки) — `zinc-500`, в тёмной теме `#a1a1aa`: `#71717b` на `#0a0a0a` даёт 4,1 : 1, а тексту нужно 4,5 : 1 (токен `--color-zinc-500` в `app/globals.css`);\n- рамка поля — `zinc-300`;\n- ошибка — `red-600`.\n\n## Отступы\n\nШаг — 4 px, все отступы кратны ему:\n\n- 4 px — между подписью и полем;\n- 16 px — между полями формы;\n- 24 px — от заголовка страницы до формы или списка;\n- 32 px — поля страницы и расстояние между разделами;\n- ширина страницы — не больше 448 px: на телефоне она во весь экран.\n\n## Кнопка\n\n- кнопка: высота 44 px — под палец;\n- углы — 4 px, по бокам — 16 px;\n- фон — основной цвет, текст — белый, 16 px.\n\n## Шрифт\n\n- системный: `system-ui`, без загрузки из сети;\n- текст — 16 px, заголовок страницы — 30 px, заголовок раздела — 20 px, даты и подписи — 14 px.\n",
+   "diff": [
+    "diff --git a/docs/design.md b/docs/design.md",
+    "index d4f7691..9ca7272 100644",
+    "--- a/docs/design.md",
+    "+++ b/docs/design.md",
+    "@@ -7,7 +7,7 @@",
+    " - основной — `zinc-900` (`#18181b`, он же цвет темы в манифесте): кнопки, график;",
+    " - текст на кнопке — белый;",
+    " - фон — `#ffffff`, в тёмной теме `#0a0a0a`; текст — `#171717`, в тёмной теме `#ededed`;",
+    "-- второстепенный текст (даты, подсказки) — `zinc-500`;",
+    "+- второстепенный текст (даты, подсказки) — `zinc-500`, в тёмной теме `#a1a1aa`: `#71717b` на `#0a0a0a` даёт 4,1 : 1, а тексту нужно 4,5 : 1 (токен `--color-zinc-500` в `app/globals.css`);",
+    " - рамка поля — `zinc-300`;",
+    " - ошибка — `red-600`.",
+    " "
+   ],
+   "blob": "9ca7272099cddbca91a904422ecf0105731cddfc"
+  },
+  {
    "id": "c-a11y",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"Доступность: axe и клавиатура, контраст тёмной схемы\"",
-   "hash": "c40386c",
+   "hash": "36f9b69",
    "message": "Доступность: axe и клавиатура, контраст тёмной схемы",
    "branch": "main",
    "parents": [
-    "944de7b"
+    "c3bbca3"
    ],
    "out": [
-    "[main c40386c] Доступность: axe и клавиатура, контраст тёмной схемы",
-    " 4 files changed, 76 insertions(+)",
+    "[main 36f9b69] Доступность: axe и клавиатура, контраст тёмной схемы",
+    " 5 files changed, 79 insertions(+), 1 deletion(-)",
     " create mode 100644 e2e/a11y.spec.ts"
    ],
    "files": [
@@ -2419,7 +2559,7 @@
     },
     {
      "path": "app/clients/page.tsx",
-     "blob": "60fd46e36e42a0b87c9dfece23e50529de6a67fe"
+     "blob": "ecfa5e627150c9e10255f9ffb6f12ce7d4ba542f"
     },
     {
      "path": "app/favicon.ico",
@@ -2507,7 +2647,7 @@
     },
     {
      "path": "docs/design.md",
-     "blob": "d4f7691cb131c13ea47a613c9d17e8e02b0aed9a"
+     "blob": "9ca7272099cddbca91a904422ecf0105731cddfc"
     },
     {
      "path": "docs/etalons.md",
@@ -2559,7 +2699,7 @@
     },
     {
      "path": "e2e/a11y.spec.ts",
-     "blob": "08ce6ba884092c054565f8bbb12ed17d11305191"
+     "blob": "8ea38c7885067236b4d4425aacff125014887465"
     },
     {
      "path": "e2e/cycle.spec.ts",
@@ -2567,7 +2707,7 @@
     },
     {
      "path": "e2e/first-run.spec.ts",
-     "blob": "ca3395c5d9290e7d828058033d1006abccb9453c"
+     "blob": "1da49f0751494486444eef1d4228588584e33477"
     },
     {
      "path": "e2e/quick-set.spec.ts",

@@ -21,6 +21,10 @@ test("новый тренер видит, с чего начать, и може�
   await expect(menu.getByRole("link")).toHaveText(["Подопечные", "Программы", "Отчёт"]);
   await menu.getByRole("button", { name: "Выйти" }).click();
   await expect(page).toHaveURL(/\/login$/);
+  // cookie входа стёрта: меню нет, а страница тренера снова ведёт на вход
+  await expect(page.getByRole("navigation", { name: "Меню" })).toHaveCount(0);
+  await page.goto("/clients");
+  await expect(page).toHaveURL(/\/login$/);
 });
 
 test("новый подопечный знает, что тренировку назначит тренер", async ({ page }) => {

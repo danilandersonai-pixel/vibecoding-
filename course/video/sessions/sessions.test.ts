@@ -1989,8 +1989,8 @@ test('s20: новичок без шага → пустой экран в три 
     ...['natasha-file', 'natasha-apply', 'login-natasha', 'natasha-empty', 'ask-path', 'p-clients', 'p-workouts', 'p-layout', 'p-report'],
     ...['ask-first', 'first-e2e', 'first-red', 'ask-first-go', 'first-nav', 'first-layout', 'first-logout', 'first-login'],
     ...['first-clients', 'first-workouts', 'first-report', 'first-green', 'c-first'],
-    ...['natasha-hint', 'login-vera', 'vera-hint', 'a11y-install', 'ask-a11y', 'a11y-e2e', 'a11y-red'],
-    ...['ask-contrast', 'contrast-css', 'contrast-restart', 'a11y-green', 'c-a11y'],
+    ...['natasha-hint', 'natasha-logout', 'login-vera', 'vera-hint', 'a11y-install', 'ask-a11y', 'a11y-e2e', 'a11y-red'],
+    ...['ask-contrast', 'contrast-css', 'contrast-restart', 'a11y-green', 'design-dark', 'c-a11y'],
   ])
   const run = (id: string) => find('s20-first-run', id, 'run')
   const file = (id: string) => find('s20-first-run', id, 'file')
@@ -2067,6 +2067,9 @@ test('s20: новичок без шага → пустой экран в три 
   const e2e = file('first-e2e')
   expect(e2e).toMatchObject({ path: 'e2e/first-run.spec.ts', before: null })
   for (const part of ['natasha@example.com', 'vera@example.com', 'Подопечных пока нет', 'Создать приглашение', 'назначит тренер', 'Выйти']) expect(e2e.after, part).toContain(part)
+  // выход проверен: после «Выйти» меню нет, а страница тренера снова ведёт на вход
+  expect(e2e.after).toContain('await expect(page.getByRole("navigation", { name: "Меню" })).toHaveCount(0);')
+  expect(e2e.after).toContain('await page.goto("/clients");')
   const spec = 'npx playwright test e2e/first-run.spec.ts'
   expect(run('first-red').cmd).toBe(spec)
   expect(run('first-red').code).not.toBe(0)
@@ -2088,6 +2091,8 @@ test('s20: новичок без шага → пустой экран в три 
   for (const part of ['Подопечных пока нет', 'Здесь будут', 'Создайте приглашение', 'Добавить без входа', 'Войти в приложение такой подопечный не сможет']) {
     expect(clients.after, part).toContain(part)
   }
+  // пустой экран вместо списка, а не над пустым <ul>
+  expect(clients.after).toContain('{clients.length === 0 ? (')
   expect(file('first-workouts').path).toBe('app/workouts/page.tsx')
   expect(file('first-workouts').after).toContain('Первую тренировку назначит тренер')
   // отчёт без месяца — месяцы из базы, без настоящих часов
@@ -2112,6 +2117,13 @@ test('s20: новичок без шага → пустой экран в три 
   expect(hint.after.slice(0, 5)).toEqual(['Подопечные', 'Программы', 'Отчёт', 'Выйти', 'Подопечные'])
   expect(hint.buttons.filter((name) => name === 'Создать приглашение')).toHaveLength(1)
   expect(hint.buttons).toContain('Добавить без входа')
+  // Наташа выходит из меню: на /login меню уже нет, и Вера входит без чужого меню над формой
+  const logout = browser('natasha-logout')
+  expect(logout.url).toBe(`${BASE}/clients`)
+  expect(logout.urlAfter).toBe(`${BASE}/login`)
+  expect(logout.after).toContain('Вход')
+  for (const word of ['Выйти', 'Подопечные', 'Программы']) expect(logout.after, word).not.toContain(word)
+  expect(browser('login-vera').buttons).toEqual(['Войти'])
   expect(browser('login-vera').urlAfter).toBe(`${BASE}/workouts`)
   const vera = browser('vera-hint')
   expect(vera.url).toBe(`${BASE}/workouts`)
@@ -2139,6 +2151,10 @@ test('s20: новичок без шага → пустой экран в три 
   for (const part of ['@axe-core/playwright', '"wcag2a", "wcag2aa"', 'colorScheme', '"light", "dark"', '"/login"', 'keyboard.press("Tab")', 'keyboard.press("Enter")']) {
     expect(a11y.after, part).toContain(part)
   }
+  // axe — после меню: оно приходит с router.refresh() после входа
+  for (const part of ['await expect(page).toHaveURL(home, { timeout: 15_000 });\n  // меню', 'name: "Меню" })).toBeVisible();']) {
+    expect(a11y.after, part).toContain(part)
+  }
   const a11ySpec = 'npx playwright test e2e/a11y.spec.ts'
   const red = run('a11y-red')
   expect(red.cmd).toBe(a11ySpec)
@@ -2159,10 +2175,18 @@ test('s20: новичок без шага → пустой экран в три 
   const dark = css.after.slice(css.after.indexOf('@media (prefers-color-scheme: dark)'))
   expect(dark).toContain('--color-zinc-500: #a1a1aa;')
   expect(css.before).not.toContain('--color-zinc-500')
-  expect(run('contrast-restart')).toMatchObject({ cmd: "curl -sX POST 'localhost:3000/__nextjs_restart_dev?invalidateFileSystemCache=1' && sleep 5", code: 0 })
+  expect(run('contrast-restart')).toMatchObject({
+    cmd: "curl -fsS -X POST 'localhost:3000/__nextjs_restart_dev?invalidateFileSystemCache=1' && sleep 2 && until curl -fs -o /dev/null localhost:3000/login; do sleep 1; done",
+    code: 0,
+  })
   expect(run('a11y-green')).toMatchObject({ cmd: a11ySpec, code: 0 })
   expect(run('a11y-green').out.join('\n')).toContain('7 passed')
+  // правила оформления — по коду: человек называет токен тёмной темы в docs/design.md
+  const design = file('design-dark')
+  expect(design.path).toBe('docs/design.md')
+  expect(design.after).toContain('в тёмной теме `#a1a1aa`')
+  expect(design.after).toContain('`--color-zinc-500`')
   expect(commit('c-a11y')).toMatchObject({ message: 'Доступность: axe и клавиатура, контраст тёмной схемы', branch: 'main', parents: [commit('c-first').hash] })
   expect(commit('c-a11y').files.find((f) => f.path === 'package.json')?.blob).toBe(pkgBlob)
-  expect(commit('c-a11y').files.map((f) => f.path)).toEqual(expect.arrayContaining(['e2e/a11y.spec.ts', 'app/globals.css']))
+  expect(commit('c-a11y').files.map((f) => f.path)).toEqual(expect.arrayContaining(['e2e/a11y.spec.ts', 'app/globals.css', 'docs/design.md']))
 })

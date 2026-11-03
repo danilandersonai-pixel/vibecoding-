@@ -92,7 +92,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
   return (
     <main className="mx-auto w-full max-w-md p-8">
       <h1 className="text-3xl font-semibold">Подопечные</h1>
-      {clients.length === 0 && (
+      {clients.length === 0 ? (
         <section className="mt-6 rounded border border-zinc-300 p-4">
           <h2 className="text-xl font-semibold">Подопечных пока нет</h2>
           <p className="mt-2 text-zinc-500">Здесь будут ваши подопечные: последняя тренировка, последний подход и растёт ли вес.</p>
@@ -103,32 +103,33 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
             </button>
           </form>
         </section>
+      ) : (
+        <ul className="mt-6 flex flex-col gap-3">
+          {clients.map((client) => (
+            <li key={client.id}>
+              <Link
+                href={`/clients/${client.id}`}
+                className="block rounded border border-zinc-300 p-4 text-xl font-semibold"
+              >
+                {client.name}
+                <span className="block text-sm font-normal text-zinc-500">
+                  {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : "Тренировок пока нет"}
+                </span>
+                {client.latest && (
+                  <span className="block text-sm font-normal text-zinc-500">
+                    Последний подход: {client.latest.weight} кг × {client.latest.reps}, {client.latest.workout}
+                  </span>
+                )}
+                {client.latest && client.latest.growing !== null && (
+                  <span className="block text-sm font-normal text-zinc-500">
+                    {client.latest.growing ? "Вес растёт" : "Вес не растёт"}
+                  </span>
+                )}
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
-      <ul className="mt-6 flex flex-col gap-3">
-        {clients.map((client) => (
-          <li key={client.id}>
-            <Link
-              href={`/clients/${client.id}`}
-              className="block rounded border border-zinc-300 p-4 text-xl font-semibold"
-            >
-              {client.name}
-              <span className="block text-sm font-normal text-zinc-500">
-                {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : "Тренировок пока нет"}
-              </span>
-              {client.latest && (
-                <span className="block text-sm font-normal text-zinc-500">
-                  Последний подход: {client.latest.weight} кг × {client.latest.reps}, {client.latest.workout}
-                </span>
-              )}
-              {client.latest && client.latest.growing !== null && (
-                <span className="block text-sm font-normal text-zinc-500">
-                  {client.latest.growing ? "Вес растёт" : "Вес не растёт"}
-                </span>
-              )}
-            </Link>
-          </li>
-        ))}
-      </ul>
 
       <h2 className="mt-8 text-xl font-semibold">Приглашения</h2>
       <p className="mt-2 text-zinc-500">Ссылка действует 48 часов, по ней регистрируются один раз.</p>
