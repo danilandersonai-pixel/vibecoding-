@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 // Нечисловой номер в адресе — «не найдено», а не сбой (docs/beta-findings.md, «Мешает каждый день»; журнал сбоев дня 19):
-// номер из адреса уходил в запрос к столбцу bigint, и /clients/abc отвечал «Что-то пошло не так».
+// номер из адреса уходил в запрос к столбцу bigint, и /clients/abc отвечал «Что-то пошло не так», а /workouts/abc — 500.
 // Марина и Анна — из supabase/seed.sql, пароль demo-password.
 
 async function login(page: Page, email: string, home: RegExp) {
@@ -20,8 +20,9 @@ test("нечисловой номер подопечного — «Подопе�
   expect(response?.status()).toBe(404);
 });
 
-test("нечисловой номер тренировки — 404, а не сбой", async ({ page }) => {
+test("нечисловой номер тренировки — 404 и «Тренировка не найдена»", async ({ page }) => {
   await login(page, "anna@example.com", /\/workouts$/);
   const response = await page.goto("/workouts/abc");
   expect(response?.status()).toBe(404);
+  await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toHaveText("Тренировка не найдена");
 });

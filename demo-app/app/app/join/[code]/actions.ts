@@ -3,20 +3,24 @@
 import { redirect } from "next/navigation";
 import { pool } from "@/lib/db";
 import { checkName } from "@/lib/names";
-import { recordFailure, tooManyAttempts } from "@/lib/rate-limit";
+import { takeAttempt } from "@/lib/rate-limit";
 import { startSession } from "@/lib/session";
 
-// Один ответ на занятую почту и на отказ приглашения: по ответу не узнать, есть ли такая почта в приложении
+// Один ответ на занятую почту и на отказ приглашения: по ответу не отличить, занята почта или приглашение уже не действует.
+// С действующим приглашением этот ответ всё равно значит «почта занята»: свободная почта просто регистрируется. Это цена
+// решения — подсказка человеку остаётся, а подбор почт ограничен: 5 попыток за 15 минут на код приглашения.
 const SAME = "Проверьте почту или войдите, если аккаунт уже есть";
-// Ответ после 5 неудачных попыток за 15 минут по одному коду приглашения — как у входа (app/api/login)
+// Ответ после 5 попыток за 15 минут по одному коду приглашения — как у входа (app/api/login)
 const TOO_MANY = "Слишком много попыток, подождите 15 минут";
 
 // Регистрация по приглашению /join/<код>: новый пользователь в auth.users и профиль подопечного, затем база принимает приглашение
 // (accept_invite, 0008_invites.sql): тренер — из записи приглашения, а не из адреса; использованное, отозванное и просроченное — отказ.
 // Тренерское приглашение (0014_coach_invites.sql) делает нового пользователя тренером. Потом вход и первый экран по роли. Запросы — от владельца базы одной транзакцией, как вход (app/api/login): пользователям таблица auth.users закрыта,
 // а отказ откатывает и нового пользователя.
-// Неудачные попытки считает ограничитель входа (lib/rate-limit.ts) — по коду приглашения, а не по почте: почты при подборе
-// каждый раз новые. Проверка формата почты и пароля отвечает своим текстом и попыткой не считается.
+// Сначала приглашение, потом почта: на выдуманный или недействующий код — сразу тот же ответ, без поиска почты и хеша пароля,
+// поэтому и по времени ответа почту не узнать. Попытку по действующему коду ограничитель (lib/rate-limit.ts, ключ join:<код>)
+// засчитывает в тот же миг, что проверяет лимит, — одновременные запросы его не обойдут. Проверка формата имени, почты
+// и пароля отвечает своим текстом и попыткой не считается.
 export async function join(code: string, form: FormData) {
   const name = String(form.get("name") ?? "").trim();
   // почта — без пробелов по краям, буквы как ввели: так её ищет вход (app/api/login)
@@ -25,16 +29,18 @@ export async function join(code: string, form: FormData) {
   // ошибку страница покажет под формой
   const back = (error: string): never =>
     redirect(`/join/${encodeURIComponent(code)}?error=${encodeURIComponent(error)}`);
-  const attempts = `join:${code}`;
-  if (tooManyAttempts(attempts)) back(TOO_MANY);
+  // код приходит от браузера вместе с полями формы: приглашения может не быть, или оно использовано, отозвано, просрочено
+  const invite = await pool.query(
+    "select 1 from invites where code = $1 and accepted_by is null and revoked_at is null and expires_at > now()",
+    [code],
+  );
+  if (invite.rows.length === 0) back(SAME);
   const invalid = checkName(name) ?? checkAccount(email, password);
   if (invalid) back(invalid);
+  if (!takeAttempt(`join:${code}`)) back(TOO_MANY);
   // та же почта другими буквами — тоже занята: unique в auth.users различает заглавные и строчные
   const taken = await pool.query("select 1 from auth.users where lower(email) = lower($1)", [email]);
-  if (taken.rows.length > 0) {
-    recordFailure(attempts);
-    back(SAME);
-  }
+  if (taken.rows.length > 0) back(SAME);
 
   const db = await pool.connect();
   let uid: string;
@@ -54,10 +60,8 @@ export async function join(code: string, form: FormData) {
     await db.query("commit");
   } catch (err) {
     await db.query("rollback");
-    if (refused(err)) {
-      recordFailure(attempts);
-      back(SAME);
-    }
+    // приглашение успели использовать или отозвать после проверки выше, или эту почту только что заняли — тот же ответ
+    if (refused(err)) back(SAME);
     throw err;
   } finally {
     db.release();

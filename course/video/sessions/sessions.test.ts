@@ -3011,8 +3011,8 @@ test('s25: «исправь всё» — пять файлов без тесто
   expect(events.map((e) => e.id)).toEqual([
     ...['typegen', 'findings-doc', 'programs-file', 'programs-check', 'c-findings', 'all-branch'],
     ...['ask-all', 'all-join', 'all-rate', 'all-id', 'all-comment', 'all-programs', 'c-all', 'all-stat', 'all-drop'],
-    ...['ask-join-fix', 'jf-test', 'jf-red', 'jf-code', 'jf-green', 'c-join-fix'],
-    ...['ask-id-fix', 'id-test', 'id-red', 'id-code', 'id-workout', 'id-green', 'c-id-fix'],
+    ...['ask-join-fix', 'jf-test', 'jf-red', 'jf-rate', 'jf-code', 'jf-green', 'c-join-fix'],
+    ...['ask-id-fix', 'id-test', 'id-red', 'id-code', 'id-workout', 'id-not-found', 'id-green', 'c-id-fix'],
     ...['ask-comment-fix', 'cm-test', 'cm-red', 'cm-action', 'cm-code', 'cm-green', 'c-comment-fix'],
     'fix-log',
   ])
@@ -3075,8 +3075,8 @@ test('s25: «исправь всё» — пять файлов без тесто
 
   // три круга: тест повторяет беду — красный на настоящем поведении; правка кода, тест не трогаем; зелёный; коммит — тест и код
   const circles = [
-    { ask: 'ask-join-fix', test: 'jf-test', red: 'jf-red', code: ['jf-code'], green: 'jf-green', spec: 'e2e/join-limit.spec.ts', commit: 'c-join-fix' },
-    { ask: 'ask-id-fix', test: 'id-test', red: 'id-red', code: ['id-code', 'id-workout'], green: 'id-green', spec: 'e2e/not-found.spec.ts', commit: 'c-id-fix' },
+    { ask: 'ask-join-fix', test: 'jf-test', red: 'jf-red', code: ['jf-rate', 'jf-code'], green: 'jf-green', spec: 'e2e/join-limit.spec.ts', commit: 'c-join-fix' },
+    { ask: 'ask-id-fix', test: 'id-test', red: 'id-red', code: ['id-code', 'id-workout', 'id-not-found'], green: 'id-green', spec: 'e2e/not-found.spec.ts', commit: 'c-id-fix' },
     { ask: 'ask-comment-fix', test: 'cm-test', red: 'cm-red', code: ['cm-action', 'cm-code'], green: 'cm-green', spec: 'e2e/empty-comment.spec.ts', commit: 'c-comment-fix' },
   ]
   for (const c of circles) {
@@ -3099,24 +3099,43 @@ test('s25: «исправь всё» — пять файлов без тесто
   expect(commit('c-id-fix')).toMatchObject({ message: 'Нечисловой номер — «не найдено»', branch: 'main', parents: [commit('c-join-fix').hash] })
   expect(commit('c-comment-fix')).toMatchObject({ message: 'Пустой комментарий — понятная ошибка', branch: 'main', parents: [commit('c-id-fix').hash] })
 
-  // /join: красный — на отказ приглашения ответ другой, шестая попытка проходит
+  // /join: красный — на отказ приглашения ответ другой, шестая попытка проходит — и по одной, и шесть разом
   expect(out('jf-red')).toContain('Expected: "Эта почта уже зарегистрирована — войдите"\n    Received: "Приглашение отозвано"')
   expect(out('jf-red')).toContain('Expected: "Слишком много попыток, подождите 15 минут"\n    Received: "Эта почта уже зарегистрирована — войдите"')
-  expect(out('jf-red')).toMatch(/^ {2}2 failed$/m)
+  expect(out('jf-red')).toContain('Expected: 1\n    Received: 0')
+  expect(out('jf-red')).toMatch(/^ {2}3 failed$/m)
   const joinSpec = file('jf-test').after
-  for (const part of ['const SAME = "Проверьте почту или войдите, если аккаунт уже есть";', 'const TOO_MANY = "Слишком много попыток, подождите 15 минут";', '"update invites set revoked_at = now() where code = $1"', 'for (let attempt = 1; attempt <= 5; attempt++) {', '"delete from invites where code = any($1)"']) {
+  for (const part of ['const SAME = "Проверьте почту или войдите, если аккаунт уже есть";', 'const TOO_MANY = "Слишком много попыток, подождите 15 минут";', '"update invites set revoked_at = now() where code = $1"', 'for (let attempt = 1; attempt <= 5; attempt++) {', 'test("шесть попыток разом — одна из них «Слишком много попыток»"', 'const answers = await Promise.all(pages.map(send));', '"delete from invites where code = any($1)"']) {
     expect(joinSpec, part).toContain(part)
   }
+  // своё подключение к базе: общий pool приложения тест не закрывает
+  expect(joinSpec).toContain('const db = new Pool({ connectionString: process.env.DATABASE_URL });')
+  expect(joinSpec).not.toContain('../lib/db')
+  // ограничитель: ключ — почта входа или код приглашения; попытка засчитывается за один шаг с проверкой
+  const limiter = file('jf-rate')
+  expect(limiter.path).toBe('lib/rate-limit.ts')
+  expect(limiter.before).toContain('по одной почте')
+  for (const part of ['регистрация по приглашению (app/join/[code]/actions.ts) — попытки по коду приглашения, ключ join:<код>', 'export function tooManyAttempts(key: string): boolean {', 'export function recordFailure(key: string): void {', 'export function takeAttempt(key: string): boolean {']) {
+    expect(limiter.after, part).toContain(part)
+  }
+  expect(limiter.after).not.toMatch(/\bemail\b/)
   const join = file('jf-code')
   expect(join.path).toBe('app/join/[code]/actions.ts')
   expect(join.before).toContain('const TAKEN = "Эта почта уже зарегистрирована — войдите";')
   expect(join.after).toContain('const SAME = "Проверьте почту или войдите, если аккаунт уже есть";')
   expect(join.after).not.toContain('уже зарегистрирована')
-  // лимит — тот же ограничитель, что у входа (lib/rate-limit.ts), по коду приглашения
-  expect(join.after).toContain('import { recordFailure, tooManyAttempts } from "@/lib/rate-limit";')
-  expect(join.after).toContain('const attempts = `join:${code}`;')
-  expect(join.after).toContain('if (tooManyAttempts(attempts)) back(TOO_MANY);')
-  expect(out('jf-green')).toMatch(/^ {2}2 passed \(/m)
+  // честно о цене одного ответа: с действующим приглашением он всё равно значит «почта занята»
+  expect(join.after).toContain('С действующим приглашением этот ответ всё равно значит «почта занята»')
+  // сначала приглашение, потом почта: на недействующий код — тот же ответ без поиска почты; попытка — за один шаг с проверкой
+  const inviteCheck = join.after.indexOf('"select 1 from invites where code = $1 and accepted_by is null and revoked_at is null and expires_at > now()"')
+  const emailCheck = join.after.indexOf('"select 1 from auth.users where lower(email) = lower($1)"')
+  const limit = join.after.indexOf('if (!takeAttempt(`join:${code}`)) back(TOO_MANY);')
+  expect(inviteCheck).toBeGreaterThan(0)
+  expect(join.after).toContain('if (invite.rows.length === 0) back(SAME);')
+  expect(limit).toBeGreaterThan(inviteCheck)
+  expect(emailCheck).toBeGreaterThan(limit)
+  expect(join.after).toContain('import { takeAttempt } from "@/lib/rate-limit";')
+  expect(out('jf-green')).toMatch(/^ {2}3 passed \(/m)
 
   // нечисловой номер: красный — «Что-то пошло не так» вместо «Подопечный не найден», у тренировки — 500
   expect(out('id-red')).toContain('Expected: "Подопечный не найден"\n    Received: "Что-то пошло не так"')
@@ -3125,6 +3144,10 @@ test('s25: «исправь всё» — пять файлов без тесто
   expect(file('id-code').path).toBe('app/clients/[id]/page.tsx')
   expect(file('id-workout').path).toBe('app/workouts/[id]/page.tsx')
   for (const id of ['id-code', 'id-workout']) expect(file(id).after, id).toContain('if (!/^\\d{1,18}$/.test(id)) notFound();')
+  // у тренировки — своя страница «не найдено» по-русски, как у карточки
+  expect(file('id-not-found')).toMatchObject({ path: 'app/workouts/[id]/not-found.tsx', before: null })
+  expect(file('id-not-found').after).toContain('Тренировка не найдена')
+  expect(file('id-test').after).toContain('toHaveText("Тренировка не найдена")')
   expect(out('id-green')).toMatch(/^ {2}2 passed \(/m)
 
   // пустой комментарий: красный — под полем ничего; после — действие возвращает ошибку, форма показывает её под полем
@@ -3152,8 +3175,8 @@ test('s25: «исправь всё» — пять файлов без тесто
   )
   expect(blocks.map((b) => b.paths)).toEqual([
     ['app/workouts/[id]/comments.ts', 'components/Comments.tsx', 'e2e/empty-comment.spec.ts'],
-    ['app/clients/[id]/page.tsx', 'app/workouts/[id]/page.tsx', 'e2e/not-found.spec.ts'],
-    ['app/join/[code]/actions.ts', 'e2e/join-limit.spec.ts'],
+    ['app/clients/[id]/page.tsx', 'app/workouts/[id]/not-found.tsx', 'app/workouts/[id]/page.tsx', 'e2e/not-found.spec.ts'],
+    ['app/join/[code]/actions.ts', 'e2e/join-limit.spec.ts', 'lib/rate-limit.ts'],
   ])
   for (const b of blocks) {
     expect(b.paths.some((p) => /^(e2e|test)\//.test(p)), b.head).toBe(true)

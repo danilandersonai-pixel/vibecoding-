@@ -18,21 +18,26 @@
 // один коммит: тест и код. Запускается только свой файл (npx playwright test e2e/<файл>); npm run dev поднимает и останавливает
 // playwright.config.ts.
 //   1. /join — e2e/join-limit.spec.ts: занятая почта и отказ приглашения (тренер отозвал приглашение, пока форму заполняли) — один
-//      ответ; шестая попытка по одному коду — «Слишком много попыток». Ответ регистрации тест читает из адреса (?error=…): страница
-//      отозванного приглашения своё «Приглашение отозвано» показывает и без формы, от почты оно не зависит. Приглашения тест создаёт
-//      сам (pg, DATABASE_URL) и в конце удаляет: счётчик попыток — в памяти dev-сервера, у каждого прогона — свои коды, и тест
-//      пойдёт и в общем прогоне s26. Красный: «Приглашение отозвано» ≠ «Эта почта уже зарегистрирована — войдите», шестая — снова
-//      «Эта почта уже зарегистрирована — войдите». Правка — app/join/[code]/actions.ts: текст из Global Constraints «Проверьте почту
-//      или войдите, если аккаунт уже есть», ограничитель входа lib/rate-limit.ts по ключу join:<код>; проверка формата почты
-//      и пароля — своим текстом и попыткой не считается.
+//      ответ; шестая попытка по одному коду — «Слишком много попыток», и по одной, и шесть разом (шесть вкладок, «Присоединиться»
+//      во всех сразу). Ответ регистрации тест читает из адреса (?error=…): страница отозванного приглашения своё «Приглашение
+//      отозвано» показывает и без формы, от почты оно не зависит. Приглашения тест создаёт сам (своё подключение pg, DATABASE_URL)
+//      и в конце удаляет: счётчик попыток — в памяти dev-сервера, у каждого прогона — свои коды, и тест пойдёт и в общем прогоне s26.
+//      Красный: «Приглашение отозвано» ≠ «Эта почта уже зарегистрирована — войдите», шестая — снова «Эта почта уже зарегистрирована —
+//      войдите», из шести разом отказа нет ни одного. Правка — lib/rate-limit.ts (jf-rate: ключ — почта входа или join:<код>;
+//      takeAttempt проверяет и засчитывает попытку за один шаг, без await между ними) и app/join/[code]/actions.ts: сначала
+//      приглашение, потом почта — на выдуманный или недействующий код сразу тот же ответ, без поиска почты и хеша пароля; текст
+//      из Global Constraints «Проверьте почту или войдите, если аккаунт уже есть»; комментарий честно говорит цену: с действующим
+//      приглашением этот ответ всё равно значит «почта занята», подбор ограничен 5 попытками за 15 минут на код; проверка формата
+//      почты и пароля — своим текстом и попыткой не считается.
 //   2. /clients/abc — e2e/not-found.spec.ts: красный — «Что-то пошло не так» вместо «Подопечный не найден», /workouts/abc — 500.
-//      Правка — номер из адреса до 18 цифр, иначе notFound(): app/clients/[id]/page.tsx и app/workouts/[id]/page.tsx (id-workout).
+//      Правка — номер из адреса до 18 цифр, иначе notFound(): app/clients/[id]/page.tsx и app/workouts/[id]/page.tsx (id-workout);
+//      у тренировки — своя страница «Тренировка не найдена» (id-not-found, app/workouts/[id]/not-found.tsx), а не 404 Next по-английски.
 //   3. Пустой комментарий — e2e/empty-comment.spec.ts: пробел в поле (required его пропускает) — под полем ошибка; красный — ошибки
 //      нет (element(s) not found). Правка — действие app/workouts/[id]/comments.ts возвращает текст ошибки (cm-action), форма
 //      components/Comments.tsx показывает его под полем (useActionState).
 // git log --stat --oneline -3 — три коммита, в каждом тест и код.
-// Сверх таблицы плана: programs-file и programs-check (человек повторяет замечание «Подождёт»), id-workout и cm-action (один шаг —
-// один файл). В брифе all-comment правит app/workouts/[id]/actions.ts — такого файла с s23 нет (saveSet и repeatSet ушли в очередь),
+// Сверх таблицы плана: programs-file и programs-check (человек повторяет замечание «Подождёт»), jf-rate, id-workout, id-not-found
+// и cm-action (один шаг — один файл). В брифе all-comment правит app/workouts/[id]/actions.ts — такого файла с s23 нет (saveSet и repeatSet ушли в очередь),
 // действие комментария живёт в app/workouts/[id]/comments.ts: его и правят all-comment и cm-action.
 // Запись с середины цепочки: node scripts/record-session.mjs --from s25-beta-fixes (из course/). Id шагов постоянные: на них ссылаются уроки.
 // Режимы в ролике: ask-all и круги — Accept edits.
@@ -278,14 +283,16 @@ create policy "тренер ведёт свои программы" on programs
 // --- Круг 1: /join ---
 const JOIN_E2E = `import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
-import { pool } from "../lib/db";
+import { Pool } from "pg";
 
-// Регистрация по приглашению /join/<код> (docs/beta-findings.md, «Портит данные»): по ответу не узнать, есть ли чужая почта,
-// и подбирать почты по одной ссылке без конца нельзя. Занятая почта и отказ приглашения — один ответ; шестая неудачная попытка
-// за 15 минут по одному коду — «Слишком много попыток».
+// Регистрация по приглашению /join/<код> (docs/beta-findings.md, «Портит данные»): занятую почту не отличить от недействующего
+// приглашения — ответ один, и подбирать почты по одной ссылке без конца нельзя: шестая попытка за 15 минут по одному коду —
+// «Слишком много попыток», даже если запросы пришли разом.
 // Счётчик попыток живёт в памяти dev-сервера, поэтому каждый тест создаёт своё приглашение Марины (supabase/seed.sql) и в конце
 // его удаляет: прошлые прогоны на тест не влияют. Занятая почта — Анны из seed.
-// Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения, как у test/*.test.ts.
+// Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения. Подключение — своё, а не общий pool приложения
+// из lib/db: его тест не закрывает.
+const db = new Pool({ connectionString: process.env.DATABASE_URL });
 const MARINA = "11111111-1111-1111-1111-111111111111";
 const TAKEN = "anna@example.com";
 const SAME = "Проверьте почту или войдите, если аккаунт уже есть";
@@ -294,13 +301,13 @@ const TOO_MANY = "Слишком много попыток, подождите 1
 const codes: string[] = [];
 
 test.afterAll(async () => {
-  await pool.query("delete from invites where code = any($1)", [codes]);
-  await pool.end();
+  await db.query("delete from invites where code = any($1)", [codes]);
+  await db.end();
 });
 
 // Новое приглашение Марины, код ставит база
 async function newInvite(): Promise<string> {
-  const { rows } = await pool.query<{ code: string }>("insert into invites (coach_id) values ($1) returning code", [MARINA]);
+  const { rows } = await db.query<{ code: string }>("insert into invites (coach_id) values ($1) returning code", [MARINA]);
   codes.push(rows[0].code);
   return rows[0].code;
 }
@@ -327,7 +334,7 @@ test("занятая почта и отказ приглашения — оди�
   const taken = await send(page);
   // свободная почта, а приглашение тренер отозвал, пока форму заполняли
   await fill(page, code, \`free-\${randomUUID()}@example.com\`);
-  await pool.query("update invites set revoked_at = now() where code = $1", [code]);
+  await db.query("update invites set revoked_at = now() where code = $1", [code]);
   const refused = await send(page);
   expect(refused).toBe(taken);
   expect(taken).toBe(SAME);
@@ -343,26 +350,107 @@ test("шестая попытка по одному приглашению — �
   await fill(page, code, TAKEN);
   expect(await send(page)).toBe(TOO_MANY);
 });
+
+test("шесть попыток разом — одна из них «Слишком много попыток»", async ({ context }) => {
+  test.slow();
+  const code = await newInvite();
+  // шесть вкладок с заполненной формой, «Присоединиться» — во всех сразу
+  const pages = await Promise.all(Array.from({ length: 6 }, () => context.newPage()));
+  for (const page of pages) await fill(page, code, TAKEN);
+  const answers = await Promise.all(pages.map(send));
+  expect(answers.filter((answer) => answer === TOO_MANY).length).toBe(1);
+});
+`
+// Ограничитель после s09 — дословно, и правка агента (jf-rate): ключ — почта входа или join:<код>, takeAttempt — за один шаг
+const RATE_LIMIT = `// Ограничитель попыток входа: не больше 5 неудачных за 15 минут по одной почте.
+// Счётчик — в памяти процесса, поэтому сбрасывается при перезапуске сервера (dev-сервер — заново с нуля);
+// для нескольких процессов нужен был бы общий счётчик (например, в базе или Redis).
+const WINDOW_MS = 15 * 60_000;
+const LIMIT = 5;
+const failures = new Map<string, number[]>();
+
+// Недавние неудачные попытки по почте: старше 15 минут отбрасываем.
+function recent(email: string): number[] {
+  const now = Date.now();
+  const times = (failures.get(email) ?? []).filter((at) => now - at < WINDOW_MS);
+  failures.set(email, times);
+  return times;
+}
+
+// true, если по этой почте уже исчерпан лимит неудачных входов за окно.
+export function tooManyAttempts(email: string): boolean {
+  return recent(email).length >= LIMIT;
+}
+
+// Запомнить неудачный вход по этой почте.
+export function recordFailure(email: string): void {
+  recent(email).push(Date.now());
+}
+`
+const RATE_LIMIT_FIXED = `// Ограничитель попыток: не больше 5 за 15 минут по одному ключу. Вход (app/api/login) считает неудачные входы по почте,
+// регистрация по приглашению (app/join/[code]/actions.ts) — попытки по коду приглашения, ключ join:<код>.
+// Счётчик — в памяти процесса, поэтому сбрасывается при перезапуске сервера (dev-сервер — заново с нуля);
+// для нескольких процессов нужен был бы общий счётчик (например, в базе или Redis).
+// Вход проверяет лимит до запроса к базе, а неудачу записывает после него: одновременные попытки входа проходят проверку разом.
+// takeAttempt проверяет и записывает за один шаг, без await между ними, — пачкой одновременных запросов лимит не обойти.
+const WINDOW_MS = 15 * 60_000;
+const LIMIT = 5;
+const attempts = new Map<string, number[]>();
+
+// Недавние попытки по ключу: старше 15 минут отбрасываем, ключ без недавних попыток не храним.
+function recent(key: string): number[] {
+  const now = Date.now();
+  const times = (attempts.get(key) ?? []).filter((at) => now - at < WINDOW_MS);
+  if (times.length > 0) attempts.set(key, times);
+  else attempts.delete(key);
+  return times;
+}
+
+// Запомнить попытку по ключу.
+function remember(key: string): void {
+  attempts.set(key, [...recent(key), Date.now()]);
+}
+
+// true, если по этому ключу лимит за окно уже исчерпан.
+export function tooManyAttempts(key: string): boolean {
+  return recent(key).length >= LIMIT;
+}
+
+// Запомнить неудачный вход по этому ключу (почте).
+export function recordFailure(key: string): void {
+  remember(key);
+}
+
+// Засчитать попытку, если лимит не исчерпан: проверка и запись — сразу, без await между ними. false — лимит исчерпан.
+export function takeAttempt(key: string): boolean {
+  if (tooManyAttempts(key)) return false;
+  remember(key);
+  return true;
+}
 `
 const JOIN_ACTION_FIXED = `"use server";
 
 import { redirect } from "next/navigation";
 import { pool } from "@/lib/db";
 import { checkName } from "@/lib/names";
-import { recordFailure, tooManyAttempts } from "@/lib/rate-limit";
+import { takeAttempt } from "@/lib/rate-limit";
 import { startSession } from "@/lib/session";
 
-// Один ответ на занятую почту и на отказ приглашения: по ответу не узнать, есть ли такая почта в приложении
+// Один ответ на занятую почту и на отказ приглашения: по ответу не отличить, занята почта или приглашение уже не действует.
+// С действующим приглашением этот ответ всё равно значит «почта занята»: свободная почта просто регистрируется. Это цена
+// решения — подсказка человеку остаётся, а подбор почт ограничен: 5 попыток за 15 минут на код приглашения.
 const SAME = "Проверьте почту или войдите, если аккаунт уже есть";
-// Ответ после 5 неудачных попыток за 15 минут по одному коду приглашения — как у входа (app/api/login)
+// Ответ после 5 попыток за 15 минут по одному коду приглашения — как у входа (app/api/login)
 const TOO_MANY = "Слишком много попыток, подождите 15 минут";
 
 // Регистрация по приглашению /join/<код>: новый пользователь в auth.users и профиль подопечного, затем база принимает приглашение
 // (accept_invite, 0008_invites.sql): тренер — из записи приглашения, а не из адреса; использованное, отозванное и просроченное — отказ.
 // Тренерское приглашение (0014_coach_invites.sql) делает нового пользователя тренером. Потом вход и первый экран по роли. Запросы — от владельца базы одной транзакцией, как вход (app/api/login): пользователям таблица auth.users закрыта,
 // а отказ откатывает и нового пользователя.
-// Неудачные попытки считает ограничитель входа (lib/rate-limit.ts) — по коду приглашения, а не по почте: почты при подборе
-// каждый раз новые. Проверка формата почты и пароля отвечает своим текстом и попыткой не считается.
+// Сначала приглашение, потом почта: на выдуманный или недействующий код — сразу тот же ответ, без поиска почты и хеша пароля,
+// поэтому и по времени ответа почту не узнать. Попытку по действующему коду ограничитель (lib/rate-limit.ts, ключ join:<код>)
+// засчитывает в тот же миг, что проверяет лимит, — одновременные запросы его не обойдут. Проверка формата имени, почты
+// и пароля отвечает своим текстом и попыткой не считается.
 export async function join(code: string, form: FormData) {
   const name = String(form.get("name") ?? "").trim();
   // почта — без пробелов по краям, буквы как ввели: так её ищет вход (app/api/login)
@@ -371,16 +459,18 @@ export async function join(code: string, form: FormData) {
   // ошибку страница покажет под формой
   const back = (error: string): never =>
     redirect(\`/join/\${encodeURIComponent(code)}?error=\${encodeURIComponent(error)}\`);
-  const attempts = \`join:\${code}\`;
-  if (tooManyAttempts(attempts)) back(TOO_MANY);
+  // код приходит от браузера вместе с полями формы: приглашения может не быть, или оно использовано, отозвано, просрочено
+  const invite = await pool.query(
+    "select 1 from invites where code = $1 and accepted_by is null and revoked_at is null and expires_at > now()",
+    [code],
+  );
+  if (invite.rows.length === 0) back(SAME);
   const invalid = checkName(name) ?? checkAccount(email, password);
   if (invalid) back(invalid);
+  if (!takeAttempt(\`join:\${code}\`)) back(TOO_MANY);
   // та же почта другими буквами — тоже занята: unique в auth.users различает заглавные и строчные
   const taken = await pool.query("select 1 from auth.users where lower(email) = lower($1)", [email]);
-  if (taken.rows.length > 0) {
-    recordFailure(attempts);
-    back(SAME);
-  }
+  if (taken.rows.length > 0) back(SAME);
 
   const db = await pool.connect();
   let uid: string;
@@ -400,10 +490,8 @@ export async function join(code: string, form: FormData) {
     await db.query("commit");
   } catch (err) {
     await db.query("rollback");
-    if (refused(err)) {
-      recordFailure(attempts);
-      back(SAME);
-    }
+    // приглашение успели использовать или отозвать после проверки выше, или эту почту только что заняли — тот же ответ
+    if (refused(err)) back(SAME);
     throw err;
   } finally {
     db.release();
@@ -432,7 +520,7 @@ function checkAccount(email: string, password: string): string | null {
 const NOT_FOUND_E2E = `import { expect, test, type Page } from "@playwright/test";
 
 // Нечисловой номер в адресе — «не найдено», а не сбой (docs/beta-findings.md, «Мешает каждый день»; журнал сбоев дня 19):
-// номер из адреса уходил в запрос к столбцу bigint, и /clients/abc отвечал «Что-то пошло не так».
+// номер из адреса уходил в запрос к столбцу bigint, и /clients/abc отвечал «Что-то пошло не так», а /workouts/abc — 500.
 // Марина и Анна — из supabase/seed.sql, пароль demo-password.
 
 async function login(page: Page, email: string, home: RegExp) {
@@ -451,10 +539,11 @@ test("нечисловой номер подопечного — «Подопе�
   expect(response?.status()).toBe(404);
 });
 
-test("нечисловой номер тренировки — 404, а не сбой", async ({ page }) => {
+test("нечисловой номер тренировки — 404 и «Тренировка не найдена»", async ({ page }) => {
   await login(page, "anna@example.com", /\\/workouts$/);
   const response = await page.goto("/workouts/abc");
   expect(response?.status()).toBe(404);
+  await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toHaveText("Тренировка не найдена");
 });
 `
 const CLIENT_ID_FIXED = `  const { id } = await params;
@@ -469,6 +558,17 @@ const WORKOUT_ID_FIXED = `  const { id } = await params;
   // номер тренировки — целое число (bigint в базе, до 18 цифр): буквы в адресе — «не найдено», а не сбой запроса
   if (!/^\\d{1,18}$/.test(id)) notFound();
   const workout = await asUser(uid, async (db) => {
+`
+// своя страница «не найдено» у тренировки
+const WORKOUT_NOT_FOUND = `// Тренировки нет или она не своя (чужую база не отдаст — RLS): страница так и говорит, а не отвечает сбоем. Меню — над страницей
+export default function WorkoutNotFound() {
+  return (
+    <main className="mx-auto w-full max-w-md p-8">
+      <h1 className="text-3xl font-semibold">Тренировка не найдена</h1>
+      <p className="mt-2 text-zinc-500">Такой тренировки нет среди ваших — разделы в меню выше.</p>
+    </main>
+  );
+}
 `
 
 // --- Круг 3: пустой комментарий ---
@@ -655,11 +755,11 @@ const ASK_ALL_REPLY =
   'Исправил все пять: на /join — новый ответ и лимит попыток, на карточке — «не найдено», пустой комментарий — ошибка, ' +
   'программы создаёт только тренер.'
 const ASK_JOIN_FIX_REPLY =
-  'Красный был на самой беде: на отказ приглашения ответ другой, шестая попытка проходит. Теперь один ответ и лимит ' +
-  'через lib/rate-limit.ts по коду приглашения; тест не менял.'
+  'Красный на самой беде: на отказ приглашения ответ другой, шестая попытка проходит, и разом тоже. Теперь сначала ' +
+  'приглашение, потом почта, ответ один, попытка засчитана сразу; тест не менял.'
 const ASK_ID_FIX_REPLY =
-  'Красный: вместо «не найдено» — «Что-то пошло не так» и 500. Теперь номер с буквами до базы не доходит — notFound(); ' +
-  'тест не менял.'
+  'Красный: вместо «не найдено» — «Что-то пошло не так» и 500. Теперь номер с буквами до базы не доходит — notFound(), ' +
+  'у тренировки своя страница «Тренировка не найдена»; тест не менял.'
 const ASK_COMMENT_FIX_REPLY =
   'Красный: под полем ничего. Теперь действие возвращает текст ошибки, форма показывает его под полем; тест не менял.'
 
@@ -708,8 +808,10 @@ export default {
       },
       steps: [
         { id: 'jf-test', write: 'e2e/join-limit.spec.ts', content: JOIN_E2E },
-        // красный: на отказ приглашения ответ другой, шестая попытка не отказ
+        // красный: на отказ приглашения ответ другой, шестая попытка не отказ — ни по одной, ни разом
         { id: 'jf-red', run: E2E('join-limit.spec.ts') },
+        // сверх таблицы плана: один шаг — один файл
+        { id: 'jf-rate', edit: 'lib/rate-limit.ts', find: RATE_LIMIT, replace: RATE_LIMIT_FIXED },
         { id: 'jf-code', edit: 'app/join/[code]/actions.ts', find: JOIN_ACTION, replace: JOIN_ACTION_FIXED },
         { id: 'jf-green', run: E2E('join-limit.spec.ts') },
       ],
@@ -726,6 +828,7 @@ export default {
         { id: 'id-code', edit: 'app/clients/[id]/page.tsx', find: CLIENT_ID, replace: CLIENT_ID_FIXED },
         // сверх таблицы плана: один шаг — один файл
         { id: 'id-workout', edit: 'app/workouts/[id]/page.tsx', find: WORKOUT_ID, replace: WORKOUT_ID_FIXED },
+        { id: 'id-not-found', write: 'app/workouts/[id]/not-found.tsx', content: WORKOUT_NOT_FOUND },
         { id: 'id-green', run: E2E('not-found.spec.ts') },
       ],
     },
