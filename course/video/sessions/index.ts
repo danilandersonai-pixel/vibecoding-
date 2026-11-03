@@ -29,6 +29,7 @@ import s22Progress from './s22-progress.json'
 import s23Offline from './s23-offline.json'
 import s24Beta from './s24-beta.json'
 import s25BetaFixes from './s25-beta-fixes.json'
+import s26Launch from './s26-launch.json'
 import { makeFind } from './types'
 import type { Find, SessionRecord } from './types'
 
@@ -59,6 +60,7 @@ export const sessions: Record<string, SessionRecord> = {
   's23-offline': s23Offline as SessionRecord,
   's24-beta': s24Beta as SessionRecord,
   's25-beta-fixes': s25BetaFixes as SessionRecord,
+  's26-launch': s26Launch as SessionRecord,
 }
 
 export const find: Find = makeFind(Object.values(sessions))
