@@ -7,9 +7,11 @@ export const onRequestError: Instrumentation.onRequestError = async (error, requ
   // база — только у сервера на Node: в среде Edge модуля pg нет
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { pool } = await import("@/lib/db");
-    const message = error instanceof Error ? error.message : String(error);
+    // путь — без строки запроса: в ней бывают данные людей; сообщение — не длиннее 500 знаков (pg повторяет в нём ввод)
+    const path = request.path.split("?")[0];
+    const message = (error instanceof Error ? error.message : String(error)).slice(0, 500);
     try {
-      await pool.query("insert into errors (path, message) values ($1, $2)", [request.path, message]);
+      await pool.query("insert into errors (path, message) values ($1, $2)", [path, message]);
     } catch (failed) {
       // журнал недоступен — сбой хотя бы останется в выводе сервера
       console.error("Журнал сбоев недоступен:", failed);

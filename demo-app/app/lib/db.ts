@@ -1,7 +1,8 @@
 import { Pool, type PoolClient } from "pg";
 
 // Подключение к базе по DATABASE_URL из .env.local — от имени её владельца, и RLS на такие запросы не действует.
-// Напрямую через pool ходит только вход (app/api/login), как сервис входа в Supabase; остальное — через asUser.
+// Напрямую через pool ходят только вход (app/api/login), приглашение и регистрация (app/join) и журнал сбоев (instrumentation.ts):
+// у них ещё нет вошедшего или он не нужен, как у сервисов Supabase. Остальное — через asUser.
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 // Запросы от имени вошедшего — так их выполняет Supabase: роль authenticated, а auth.uid() в базе возвращает uid.

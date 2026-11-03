@@ -658,7 +658,7 @@
     "- Local:         http://localhost:3000",
     "- Network:       http://192.0.2.2:3000",
     "- Environments: .env.local",
-    "✓ Ready in 436ms"
+    "✓ Ready in 419ms"
    ],
    "code": null
   },
@@ -725,7 +725,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 263ms"
+     "text": "[Fast Refresh] done in 275ms"
     },
     {
      "type": "log",
@@ -733,7 +733,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 292ms"
+     "text": "[Fast Refresh] done in 280ms"
     },
     {
      "type": "log",
@@ -769,17 +769,17 @@
     "- Cache Components enabled",
     "- Partial Prefetching enabled",
     "",
-    " GET /login 200 in 556ms (next.js: 230ms, application-code: 326ms)",
-    " POST /api/login 200 in 111ms (next.js: 66ms, application-code: 45ms)",
+    " GET /login 200 in 535ms (next.js: 218ms, application-code: 317ms)",
+    " POST /api/login 200 in 119ms (next.js: 70ms, application-code: 50ms)",
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
     "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
     "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
-    " GET /clients 200 in 168ms (next.js: 16ms, application-code: 152ms)",
+    " GET /clients 200 in 99ms (next.js: 12ms, application-code: 87ms)",
     "[sql] select role from profiles where id = $1",
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
     "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
     "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
-    " GET /clients 200 in 70ms (next.js: 3ms, application-code: 67ms)"
+    " GET /clients 200 in 63ms (next.js: 2ms, application-code: 61ms)"
    ]
   },
   {
@@ -832,7 +832,7 @@
     "Вес растёт",
     "Приглашения",
     "Ссылка действует 48 часов, по ней регистрируются один раз.",
-    "http://localhost:3000/join/9965d5957577d5dc6ca0289537eed027",
+    "http://localhost:3000/join/11eaf92888cce9672e4a0e166c31ad2f",
     "Отозвать",
     "Создать приглашение",
     "Подопечный без входа",
@@ -888,14 +888,14 @@
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
     "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
     "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
-    " GET /clients 200 in 114ms (next.js: 1.7ms, application-code: 112ms)",
+    " GET /clients 200 in 113ms (next.js: 1.7ms, application-code: 111ms)",
     "[sql] insert into invites (coach_id) values ($1)",
     "[sql] select role from profiles where id = $1",
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
     "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
     "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
-    " GET /clients 200 in 63ms (next.js: 1.5ms, application-code: 61ms)",
-    " POST /clients 200 in 100ms (next.js: 1.2ms, application-code: 99ms)",
+    " GET /clients 200 in 67ms (next.js: 1.7ms, application-code: 66ms)",
+    " POST /clients 200 in 100ms (next.js: 1.3ms, application-code: 99ms)",
     "  └─ ƒ <inline action>() in 10ms app/clients/page.tsx"
    ]
   },
@@ -928,7 +928,7 @@
     "Вес растёт",
     "Приглашения",
     "Ссылка действует 48 часов, по ней регистрируются один раз.",
-    "http://localhost:3000/join/9965d5957577d5dc6ca0289537eed027",
+    "http://localhost:3000/join/11eaf92888cce9672e4a0e166c31ad2f",
     "Отозвать",
     "Создать приглашение",
     "Подопечный без входа",
@@ -982,15 +982,15 @@
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
     "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
     "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
-    " GET /clients 200 in 109ms (next.js: 1.3ms, application-code: 108ms)",
-    " POST /api/logout 303 in 47ms (next.js: 34ms, application-code: 13ms)",
-    " GET /login 200 in 48ms (next.js: 1.5ms, application-code: 46ms)"
+    " GET /clients 200 in 76ms (next.js: 1.0ms, application-code: 75ms)",
+    " POST /api/logout 303 in 36ms (next.js: 25ms, application-code: 10ms)",
+    " GET /login 200 in 57ms (next.js: 2ms, application-code: 55ms)"
    ]
   },
   {
    "id": "polina-join",
    "kind": "browser",
-   "url": "http://localhost:3000/join/9965d5957577d5dc6ca0289537eed027",
+   "url": "http://localhost:3000/join/11eaf92888cce9672e4a0e166c31ad2f",
    "urlAfter": "http://localhost:3000/workouts",
    "title": "Приглашение",
    "fields": [
@@ -1044,7 +1044,7 @@
     },
     {
      "type": "log",
-     "text": "[Fast Refresh] done in 258ms"
+     "text": "[Fast Refresh] done in 215ms"
     },
     {
      "type": "log",
@@ -1057,12 +1057,12 @@
    ],
    "network": [],
    "server": [
-    " GET /join/9965d5957577d5dc6ca0289537eed027 200 in 583ms (next.js: 10ms, generate-params: 480ms, application-code: 93ms)",
+    " GET /join/11eaf92888cce9672e4a0e166c31ad2f 200 in 637ms (next.js: 10ms, generate-params: 542ms, application-code: 85ms)",
     "[sql] select role from profiles where id = $1",
     "[sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day",
-    " GET /workouts 200 in 76ms (next.js: 11ms, application-code: 65ms)",
-    " POST /join/9965d5957577d5dc6ca0289537eed027 200 in 531ms (next.js: 1.3ms, generate-params: 18ms, application-code: 511ms)",
-    "  └─ ƒ join(\"9965d5957577d5dc6ca0289537eed027\", {}) in 17ms app/join/[code]/actions.ts"
+    " GET /workouts 200 in 70ms (next.js: 10ms, application-code: 59ms)",
+    " POST /join/11eaf92888cce9672e4a0e166c31ad2f 200 in 452ms (next.js: 1.3ms, generate-params: 17ms, application-code: 434ms)",
+    "  └─ ƒ join(\"11eaf92888cce9672e4a0e166c31ad2f\", {}) in 16ms app/join/[code]/actions.ts"
    ]
   },
   {
@@ -1167,15 +1167,15 @@
     "",
     " RUN  v5.0.5 ~/trainer-app",
     "",
-    " ❯ test/invites.test.ts (8 tests | 2 failed) 88ms",
-    "   ✓ код — 32 шестнадцатеричных знака, срок — 48 часов 15ms",
-    "   ✓ принятое приглашение — подопечный тренера из записи приглашения 21ms",
-    "   ✓ второй раз — «уже использовано» 17ms",
-    "   ✓ отозванное приглашение — отказ 9ms",
-    "   ✓ созданное 49 часов назад — «срок истёк» 8ms",
-    "   ✓ подопечный приглашений не создаёт 3ms",
+    " ❯ test/invites.test.ts (8 tests | 2 failed) 84ms",
+    "   ✓ код — 32 шестнадцатеричных знака, срок — 48 часов 16ms",
+    "   ✓ принятое приглашение — подопечный тренера из записи приглашения 18ms",
+    "   ✓ второй раз — «уже использовано» 15ms",
+    "   ✓ отозванное приглашение — отказ 7ms",
+    "   ✓ созданное 49 часов назад — «срок истёк» 7ms",
+    "   ✓ подопечный приглашений не создаёт 2ms",
     "   × тренерское приглашение — тренер без записи в clients; обычное — подопечный тренера 5ms",
-    "   × тренер тренерского приглашения не создаст: роль пишет только владелец базы 7ms",
+    "   × тренер тренерского приглашения не создаст: роль пишет только владелец базы 11ms",
     "",
     "⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯",
     "",
@@ -1213,8 +1213,8 @@
     "",
     " Test Files  1 failed (1)",
     "      Tests  2 failed | 6 passed (8)",
-    "   Start at  17:15:53",
-    "   Duration  347ms (transform 42%, tests 41%, import 15%, worker 2%)"
+    "   Start at  17:43:37",
+    "   Duration  364ms (transform 41%, tests 41%, import 16%, worker 2%)"
    ],
    "code": 1,
    "by": "agent"
@@ -1420,12 +1420,12 @@
     "",
     " RUN  v5.0.5 ~/trainer-app",
     "",
-    " ✓ test/invites.test.ts (8 tests) 89ms",
+    " ✓ test/invites.test.ts (8 tests) 112ms",
     "",
     " Test Files  1 passed (1)",
     "      Tests  8 passed (8)",
-    "   Start at  17:15:54",
-    "   Duration  259ms (tests 63%, import 26%, transform 8%, worker 3%)"
+    "   Start at  17:43:38",
+    "   Duration  294ms (tests 65%, import 25%, transform 7%, worker 3%)"
    ],
    "code": 0,
    "by": "agent"
@@ -1961,23 +1961,47 @@
    "kind": "file",
    "path": "supabase/tests/beta-invites.sql",
    "before": null,
-   "after": "-- Тренерские приглашения беты (docs/beta.md): Тимур и Ксения — тренеры из других залов. По такому приглашению заводится тренер,\n-- а не подопечный (0014_coach_invites.sql). Создаёт их только владелец базы — этот файл, psql -f: кнопки в приложении нет.\n-- Коды заданы здесь, чтобы ссылки /join/<код> были известны заранее; каждому — своя, лично. Ссылка действует 48 часов и один раз.\n-- Это не демо-данные и не миграция: запускается вручную.\ninsert into invites (role, code) values\n  ('coach', '7d3e9a41c52b4f08b6e1d0a9f3c27e58'), -- Тимур\n  ('coach', 'b81f4c6e09a345d7a2c8e5f1306d9b4a'); -- Ксения\n",
+   "after": "-- Тренерские приглашения беты (docs/beta.md): Тимур и Ксения — тренеры из других залов. По такому приглашению заводится тренер,\n-- а не подопечный (0014_coach_invites.sql). Создаёт их только владелец базы — этот файл, psql -f: кнопки в приложении нет.\n-- Коды заданы здесь, чтобы ссылки /join/<код> были известны заранее; каждому — своя, лично. Ссылка действует 48 часов и один раз.\n-- Коды приглашений — как пароли: файл в .gitignore, в git он не попадает. Не демо-данные и не миграция: запускается вручную.\ninsert into invites (role, code) values\n  ('coach', '7d3e9a41c52b4f08b6e1d0a9f3c27e58'), -- Тимур\n  ('coach', 'b81f4c6e09a345d7a2c8e5f1306d9b4a'); -- Ксения\n",
    "diff": [
     "diff --git a/supabase/tests/beta-invites.sql b/supabase/tests/beta-invites.sql",
     "new file mode 100644",
-    "index 0000000..06ccdd9",
+    "index 0000000..1b10866",
     "--- /dev/null",
     "+++ b/supabase/tests/beta-invites.sql",
     "@@ -0,0 +1,7 @@",
     "+-- Тренерские приглашения беты (docs/beta.md): Тимур и Ксения — тренеры из других залов. По такому приглашению заводится тренер,",
     "+-- а не подопечный (0014_coach_invites.sql). Создаёт их только владелец базы — этот файл, psql -f: кнопки в приложении нет.",
     "+-- Коды заданы здесь, чтобы ссылки /join/<код> были известны заранее; каждому — своя, лично. Ссылка действует 48 часов и один раз.",
-    "+-- Это не демо-данные и не миграция: запускается вручную.",
+    "+-- Коды приглашений — как пароли: файл в .gitignore, в git он не попадает. Не демо-данные и не миграция: запускается вручную.",
     "+insert into invites (role, code) values",
     "+  ('coach', '7d3e9a41c52b4f08b6e1d0a9f3c27e58'), -- Тимур",
     "+  ('coach', 'b81f4c6e09a345d7a2c8e5f1306d9b4a'); -- Ксения"
    ],
-   "blob": "06ccdd911140eeaf7d3ea71a944871d65c513125"
+   "blob": "1b108664f0c467457aaeccbd7fe1af3f2df4d313"
+  },
+  {
+   "id": "beta-invites-ignore",
+   "kind": "file",
+   "path": ".gitignore",
+   "before": "# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.\n\n# dependencies\n/node_modules\n/.pnp\n.pnp.*\n.yarn/*\n!.yarn/patches\n!.yarn/plugins\n!.yarn/releases\n!.yarn/versions\n\n# testing\n/coverage\n/test-results/\n/playwright-report/\n\n# next.js\n/.next/\n/out/\n\n# production\n/build\n\n# misc\n.DS_Store\n*.pem\n\n# debug\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\n.pnpm-debug.log*\n\n# env files (can opt-in for committing if needed)\n.env*\n\n# копии базы (pg_dump): в них почты и хеши паролей\n/backups/\n\n# фото прогресса подопечных (app/api/photos): снимки людей — не код\n/storage/\n\n# vercel\n.vercel\n\n# typescript\n*.tsbuildinfo\nnext-env.d.ts\n",
+   "after": "# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.\n\n# dependencies\n/node_modules\n/.pnp\n.pnp.*\n.yarn/*\n!.yarn/patches\n!.yarn/plugins\n!.yarn/releases\n!.yarn/versions\n\n# testing\n/coverage\n/test-results/\n/playwright-report/\n\n# next.js\n/.next/\n/out/\n\n# production\n/build\n\n# misc\n.DS_Store\n*.pem\n\n# debug\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\n.pnpm-debug.log*\n\n# env files (can opt-in for committing if needed)\n.env*\n\n# копии базы (pg_dump): в них почты и хеши паролей\n/backups/\n\n# фото прогресса подопечных (app/api/photos): снимки людей — не код\n/storage/\n\n# тренерские приглашения беты: коды приглашений — как пароли, в git не кладём\n/supabase/tests/beta-invites.sql\n\n# vercel\n.vercel\n\n# typescript\n*.tsbuildinfo\nnext-env.d.ts\n",
+   "diff": [
+    "diff --git a/.gitignore b/.gitignore",
+    "index 8f105f7..eeb62ad 100644",
+    "--- a/.gitignore",
+    "+++ b/.gitignore",
+    "@@ -41,6 +41,9 @@ yarn-error.log*",
+    " # фото прогресса подопечных (app/api/photos): снимки людей — не код",
+    " /storage/",
+    " ",
+    "+# тренерские приглашения беты: коды приглашений — как пароли, в git не кладём",
+    "+/supabase/tests/beta-invites.sql",
+    "+",
+    " # vercel",
+    " .vercel",
+    " "
+   ],
+   "blob": "eeb62ad441f4f93c389ef3d1c250134f36117004"
   },
   {
    "id": "beta-invites-apply",
@@ -2046,9 +2070,9 @@
    "server": [
     "[sql] select role from profiles where id = $1",
     "[sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day",
-    " GET /workouts 200 in 61ms (next.js: 1.1ms, application-code: 60ms)",
-    " POST /api/logout 303 in 7ms (next.js: 1.3ms, application-code: 5ms)",
-    " GET /login 200 in 47ms (next.js: 1.2ms, application-code: 45ms)"
+    " GET /workouts 200 in 72ms (next.js: 1.4ms, application-code: 70ms)",
+    " POST /api/logout 303 in 6ms (next.js: 1.2ms, application-code: 5ms)",
+    " GET /login 200 in 32ms (next.js: 1.0ms, application-code: 31ms)"
    ]
   },
   {
@@ -2128,14 +2152,14 @@
    ],
    "network": [],
    "server": [
-    " GET /join/7d3e9a41c52b4f08b6e1d0a9f3c27e58 200 in 111ms (next.js: 2.0ms, generate-params: 25ms, application-code: 84ms)",
+    " GET /join/7d3e9a41c52b4f08b6e1d0a9f3c27e58 200 in 114ms (next.js: 2ms, generate-params: 21ms, application-code: 90ms)",
     "[sql] select role from profiles where id = $1",
     "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
     "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
     "[sql] with ranked as ( select w.client_id, w.title, s.weight, s.reps, lag(s.weight) over by_workout as prev_weight, lag(s.reps) over by_workout as prev_reps, row_number() over (partition by w.client_id order by s.id desc) as n from sets s join workouts w on w.id = s.workout_id join clients c on c.id = w.client_id where c.coach_id = $1 window by_workout as (partition by s.workout_id order by s.id) ) select client_id as id, title as workout, weight::float8 as weight, reps, case when prev_weight is null then null else weight > prev_weight or (weight = prev_weight and reps > prev_reps) end as growing from ranked where n = 1",
-    " GET /clients 200 in 82ms (next.js: 1.2ms, application-code: 81ms)",
-    " POST /join/7d3e9a41c52b4f08b6e1d0a9f3c27e58 200 in 158ms (next.js: 4ms, generate-params: 21ms, application-code: 133ms)",
-    "  └─ ƒ join(\"7d3e9a41c52b4f08b6e1d0a9f3c27e58\", {}) in 14ms app/join/[code]/actions.ts"
+    " GET /clients 200 in 54ms (next.js: 1.3ms, application-code: 53ms)",
+    " POST /join/7d3e9a41c52b4f08b6e1d0a9f3c27e58 200 in 126ms (next.js: 1.0ms, generate-params: 16ms, application-code: 108ms)",
+    "  └─ ƒ join(\"7d3e9a41c52b4f08b6e1d0a9f3c27e58\", {}) in 32ms app/join/[code]/actions.ts"
    ]
   },
   {
@@ -2457,20 +2481,19 @@
    "id": "c-feedback",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"Сообщить о проблеме\"",
-   "hash": "1a69700",
+   "hash": "cdb69f1",
    "message": "Сообщить о проблеме",
    "branch": "main",
    "parents": [
     "01ba1c7"
    ],
    "out": [
-    "[main 1a69700] Сообщить о проблеме",
-    " 7 files changed, 147 insertions(+), 3 deletions(-)",
+    "[main cdb69f1] Сообщить о проблеме",
+    " 7 files changed, 143 insertions(+), 3 deletions(-)",
     " create mode 100644 app/problem/actions.ts",
     " create mode 100644 app/problem/page.tsx",
     " create mode 100644 components/ProblemLink.tsx",
-    " create mode 100644 supabase/migrations/0015_feedback.sql",
-    " create mode 100644 supabase/tests/beta-invites.sql"
+    " create mode 100644 supabase/migrations/0015_feedback.sql"
    ],
    "files": [
     {
@@ -2479,7 +2502,7 @@
     },
     {
      "path": ".gitignore",
-     "blob": "8f105f7079cdb823e35ad96724c03f5ff6311713"
+     "blob": "eeb62ad441f4f93c389ef3d1c250134f36117004"
     },
     {
      "path": "CLAUDE.md",
@@ -2954,10 +2977,6 @@
      "blob": "d9c23ae84ff0acb4b52c5bd00598782e8c99c77a"
     },
     {
-     "path": "supabase/tests/beta-invites.sql",
-     "blob": "06ccdd911140eeaf7d3ea71a944871d65c513125"
-    },
-    {
      "path": "supabase/tests/measurements.sql",
      "blob": "f07d7736801c30080b4cd8f71b5d6d21cb908281"
     },
@@ -3089,24 +3108,25 @@
    "network": [],
    "server": [
     "[sql] select role from profiles where id = $1",
-    " GET /problem 200 in 154ms (next.js: 14ms, application-code: 140ms)",
+    " GET /problem 200 in 144ms (next.js: 10ms, application-code: 133ms)",
     "[sql] insert into feedback (page, did, expected, got) values ($1, $2, $3, $4)",
     "[sql] select role from profiles where id = $1",
-    " GET /problem?sent=1 200 in 58ms (next.js: 1.4ms, application-code: 57ms)",
-    " POST /problem 200 in 514ms (next.js: 1.4ms, application-code: 512ms)",
-    "  └─ ƒ sendProblem({}) in 425ms app/problem/actions.ts"
+    " GET /problem?sent=1 200 in 69ms (next.js: 1.3ms, application-code: 68ms)",
+    " POST /problem 200 in 104ms (next.js: 1.6ms, application-code: 103ms)",
+    "  └─ ƒ sendProblem({}) in 7ms app/problem/actions.ts"
    ]
   },
   {
    "id": "fb-db",
    "kind": "run",
    "cwd": "~/trainer-app",
-   "cmd": "psql -c \"select page, did, expected, got from feedback\"",
+   "cmd": "psql -x -c \"select page, did, expected, got from feedback\"",
    "out": [
-    "         page         |                            did                             |             expected              |                          got                          ",
-    "----------------------+------------------------------------------------------------+-----------------------------------+-------------------------------------------------------",
-    " Карточка подопечного | Нажал «Отправить» под тренировкой — в поле был один пробел | Подсказку, что комментарий пустой | Страница обновилась, и всё: ни комментария, ни ошибки",
-    "(1 row)"
+    "-[ RECORD 1 ]--------------------------------------------------------",
+    "page     | Карточка подопечного",
+    "did      | Нажал «Отправить» под тренировкой — в поле был один пробел",
+    "expected | Подсказку, что комментарий пустой",
+    "got      | Страница обновилась, и всё: ни комментария, ни ошибки"
    ],
    "code": 0
   },
@@ -3125,13 +3145,13 @@
     "This page couldn’t load",
     "A server error occurred. Reload to try again.",
     "Reload",
-    "ERROR 3250139417"
+    "ERROR 3758708505"
    ],
    "after": [
     "This page couldn’t load",
     "A server error occurred. Reload to try again.",
     "Reload",
-    "ERROR 3250139417"
+    "ERROR 3758708505"
    ],
    "console": [
     {
@@ -3193,9 +3213,9 @@
     "  file: 'numutils.c',",
     "  line: '879',",
     "  routine: 'pg_strtoint64_safe',",
-    "  digest: '3250139417'",
+    "  digest: '3758708505'",
     "}",
-    " GET /clients/abc 500 in 794ms (next.js: 28ms, generate-params: 637ms, application-code: 129ms)",
+    " GET /clients/abc 500 in 691ms (next.js: 23ms, generate-params: 529ms, application-code: 140ms)",
     "[browser] Uncaught error: invalid input syntax for type bigint: \"abc\"",
     "    at <anonymous> (app/clients/[id]/page.tsx:56:20)",
     "    at asUser (lib/db.ts:29:20)",
@@ -3234,18 +3254,19 @@
    "kind": "file",
    "path": "test/errors.test.ts",
    "before": null,
-   "after": "// @vitest-environment node\n// Журнал сбоев: о сбое человек не напишет — сервер записывает его сам. Next вызывает onRequestError из instrumentation.ts\n// на каждую ошибку сервера; хук пишет путь запроса и сообщение в таблицу errors (supabase/migrations/0016_errors.sql).\n// Тест вызывает хук так, как его зовёт Next, и ищет строку в журнале; свою строку в конце удаляет.\n// Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения, как у test/rls.test.ts.\nimport { randomUUID } from \"node:crypto\";\nimport { afterAll, expect, test } from \"vitest\";\nimport { onRequestError } from \"../instrumentation\";\nimport { asUser, pool } from \"../lib/db\";\n\n// id из supabase/seed.sql: Марина — тренер\nconst MARINA = \"11111111-1111-1111-1111-111111111111\";\n\n// сообщение этого прогона: по нему тест находит свою строку и только её удаляет\nconst MESSAGE = `проверка журнала ${randomUUID()}`;\n\nafterAll(async () => {\n  await pool.query(\"delete from errors where message = $1\", [MESSAGE]);\n  await pool.end();\n});\n\ntest(\"сбой на сервере — строка в журнале: путь и сообщение\", async () => {\n  // Next зовёт хук на сервере Node — там NEXT_RUNTIME = \"nodejs\"\n  process.env.NEXT_RUNTIME = \"nodejs\";\n  await onRequestError(\n    new Error(MESSAGE),\n    { path: \"/clients/abc\", method: \"GET\", headers: {} },\n    { routerKind: \"App Router\", routePath: \"/clients/[id]\", routeType: \"render\", revalidateReason: undefined },\n  );\n  const { rows } = await pool.query(\"select path, message from errors where message = $1\", [MESSAGE]);\n  expect(rows).toEqual([{ path: \"/clients/abc\", message: MESSAGE }]);\n});\n\ntest(\"журнал закрыт для пользователей приложения\", async () => {\n  const read = asUser(MARINA, (db) => db.query(\"select path from errors\"));\n  await expect(read).rejects.toThrow(\"permission denied\");\n});\n",
+   "after": "// @vitest-environment node\n// Журнал сбоев: о сбое человек не напишет — сервер записывает его сам. Next вызывает onRequestError из instrumentation.ts\n// на каждую ошибку сервера; хук пишет путь запроса и сообщение в таблицу errors (supabase/migrations/0016_errors.sql).\n// Тест вызывает хук так, как его зовёт Next, и ищет строку в журнале; свою строку в конце удаляет. Путь хранится без строки\n// запроса (в ней бывают данные людей), сообщение — не длиннее 500 знаков.\n// Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения, как у test/rls.test.ts.\nimport { randomUUID } from \"node:crypto\";\nimport { afterAll, expect, test } from \"vitest\";\nimport { onRequestError } from \"../instrumentation\";\nimport { asUser, pool } from \"../lib/db\";\n\n// id из supabase/seed.sql: Марина — тренер\nconst MARINA = \"11111111-1111-1111-1111-111111111111\";\n\n// сообщение этого прогона — длиннее 500 знаков; по его началу тест находит свою строку и только её удаляет\nconst MARK = `проверка журнала ${randomUUID()}`;\nconst MESSAGE = `${MARK} ${\"x\".repeat(600)}`;\n\nafterAll(async () => {\n  await pool.query(\"delete from errors where starts_with(message, $1)\", [MARK]);\n  await pool.end();\n});\n\ntest(\"сбой на сервере — строка в журнале: путь без строки запроса и сообщение до 500 знаков\", async () => {\n  // Next зовёт хук на сервере Node — там NEXT_RUNTIME = \"nodejs\"\n  process.env.NEXT_RUNTIME = \"nodejs\";\n  await onRequestError(\n    new Error(MESSAGE),\n    { path: \"/clients/abc?week=2026-11-09\", method: \"GET\", headers: {} },\n    { routerKind: \"App Router\", routePath: \"/clients/[id]\", routeType: \"render\", revalidateReason: undefined },\n  );\n  const { rows } = await pool.query(\"select path, message from errors where starts_with(message, $1)\", [MARK]);\n  expect(rows).toEqual([{ path: \"/clients/abc\", message: MESSAGE.slice(0, 500) }]);\n});\n\ntest(\"журнал закрыт для пользователей приложения\", async () => {\n  const read = asUser(MARINA, (db) => db.query(\"select path from errors\"));\n  await expect(read).rejects.toThrow(\"permission denied\");\n});\n",
    "diff": [
     "diff --git a/test/errors.test.ts b/test/errors.test.ts",
     "new file mode 100644",
-    "index 0000000..e291eaf",
+    "index 0000000..2ad436f",
     "--- /dev/null",
     "+++ b/test/errors.test.ts",
-    "@@ -0,0 +1,37 @@",
+    "@@ -0,0 +1,39 @@",
     "+// @vitest-environment node",
     "+// Журнал сбоев: о сбое человек не напишет — сервер записывает его сам. Next вызывает onRequestError из instrumentation.ts",
     "+// на каждую ошибку сервера; хук пишет путь запроса и сообщение в таблицу errors (supabase/migrations/0016_errors.sql).",
-    "+// Тест вызывает хук так, как его зовёт Next, и ищет строку в журнале; свою строку в конце удаляет.",
+    "+// Тест вызывает хук так, как его зовёт Next, и ищет строку в журнале; свою строку в конце удаляет. Путь хранится без строки",
+    "+// запроса (в ней бывают данные людей), сообщение — не длиннее 500 знаков.",
     "+// Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения, как у test/rls.test.ts.",
     "+import { randomUUID } from \"node:crypto\";",
     "+import { afterAll, expect, test } from \"vitest\";",
@@ -3255,24 +3276,25 @@
     "+// id из supabase/seed.sql: Марина — тренер",
     "+const MARINA = \"11111111-1111-1111-1111-111111111111\";",
     "+",
-    "+// сообщение этого прогона: по нему тест находит свою строку и только её удаляет",
-    "+const MESSAGE = `проверка журнала ${randomUUID()}`;",
+    "+// сообщение этого прогона — длиннее 500 знаков; по его началу тест находит свою строку и только её удаляет",
+    "+const MARK = `проверка журнала ${randomUUID()}`;",
+    "+const MESSAGE = `${MARK} ${\"x\".repeat(600)}`;",
     "+",
     "+afterAll(async () => {",
-    "+  await pool.query(\"delete from errors where message = $1\", [MESSAGE]);",
+    "+  await pool.query(\"delete from errors where starts_with(message, $1)\", [MARK]);",
     "+  await pool.end();",
     "+});",
     "+",
-    "+test(\"сбой на сервере — строка в журнале: путь и сообщение\", async () => {",
+    "+test(\"сбой на сервере — строка в журнале: путь без строки запроса и сообщение до 500 знаков\", async () => {",
     "+  // Next зовёт хук на сервере Node — там NEXT_RUNTIME = \"nodejs\"",
     "+  process.env.NEXT_RUNTIME = \"nodejs\";",
     "+  await onRequestError(",
     "+    new Error(MESSAGE),",
-    "+    { path: \"/clients/abc\", method: \"GET\", headers: {} },",
+    "+    { path: \"/clients/abc?week=2026-11-09\", method: \"GET\", headers: {} },",
     "+    { routerKind: \"App Router\", routePath: \"/clients/[id]\", routeType: \"render\", revalidateReason: undefined },",
     "+  );",
-    "+  const { rows } = await pool.query(\"select path, message from errors where message = $1\", [MESSAGE]);",
-    "+  expect(rows).toEqual([{ path: \"/clients/abc\", message: MESSAGE }]);",
+    "+  const { rows } = await pool.query(\"select path, message from errors where starts_with(message, $1)\", [MARK]);",
+    "+  expect(rows).toEqual([{ path: \"/clients/abc\", message: MESSAGE.slice(0, 500) }]);",
     "+});",
     "+",
     "+test(\"журнал закрыт для пользователей приложения\", async () => {",
@@ -3280,7 +3302,7 @@
     "+  await expect(read).rejects.toThrow(\"permission denied\");",
     "+});"
    ],
-   "blob": "e291eaffcbdc403da6e4022a699ea121c118ea56",
+   "blob": "2ad436f4d0023145d0395ee9f900d23a9f08d489",
    "by": "agent"
   },
   {
@@ -3298,21 +3320,21 @@
     "",
     " FAIL  test/errors.test.ts [ test/errors.test.ts ]",
     "Error: Cannot find module '../instrumentation' imported from ~/trainer-app/test/errors.test.ts",
-    " ❯ test/errors.test.ts:8:1",
-    "      6| import { randomUUID } from \"node:crypto\";",
-    "      7| import { afterAll, expect, test } from \"vitest\";",
-    "      8| import { onRequestError } from \"../instrumentation\";",
+    " ❯ test/errors.test.ts:9:1",
+    "      7| import { randomUUID } from \"node:crypto\";",
+    "      8| import { afterAll, expect, test } from \"vitest\";",
+    "      9| import { onRequestError } from \"../instrumentation\";",
     "       | ^",
-    "      9| import { asUser, pool } from \"../lib/db\";",
-    "     10|",
+    "     10| import { asUser, pool } from \"../lib/db\";",
+    "     11|",
     "",
     "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯",
     "",
     "",
     " Test Files  1 failed (1)",
     "      Tests  no tests",
-    "   Start at  17:16:10",
-    "   Duration  221ms (worker 97%, environment 3%)"
+    "   Start at  17:43:53",
+    "   Duration  204ms (worker 97%, environment 3%)"
    ],
    "code": 1,
    "by": "agent"
@@ -3321,12 +3343,13 @@
    "id": "ask-errors-go",
    "kind": "agent",
    "prompt": "Делай",
-   "reply": "При сбое — «Что-то пошло не так» без текста ошибки. Путь и сообщение onRequestError пишет в errors, время ставит база; пользователям приложения журнал закрыт.",
+   "reply": "При сбое — «Что-то пошло не так» без текста ошибки. Сбой сервера onRequestError пишет в errors: путь без строки запроса и сообщение до 500 знаков; пользователям приложения журнал закрыт.",
    "steps": [
     "err-sql",
     "err-apply",
     "err-page",
     "err-hook",
+    "err-pool",
     "err-green"
    ]
   },
@@ -3335,28 +3358,28 @@
    "kind": "file",
    "path": "supabase/migrations/0016_errors.sql",
    "before": null,
-   "after": "-- Журнал сбоев: о сбое человек не напишет — сервер записывает его сам (instrumentation.ts, onRequestError).\n-- В строке — путь запроса, сообщение ошибки и время; время ставит база. Пишет только сервер от владельца базы:\n-- от имени пользователей журнал не прочитать и не записать — RLS без политик и без прав.\ncreate table errors (\n  id bigint generated by default as identity primary key,\n  path text not null,\n  message text not null,\n  created_at timestamptz not null default now()\n);\n\nalter table errors enable row level security;\nrevoke all on errors from anon, authenticated;\n",
+   "after": "-- Журнал сбоев: о сбое человек не напишет — сервер записывает его сам (instrumentation.ts, onRequestError).\n-- В строке — путь (без строки запроса после «?»), сообщение ошибки (до 500 знаков) и время; время ставит база.\n-- Пишет только сервер от владельца базы: от имени пользователей журнал не прочитать и не записать — RLS без политик и без прав.\ncreate table errors (\n  id bigint generated by default as identity primary key,\n  path text not null,\n  message text not null check (length(message) <= 500),\n  created_at timestamptz not null default now()\n);\n\nalter table errors enable row level security;\nrevoke all on errors from anon, authenticated;\n",
    "diff": [
     "diff --git a/supabase/migrations/0016_errors.sql b/supabase/migrations/0016_errors.sql",
     "new file mode 100644",
-    "index 0000000..1bf5a80",
+    "index 0000000..1f6a710",
     "--- /dev/null",
     "+++ b/supabase/migrations/0016_errors.sql",
     "@@ -0,0 +1,12 @@",
     "+-- Журнал сбоев: о сбое человек не напишет — сервер записывает его сам (instrumentation.ts, onRequestError).",
-    "+-- В строке — путь запроса, сообщение ошибки и время; время ставит база. Пишет только сервер от владельца базы:",
-    "+-- от имени пользователей журнал не прочитать и не записать — RLS без политик и без прав.",
+    "+-- В строке — путь (без строки запроса после «?»), сообщение ошибки (до 500 знаков) и время; время ставит база.",
+    "+-- Пишет только сервер от владельца базы: от имени пользователей журнал не прочитать и не записать — RLS без политик и без прав.",
     "+create table errors (",
     "+  id bigint generated by default as identity primary key,",
     "+  path text not null,",
-    "+  message text not null,",
+    "+  message text not null check (length(message) <= 500),",
     "+  created_at timestamptz not null default now()",
     "+);",
     "+",
     "+alter table errors enable row level security;",
     "+revoke all on errors from anon, authenticated;"
    ],
-   "blob": "1bf5a807d7217a9c21d874775bf34ac53c038067",
+   "blob": "1f6a710118ff3897ecb998fc93e00028a14a4269",
    "by": "agent"
   },
   {
@@ -3377,23 +3400,24 @@
    "kind": "file",
    "path": "app/error.tsx",
    "before": null,
-   "after": "\"use client\";\n\n// Страница сбоя: на сервере или в браузере что-то сломалось. Человеку — понятные слова и что делать дальше, без текста ошибки\n// и стектрейса: подробности сервер уже записал в журнал сбоев (instrumentation.ts, таблица errors). Меню остаётся над страницей.\nexport default function ErrorPage({ retry }: { error: unknown; retry: () => void }) {\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Что-то пошло не так</h1>\n      <p className=\"mt-2 text-zinc-500\">Сбой записан, мы разберёмся.</p>\n      <p className=\"mt-2\">Попробуйте ещё раз. Если не выйдет — напишите, что делали, через «Сообщить о проблеме» в меню.</p>\n      <button type=\"button\" onClick={() => retry()} className=\"mt-6 rounded bg-zinc-900 px-4 py-2 text-white\">\n        Попробовать ещё раз\n      </button>\n    </main>\n  );\n}\n",
+   "after": "\"use client\";\n\n// Страница сбоя: на сервере или в браузере что-то сломалось. Человеку — понятные слова и что делать дальше, без текста ошибки\n// и стектрейса. Сбои сервера записывает журнал (instrumentation.ts, таблица errors); ошибки в браузере он не видит —\n// о них человек расскажет через «Сообщить о проблеме». Меню остаётся над страницей.\nexport default function ErrorPage({ retry }: { error: unknown; retry: () => void }) {\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Что-то пошло не так</h1>\n      <p className=\"mt-2 text-zinc-500\">Это ошибка приложения, а не ваша.</p>\n      <p className=\"mt-2\">Попробуйте ещё раз. Если не выйдет — напишите, что делали, через «Сообщить о проблеме» в меню.</p>\n      <button type=\"button\" onClick={() => retry()} className=\"mt-6 rounded bg-zinc-900 px-4 py-2 text-white\">\n        Попробовать ещё раз\n      </button>\n    </main>\n  );\n}\n",
    "diff": [
     "diff --git a/app/error.tsx b/app/error.tsx",
     "new file mode 100644",
-    "index 0000000..4e79a61",
+    "index 0000000..143cc5c",
     "--- /dev/null",
     "+++ b/app/error.tsx",
-    "@@ -0,0 +1,16 @@",
+    "@@ -0,0 +1,17 @@",
     "+\"use client\";",
     "+",
     "+// Страница сбоя: на сервере или в браузере что-то сломалось. Человеку — понятные слова и что делать дальше, без текста ошибки",
-    "+// и стектрейса: подробности сервер уже записал в журнал сбоев (instrumentation.ts, таблица errors). Меню остаётся над страницей.",
+    "+// и стектрейса. Сбои сервера записывает журнал (instrumentation.ts, таблица errors); ошибки в браузере он не видит —",
+    "+// о них человек расскажет через «Сообщить о проблеме». Меню остаётся над страницей.",
     "+export default function ErrorPage({ retry }: { error: unknown; retry: () => void }) {",
     "+  return (",
     "+    <main className=\"mx-auto w-full max-w-md p-8\">",
     "+      <h1 className=\"text-3xl font-semibold\">Что-то пошло не так</h1>",
-    "+      <p className=\"mt-2 text-zinc-500\">Сбой записан, мы разберёмся.</p>",
+    "+      <p className=\"mt-2 text-zinc-500\">Это ошибка приложения, а не ваша.</p>",
     "+      <p className=\"mt-2\">Попробуйте ещё раз. Если не выйдет — напишите, что делали, через «Сообщить о проблеме» в меню.</p>",
     "+      <button type=\"button\" onClick={() => retry()} className=\"mt-6 rounded bg-zinc-900 px-4 py-2 text-white\">",
     "+        Попробовать ещё раз",
@@ -3402,7 +3426,7 @@
     "+  );",
     "+}"
    ],
-   "blob": "4e79a610de549088b083c77ad5e11d663f4b9536",
+   "blob": "143cc5c2d246c44025deac1eac75abc66147f93d",
    "by": "agent"
   },
   {
@@ -3410,14 +3434,14 @@
    "kind": "file",
    "path": "instrumentation.ts",
    "before": null,
-   "after": "import type { Instrumentation } from \"next\";\n\n// Журнал сбоев. Next вызывает onRequestError на сервере при каждой ошибке: страница, маршрут, серверное действие.\n// Путь запроса и сообщение ошибки — в таблицу errors (0016_errors.sql) от владельца базы, время ставит база.\n// Человек видит app/error.tsx без подробностей, а здесь они остаются для нас.\nexport const onRequestError: Instrumentation.onRequestError = async (error, request) => {\n  // база — только у сервера на Node: в среде Edge модуля pg нет\n  if (process.env.NEXT_RUNTIME === \"nodejs\") {\n    const { pool } = await import(\"@/lib/db\");\n    const message = error instanceof Error ? error.message : String(error);\n    try {\n      await pool.query(\"insert into errors (path, message) values ($1, $2)\", [request.path, message]);\n    } catch (failed) {\n      // журнал недоступен — сбой хотя бы останется в выводе сервера\n      console.error(\"Журнал сбоев недоступен:\", failed);\n    }\n  }\n};\n",
+   "after": "import type { Instrumentation } from \"next\";\n\n// Журнал сбоев. Next вызывает onRequestError на сервере при каждой ошибке: страница, маршрут, серверное действие.\n// Путь запроса и сообщение ошибки — в таблицу errors (0016_errors.sql) от владельца базы, время ставит база.\n// Человек видит app/error.tsx без подробностей, а здесь они остаются для нас.\nexport const onRequestError: Instrumentation.onRequestError = async (error, request) => {\n  // база — только у сервера на Node: в среде Edge модуля pg нет\n  if (process.env.NEXT_RUNTIME === \"nodejs\") {\n    const { pool } = await import(\"@/lib/db\");\n    // путь — без строки запроса: в ней бывают данные людей; сообщение — не длиннее 500 знаков (pg повторяет в нём ввод)\n    const path = request.path.split(\"?\")[0];\n    const message = (error instanceof Error ? error.message : String(error)).slice(0, 500);\n    try {\n      await pool.query(\"insert into errors (path, message) values ($1, $2)\", [path, message]);\n    } catch (failed) {\n      // журнал недоступен — сбой хотя бы останется в выводе сервера\n      console.error(\"Журнал сбоев недоступен:\", failed);\n    }\n  }\n};\n",
    "diff": [
     "diff --git a/instrumentation.ts b/instrumentation.ts",
     "new file mode 100644",
-    "index 0000000..8313578",
+    "index 0000000..38d7861",
     "--- /dev/null",
     "+++ b/instrumentation.ts",
-    "@@ -0,0 +1,18 @@",
+    "@@ -0,0 +1,20 @@",
     "+import type { Instrumentation } from \"next\";",
     "+",
     "+// Журнал сбоев. Next вызывает onRequestError на сервере при каждой ошибке: страница, маршрут, серверное действие.",
@@ -3427,9 +3451,11 @@
     "+  // база — только у сервера на Node: в среде Edge модуля pg нет",
     "+  if (process.env.NEXT_RUNTIME === \"nodejs\") {",
     "+    const { pool } = await import(\"@/lib/db\");",
-    "+    const message = error instanceof Error ? error.message : String(error);",
+    "+    // путь — без строки запроса: в ней бывают данные людей; сообщение — не длиннее 500 знаков (pg повторяет в нём ввод)",
+    "+    const path = request.path.split(\"?\")[0];",
+    "+    const message = (error instanceof Error ? error.message : String(error)).slice(0, 500);",
     "+    try {",
-    "+      await pool.query(\"insert into errors (path, message) values ($1, $2)\", [request.path, message]);",
+    "+      await pool.query(\"insert into errors (path, message) values ($1, $2)\", [path, message]);",
     "+    } catch (failed) {",
     "+      // журнал недоступен — сбой хотя бы останется в выводе сервера",
     "+      console.error(\"Журнал сбоев недоступен:\", failed);",
@@ -3437,7 +3463,32 @@
     "+  }",
     "+};"
    ],
-   "blob": "83135787b5aff8388b352abd6539ca772f07d230",
+   "blob": "38d78617a0ddc93ce38d1a83731b86e774bdbb8d",
+   "by": "agent"
+  },
+  {
+   "id": "err-pool",
+   "kind": "file",
+   "path": "lib/db.ts",
+   "before": "import { Pool, type PoolClient } from \"pg\";\n\n// Подключение к базе по DATABASE_URL из .env.local — от имени её владельца, и RLS на такие запросы не действует.\n// Напрямую через pool ходит только вход (app/api/login), как сервис входа в Supabase; остальное — через asUser.\nexport const pool = new Pool({ connectionString: process.env.DATABASE_URL });\n\n// Запросы от имени вошедшего — так их выполняет Supabase: роль authenticated, а auth.uid() в базе возвращает uid.\n// Всё внутри fn идёт одной транзакцией, и какие строки видны, решают политики RLS.\nexport async function asUser<T>(uid: string, fn: (db: PoolClient) => Promise<T>): Promise<T> {\n  const db = await pool.connect();\n  const original = db.query;\n  const run = original.bind(db);\n  try {\n    await run(\"begin\");\n    await run(\"set local role authenticated\");\n    await run(\"select set_config('request.jwt.claims', $1, true)\", [\n      JSON.stringify({ sub: uid, role: \"authenticated\" }),\n    ]);\n    // Только в режиме разработки (next dev): на время запросов приложения подменяем db.query обёрткой и печатаем\n    // в журнал сервера каждый запрос — «[sql] …». В тестах (NODE_ENV=test), сборке и на сервере (production) журнал молчит.\n    // Служебные команды транзакции и роли идут мимо (через run), в журнал не попадают — так видно число запросов на страницу.\n    if (process.env.NODE_ENV === \"development\") {\n      db.query = ((text: unknown, ...args: unknown[]) => {\n        const sql = typeof text === \"string\" ? text : (text as { text: string }).text;\n        console.log(`[sql] ${String(sql).replace(/\\s+/g, \" \").trim()}`);\n        return (run as (...rest: unknown[]) => unknown)(text, ...args);\n      }) as PoolClient[\"query\"];\n    }\n    const result = await fn(db);\n    await run(\"commit\");\n    return result;\n  } catch (err) {\n    await run(\"rollback\");\n    throw err;\n  } finally {\n    db.query = original;\n    db.release();\n  }\n}\n",
+   "after": "import { Pool, type PoolClient } from \"pg\";\n\n// Подключение к базе по DATABASE_URL из .env.local — от имени её владельца, и RLS на такие запросы не действует.\n// Напрямую через pool ходят только вход (app/api/login), приглашение и регистрация (app/join) и журнал сбоев (instrumentation.ts):\n// у них ещё нет вошедшего или он не нужен, как у сервисов Supabase. Остальное — через asUser.\nexport const pool = new Pool({ connectionString: process.env.DATABASE_URL });\n\n// Запросы от имени вошедшего — так их выполняет Supabase: роль authenticated, а auth.uid() в базе возвращает uid.\n// Всё внутри fn идёт одной транзакцией, и какие строки видны, решают политики RLS.\nexport async function asUser<T>(uid: string, fn: (db: PoolClient) => Promise<T>): Promise<T> {\n  const db = await pool.connect();\n  const original = db.query;\n  const run = original.bind(db);\n  try {\n    await run(\"begin\");\n    await run(\"set local role authenticated\");\n    await run(\"select set_config('request.jwt.claims', $1, true)\", [\n      JSON.stringify({ sub: uid, role: \"authenticated\" }),\n    ]);\n    // Только в режиме разработки (next dev): на время запросов приложения подменяем db.query обёрткой и печатаем\n    // в журнал сервера каждый запрос — «[sql] …». В тестах (NODE_ENV=test), сборке и на сервере (production) журнал молчит.\n    // Служебные команды транзакции и роли идут мимо (через run), в журнал не попадают — так видно число запросов на страницу.\n    if (process.env.NODE_ENV === \"development\") {\n      db.query = ((text: unknown, ...args: unknown[]) => {\n        const sql = typeof text === \"string\" ? text : (text as { text: string }).text;\n        console.log(`[sql] ${String(sql).replace(/\\s+/g, \" \").trim()}`);\n        return (run as (...rest: unknown[]) => unknown)(text, ...args);\n      }) as PoolClient[\"query\"];\n    }\n    const result = await fn(db);\n    await run(\"commit\");\n    return result;\n  } catch (err) {\n    await run(\"rollback\");\n    throw err;\n  } finally {\n    db.query = original;\n    db.release();\n  }\n}\n",
+   "diff": [
+    "diff --git a/lib/db.ts b/lib/db.ts",
+    "index bea1677..9f896a2 100644",
+    "--- a/lib/db.ts",
+    "+++ b/lib/db.ts",
+    "@@ -1,7 +1,8 @@",
+    " import { Pool, type PoolClient } from \"pg\";",
+    " ",
+    " // Подключение к базе по DATABASE_URL из .env.local — от имени её владельца, и RLS на такие запросы не действует.",
+    "-// Напрямую через pool ходит только вход (app/api/login), как сервис входа в Supabase; остальное — через asUser.",
+    "+// Напрямую через pool ходят только вход (app/api/login), приглашение и регистрация (app/join) и журнал сбоев (instrumentation.ts):",
+    "+// у них ещё нет вошедшего или он не нужен, как у сервисов Supabase. Остальное — через asUser.",
+    " export const pool = new Pool({ connectionString: process.env.DATABASE_URL });",
+    " ",
+    " // Запросы от имени вошедшего — так их выполняет Supabase: роль authenticated, а auth.uid() в базе возвращает uid."
+   ],
+   "blob": "9f896a2393ed26bfe973f3e20948edfc24794d14",
    "by": "agent"
   },
   {
@@ -3449,12 +3500,12 @@
     "",
     " RUN  v5.0.5 ~/trainer-app",
     "",
-    " ✓ test/errors.test.ts (2 tests) 24ms",
+    " ✓ test/errors.test.ts (2 tests) 21ms",
     "",
     " Test Files  1 passed (1)",
     "      Tests  2 passed (2)",
-    "   Start at  17:16:11",
-    "   Duration  234ms (transform 37%, import 35%, tests 24%, worker 5%)"
+    "   Start at  17:43:54",
+    "   Duration  212ms (transform 43%, import 31%, tests 22%, worker 4%)"
    ],
    "code": 0,
    "by": "agent"
@@ -3463,15 +3514,15 @@
    "id": "c-errors",
    "kind": "commit",
    "cmd": "git add -A && git commit -m \"Сбои: понятная страница и журнал\"",
-   "hash": "ac9e0d8",
+   "hash": "8b250cc",
    "message": "Сбои: понятная страница и журнал",
    "branch": "main",
    "parents": [
-    "1a69700"
+    "cdb69f1"
    ],
    "out": [
-    "[main ac9e0d8] Сбои: понятная страница и журнал",
-    " 4 files changed, 83 insertions(+)",
+    "[main 8b250cc] Сбои: понятная страница и журнал",
+    " 5 files changed, 90 insertions(+), 1 deletion(-)",
     " create mode 100644 app/error.tsx",
     " create mode 100644 instrumentation.ts",
     " create mode 100644 supabase/migrations/0016_errors.sql",
@@ -3484,7 +3535,7 @@
     },
     {
      "path": ".gitignore",
-     "blob": "8f105f7079cdb823e35ad96724c03f5ff6311713"
+     "blob": "eeb62ad441f4f93c389ef3d1c250134f36117004"
     },
     {
      "path": "CLAUDE.md",
@@ -3544,7 +3595,7 @@
     },
     {
      "path": "app/error.tsx",
-     "blob": "4e79a610de549088b083c77ad5e11d663f4b9536"
+     "blob": "143cc5c2d246c44025deac1eac75abc66147f93d"
     },
     {
      "path": "app/favicon.ico",
@@ -3744,7 +3795,7 @@
     },
     {
      "path": "instrumentation.ts",
-     "blob": "83135787b5aff8388b352abd6539ca772f07d230"
+     "blob": "38d78617a0ddc93ce38d1a83731b86e774bdbb8d"
     },
     {
      "path": "lib/dates.ts",
@@ -3752,7 +3803,7 @@
     },
     {
      "path": "lib/db.ts",
-     "blob": "bea1677f27da982934d297189b74b60017148c33"
+     "blob": "9f896a2393ed26bfe973f3e20948edfc24794d14"
     },
     {
      "path": "lib/names.test.ts",
@@ -3944,7 +3995,7 @@
     },
     {
      "path": "supabase/migrations/0016_errors.sql",
-     "blob": "1bf5a807d7217a9c21d874775bf34ac53c038067"
+     "blob": "1f6a710118ff3897ecb998fc93e00028a14a4269"
     },
     {
      "path": "supabase/seed-load.sql",
@@ -3971,10 +4022,6 @@
      "blob": "d9c23ae84ff0acb4b52c5bd00598782e8c99c77a"
     },
     {
-     "path": "supabase/tests/beta-invites.sql",
-     "blob": "06ccdd911140eeaf7d3ea71a944871d65c513125"
-    },
-    {
      "path": "supabase/tests/measurements.sql",
      "blob": "f07d7736801c30080b4cd8f71b5d6d21cb908281"
     },
@@ -3988,7 +4035,7 @@
     },
     {
      "path": "test/errors.test.ts",
-     "blob": "e291eaffcbdc403da6e4022a699ea121c118ea56"
+     "blob": "2ad436f4d0023145d0395ee9f900d23a9f08d489"
     },
     {
      "path": "test/invites.test.ts",
@@ -4042,7 +4089,7 @@
     "Сообщить о проблеме",
     "Выйти",
     "Что-то пошло не так",
-    "Сбой записан, мы разберёмся.",
+    "Это ошибка приложения, а не ваша.",
     "Попробуйте ещё раз. Если не выйдет — напишите, что делали, через «Сообщить о проблеме» в меню.",
     "Попробовать ещё раз"
    ],
@@ -4053,7 +4100,7 @@
     "Сообщить о проблеме",
     "Выйти",
     "Что-то пошло не так",
-    "Сбой записан, мы разберёмся.",
+    "Это ошибка приложения, а не ваша.",
     "Попробуйте ещё раз. Если не выйдет — напишите, что делали, через «Сообщить о проблеме» в меню.",
     "Попробовать ещё раз"
    ],
@@ -4080,7 +4127,7 @@
     },
     {
      "type": "error",
-     "text": "%o\n\n%s error: invalid input syntax for type bigint: \"abc\"\n    at <anonymous> (about://React/Server/file:///tmp/rec-rxTDu5/work/home/trainer-app/.next/dev/server/chunks/ssr/%5Broot-of-the-server%5D__0_kci9_u06es8._.js?0:96:24)\n    at asUser (about://React/Server/file:///tmp/rec-rxTDu5/work/home/trainer-app/.next/dev/server/chunks/ssr/%5Broot-of-the-server%5D__0oxypdp_4a6mc._.js?1:241:24)\n    at ClientPage (about://React/Server/file:///tmp/rec-rxTDu5/work/home/trainer-app/.next/dev/server/chunks/ssr/%5Broot-of-the-server%5D__0_kci9_u06es8._.js?2:95:18)\n    at resolveErrorDev (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-67asdr9._.js:2029:105)\n    at processFullStringRow (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-67asdr9._.js:2548:29)\n    at processFullBinaryRow (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-67asdr9._.js:2507:9)\n    at processBinaryChunk (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-67asdr9._.js:2614:221)\n    at progress (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-67asdr9._.js:2801:13) The above error occurred in the <ClientPage> component. It was handled by the <ErrorBoundaryHandler> error boundary."
+     "text": "%o\n\n%s error: invalid input syntax for type bigint: \"abc\"\n    at <anonymous> (about://React/Server/file:///tmp/rec-jsL9yc/work/home/trainer-app/.next/dev/server/chunks/ssr/%5Broot-of-the-server%5D__0_kci9_u06es8._.js?0:96:24)\n    at asUser (about://React/Server/file:///tmp/rec-jsL9yc/work/home/trainer-app/.next/dev/server/chunks/ssr/%5Broot-of-the-server%5D__0oxypdp_4a6mc._.js?1:241:24)\n    at ClientPage (about://React/Server/file:///tmp/rec-jsL9yc/work/home/trainer-app/.next/dev/server/chunks/ssr/%5Broot-of-the-server%5D__0_kci9_u06es8._.js?2:95:18)\n    at resolveErrorDev (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-67asdr9._.js:2029:105)\n    at processFullStringRow (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-67asdr9._.js:2548:29)\n    at processFullBinaryRow (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-67asdr9._.js:2507:9)\n    at processBinaryChunk (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-67asdr9._.js:2614:221)\n    at progress (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-67asdr9._.js:2801:13) The above error occurred in the <ClientPage> component. It was handled by the <ErrorBoundaryHandler> error boundary."
     }
    ],
    "network": [
@@ -4121,9 +4168,9 @@
     "  file: 'numutils.c',",
     "  line: '879',",
     "  routine: 'pg_strtoint64_safe',",
-    "  digest: '3250139417'",
+    "  digest: '3758708505'",
     "}",
-    " GET /clients/abc 500 in 135ms (next.js: 7ms, generate-params: 21ms, application-code: 106ms)"
+    " GET /clients/abc 500 in 126ms (next.js: 7ms, generate-params: 19ms, application-code: 100ms)"
    ]
   },
   {

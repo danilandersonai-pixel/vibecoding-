@@ -14,7 +14,8 @@
 // права по столбцам из 0008 дают тренеру писать лишь coach_id, поэтому тренерское создаёт только владелец базы — кнопки в приложении
 // нет. accept_invite — заново: по тренерскому приглашению профиль становится coach, строки в clients нет; функция возвращает роль.
 // Страница /join — текст тренерского приглашения (тренера у него нет — left join), регистрация ведёт тренера на /clients.
-// Человек пишет supabase/tests/beta-invites.sql — тренерские приглашения Тимура и Ксении с заданными кодами — и применяет psql -f.
+// Человек пишет supabase/tests/beta-invites.sql — тренерские приглашения Тимура и Ксении с заданными кодами, — сразу добавляет его
+// в .gitignore (beta-invites-ignore: коды приглашений — как пароли, ни в один коммит файл не попадает) и применяет psql -f.
 // Полина выходит (polina-logout), Тимур открывает /join/<свой код>, регистрируется — пустой экран тренера дня 15 «Подопечных пока нет».
 // Приглашение Ксении в сессии остаётся неиспользованным.
 // Замечания в одно место (Accept edits): 0015_feedback.sql — пишет вошедший (автора ставит база — auth.uid()), политики на чтение
@@ -24,18 +25,22 @@
 // прогоне с ними все пять файлов e2e зелёные). После коммита человек перезапускает dev со сбросом кэша (dev-restart, тот же запрос,
 // что contrast-restart в s20): в черновом прогоне запущенный dev отдавал страницы, собранные впервые после правки меню (/problem,
 // /clients/[id]), со старым меню — без «Сообщить о проблеме», а уже открытые раньше — с новым. Тимур отправляет замечание — текст
-// авторский: пустой комментарий молча пропадает (его разбирает s25), — psql показывает строку.
+// авторский: пустой комментарий молча пропадает (его разбирает s25), — psql -x показывает строку столбцом «поле | значение»:
+// строка таблицы шире 100 знаков окна терминала.
 // Сбой, о котором не напишут, — настоящий (проверен черновым прогоном): /clients/abc у Тимура — 500, страница Next «This page
 // couldn’t load»: id из адреса идёт в запрос к bigint — в выводе сервера «invalid input syntax for type bigint: "abc"» со стектрейсом,
 // а таблицы errors нет — 0. Исправление, сначала тест (Accept edits): test/errors.test.ts зовёт onRequestError так, как его зовёт
 // Next, и ищет строку в журнале (свою строку в конце удаляет); пользователям приложения журнал закрыт. Красный — instrumentation.ts
-// нет. Вторым ходом («Делай»): 0016_errors.sql — путь, сообщение и время (время ставит база, в кадр оно не попадает); app/error.tsx —
-// «Что-то пошло не так» без текста ошибки и стектрейса, меню остаётся; instrumentation.ts — onRequestError пишет путь и сообщение
-// в errors. В черновом прогоне Next 16 зовёт onRequestError и в next dev, а новый instrumentation.ts подхватывает без перезапуска
+// нет. Вторым ходом («Делай»): 0016_errors.sql — путь, сообщение (до 500 знаков) и время (время ставит база, в кадр оно не
+// попадает); app/error.tsx — «Что-то пошло не так» без текста ошибки и стектрейса, меню остаётся; «сбой записан» страница не
+// говорит: ошибки в браузере журнал не видит; instrumentation.ts — onRequestError пишет в errors путь без строки запроса (в ней
+// бывают данные людей) и сообщение, обрезанное до 500 знаков; комментарий в lib/db.ts — кто ходит в базу мимо asUser (err-pool:
+// вход, /join и теперь журнал). В черновом прогоне Next 16 зовёт onRequestError и в next dev, а новый instrumentation.ts подхватывает без перезапуска
 // (в рабочей сборке next start — тоже: та же строка в журнале). /clients/abc — «Что-то пошло не так», в errors — путь и сообщение.
 // Сверх таблицы плана: marina-logout и polina-logout (смена человека в браузере — через «Выйти»), ci-page (страница /join: у
-// тренерского приглашения тренера нет), fb-action и fb-link (один шаг — один файл), fb-e2e (правка человека), dev-restart
-// (перезапуск dev), ask-coach-invite-go и ask-errors-go (второй ход «Делай»: одним ходом шаги в окно агента не помещаются).
+// тренерского приглашения тренера нет), beta-invites-ignore (коды вне git), fb-action и fb-link (один шаг — один файл), fb-e2e
+// (правка человека), dev-restart (перезапуск dev), err-pool (комментарий lib/db.ts), ask-coach-invite-go и ask-errors-go (второй
+// ход «Делай»: одним ходом шаги в окно агента не помещаются).
 // Строки для кадра сессия создаёт сама: приглашение, Полина и Тимур — браузером; тренерские приглашения — psql -f своего файла;
 // замечание — браузером. Браузер один на сессию: регистрация и вход меняют cookie.
 // Запись с середины цепочки: node scripts/record-session.mjs --from s24-beta (из course/). Id шагов постоянные: на них ссылаются уроки.
@@ -755,7 +760,7 @@ function checkAccount(email: string, password: string): string | null {
 const BETA_INVITES = `-- Тренерские приглашения беты (docs/beta.md): Тимур и Ксения — тренеры из других залов. По такому приглашению заводится тренер,
 -- а не подопечный (0014_coach_invites.sql). Создаёт их только владелец базы — этот файл, psql -f: кнопки в приложении нет.
 -- Коды заданы здесь, чтобы ссылки /join/<код> были известны заранее; каждому — своя, лично. Ссылка действует 48 часов и один раз.
--- Это не демо-данные и не миграция: запускается вручную.
+-- Коды приглашений — как пароли: файл в .gitignore, в git он не попадает. Не демо-данные и не миграция: запускается вручную.
 insert into invites (role, code) values
   ('coach', '7d3e9a41c52b4f08b6e1d0a9f3c27e58'), -- Тимур
   ('coach', 'b81f4c6e09a345d7a2c8e5f1306d9b4a'); -- Ксения
@@ -1084,7 +1089,8 @@ test("новый подопечный знает, что тренировку н
 const ERRORS_TEST = `// @vitest-environment node
 // Журнал сбоев: о сбое человек не напишет — сервер записывает его сам. Next вызывает onRequestError из instrumentation.ts
 // на каждую ошибку сервера; хук пишет путь запроса и сообщение в таблицу errors (supabase/migrations/0016_errors.sql).
-// Тест вызывает хук так, как его зовёт Next, и ищет строку в журнале; свою строку в конце удаляет.
+// Тест вызывает хук так, как его зовёт Next, и ищет строку в журнале; свою строку в конце удаляет. Путь хранится без строки
+// запроса (в ней бывают данные людей), сообщение — не длиннее 500 знаков.
 // Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения, как у test/rls.test.ts.
 import { randomUUID } from "node:crypto";
 import { afterAll, expect, test } from "vitest";
@@ -1094,24 +1100,25 @@ import { asUser, pool } from "../lib/db";
 // id из supabase/seed.sql: Марина — тренер
 const MARINA = "11111111-1111-1111-1111-111111111111";
 
-// сообщение этого прогона: по нему тест находит свою строку и только её удаляет
-const MESSAGE = \`проверка журнала \${randomUUID()}\`;
+// сообщение этого прогона — длиннее 500 знаков; по его началу тест находит свою строку и только её удаляет
+const MARK = \`проверка журнала \${randomUUID()}\`;
+const MESSAGE = \`\${MARK} \${"x".repeat(600)}\`;
 
 afterAll(async () => {
-  await pool.query("delete from errors where message = $1", [MESSAGE]);
+  await pool.query("delete from errors where starts_with(message, $1)", [MARK]);
   await pool.end();
 });
 
-test("сбой на сервере — строка в журнале: путь и сообщение", async () => {
+test("сбой на сервере — строка в журнале: путь без строки запроса и сообщение до 500 знаков", async () => {
   // Next зовёт хук на сервере Node — там NEXT_RUNTIME = "nodejs"
   process.env.NEXT_RUNTIME = "nodejs";
   await onRequestError(
     new Error(MESSAGE),
-    { path: "/clients/abc", method: "GET", headers: {} },
+    { path: "/clients/abc?week=2026-11-09", method: "GET", headers: {} },
     { routerKind: "App Router", routePath: "/clients/[id]", routeType: "render", revalidateReason: undefined },
   );
-  const { rows } = await pool.query("select path, message from errors where message = $1", [MESSAGE]);
-  expect(rows).toEqual([{ path: "/clients/abc", message: MESSAGE }]);
+  const { rows } = await pool.query("select path, message from errors where starts_with(message, $1)", [MARK]);
+  expect(rows).toEqual([{ path: "/clients/abc", message: MESSAGE.slice(0, 500) }]);
 });
 
 test("журнал закрыт для пользователей приложения", async () => {
@@ -1120,12 +1127,12 @@ test("журнал закрыт для пользователей приложе
 });
 `
 const ERRORS_SQL = `-- Журнал сбоев: о сбое человек не напишет — сервер записывает его сам (instrumentation.ts, onRequestError).
--- В строке — путь запроса, сообщение ошибки и время; время ставит база. Пишет только сервер от владельца базы:
--- от имени пользователей журнал не прочитать и не записать — RLS без политик и без прав.
+-- В строке — путь (без строки запроса после «?»), сообщение ошибки (до 500 знаков) и время; время ставит база.
+-- Пишет только сервер от владельца базы: от имени пользователей журнал не прочитать и не записать — RLS без политик и без прав.
 create table errors (
   id bigint generated by default as identity primary key,
   path text not null,
-  message text not null,
+  message text not null check (length(message) <= 500),
   created_at timestamptz not null default now()
 );
 
@@ -1135,12 +1142,13 @@ revoke all on errors from anon, authenticated;
 const ERROR_PAGE = `"use client";
 
 // Страница сбоя: на сервере или в браузере что-то сломалось. Человеку — понятные слова и что делать дальше, без текста ошибки
-// и стектрейса: подробности сервер уже записал в журнал сбоев (instrumentation.ts, таблица errors). Меню остаётся над страницей.
+// и стектрейса. Сбои сервера записывает журнал (instrumentation.ts, таблица errors); ошибки в браузере он не видит —
+// о них человек расскажет через «Сообщить о проблеме». Меню остаётся над страницей.
 export default function ErrorPage({ retry }: { error: unknown; retry: () => void }) {
   return (
     <main className="mx-auto w-full max-w-md p-8">
       <h1 className="text-3xl font-semibold">Что-то пошло не так</h1>
-      <p className="mt-2 text-zinc-500">Сбой записан, мы разберёмся.</p>
+      <p className="mt-2 text-zinc-500">Это ошибка приложения, а не ваша.</p>
       <p className="mt-2">Попробуйте ещё раз. Если не выйдет — напишите, что делали, через «Сообщить о проблеме» в меню.</p>
       <button type="button" onClick={() => retry()} className="mt-6 rounded bg-zinc-900 px-4 py-2 text-white">
         Попробовать ещё раз
@@ -1158,15 +1166,29 @@ export const onRequestError: Instrumentation.onRequestError = async (error, requ
   // база — только у сервера на Node: в среде Edge модуля pg нет
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { pool } = await import("@/lib/db");
-    const message = error instanceof Error ? error.message : String(error);
+    // путь — без строки запроса: в ней бывают данные людей; сообщение — не длиннее 500 знаков (pg повторяет в нём ввод)
+    const path = request.path.split("?")[0];
+    const message = (error instanceof Error ? error.message : String(error)).slice(0, 500);
     try {
-      await pool.query("insert into errors (path, message) values ($1, $2)", [request.path, message]);
+      await pool.query("insert into errors (path, message) values ($1, $2)", [path, message]);
     } catch (failed) {
       // журнал недоступен — сбой хотя бы останется в выводе сервера
       console.error("Журнал сбоев недоступен:", failed);
     }
   }
 };
+`
+
+// Коды приглашений — как пароли: файл с ними — в .gitignore (правка человека)
+const IGNORE_STORAGE = '/storage/\n'
+const IGNORE_BETA =
+  '/storage/\n\n# тренерские приглашения беты: коды приглашений — как пароли, в git не кладём\n/supabase/tests/beta-invites.sql\n'
+
+// Комментарий lib/db.ts — правка агента (err-pool): мимо asUser через pool ходят вход, /join и теперь журнал сбоев
+const DB_POOL_NOTE = `// Напрямую через pool ходит только вход (app/api/login), как сервис входа в Supabase; остальное — через asUser.
+`
+const DB_POOL_NOTE_ALL = `// Напрямую через pool ходят только вход (app/api/login), приглашение и регистрация (app/join) и журнал сбоев (instrumentation.ts):
+// у них ещё нет вошедшего или он не нужен, как у сервисов Supabase. Остальное — через asUser.
 `
 
 // Код Тимура в файле приглашений и в адресе шага — один; иначе сессия не загрузится
@@ -1202,8 +1224,8 @@ const ASK_REPORT_REPLY =
 const ASK_ERRORS_REPLY =
   'Тест красный: хука нет — instrumentation.ts не найден. Дальше — таблица errors, страница ошибки и onRequestError. Делать?'
 const ASK_ERRORS_GO_REPLY =
-  'При сбое — «Что-то пошло не так» без текста ошибки. Путь и сообщение onRequestError пишет в errors, время ставит база; ' +
-  'пользователям приложения журнал закрыт.'
+  'При сбое — «Что-то пошло не так» без текста ошибки. Сбой сервера onRequestError пишет в errors: путь без строки запроса ' +
+  'и сообщение до 500 знаков; пользователям приложения журнал закрыт.'
 
 export default {
   id: 's24-beta',
@@ -1261,6 +1283,8 @@ export default {
     { id: 'c-coach-invite', commit: 'Приглашение тренера' },
     // тренерские приглашения создаёт только владелец базы — пишет человек, коды заданы
     { id: 'beta-invites-file', write: 'supabase/tests/beta-invites.sql', content: BETA_INVITES },
+    // сверх таблицы плана — человек: коды приглашений — как пароли, файл с ними в git не попадает
+    { id: 'beta-invites-ignore', edit: '.gitignore', find: IGNORE_STORAGE, replace: IGNORE_BETA },
     { id: 'beta-invites-apply', run: 'psql -f supabase/tests/beta-invites.sql' },
     // сверх таблицы плана: после регистрации cookie — Полины; она выходит через меню
     { id: 'polina-logout', browser: { url: '/workouts', click: 'Выйти' } },
@@ -1293,7 +1317,8 @@ export default {
     { id: 'dev-restart', run: RESTART },
     // Тимур по-прежнему вошёл: замечание беты — авторский текст
     { id: 'timur-feedback', browser: { url: '/problem', fill: TIMUR_PROBLEM, click: 'Отправить' } },
-    { id: 'fb-db', run: 'psql -c "select page, did, expected, got from feedback"' },
+    // -x: поле и значение — строкой, в 100 знаков окна терминала строка таблицы не помещается
+    { id: 'fb-db', run: 'psql -x -c "select page, did, expected, got from feedback"' },
     // сбой, о котором тренер не напишет: id из адреса — в запрос к bigint, 500 (проверено черновым прогоном)
     { id: 'crash', browser: { url: '/clients/abc' } },
     // журнала сбоев нет
@@ -1312,7 +1337,7 @@ export default {
       ],
     },
     {
-      // сверх таблицы плана: тот же запрос, второй ход — таблица, страница ошибки, хук и зелёный тест
+      // сверх таблицы плана: тот же запрос, второй ход — таблица, страница ошибки, хук, комментарий lib/db.ts и зелёный тест
       id: 'ask-errors-go',
       agent: { prompt: 'Делай', reply: ASK_ERRORS_GO_REPLY },
       steps: [
@@ -1321,6 +1346,8 @@ export default {
         { id: 'err-page', write: 'app/error.tsx', content: ERROR_PAGE },
         // Next 16 зовёт onRequestError и в next dev; новый файл подхватывается без перезапуска (черновой прогон)
         { id: 'err-hook', write: 'instrumentation.ts', content: INSTRUMENTATION },
+        // сверх таблицы плана: комментарий о том, кто ходит в базу мимо asUser, снова верен
+        { id: 'err-pool', edit: 'lib/db.ts', find: DB_POOL_NOTE, replace: DB_POOL_NOTE_ALL },
         { id: 'err-green', run: 'npx vitest run test/errors.test.ts' },
       ],
     },

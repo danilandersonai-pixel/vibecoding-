@@ -41,6 +41,9 @@ yarn-error.log*
 # фото прогресса подопечных (app/api/photos): снимки людей — не код
 /storage/
 
+# тренерские приглашения беты: коды приглашений — как пароли, в git не кладём
+/supabase/tests/beta-invites.sql
+
 # vercel
 .vercel
 

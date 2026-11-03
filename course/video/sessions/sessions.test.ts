@@ -2746,10 +2746,11 @@ test('s24: обычное приглашение заводит тренера �
   expect(events.map((e) => e.id)).toEqual([
     ...['typegen', 'schema', 'beta-doc', 'c-beta-doc', 'dev', 'login-marina', 'invite-coach', 'marina-logout', 'polina-join', 'polina-db'],
     ...['ask-coach-invite', 'ci-test', 'ci-red', 'ask-coach-invite-go', 'ci-sql', 'ci-apply', 'ci-page', 'ci-join', 'ci-green', 'c-coach-invite'],
-    ...['beta-invites-file', 'beta-invites-apply', 'polina-logout', 'timur-join', 'timur-db'],
+    ...['beta-invites-file', 'beta-invites-ignore', 'beta-invites-apply', 'polina-logout', 'timur-join', 'timur-db'],
     ...['ask-report', 'fb-sql', 'fb-apply', 'fb-page', 'fb-action', 'fb-link', 'fb-nav', 'fb-e2e', 'c-feedback', 'dev-restart'],
     ...['timur-feedback', 'fb-db', 'crash', 'errors-before'],
-    ...['ask-errors', 'err-test', 'err-red', 'ask-errors-go', 'err-sql', 'err-apply', 'err-page', 'err-hook', 'err-green', 'c-errors'],
+    ...['ask-errors', 'err-test', 'err-red', 'ask-errors-go', 'err-sql', 'err-apply', 'err-page', 'err-hook', 'err-pool', 'err-green'],
+    'c-errors',
     ...['crash2', 'errors-db'],
   ])
   const run = (id: string) => find('s24-beta', id, 'run')
@@ -2846,6 +2847,15 @@ test('s24: обычное приглашение заводит тренера �
   // тренерские приглашения создаёт только владелец базы — файл человека с заданными кодами; Тимур открывает свой
   const invites = file('beta-invites-file')
   expect(invites).toMatchObject({ path: 'supabase/tests/beta-invites.sql', before: null })
+  // коды приглашений — как пароли: файл сразу в .gitignore, ни в одном коммите сессии его нет
+  expect(invites.after).toContain('Коды приглашений — как пароли: файл в .gitignore, в git он не попадает.')
+  const ignore = file('beta-invites-ignore')
+  expect(ignore.path).toBe('.gitignore')
+  expect(ignore.after).toContain('# тренерские приглашения беты: коды приглашений — как пароли, в git не кладём\n/supabase/tests/beta-invites.sql\n')
+  expect(at('beta-invites-ignore')).toBeLessThan(at('c-feedback'))
+  for (const e of events) {
+    if (e.kind === 'commit') expect(e.files.map((f) => f.path), e.id).not.toContain('supabase/tests/beta-invites.sql')
+  }
   const codes = [...invites.after.matchAll(/\('coach', '([0-9a-f]{32})'\)[,;] -- (Тимур|Ксения)$/gm)].map((m) => [m[2], m[1]])
   expect(codes.map(([name]) => name)).toEqual(['Тимур', 'Ксения'])
   expect(run('beta-invites-apply')).toMatchObject({ cmd: 'psql -f supabase/tests/beta-invites.sql', code: 0, out: ['INSERT 0 2'] })
@@ -2894,7 +2904,7 @@ test('s24: обычное приглашение заводит тренера �
   expect(file('fb-e2e').after).toContain('toHaveText(["Мои тренировки", "Питание", "Замеры", "Сообщить о проблеме"])')
   expect(commit('c-feedback')).toMatchObject({ message: 'Сообщить о проблеме', branch: 'main', parents: [commit('c-coach-invite').hash] })
   expect(commit('c-feedback').files.map((f) => f.path)).toEqual(
-    expect.arrayContaining(['supabase/migrations/0015_feedback.sql', 'app/problem/page.tsx', 'app/problem/actions.ts', 'components/ProblemLink.tsx', 'components/Nav.tsx', 'e2e/first-run.spec.ts', 'supabase/tests/beta-invites.sql']),
+    expect.arrayContaining(['supabase/migrations/0015_feedback.sql', 'app/problem/page.tsx', 'app/problem/actions.ts', 'components/ProblemLink.tsx', 'components/Nav.tsx', 'e2e/first-run.spec.ts', '.gitignore']),
   )
   // перезапуск dev со сбросом кэша, как contrast-restart в s20
   expect(run('dev-restart')).toMatchObject({ code: 0, out: [] })
@@ -2913,9 +2923,13 @@ test('s24: обычное приглашение заводит тренера �
   ])
   expect(problem.urlAfter).toBe(`${BASE}/problem?sent=1`)
   expect(problem.after).toContain('Спасибо, замечание записано.')
-  expect(run('fb-db')).toMatchObject({ cmd: 'psql -c "select page, did, expected, got from feedback"', code: 0 })
+  // -x: «поле | значение» строкой — каждая строка помещается в 100 знаков окна терминала
+  expect(run('fb-db')).toMatchObject({ cmd: 'psql -x -c "select page, did, expected, got from feedback"', code: 0 })
   for (const { value } of problem.fields) expect(out('fb-db'), value).toContain(value)
-  expect(out('fb-db')).toContain('(1 row)')
+  expect(run('fb-db').out[0]).toMatch(/^-\[ RECORD 1 \]-+$/)
+  expect(out('fb-db')).not.toContain('RECORD 2')
+  expect(run('fb-db').out.slice(1).map((line) => line.split(' | ')[0].trim())).toEqual(['page', 'did', 'expected', 'got'])
+  for (const line of run('fb-db').out) expect([...line].length, line).toBeLessThanOrEqual(100)
 
   // сбой, о котором тренер не напишет: /clients/abc — 500 на bigint, страница Next без понятных слов, журнала нет
   const crash = browser('crash')
@@ -2932,17 +2946,17 @@ test('s24: обычное приглашение заводит тренера �
   })
   const errTest = file('err-test')
   expect(errTest).toMatchObject({ path: 'test/errors.test.ts', before: null })
-  for (const part of ['import { onRequestError } from "../instrumentation";', '{ path: "/clients/abc", method: "GET", headers: {} }', 'expect(rows).toEqual([{ path: "/clients/abc", message: MESSAGE }]);', 'await pool.query("delete from errors where message = $1", [MESSAGE]);', 'rejects.toThrow("permission denied")']) {
+  for (const part of ['import { onRequestError } from "../instrumentation";', '{ path: "/clients/abc?week=2026-11-09", method: "GET", headers: {} }', 'expect(rows).toEqual([{ path: "/clients/abc", message: MESSAGE.slice(0, 500) }]);', 'const MESSAGE = `${MARK} ${"x".repeat(600)}`;', 'await pool.query("delete from errors where starts_with(message, $1)", [MARK]);', 'rejects.toThrow("permission denied")']) {
     expect(errTest.after, part).toContain(part)
   }
   const ERR_VITEST = 'npx vitest run test/errors.test.ts'
   expect(run('err-red').cmd).toBe(ERR_VITEST)
   expect(run('err-red').code).not.toBe(0)
   expect(out('err-red')).toContain("Error: Cannot find module '../instrumentation' imported from ~/trainer-app/test/errors.test.ts")
-  expect(agent('ask-errors-go')).toMatchObject({ prompt: 'Делай', steps: ['err-sql', 'err-apply', 'err-page', 'err-hook', 'err-green'] })
+  expect(agent('ask-errors-go')).toMatchObject({ prompt: 'Делай', steps: ['err-sql', 'err-apply', 'err-page', 'err-hook', 'err-pool', 'err-green'] })
   const errSql = file('err-sql')
   expect(errSql).toMatchObject({ path: 'supabase/migrations/0016_errors.sql', before: null })
-  for (const part of ['create table errors (', 'path text not null,', 'message text not null,', 'created_at timestamptz not null default now()', 'alter table errors enable row level security;', 'revoke all on errors from anon, authenticated;']) {
+  for (const part of ['create table errors (', 'path text not null,', 'message text not null check (length(message) <= 500),', 'created_at timestamptz not null default now()', 'alter table errors enable row level security;', 'revoke all on errors from anon, authenticated;']) {
     expect(errSql.after, part).toContain(part)
   }
   expect(run('err-apply')).toMatchObject({ cmd: 'psql -f supabase/migrations/0016_errors.sql', code: 0, out: ['CREATE TABLE', 'ALTER TABLE', 'REVOKE'] })
@@ -2950,19 +2964,26 @@ test('s24: обычное приглашение заводит тренера �
   expect(page).toMatchObject({ path: 'app/error.tsx', before: null })
   expect(page.after).toContain('"use client";')
   expect(page.after).toContain('Что-то пошло не так')
-  // ни текста ошибки, ни стектрейса: страница не читает error
+  // ни текста ошибки, ни стектрейса: страница не читает error; «сбой записан» не обещает — ошибки в браузере журнал не видит
   expect(page.after).not.toMatch(/error\.(message|stack|digest)/)
+  expect(page.after).toContain('Это ошибка приложения, а не ваша.')
+  expect(page.after).not.toMatch(/записан/)
   const hook = file('err-hook')
   expect(hook).toMatchObject({ path: 'instrumentation.ts', before: null })
-  for (const part of ['export const onRequestError: Instrumentation.onRequestError = async (error, request) => {', 'if (process.env.NEXT_RUNTIME === "nodejs") {', '"insert into errors (path, message) values ($1, $2)", [request.path, message]']) {
+  for (const part of ['export const onRequestError: Instrumentation.onRequestError = async (error, request) => {', 'if (process.env.NEXT_RUNTIME === "nodejs") {', 'const path = request.path.split("?")[0];', '.slice(0, 500);', '"insert into errors (path, message) values ($1, $2)", [path, message]']) {
     expect(hook.after, part).toContain(part)
   }
+  // комментарий lib/db.ts снова верен: мимо asUser — вход, /join и журнал сбоев
+  const db = file('err-pool')
+  expect(db.path).toBe('lib/db.ts')
+  expect(db.before).toContain('Напрямую через pool ходит только вход (app/api/login)')
+  expect(db.after).toContain('вход (app/api/login), приглашение и регистрация (app/join) и журнал сбоев (instrumentation.ts)')
   expect(run('err-green')).toMatchObject({ cmd: ERR_VITEST, code: 0 })
   expect(out('err-green')).toMatch(/Tests {2}2 passed \(2\)/)
   expect(at('err-red')).toBeLessThan(at('err-sql'))
   expect(commit('c-errors')).toMatchObject({ message: 'Сбои: понятная страница и журнал', branch: 'main', parents: [commit('c-feedback').hash] })
   expect(commit('c-errors').files.map((f) => f.path)).toEqual(
-    expect.arrayContaining(['supabase/migrations/0016_errors.sql', 'app/error.tsx', 'instrumentation.ts', 'test/errors.test.ts']),
+    expect.arrayContaining(['supabase/migrations/0016_errors.sql', 'app/error.tsx', 'instrumentation.ts', 'test/errors.test.ts', 'lib/db.ts']),
   )
 
   // тот же сбой после: понятная страница под меню, без текста ошибки; в журнале — путь и сообщение, без времени
@@ -2970,6 +2991,7 @@ test('s24: обычное приглашение заводит тренера �
   expect(crash2.url).toBe(`${BASE}/clients/abc`)
   expect(crash2.network).toContainEqual({ method: 'GET', url: `${BASE}/clients/abc`, status: 500 })
   expect(crash2.after).toContain('Что-то пошло не так')
+  expect(crash2.after).toContain('Это ошибка приложения, а не ваша.')
   expect(crash2.after.slice(0, 5)).toEqual(['Подопечные', 'Программы', 'Отчёт', 'Сообщить о проблеме', 'Выйти'])
   expect(text(crash2.after)).not.toMatch(/bigint|invalid input|\bat /)
   expect(run('errors-db')).toMatchObject({ cmd: 'psql -c "select path, message from errors"', code: 0 })
