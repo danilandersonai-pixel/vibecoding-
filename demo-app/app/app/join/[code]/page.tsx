@@ -9,8 +9,8 @@ export const metadata: Metadata = { title: "Приглашение" };
 // Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки
 export const instant = false;
 
-// Приглашение из базы: от какого тренера и действует ли ещё
-type Invite = { coach: string; used: boolean; revoked: boolean; expired: boolean };
+// Приглашение из базы: кого заводит (role), от какого тренера (у тренерского — null) и действует ли ещё
+type Invite = { role: string; coach: string | null; used: boolean; revoked: boolean; expired: boolean };
 
 // Почему приглашение не действует — те же слова, что у accept_invite в базе; null — действует
 function refusal(invite: Invite): string | null {
@@ -27,8 +27,9 @@ export default async function JoinPage({ params, searchParams }: PageProps<"/joi
   const { code } = await params;
   const { error } = await searchParams;
   const { rows } = await pool.query<Invite>(
-    `select p.name as coach, i.accepted_by is not null as used, i.revoked_at is not null as revoked, i.expires_at <= now() as expired
-       from invites i join profiles p on p.id = i.coach_id
+    `select i.role, p.name as coach, i.accepted_by is not null as used, i.revoked_at is not null as revoked,
+            i.expires_at <= now() as expired
+       from invites i left join profiles p on p.id = i.coach_id
       where i.code = $1`,
     [code],
   );
@@ -51,7 +52,12 @@ export default async function JoinPage({ params, searchParams }: PageProps<"/joi
         </>
       ) : (
         <>
-          <p className="mt-2">Тренер {rows[0].coach} приглашает вас в дневник тренировок. Ссылка одноразовая.</p>
+          <p className="mt-2">
+            {rows[0].role === "coach"
+              ? "Вас приглашают в дневник тренировок тренером: подопечных вы пригласите сами."
+              : `Тренер ${rows[0].coach} приглашает вас в дневник тренировок.`}{" "}
+            Ссылка одноразовая.
+          </p>
 
           <form action={register} className="mt-6 flex flex-col gap-4">
             <div className="flex flex-col gap-1">

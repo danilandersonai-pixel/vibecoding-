@@ -10,7 +10,7 @@ const TAKEN = "Эта почта уже зарегистрирована — в�
 
 // Регистрация по приглашению /join/<код>: новый пользователь в auth.users и профиль подопечного, затем база принимает приглашение
 // (accept_invite, 0008_invites.sql): тренер — из записи приглашения, а не из адреса; использованное, отозванное и просроченное — отказ.
-// Потом вход. Запросы — от владельца базы одной транзакцией, как вход (app/api/login): пользователям таблица auth.users закрыта,
+// Тренерское приглашение (0014_coach_invites.sql) делает нового пользователя тренером. Потом вход и первый экран по роли. Запросы — от владельца базы одной транзакцией, как вход (app/api/login): пользователям таблица auth.users закрыта,
 // а отказ откатывает и нового пользователя.
 export async function join(code: string, form: FormData) {
   const name = String(form.get("name") ?? "").trim();
@@ -28,6 +28,7 @@ export async function join(code: string, form: FormData) {
 
   const db = await pool.connect();
   let uid: string;
+  let role: string;
   try {
     await db.query("begin");
     // пароль в базе — только хешем: crypt() с солью bcrypt, как у пользователей seed.sql
@@ -37,7 +38,9 @@ export async function join(code: string, form: FormData) {
     );
     uid = user.rows[0].id;
     await db.query("insert into profiles (id, role, name) values ($1, 'client', $2)", [uid, name]);
-    await db.query("select accept_invite($1, $2, $3)", [code, uid, name]);
+    // роль — из приглашения: обычное заводит подопечного, тренерское — тренера
+    const accepted = await db.query<{ role: string }>("select accept_invite($1, $2, $3) as role", [code, uid, name]);
+    role = accepted.rows[0].role;
     await db.query("commit");
   } catch (err) {
     await db.query("rollback");
@@ -49,7 +52,8 @@ export async function join(code: string, form: FormData) {
   }
   // вход — та же cookie сессии, что после /api/login
   await startSession(uid);
-  redirect("/workouts");
+  // первый экран: тренеру — подопечные, подопечному — его тренировки
+  redirect(role === "coach" ? "/clients" : "/workouts");
 }
 
 // Понятная ошибка вместо 500: такая почта уже есть (unique в auth.users) или приглашение не принято (raise exception в accept_invite)

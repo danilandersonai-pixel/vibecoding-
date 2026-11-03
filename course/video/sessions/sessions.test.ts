@@ -2740,3 +2740,246 @@ test('s23: без сети подход пропадал; очередь; пот
     if (e.kind === 'commit') expect(e.files.filter((f) => /^(test-results|playwright-report)\//.test(f.path)), e.id).toEqual([])
   }
 })
+
+test('s24: обычное приглашение заводит тренера беты подопечной; тренерское — тренером; замечание в таблице; сбой — понятная страница и строка журнала', () => {
+  const events = sessions['s24-beta'].events
+  expect(events.map((e) => e.id)).toEqual([
+    ...['typegen', 'schema', 'beta-doc', 'c-beta-doc', 'dev', 'login-marina', 'invite-coach', 'marina-logout', 'polina-join', 'polina-db'],
+    ...['ask-coach-invite', 'ci-test', 'ci-red', 'ask-coach-invite-go', 'ci-sql', 'ci-apply', 'ci-page', 'ci-join', 'ci-green', 'c-coach-invite'],
+    ...['beta-invites-file', 'beta-invites-apply', 'polina-logout', 'timur-join', 'timur-db'],
+    ...['ask-report', 'fb-sql', 'fb-apply', 'fb-page', 'fb-action', 'fb-link', 'fb-nav', 'fb-e2e', 'c-feedback', 'dev-restart'],
+    ...['timur-feedback', 'fb-db', 'crash', 'errors-before'],
+    ...['ask-errors', 'err-test', 'err-red', 'ask-errors-go', 'err-sql', 'err-apply', 'err-page', 'err-hook', 'err-green', 'c-errors'],
+    ...['crash2', 'errors-db'],
+  ])
+  const run = (id: string) => find('s24-beta', id, 'run')
+  const file = (id: string) => find('s24-beta', id, 'file')
+  const agent = (id: string) => find('s24-beta', id, 'agent')
+  const browser = (id: string) => find('s24-beta', id, 'browser')
+  const commit = (id: string) => find('s24-beta', id, 'commit')
+  const at = (id: string) => events.findIndex((e) => e.id === id)
+  const out = (id: string) => run(id).out.join('\n')
+  const text = (lines: string[]) => lines.join('\n')
+  // шаги внутри запросов — агента, остальные — человека: план беты, файл приглашений, правка теста меню, psql, браузер, коммиты
+  const inner = new Set(['ask-coach-invite', 'ask-coach-invite-go', 'ask-report', 'ask-errors', 'ask-errors-go'].flatMap((id) => agent(id).steps))
+  for (const e of events) {
+    if (e.kind !== 'agent') expect((e as { by?: string }).by, e.id).toBe(inner.has(e.id) ? 'agent' : undefined)
+  }
+  const BASE = 'http://localhost:3000'
+  expect(run('typegen')).toMatchObject({ cmd: 'npx next typegen', code: 0 })
+
+  // миграции 0010–0013 применил рекордер: client_key и его уникальный индекс из 0013 на месте (Review Focus 1)
+  expect(run('schema')).toMatchObject({ cmd: 'psql -c "\\d sets"', code: 0 })
+  expect(out('schema')).toMatch(/^ client_key +\| uuid +\| +\| +\| *$/m)
+  expect(run('schema').out).toContain('    "sets_client_key_key" UNIQUE CONSTRAINT, btree (client_key)')
+
+  // план беты — человек, текст авторский; срок — дата, а не «через неделю» от сегодняшнего дня (Review Focus 2)
+  const doc = file('beta-doc')
+  expect(doc).toMatchObject({ path: 'docs/beta.md', before: null })
+  for (const part of ['Полина, Тимур и Ксения — тренеры из других залов', '22 ноября', 'Пригласить своего подопечного', 'Назначить ему программу', 'Открыть отчёт за месяц', '«Сообщить о проблеме»', 'что делали, что ожидали, что вышло', 'смотрим молча', '«Нравится?» не спрашиваем']) {
+    expect(doc.after, part).toContain(part)
+  }
+  expect(doc.after).not.toMatch(/Анна|Анн[уыео]/)
+  expect(commit('c-beta-doc')).toMatchObject({ message: 'План беты', branch: 'main', parents: [find('s23-offline', 'c-key', 'commit').hash] })
+
+  // подводный камень: обычное приглашение Марины заводит тренера беты подопечной
+  expect(browser('login-marina').urlAfter).toBe(`${BASE}/clients`)
+  const link = text(browser('invite-coach').after).match(/\/join\/[0-9a-f]{32}/)![0]
+  // смена человека — через «Выйти»: над формой приглашения нет меню Марины
+  expect(browser('marina-logout').urlAfter).toBe(`${BASE}/login`)
+  const polina = browser('polina-join')
+  expect(polina.url).toBe(`${BASE}${link}`)
+  expect(polina.before).toEqual(['Приглашение', 'Тренер Марина приглашает вас в дневник тренировок. Ссылка одноразовая.', 'Имя', 'Почта', 'Пароль', 'Присоединиться'])
+  expect(polina.fields).toEqual([
+    { label: 'Имя', value: 'Полина' },
+    { label: 'Почта', value: 'polina@example.com' },
+    { label: 'Пароль', value: 'demo-password' },
+  ])
+  expect(polina.urlAfter).toBe(`${BASE}/workouts`)
+  expect(polina.after.slice(0, 6)).toEqual(['Мои тренировки', 'Питание', 'Замеры', 'Выйти', 'Мои тренировки', 'Тренировок пока нет'])
+  expect(run('polina-db').code).toBe(0)
+  expect(run('polina-db').out).toContain(' Полина | client | t')
+
+  // тренерское приглашение: сначала тест — красный, вторым ходом («Делай») миграция, страница и регистрация — зелёный
+  expect(agent('ask-coach-invite')).toMatchObject({
+    prompt:
+      'Тренерам беты нужно своё приглашение: по нему заводится тренер, а не подопечный. Создаёт его только владелец базы, ' +
+      'кнопки в приложении нет. Сначала тест',
+    steps: ['ci-test', 'ci-red'],
+  })
+  const ciTest = file('ci-test')
+  expect(ciTest.path).toBe('test/invites.test.ts')
+  expect(ciTest.before).not.toContain('тренерское приглашение')
+  for (const part of ['test("тренерское приглашение — тренер без записи в clients; обычное — подопечный тренера"', `"insert into invites (role) values ('coach') returning code"`, '{ role: "coach", coach_id: null }', '{ role: "client", coach_id: MARINA }', 'test("тренер тренерского приглашения не создаст: роль пишет только владелец базы"', 'rejects.toThrow("permission denied")']) {
+    expect(ciTest.after, part).toContain(part)
+  }
+  const VITEST = 'npx vitest run test/invites.test.ts'
+  expect(run('ci-red').cmd).toBe(VITEST)
+  expect(run('ci-red').code).not.toBe(0)
+  // красный на самой беде: тренерского приглашения в базе нет; прежние шесть тестов — зелёные
+  expect(run('ci-red').out).toContain('error: column "role" of relation "invites" does not exist')
+  expect(out('ci-red')).toMatch(/Tests {2}2 failed \| 6 passed \(8\)/)
+  expect(agent('ask-coach-invite-go')).toMatchObject({ prompt: 'Делай', steps: ['ci-sql', 'ci-apply', 'ci-page', 'ci-join', 'ci-green'] })
+  const sql = file('ci-sql')
+  expect(sql).toMatchObject({ path: 'supabase/migrations/0014_coach_invites.sql', before: null })
+  for (const part of ["alter table invites add column role text not null default 'client' check (role in ('client', 'coach'));", 'alter table invites alter column coach_id drop not null;', "update profiles set role = 'coach' where id = new_user;", 'insert into clients (coach_id, user_id, name) values (invite.coach_id, new_user, client_name);', 'returns text', 'revoke execute on function accept_invite(text, uuid, text) from public, anon, authenticated;']) {
+    expect(sql.after, part).toContain(part)
+  }
+  // кнопки нет: тренер по-прежнему пишет в invites только coach_id (права по столбцам из 0008)
+  expect(sql.after).not.toMatch(/grant/i)
+  expect(run('ci-apply')).toMatchObject({ cmd: 'psql -f supabase/migrations/0014_coach_invites.sql', code: 0 })
+  expect(run('ci-apply').out).toEqual(['ALTER TABLE', 'ALTER TABLE', 'ALTER TABLE', 'DROP FUNCTION', 'CREATE FUNCTION', 'REVOKE'])
+  expect(file('ci-page')).toMatchObject({ path: 'app/join/[code]/page.tsx' })
+  expect(file('ci-page').after).toContain('left join profiles p on p.id = i.coach_id')
+  expect(file('ci-page').after).toContain('Вас приглашают в дневник тренировок тренером: подопечных вы пригласите сами.')
+  expect(file('ci-join')).toMatchObject({ path: 'app/join/[code]/actions.ts' })
+  expect(file('ci-join').before).toContain('redirect("/workouts");')
+  expect(file('ci-join').after).toContain('redirect(role === "coach" ? "/clients" : "/workouts");')
+  expect(run('ci-green')).toMatchObject({ cmd: VITEST, code: 0 })
+  expect(out('ci-green')).toMatch(/Tests {2}8 passed \(8\)/)
+  expect(at('ci-red')).toBeLessThan(at('ci-sql'))
+  expect(commit('c-coach-invite')).toMatchObject({ message: 'Приглашение тренера', branch: 'main', parents: [commit('c-beta-doc').hash] })
+  expect(commit('c-coach-invite').files.map((f) => f.path)).toEqual(
+    expect.arrayContaining(['supabase/migrations/0014_coach_invites.sql', 'test/invites.test.ts', 'app/join/[code]/actions.ts', 'app/join/[code]/page.tsx']),
+  )
+
+  // тренерские приглашения создаёт только владелец базы — файл человека с заданными кодами; Тимур открывает свой
+  const invites = file('beta-invites-file')
+  expect(invites).toMatchObject({ path: 'supabase/tests/beta-invites.sql', before: null })
+  const codes = [...invites.after.matchAll(/\('coach', '([0-9a-f]{32})'\)[,;] -- (Тимур|Ксения)$/gm)].map((m) => [m[2], m[1]])
+  expect(codes.map(([name]) => name)).toEqual(['Тимур', 'Ксения'])
+  expect(run('beta-invites-apply')).toMatchObject({ cmd: 'psql -f supabase/tests/beta-invites.sql', code: 0, out: ['INSERT 0 2'] })
+  expect(browser('polina-logout').urlAfter).toBe(`${BASE}/login`)
+  const timur = browser('timur-join')
+  expect(timur.url).toBe(`${BASE}/join/${codes[0][1]}`)
+  expect(timur.before).toEqual(['Приглашение', 'Вас приглашают в дневник тренировок тренером: подопечных вы пригласите сами. Ссылка одноразовая.', 'Имя', 'Почта', 'Пароль', 'Присоединиться'])
+  expect(timur.fields.map((f) => f.value)).toEqual(['Тимур', 'timur@example.com', 'demo-password'])
+  // пустой экран тренера дня 15
+  expect(timur.urlAfter).toBe(`${BASE}/clients`)
+  expect(timur.after).toContain('Подопечных пока нет')
+  expect(timur.after.slice(0, 4)).toEqual(['Подопечные', 'Программы', 'Отчёт', 'Выйти'])
+  expect(run('timur-db').code).toBe(0)
+  expect(out('timur-db')).toMatch(/^ Тимур +\| coach$/m)
+  expect(out('timur-db')).toMatch(/^ Полина +\| client$/m)
+
+  // замечания в одно место: пишет вошедший, читает только владелец базы; страницу подставляет ссылка в меню
+  expect(agent('ask-report')).toMatchObject({
+    prompt:
+      'Замечания — в одно место: «Сообщить о проблеме» в меню, форма — что делали, что ожидали, что вышло, страница сама; ' +
+      'строка в таблице feedback, читает только владелец базы',
+    steps: ['fb-sql', 'fb-apply', 'fb-page', 'fb-action', 'fb-link', 'fb-nav'],
+  })
+  const fbSql = file('fb-sql')
+  expect(fbSql).toMatchObject({ path: 'supabase/migrations/0015_feedback.sql', before: null })
+  for (const part of ['create table feedback (', 'author_id uuid not null default auth.uid() references profiles (id)', 'alter table feedback enable row level security;', 'for insert to authenticated with check (author_id = auth.uid());', 'revoke all on feedback from anon, authenticated;', 'grant insert (page, did, expected, got) on feedback to authenticated;']) {
+    expect(fbSql.after, part).toContain(part)
+  }
+  // политики на чтение нет — замечания читает только владелец базы
+  expect(fbSql.after).not.toMatch(/for select|grant select/)
+  expect(run('fb-apply')).toMatchObject({ cmd: 'psql -f supabase/migrations/0015_feedback.sql', code: 0, out: ['CREATE TABLE', 'ALTER TABLE', 'CREATE POLICY', 'REVOKE', 'GRANT'] })
+  expect(file('fb-page')).toMatchObject({ path: 'app/problem/page.tsx', before: null })
+  for (const part of ['["did", "Что делали"]', '["expected", "Что ожидали"]', '["got", "Что вышло"]', 'defaultValue={typeof page === "string" ? page : ""}', 'Спасибо, замечание записано.']) {
+    expect(file('fb-page').after, part).toContain(part)
+  }
+  expect(file('fb-action')).toMatchObject({ path: 'app/problem/actions.ts', before: null })
+  expect(file('fb-action').after).toContain('"insert into feedback (page, did, expected, got) values ($1, $2, $3, $4)"')
+  expect(file('fb-link')).toMatchObject({ path: 'components/ProblemLink.tsx', before: null })
+  expect(file('fb-link').after).toContain('usePathname()')
+  expect(file('fb-link').after).toContain('query: pathname === "/problem" ? {} : { page: pathname }')
+  expect(file('fb-nav')).toMatchObject({ path: 'components/Nav.tsx' })
+  expect(file('fb-nav').after).toContain('<ProblemLink />')
+  // человек: сквозной тест s20 сверяет ссылки меню — в нём новый пункт
+  expect(file('fb-e2e')).toMatchObject({ path: 'e2e/first-run.spec.ts' })
+  expect(file('fb-e2e').after).toContain('toHaveText(["Подопечные", "Программы", "Отчёт", "Сообщить о проблеме"])')
+  expect(file('fb-e2e').after).toContain('toHaveText(["Мои тренировки", "Питание", "Замеры", "Сообщить о проблеме"])')
+  expect(commit('c-feedback')).toMatchObject({ message: 'Сообщить о проблеме', branch: 'main', parents: [commit('c-coach-invite').hash] })
+  expect(commit('c-feedback').files.map((f) => f.path)).toEqual(
+    expect.arrayContaining(['supabase/migrations/0015_feedback.sql', 'app/problem/page.tsx', 'app/problem/actions.ts', 'components/ProblemLink.tsx', 'components/Nav.tsx', 'e2e/first-run.spec.ts', 'supabase/tests/beta-invites.sql']),
+  )
+  // перезапуск dev со сбросом кэша, как contrast-restart в s20
+  expect(run('dev-restart')).toMatchObject({ code: 0, out: [] })
+  expect(run('dev-restart').cmd).toContain("'localhost:3000/__nextjs_restart_dev?invalidateFileSystemCache=1'")
+
+  // Тимур пишет замечание — авторский текст: что делал, что ожидал, что вышло
+  const problem = browser('timur-feedback')
+  expect(problem.url).toBe(`${BASE}/problem`)
+  // в меню — новый пункт
+  expect(problem.before.slice(0, 5)).toEqual(['Подопечные', 'Программы', 'Отчёт', 'Сообщить о проблеме', 'Выйти'])
+  expect(problem.fields).toEqual([
+    { label: 'Страница', value: 'Карточка подопечного' },
+    { label: 'Что делали', value: 'Нажал «Отправить» под тренировкой — в поле был один пробел' },
+    { label: 'Что ожидали', value: 'Подсказку, что комментарий пустой' },
+    { label: 'Что вышло', value: 'Страница обновилась, и всё: ни комментария, ни ошибки' },
+  ])
+  expect(problem.urlAfter).toBe(`${BASE}/problem?sent=1`)
+  expect(problem.after).toContain('Спасибо, замечание записано.')
+  expect(run('fb-db')).toMatchObject({ cmd: 'psql -c "select page, did, expected, got from feedback"', code: 0 })
+  for (const { value } of problem.fields) expect(out('fb-db'), value).toContain(value)
+  expect(out('fb-db')).toContain('(1 row)')
+
+  // сбой, о котором тренер не напишет: /clients/abc — 500 на bigint, страница Next без понятных слов, журнала нет
+  const crash = browser('crash')
+  expect(crash.url).toBe(`${BASE}/clients/abc`)
+  expect(crash.network).toContainEqual({ method: 'GET', url: `${BASE}/clients/abc`, status: 500 })
+  expect(crash.after.slice(0, 2)).toEqual(['This page couldn’t load', 'A server error occurred. Reload to try again.'])
+  expect(crash.server).toContain('⨯ error: invalid input syntax for type bigint: "abc"')
+  expect(run('errors-before')).toMatchObject({ cmd: `psql -At -c "select count(*) from pg_tables where tablename = 'errors'"`, code: 0, out: ['0'] })
+
+  // журнал сбоев: сначала тест — красный, вторым ходом («Делай») таблица, страница ошибки и хук — зелёный
+  expect(agent('ask-errors')).toMatchObject({
+    prompt: 'О сбое тренер не напишет. Нужна понятная страница ошибки и журнал сбоев в базе. Сначала тест',
+    steps: ['err-test', 'err-red'],
+  })
+  const errTest = file('err-test')
+  expect(errTest).toMatchObject({ path: 'test/errors.test.ts', before: null })
+  for (const part of ['import { onRequestError } from "../instrumentation";', '{ path: "/clients/abc", method: "GET", headers: {} }', 'expect(rows).toEqual([{ path: "/clients/abc", message: MESSAGE }]);', 'await pool.query("delete from errors where message = $1", [MESSAGE]);', 'rejects.toThrow("permission denied")']) {
+    expect(errTest.after, part).toContain(part)
+  }
+  const ERR_VITEST = 'npx vitest run test/errors.test.ts'
+  expect(run('err-red').cmd).toBe(ERR_VITEST)
+  expect(run('err-red').code).not.toBe(0)
+  expect(out('err-red')).toContain("Error: Cannot find module '../instrumentation' imported from ~/trainer-app/test/errors.test.ts")
+  expect(agent('ask-errors-go')).toMatchObject({ prompt: 'Делай', steps: ['err-sql', 'err-apply', 'err-page', 'err-hook', 'err-green'] })
+  const errSql = file('err-sql')
+  expect(errSql).toMatchObject({ path: 'supabase/migrations/0016_errors.sql', before: null })
+  for (const part of ['create table errors (', 'path text not null,', 'message text not null,', 'created_at timestamptz not null default now()', 'alter table errors enable row level security;', 'revoke all on errors from anon, authenticated;']) {
+    expect(errSql.after, part).toContain(part)
+  }
+  expect(run('err-apply')).toMatchObject({ cmd: 'psql -f supabase/migrations/0016_errors.sql', code: 0, out: ['CREATE TABLE', 'ALTER TABLE', 'REVOKE'] })
+  const page = file('err-page')
+  expect(page).toMatchObject({ path: 'app/error.tsx', before: null })
+  expect(page.after).toContain('"use client";')
+  expect(page.after).toContain('Что-то пошло не так')
+  // ни текста ошибки, ни стектрейса: страница не читает error
+  expect(page.after).not.toMatch(/error\.(message|stack|digest)/)
+  const hook = file('err-hook')
+  expect(hook).toMatchObject({ path: 'instrumentation.ts', before: null })
+  for (const part of ['export const onRequestError: Instrumentation.onRequestError = async (error, request) => {', 'if (process.env.NEXT_RUNTIME === "nodejs") {', '"insert into errors (path, message) values ($1, $2)", [request.path, message]']) {
+    expect(hook.after, part).toContain(part)
+  }
+  expect(run('err-green')).toMatchObject({ cmd: ERR_VITEST, code: 0 })
+  expect(out('err-green')).toMatch(/Tests {2}2 passed \(2\)/)
+  expect(at('err-red')).toBeLessThan(at('err-sql'))
+  expect(commit('c-errors')).toMatchObject({ message: 'Сбои: понятная страница и журнал', branch: 'main', parents: [commit('c-feedback').hash] })
+  expect(commit('c-errors').files.map((f) => f.path)).toEqual(
+    expect.arrayContaining(['supabase/migrations/0016_errors.sql', 'app/error.tsx', 'instrumentation.ts', 'test/errors.test.ts']),
+  )
+
+  // тот же сбой после: понятная страница под меню, без текста ошибки; в журнале — путь и сообщение, без времени
+  const crash2 = browser('crash2')
+  expect(crash2.url).toBe(`${BASE}/clients/abc`)
+  expect(crash2.network).toContainEqual({ method: 'GET', url: `${BASE}/clients/abc`, status: 500 })
+  expect(crash2.after).toContain('Что-то пошло не так')
+  expect(crash2.after.slice(0, 5)).toEqual(['Подопечные', 'Программы', 'Отчёт', 'Сообщить о проблеме', 'Выйти'])
+  expect(text(crash2.after)).not.toMatch(/bigint|invalid input|\bat /)
+  expect(run('errors-db')).toMatchObject({ cmd: 'psql -c "select path, message from errors"', code: 0 })
+  expect(run('errors-db').out).toContain(' /clients/abc | invalid input syntax for type bigint: "abc"')
+  expect(out('errors-db')).toContain('(1 row)')
+  // время журнала в кадр не попадает (Review Focus 2)
+  expect(out('errors-db')).not.toMatch(/\d{2}:\d{2}|\d{4}-\d{2}-\d{2}|created_at/)
+
+  // файлов людей, копий базы и отчётов тестов нет ни в одном коммите сессии (Review Focus 3)
+  for (const e of events) {
+    if (e.kind === 'commit') expect(e.files.filter((f) => /^(public\/uploads|storage|backups|test-results|playwright-report)\//.test(f.path)), e.id).toEqual([])
+  }
+})

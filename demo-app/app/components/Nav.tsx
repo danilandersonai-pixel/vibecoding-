@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ProblemLink from "@/components/ProblemLink";
 import { asUser } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 
@@ -16,7 +17,7 @@ const LINKS: Record<string, [href: string, label: string][]> = {
   ],
 };
 
-// Меню вошедшего: разделы его роли и «Выйти». Кто не вошёл (вход, приглашение), меню не видит.
+// Меню вошедшего: разделы его роли, «Сообщить о проблеме» и «Выйти». Кто не вошёл (вход, приглашение), меню не видит.
 // Роль — из своего профиля: чужие профили база не отдаст (RLS)
 export default async function Nav() {
   const uid = await currentUser();
@@ -34,6 +35,8 @@ export default async function Nav() {
           {label}
         </Link>
       ))}
+      {/* замечание — у всех ролей: страница, где человек сейчас, подставится в форму */}
+      <ProblemLink />
       {/* выход — обычная форма: cookie стирает сервер (app/api/logout) */}
       <form action="/api/logout" method="post" className="ml-auto">
         <button type="submit" className="rounded border border-zinc-300 px-3 py-1">

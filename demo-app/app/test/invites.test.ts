@@ -1,7 +1,7 @@
 // @vitest-environment node
 // Одноразовое приглашение по ссылке: принятое — подопечный тренера из записи приглашения; второй раз — «уже использовано»;
-// отозванное и просроченное — отказ. Принимает приглашение функция базы accept_invite (supabase/migrations/0008_invites.sql),
-// её же вызывает регистрация app/join/[code]/actions.ts. Срок сверяют часы базы, поэтому просроченное приглашение тест вставляет
+// отозванное и просроченное — отказ. Тренерское приглашение (0014_coach_invites.sql) заводит тренера: профиль coach,
+// строки в clients нет. Принимает приглашение функция базы accept_invite, её же вызывает регистрация app/join/[code]/actions.ts. Срок сверяют часы базы, поэтому просроченное приглашение тест вставляет
 // сразу «из прошлого», а не ждёт двое суток. Данные тест создаёт сам в одной транзакции и в конце откатывает (rollback).
 // Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения, как у test/rls.test.ts.
 import type { PoolClient } from "pg";
@@ -49,6 +49,15 @@ async function coachOf(db: PoolClient, user: string): Promise<string> {
 
 const accept = (db: PoolClient, code: string, user: string) =>
   db.query("select accept_invite($1, $2, 'Новичок')", [code, user]);
+
+// Кто user после регистрации: роль профиля и тренер (coach_id — null, если строки в clients нет)
+async function whoIs(db: PoolClient, user: string) {
+  const { rows } = await db.query<{ role: string; coach_id: string | null }>(
+    "select p.role, c.coach_id from profiles p left join clients c on c.user_id = p.id where p.id = $1",
+    [user],
+  );
+  return rows[0];
+}
 
 // Дальше в транзакции — от имени uid, как asUser в lib/db.ts: роль authenticated и sub в request.jwt.claims
 async function as(db: PoolClient, uid: string) {
@@ -112,4 +121,29 @@ test("подопечный приглашений не создаёт", async ()
     await db.query("insert into invites (coach_id) values ($1)", [ANNA]);
   });
   await expect(insert).rejects.toThrow("row-level security");
+});
+
+test("тренерское приглашение — тренер без записи в clients; обычное — подопечный тренера", async () => {
+  const people = await rolledBack(async (db) => {
+    // тренерское приглашение создаёт владелец базы, тренера-хозяина у него нет
+    const forCoach = (await db.query<{ code: string }>("insert into invites (role) values ('coach') returning code")).rows[0].code;
+    const forClient = await newInvite(db, MARINA);
+    const coach = await newUser(db, "new-coach@example.com");
+    const client = await newUser(db, "new-client@example.com");
+    await accept(db, forCoach, coach);
+    await accept(db, forClient, client);
+    return [await whoIs(db, coach), await whoIs(db, client)];
+  });
+  expect(people).toEqual([
+    { role: "coach", coach_id: null },
+    { role: "client", coach_id: MARINA },
+  ]);
+});
+
+test("тренер тренерского приглашения не создаст: роль пишет только владелец базы", async () => {
+  const insert = rolledBack(async (db) => {
+    await as(db, MARINA);
+    await db.query("insert into invites (coach_id, role) values ($1, 'coach')", [MARINA]);
+  });
+  await expect(insert).rejects.toThrow("permission denied");
 });

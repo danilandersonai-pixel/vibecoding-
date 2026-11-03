@@ -18,7 +18,7 @@ test("новый тренер видит, с чего начать, и може�
   await expect(page.getByText("Подопечных пока нет")).toBeVisible();
   await expect(page.getByRole("button", { name: "Создать приглашение" })).toBeVisible();
   const menu = page.getByRole("navigation", { name: "Меню" });
-  await expect(menu.getByRole("link")).toHaveText(["Подопечные", "Программы", "Отчёт"]);
+  await expect(menu.getByRole("link")).toHaveText(["Подопечные", "Программы", "Отчёт", "Сообщить о проблеме"]);
   await menu.getByRole("button", { name: "Выйти" }).click();
   await expect(page).toHaveURL(/\/login$/);
   // cookie входа стёрта: меню нет, а страница тренера снова ведёт на вход
@@ -32,6 +32,6 @@ test("новый подопечный знает, что тренировку н
   await expect(page.getByText("Тренировок пока нет")).toBeVisible();
   await expect(page.getByText("Первую тренировку назначит тренер")).toBeVisible();
   const menu = page.getByRole("navigation", { name: "Меню" });
-  await expect(menu.getByRole("link")).toHaveText(["Мои тренировки", "Питание", "Замеры"]);
+  await expect(menu.getByRole("link")).toHaveText(["Мои тренировки", "Питание", "Замеры", "Сообщить о проблеме"]);
   await expect(menu.getByRole("button", { name: "Выйти" })).toBeVisible();
 });
