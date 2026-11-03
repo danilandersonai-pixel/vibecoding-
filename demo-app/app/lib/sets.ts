@@ -9,9 +9,12 @@ export function parseSet(input: { weight?: unknown; reps?: unknown; note?: unkno
   // вес разбирает lib/weight.ts: число или текст ошибки
   const weight = parseWeight(String(input.weight ?? ""));
   if (typeof weight === "string") return weight;
+  if (weight > 1000) return "Вес — не больше 1000 кг";
   // повторы — из поля формы или число из JSON; через String: Number(true) — это 1, а String(true) — не число
   const reps = Number(String(input.reps ?? ""));
   if (!Number.isInteger(reps) || reps <= 0) return "Повторы — целое число больше нуля";
+  // столбец reps — int: 3 000 000 000 база не примет, сервер ответит сбоем, а сбой очередь повторяет — такой подход в неё не ставим
+  if (reps > 1000) return "Повторы — не больше 1000";
   // заметка необязательна: пустое поле — без заметки (null); длиннее 200 знаков не примет и база
   const note = String(input.note ?? "").trim() || null;
   if (note && note.length > 200) return "Заметка — не длиннее 200 знаков";

@@ -5,9 +5,7 @@ import SetForm from "@/components/SetForm";
 import SetList from "@/components/SetList";
 import { asUser } from "@/lib/db";
 import { currentUser } from "@/lib/session";
-import { repsText } from "@/lib/sets";
 import { volume } from "@/lib/volume";
-import { repeatSet } from "./actions";
 import { addComment } from "./comments";
 
 export const metadata: Metadata = { title: "Тренировка" };
@@ -15,8 +13,8 @@ export const metadata: Metadata = { title: "Тренировка" };
 // Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки
 export const instant = false;
 
-// Тренировка по id из адреса: упражнения по программе, подходы, объём, «Повторить подход», форма нового подхода с очередью
-// на отправку (components/SetForm.tsx) и комментарии. Чужой тренировки база не отдаст (RLS) — будет 404
+// Тренировка по id из адреса: упражнения по программе, подходы, объём, «Повторить подход» и форма нового подхода — через очередь
+// на телефоне (components/SetForm.tsx), комментарии. Чужой тренировки база не отдаст (RLS) — будет 404
 export default async function WorkoutPage({ params }: PageProps<"/workouts/[id]">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
@@ -48,7 +46,7 @@ export default async function WorkoutPage({ params }: PageProps<"/workouts/[id]"
       : null;
   });
   if (!workout) notFound();
-  // одно касание: ещё раз прошлый подход этой тренировки — тот, что на кнопке; вес и повторы действие возьмёт из базы
+  // одно касание: ещё раз прошлый подход этой тренировки — его вес и повторы на кнопке
   const last = workout.sets.at(-1);
   // комментарий — к этой тренировке, после отправки — снова эта страница
   const comment = addComment.bind(null, id, `/workouts/${id}`);
@@ -72,16 +70,8 @@ export default async function WorkoutPage({ params }: PageProps<"/workouts/[id]"
         <SetList sets={workout.sets} className="mt-6 flex flex-col gap-1" />
       )}
       <p className="mt-2 font-medium">Объём: {volume(workout.sets)} кг</p>
-      {last && (
-        <form action={repeatSet.bind(null, id, last.id)} className="mt-6">
-          <button type="submit" className="w-full rounded bg-zinc-900 px-4 py-2 text-white">
-            Повторить подход ({last.weight} кг, {repsText(last.reps)})
-          </button>
-        </form>
-      )}
-
-      {/* новый подход — сначала в очередь на телефоне, потом на сервер: без сети он не пропадёт */}
-      <SetForm workoutId={id} />
+      {/* новый подход — сначала в очередь вошедшего на телефоне, потом на сервер: без сети он не пропадёт */}
+      <SetForm workoutId={id} userId={uid} last={last ? { weight: last.weight, reps: last.reps } : null} />
 
       <h2 className="mt-8 text-xl font-semibold">Комментарии</h2>
       <Comments comments={workout.comments} action={comment} className="mt-2" />

@@ -2,41 +2,29 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
+import { enqueue, flush, parseQueue, queueKey, retryDelay, type Queued, type Sent } from "@/lib/queue";
 import { parseSet, repsText, type NewSet } from "@/lib/sets";
 
-// Форма нового подхода с очередью на телефоне. Подход сначала ложится в очередь (localStorage — она переживёт и пропавшую сеть,
-// и перезагрузку страницы) с пометкой «не отправлено», потом уходит на сервер, по порядку. «отправлено» — только после ответа
-// сервера. Сети нет — очередь ждёт события online; ответ не пришёл, а сеть есть — повтор через 3 с.
-// У каждого подхода свой номер (crypto.randomUUID()): по нему очередь знает, какой подход отмечать.
+// «Повторить подход» и форма нового подхода — через очередь на телефоне (lib/queue.ts). Подход сначала ложится в очередь
+// вошедшего в localStorage с пометкой «не отправлено», потом уходит на сервер, по порядку; «отправлено» — только после ответа
+// сервера. Сети нет — очередь ждёт события online; сеть есть, а ответа нет — повтор через 3 с, 6 с, 12 с … не дольше минуты.
+// Очередь уходит, пока открыта страница тренировки: без сети страницу заново не открыть — service worker нет.
 
-// Подход в очереди: номер, тренировка, вес, повторы, заметка и что с ним
-type Queued = NewSet & { key: string; workoutId: string; status: "не отправлено" | "отправлено" | "не принято"; error?: string };
+// Прошлый подход тренировки — для «Повторить подход»
+type Last = { weight: number; reps: number };
 
-const QUEUE = "sets-queue";
-const RETRY_MS = 3000;
 const EMPTY: Queued[] = [];
+const NO_RESULTS: Sent[] = [];
 
-// Очередь из localStorage. Снимок — тот же массив, пока строка в хранилище не изменилась (так его ждёт useSyncExternalStore)
-let cached: { raw: string | null; queue: Queued[] } = { raw: null, queue: EMPTY };
-function readQueue(): Queued[] {
-  const raw = localStorage.getItem(QUEUE);
-  if (raw !== cached.raw) {
-    let queue = EMPTY;
-    try {
-      queue = raw ? (JSON.parse(raw) as Queued[]) : EMPTY;
-    } catch {
-      // испорченная строка — пустая очередь, а не упавшая страница
-    }
-    cached = { raw, queue };
-  }
-  return cached.queue;
-}
-
+// localStorage с оповещением: после каждой записи страница перечитывает очередь
 const listeners = new Set<() => void>();
-function writeQueue(queue: Queued[]) {
-  localStorage.setItem(QUEUE, JSON.stringify(queue));
-  listeners.forEach((listener) => listener());
-}
+const store = {
+  getItem: (key: string) => localStorage.getItem(key),
+  setItem: (key: string, value: string) => {
+    localStorage.setItem(key, value);
+    listeners.forEach((listener) => listener());
+  },
+};
 function subscribe(listener: () => void) {
   listeners.add(listener);
   // очередь могла измениться в другой вкладке
@@ -47,68 +35,70 @@ function subscribe(listener: () => void) {
   };
 }
 
-// Отметка подхода по номеру
-function mark(key: string, status: Queued["status"], error?: string) {
-  writeQueue(readQueue().map((item) => (item.key === key ? { ...item, status, error } : item)));
+// Очередь вошедшего. Снимок — тот же массив, пока строка в хранилище не изменилась (так его ждёт useSyncExternalStore)
+let cached: { key: string; raw: string | null; queue: Queued[] } | null = null;
+function snapshot(userId: string): Queued[] {
+  const key = queueKey(userId);
+  const raw = localStorage.getItem(key);
+  if (cached?.key !== key || cached.raw !== raw) cached = { key, raw, queue: parseQueue(raw) };
+  return cached.queue;
 }
 
+// Ушедшие из очереди подходы — «отправлено» и «не принято»: в хранилище их нет, страница показывает их, пока открыта
+let results: Sent[] = NO_RESULTS;
+
+// Подход на сервер; ответа нет (сети нет, обрыв, 15 с без ответа) — null
+const post = (item: Queued) =>
+  fetch(`/api/workouts/${item.workoutId}/sets`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key: item.key, weight: item.weight, reps: item.reps, note: item.note }),
+    signal: AbortSignal.timeout(15_000),
+  }).catch(() => null);
+
 let sending = false;
+let attempt = 0;
 let retry: ReturnType<typeof setTimeout> | undefined;
 
-// Отправка по порядку: первый неотправленный подход, за ним следующий. onSent — после каждого ответа: страница перечитает подходы
-async function sendQueue(onSent: () => void) {
+// Отправка очереди вошедшего; onSent — после каждого ушедшего подхода: страница перечитает список подходов
+async function send(userId: string, onSent: () => void) {
   if (sending) return;
   sending = true;
   clearTimeout(retry);
   try {
-    for (;;) {
-      const item = readQueue().find((queued) => queued.status === "не отправлено");
-      // всё отправлено — или сети нет: подход ждёт события online
-      if (!item || !navigator.onLine) return;
-      const response = await fetch(`/api/workouts/${item.workoutId}/sets`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: item.key, weight: item.weight, reps: item.reps, note: item.note }),
-      }).catch(() => null);
-      // ответа нет (сеть пропала по дороге) или сбой сервера — подход остаётся «не отправлено», повтор через 3 с
-      if (!response || response.status >= 500) {
-        retry = setTimeout(() => void sendQueue(onSent), RETRY_MS);
-        return;
-      }
-      // вход истёк — подход ждёт: после входа очередь отправит его со страницы тренировки
-      if (response.status === 401) {
-        mark(item.key, "не отправлено", "войдите снова");
-        return;
-      }
-      if (response.ok) {
-        mark(item.key, "отправлено");
-      } else {
-        // сервер подход не принял (тренировки нет, неверные числа): повтор не поможет
-        const reply = await response.json().catch(() => null);
-        mark(item.key, "не принято", reply?.error ?? `ответ ${response.status}`);
-      }
+    // сети нет — ждём события online
+    if (!navigator.onLine) return;
+    const stop = await flush(store, userId, post, (sent) => {
+      attempt = 0;
+      results = [...results, sent];
+      listeners.forEach((listener) => listener());
       onSent();
-    }
+    });
+    // ответа нет или сбой сервера — первый подход ждёт, повтор с паузой; очередь пуста или вход истёк — не повторяем
+    if (stop === "retry") retry = setTimeout(() => void send(userId, onSent), retryDelay(attempt++));
   } finally {
     sending = false;
   }
 }
 
-export default function SetForm({ workoutId }: { workoutId: string }) {
+export default function SetForm({ workoutId, userId, last }: { workoutId: string; userId: string; last: Last | null }) {
   const router = useRouter();
-  const queue = useSyncExternalStore(subscribe, readQueue, () => EMPTY);
+  const waiting = useSyncExternalStore(subscribe, () => snapshot(userId), () => EMPTY);
+  const done = useSyncExternalStore(subscribe, () => results, () => NO_RESULTS);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // с прошлого раза в очереди остаются только неотправленные: отправленные уже есть в списке подходов страницы
-    const stored = readQueue();
-    const waiting = stored.filter((item) => item.status === "не отправлено");
-    if (waiting.length < stored.length) writeQueue(waiting);
-    const send = () => void sendQueue(() => router.refresh());
-    send();
-    window.addEventListener("online", send);
-    return () => window.removeEventListener("online", send);
-  }, [router]);
+    const sendNow = () => void send(userId, () => router.refresh());
+    sendNow();
+    window.addEventListener("online", sendNow);
+    return () => window.removeEventListener("online", sendNow);
+  }, [userId, router]);
+
+  // подход — в очередь вошедшего и сразу на сервер, если есть сеть
+  function add(set: NewSet) {
+    enqueue(store, userId, { ...set, workoutId });
+    void send(userId, () => router.refresh());
+  }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -120,16 +110,29 @@ export default function SetForm({ workoutId }: { workoutId: string }) {
       return;
     }
     setError(null);
-    writeQueue([...readQueue(), { ...set, key: crypto.randomUUID(), workoutId, status: "не отправлено" }]);
+    add(set);
     form.reset();
-    void sendQueue(() => router.refresh());
   }
 
-  // подходы этой тренировки в очереди: «50 кг, 10 повторов — не отправлено»
-  const mine = queue.filter((item) => item.workoutId === workoutId);
+  // подходы этой тренировки: ушедшие — «30 кг, 10 повторов — отправлено», ждущие — «… — не отправлено»
+  const lines = [
+    ...done.filter((item) => item.workoutId === workoutId).map((item) => ({ ...item, wait: false })),
+    ...waiting.filter((item) => item.workoutId === workoutId).map((item) => ({ ...item, status: "не отправлено", wait: true })),
+  ];
 
   return (
     <>
+      {/* одно касание: ещё раз прошлый подход этой тренировки — через ту же очередь */}
+      {last && (
+        <button
+          type="button"
+          onClick={() => add({ weight: last.weight, reps: last.reps, note: null })}
+          className="mt-6 w-full rounded bg-zinc-900 px-4 py-2 text-white"
+        >
+          Повторить подход ({last.weight} кг, {repsText(last.reps)})
+        </button>
+      )}
+
       <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
         <div className="flex flex-col gap-1">
           <label htmlFor="weight">Вес, кг</label>
@@ -160,16 +163,19 @@ export default function SetForm({ workoutId }: { workoutId: string }) {
         </p>
       )}
 
-      {mine.length > 0 && (
-        <ul aria-label="Очередь на отправку" aria-live="polite" className="mt-4 flex flex-col gap-1">
-          {mine.map((item) => (
-            <li key={item.key} className={item.status === "не отправлено" ? "font-medium" : "text-zinc-500"}>
-              {item.weight} кг, {repsText(item.reps)} — {item.status}
-              {item.error && `: ${item.error}`}
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* область объявлений — всегда в разметке: экранный диктор прочтёт и первое «не отправлено» */}
+      <div aria-live="polite" className="mt-4">
+        {lines.length > 0 && (
+          <ul aria-label="Очередь на отправку" className="flex flex-col gap-1">
+            {lines.map((item) => (
+              <li key={item.key} className={item.wait ? "font-medium" : "text-zinc-500"}>
+                {item.weight} кг, {repsText(item.reps)} — {item.status}
+                {item.error && `: ${item.error}`}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </>
   );
 }

@@ -1,10 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 
-// Подход в зале без интернета: Анна на тренировке «Ноги» (id 1 в supabase/seed.sql) записывает подход без сети — он ждёт
-// на телефоне с пометкой «не отправлено»; сеть вернулась — подход уходит на сервер, и Марина видит его на карточке Анны.
+// Подход в зале без интернета: Анна на тренировке «Грудь и плечи» (id 3 в supabase/seed.sql; «Ноги» считает e2e/quick-set.spec.ts)
+// записывает подход без сети — он ждёт на телефоне с пометкой «не отправлено»; сеть вернулась — подход уходит на сервер, и Марина
+// видит его на карточке Анны. «Повторить подход» без сети — тоже в очередь.
 // Сеть отключает Playwright (context.setOffline) — так тест проверяет телефон без связи.
-// Свои подходы тест узнаёт по заметке (её видит тренер) и считает до и после, как e2e/quick-set.spec.ts: от того, сколько их
-// уже в базе, он не зависит, а «Повторить подход» заметку не копирует.
+// Свои подходы тест узнаёт по заметке (её видит тренер) и считает до и после: от того, сколько их уже в базе, он не зависит.
+// Подходы — 50 × 10, как у других сквозных тестов: у Марины в списке подопечных e2e/quick-set.spec.ts ждёт последний подход
+// Анны «50 кг × 10», а тесты в общем прогоне идут параллельно.
 const NOTE = "без связи";
 const LOST = "ответ потерялся";
 
@@ -29,7 +31,7 @@ test("без сети подход ждёт с пометкой «не отпр�
 
   const anna = await browser.newPage();
   await login(anna, "anna@example.com", /\/workouts$/);
-  await anna.goto("/workouts/1");
+  await anna.goto("/workouts/3");
   await anna.context().setOffline(true);
   await anna.getByLabel("Вес, кг").fill("50");
   await anna.getByLabel("Повторы").fill("10");
@@ -44,8 +46,22 @@ test("без сети подход ждёт с пометкой «не отпр�
   await expect(seen).toHaveCount(before + 1);
 });
 
+test("без сети «Повторить подход» тоже ждёт в очереди", async ({ browser }) => {
+  test.slow();
+  const anna = await browser.newPage();
+  await login(anna, "anna@example.com", /\/workouts$/);
+  await anna.goto("/workouts/3");
+  const repeat = anna.getByRole("button", { name: "Повторить подход" });
+  // на кнопке — прошлый подход, «Повторить подход (50 кг, 10 повторов)»; в очереди — он же
+  const set = (await repeat.textContent())?.match(/\((.+)\)/)?.[1];
+  await anna.context().setOffline(true);
+  await repeat.click();
+  await expect(anna.getByText(`${set} — не отправлено`)).toBeVisible();
+  await anna.context().setOffline(false);
+  await expect(anna.getByText(`${set} — отправлено`)).toBeVisible({ timeout: 15_000 });
+});
+
 test("ответ потерялся — один подход, одна строка", async ({ browser }) => {
-  // холодный dev, как в первом тесте
   test.slow();
   const marina = await browser.newPage();
   await login(marina, "marina@example.com", /\/clients$/);
@@ -55,10 +71,10 @@ test("ответ потерялся — один подход, одна стро
 
   const anna = await browser.newPage();
   await login(anna, "anna@example.com", /\/workouts$/);
-  await anna.goto("/workouts/1");
+  await anna.goto("/workouts/3");
   // первый ответ теряется по дороге: запрос доходит до сервера (route.fetch), а телефон ответа не получает (route.abort)
   await anna.route(
-    "**/api/workouts/1/sets",
+    "**/api/workouts/3/sets",
     async (route) => {
       await route.fetch();
       await route.abort();

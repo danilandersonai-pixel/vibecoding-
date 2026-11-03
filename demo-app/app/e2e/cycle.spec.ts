@@ -28,7 +28,8 @@ test("Марина назначает тренировку, Анна вписы�
   await anna.getByLabel("Вес, кг").fill("50");
   await anna.getByLabel("Повторы").fill("10");
   await anna.getByRole("button", { name: "Сохранить подход" }).click();
-  await expect(anna.getByText("50 кг × 10")).toBeVisible();
+  // подход уходит через очередь и /api/workouts/[id]/sets: первый запрос к маршруту холодный dev собирает несколько секунд
+  await expect(anna.getByText("50 кг × 10")).toBeVisible({ timeout: 15_000 });
 
   await marina.getByRole("link", { name: title }).click();
   await expect(marina.getByText("Объём: 500 кг")).toBeVisible();

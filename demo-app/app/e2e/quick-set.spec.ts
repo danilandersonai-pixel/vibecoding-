@@ -21,7 +21,8 @@ test("Анна повторяет подход одним касанием, Ма
   const sets = anna.getByText("50 кг × 10", { exact: true });
   const before = await sets.count();
   await anna.getByRole("button", { name: "Повторить подход" }).click();
-  await expect(sets).toHaveCount(before + 1);
+  // подход уходит через очередь и /api/workouts/[id]/sets: первый запрос к маршруту холодный dev собирает несколько секунд
+  await expect(sets).toHaveCount(before + 1, { timeout: 15_000 });
 
   const marina = await browser.newPage();
   await login(marina, "marina@example.com", /\/clients$/);
