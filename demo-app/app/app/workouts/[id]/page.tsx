@@ -19,6 +19,8 @@ export default async function WorkoutPage({ params }: PageProps<"/workouts/[id]"
   const uid = await currentUser();
   if (!uid) redirect("/login");
   const { id } = await params;
+  // номер тренировки — целое число (bigint в базе, до 18 цифр): буквы в адресе — «не найдено», а не сбой запроса
+  if (!/^\d{1,18}$/.test(id)) notFound();
   const workout = await asUser(uid, async (db) => {
     const found = await db.query<{ title: string }>("select title from workouts where id = $1", [id]);
     // упражнения по программе: копия строк шаблона в строках тренировки — «Присед — 3 × 10»

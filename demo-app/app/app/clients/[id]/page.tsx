@@ -48,6 +48,8 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
   const uid = await currentUser();
   if (!uid) redirect("/login");
   const { id } = await params;
+  // номер подопечного — целое число (bigint в базе, до 18 цифр): буквы в адресе — «не найдено», а не сбой запроса
+  if (!/^\d{1,18}$/.test(id)) notFound();
   const { week, error } = await searchParams;
   // неделя — из адреса, от сегодняшней даты сводка не зависит; дня нет в календаре — страница так и говорит
   const weekDay = typeof week === "string" && isDay(week) ? week : null;

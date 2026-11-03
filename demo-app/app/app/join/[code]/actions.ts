@@ -3,15 +3,20 @@
 import { redirect } from "next/navigation";
 import { pool } from "@/lib/db";
 import { checkName } from "@/lib/names";
+import { recordFailure, tooManyAttempts } from "@/lib/rate-limit";
 import { startSession } from "@/lib/session";
 
-// Ответ на занятую почту: та же почта другими буквами или повтор, который поймал unique в auth.users
-const TAKEN = "Эта почта уже зарегистрирована — войдите";
+// Один ответ на занятую почту и на отказ приглашения: по ответу не узнать, есть ли такая почта в приложении
+const SAME = "Проверьте почту или войдите, если аккаунт уже есть";
+// Ответ после 5 неудачных попыток за 15 минут по одному коду приглашения — как у входа (app/api/login)
+const TOO_MANY = "Слишком много попыток, подождите 15 минут";
 
 // Регистрация по приглашению /join/<код>: новый пользователь в auth.users и профиль подопечного, затем база принимает приглашение
 // (accept_invite, 0008_invites.sql): тренер — из записи приглашения, а не из адреса; использованное, отозванное и просроченное — отказ.
 // Тренерское приглашение (0014_coach_invites.sql) делает нового пользователя тренером. Потом вход и первый экран по роли. Запросы — от владельца базы одной транзакцией, как вход (app/api/login): пользователям таблица auth.users закрыта,
 // а отказ откатывает и нового пользователя.
+// Неудачные попытки считает ограничитель входа (lib/rate-limit.ts) — по коду приглашения, а не по почте: почты при подборе
+// каждый раз новые. Проверка формата почты и пароля отвечает своим текстом и попыткой не считается.
 export async function join(code: string, form: FormData) {
   const name = String(form.get("name") ?? "").trim();
   // почта — без пробелов по краям, буквы как ввели: так её ищет вход (app/api/login)
@@ -20,11 +25,16 @@ export async function join(code: string, form: FormData) {
   // ошибку страница покажет под формой
   const back = (error: string): never =>
     redirect(`/join/${encodeURIComponent(code)}?error=${encodeURIComponent(error)}`);
+  const attempts = `join:${code}`;
+  if (tooManyAttempts(attempts)) back(TOO_MANY);
   const invalid = checkName(name) ?? checkAccount(email, password);
   if (invalid) back(invalid);
   // та же почта другими буквами — тоже занята: unique в auth.users различает заглавные и строчные
   const taken = await pool.query("select 1 from auth.users where lower(email) = lower($1)", [email]);
-  if (taken.rows.length > 0) back(TAKEN);
+  if (taken.rows.length > 0) {
+    recordFailure(attempts);
+    back(SAME);
+  }
 
   const db = await pool.connect();
   let uid: string;
@@ -44,8 +54,10 @@ export async function join(code: string, form: FormData) {
     await db.query("commit");
   } catch (err) {
     await db.query("rollback");
-    const refused = refusal(err);
-    if (refused) back(refused);
+    if (refused(err)) {
+      recordFailure(attempts);
+      back(SAME);
+    }
     throw err;
   } finally {
     db.release();
@@ -56,12 +68,10 @@ export async function join(code: string, form: FormData) {
   redirect(role === "coach" ? "/clients" : "/workouts");
 }
 
-// Понятная ошибка вместо 500: такая почта уже есть (unique в auth.users) или приглашение не принято (raise exception в accept_invite)
-function refusal(err: unknown): string | null {
-  const { code, message } = err as { code?: string; message?: string };
-  if (code === "23505") return TAKEN;
-  if (code === "P0001" && message) return message;
-  return null;
+// Отказ, а не сбой: такая почта уже есть (unique в auth.users) или приглашение не принято (raise exception в accept_invite)
+function refused(err: unknown): boolean {
+  const { code } = err as { code?: string };
+  return code === "23505" || code === "P0001";
 }
 
 // Почта и пароль из формы: null — годятся, иначе текст ошибки для страницы

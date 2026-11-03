@@ -3005,3 +3005,166 @@ test('s24: обычное приглашение заводит тренера �
     if (e.kind === 'commit') expect(e.files.filter((f) => /^(public\/uploads|storage|backups|test-results|playwright-report)\//.test(f.path)), e.id).toEqual([])
   }
 })
+
+test('s25: «исправь всё» — пять файлов без тестов; три круга — красный, правка, зелёный, коммит с тестом', () => {
+  const events = sessions['s25-beta-fixes'].events
+  expect(events.map((e) => e.id)).toEqual([
+    ...['typegen', 'findings-doc', 'programs-file', 'programs-check', 'c-findings', 'all-branch'],
+    ...['ask-all', 'all-join', 'all-rate', 'all-id', 'all-comment', 'all-programs', 'c-all', 'all-stat', 'all-drop'],
+    ...['ask-join-fix', 'jf-test', 'jf-red', 'jf-code', 'jf-green', 'c-join-fix'],
+    ...['ask-id-fix', 'id-test', 'id-red', 'id-code', 'id-workout', 'id-green', 'c-id-fix'],
+    ...['ask-comment-fix', 'cm-test', 'cm-red', 'cm-action', 'cm-code', 'cm-green', 'c-comment-fix'],
+    'fix-log',
+  ])
+  const run = (id: string) => find('s25-beta-fixes', id, 'run')
+  const file = (id: string) => find('s25-beta-fixes', id, 'file')
+  const agent = (id: string) => find('s25-beta-fixes', id, 'agent')
+  const commit = (id: string) => find('s25-beta-fixes', id, 'commit')
+  const at = (id: string) => events.findIndex((e) => e.id === id)
+  const out = (id: string) => run(id).out.join('\n')
+  // шаги внутри запросов — агента, остальные — человека: замечания, проверка «Подождёт», git
+  const asks = ['ask-all', 'ask-join-fix', 'ask-id-fix', 'ask-comment-fix']
+  const inner = new Set(asks.flatMap((id) => agent(id).steps))
+  for (const e of events) {
+    if (e.kind !== 'agent') expect((e as { by?: string }).by, e.id).toBe(inner.has(e.id) ? 'agent' : undefined)
+  }
+  expect(run('typegen')).toMatchObject({ cmd: 'npx next typegen', code: 0 })
+
+  // замечания беты — человек, по трём стопкам дня 8; в каждом — что делали, что ожидали, что вышло
+  const doc = file('findings-doc')
+  expect(doc).toMatchObject({ path: 'docs/beta-findings.md', before: null })
+  expect(doc.after.split('\n').filter((line) => line.startsWith('## '))).toEqual(['## Портит данные', '## Мешает каждый день', '## Подождёт'])
+  const items = doc.after.split('\n').filter((line) => line.startsWith('- '))
+  expect(items).toHaveLength(5)
+  for (const item of items) for (const part of ['Делали:', 'Ожидали:', 'Вышло:']) expect(item, part).toContain(part)
+  const pile = (heading: string) => doc.after.split('## ').find((part) => part.startsWith(heading))!
+  expect(pile('Портит данные')).toContain('/join: попыткам нет счёта')
+  expect(pile('Портит данные')).toContain('«Эта почта уже зарегистрирована — войдите» и «Приглашение отозвано»')
+  expect(pile('Мешает каждый день')).toContain('«Что-то пошло не так»')
+  expect(pile('Мешает каждый день')).toContain('`invalid input syntax for type bigint: "abc"`')
+  expect(pile('Мешает каждый день')).toContain('ни комментария, ни ошибки (замечание Тимура)')
+  expect(pile('Подождёт')).toContain('`psql -f supabase/tests/as-client-program.sql`')
+  expect(doc.after).not.toMatch(/Анна|Анн[уыео]/)
+  // «Подождёт» повторяет человек: подопечная вставляет программу, в конце откат
+  expect(file('programs-file')).toMatchObject({ path: 'supabase/tests/as-client-program.sql', before: null })
+  expect(file('programs-file').after).toContain('set local request.jwt.claims = \'{"sub":"33333333-3333-3333-3333-333333333333"}\';')
+  expect(run('programs-check')).toMatchObject({ cmd: 'psql -f supabase/tests/as-client-program.sql', code: 0 })
+  expect(run('programs-check').out).toContain(' Программа подопечной')
+  expect(run('programs-check').out.slice(-2)).toEqual(['INSERT 0 1', 'ROLLBACK'])
+  expect(commit('c-findings')).toMatchObject({ message: 'Замечания беты по стопкам', branch: 'main', parents: [find('s24-beta', 'c-errors', 'commit').hash] })
+
+  // подводный камень: «исправь всё» в ветке fix/all — пять файлов агента одним ходом, без тестов и без прогонов
+  expect(run('all-branch')).toMatchObject({ cmd: 'git switch -c fix/all', code: 0 })
+  expect(agent('ask-all').prompt).toBe('Исправь все замечания из docs/beta-findings.md')
+  expect(agent('ask-all').reply).toMatch(/^Исправил все пять/)
+  const allSteps = ['all-join', 'all-rate', 'all-id', 'all-comment', 'all-programs']
+  expect(agent('ask-all').steps).toEqual(allSteps)
+  const touched = allSteps.map((id) => file(id).path)
+  expect(touched).toEqual(['app/join/[code]/actions.ts', 'lib/rate-limit.ts', 'app/clients/[id]/page.tsx', 'app/workouts/[id]/comments.ts', 'supabase/migrations/0017_programs_coach.sql'])
+  expect(allSteps.map((id) => file(id).before === null)).toEqual([false, false, false, false, true])
+  expect(commit('c-all')).toMatchObject({ message: 'Все замечания беты', branch: 'fix/all', parents: [commit('c-findings').hash] })
+  expect(run('all-stat')).toMatchObject({ cmd: 'git diff main fix/all --stat', code: 0 })
+  const stat = run('all-stat').out.filter(Boolean)
+  expect(stat).toHaveLength(6)
+  for (const path of touched) expect(stat.some((line) => line.trimStart().startsWith(`${path} `)), path).toBe(true)
+  expect(stat[5]).toContain('5 files changed')
+  // ни одного теста: путей test/ и e2e/ в диффе нет
+  expect(stat.filter((line) => /(^|\s)(test|e2e)\//.test(line))).toEqual([])
+  expect(run('all-drop')).toMatchObject({ cmd: 'git switch main && git branch -D fix/all', code: 0 })
+  expect(out('all-drop')).toContain('Deleted branch fix/all')
+
+  // три круга: тест повторяет беду — красный на настоящем поведении; правка кода, тест не трогаем; зелёный; коммит — тест и код
+  const circles = [
+    { ask: 'ask-join-fix', test: 'jf-test', red: 'jf-red', code: ['jf-code'], green: 'jf-green', spec: 'e2e/join-limit.spec.ts', commit: 'c-join-fix' },
+    { ask: 'ask-id-fix', test: 'id-test', red: 'id-red', code: ['id-code', 'id-workout'], green: 'id-green', spec: 'e2e/not-found.spec.ts', commit: 'c-id-fix' },
+    { ask: 'ask-comment-fix', test: 'cm-test', red: 'cm-red', code: ['cm-action', 'cm-code'], green: 'cm-green', spec: 'e2e/empty-comment.spec.ts', commit: 'c-comment-fix' },
+  ]
+  for (const c of circles) {
+    expect(agent(c.ask).steps, c.ask).toEqual([c.test, c.red, ...c.code, c.green])
+    expect(file(c.test), c.test).toMatchObject({ path: c.spec, before: null })
+    const cmd = `npx playwright test ${c.spec}`
+    expect(run(c.red), c.red).toMatchObject({ cmd })
+    expect(run(c.red).code, c.red).not.toBe(0)
+    expect(run(c.green), c.green).toMatchObject({ cmd, code: 0 })
+    // тест после красного прогона не меняется: его файл пишет только шаг теста, правки кода — после красного
+    expect(events.filter((e) => e.kind === 'file' && e.path === c.spec).map((e) => e.id), c.spec).toEqual([c.test])
+    for (const id of c.code) {
+      expect(at(id), id).toBeGreaterThan(at(c.red))
+      expect(file(id).path, id).not.toMatch(/^(test|e2e)\//)
+    }
+    // в коммите — тот самый тест, что был красным
+    expect(commit(c.commit).files.find((f) => f.path === c.spec)?.blob, c.commit).toBe(file(c.test).blob)
+  }
+  expect(commit('c-join-fix')).toMatchObject({ message: '/join: один ответ и лимит попыток', branch: 'main', parents: [commit('c-findings').hash] })
+  expect(commit('c-id-fix')).toMatchObject({ message: 'Нечисловой номер — «не найдено»', branch: 'main', parents: [commit('c-join-fix').hash] })
+  expect(commit('c-comment-fix')).toMatchObject({ message: 'Пустой комментарий — понятная ошибка', branch: 'main', parents: [commit('c-id-fix').hash] })
+
+  // /join: красный — на отказ приглашения ответ другой, шестая попытка проходит
+  expect(out('jf-red')).toContain('Expected: "Эта почта уже зарегистрирована — войдите"\n    Received: "Приглашение отозвано"')
+  expect(out('jf-red')).toContain('Expected: "Слишком много попыток, подождите 15 минут"\n    Received: "Эта почта уже зарегистрирована — войдите"')
+  expect(out('jf-red')).toMatch(/^ {2}2 failed$/m)
+  const joinSpec = file('jf-test').after
+  for (const part of ['const SAME = "Проверьте почту или войдите, если аккаунт уже есть";', 'const TOO_MANY = "Слишком много попыток, подождите 15 минут";', '"update invites set revoked_at = now() where code = $1"', 'for (let attempt = 1; attempt <= 5; attempt++) {', '"delete from invites where code = any($1)"']) {
+    expect(joinSpec, part).toContain(part)
+  }
+  const join = file('jf-code')
+  expect(join.path).toBe('app/join/[code]/actions.ts')
+  expect(join.before).toContain('const TAKEN = "Эта почта уже зарегистрирована — войдите";')
+  expect(join.after).toContain('const SAME = "Проверьте почту или войдите, если аккаунт уже есть";')
+  expect(join.after).not.toContain('уже зарегистрирована')
+  // лимит — тот же ограничитель, что у входа (lib/rate-limit.ts), по коду приглашения
+  expect(join.after).toContain('import { recordFailure, tooManyAttempts } from "@/lib/rate-limit";')
+  expect(join.after).toContain('const attempts = `join:${code}`;')
+  expect(join.after).toContain('if (tooManyAttempts(attempts)) back(TOO_MANY);')
+  expect(out('jf-green')).toMatch(/^ {2}2 passed \(/m)
+
+  // нечисловой номер: красный — «Что-то пошло не так» вместо «Подопечный не найден», у тренировки — 500
+  expect(out('id-red')).toContain('Expected: "Подопечный не найден"\n    Received: "Что-то пошло не так"')
+  expect(out('id-red')).toContain('Expected: 404\n    Received: 500')
+  expect(out('id-red')).toMatch(/^ {2}2 failed$/m)
+  expect(file('id-code').path).toBe('app/clients/[id]/page.tsx')
+  expect(file('id-workout').path).toBe('app/workouts/[id]/page.tsx')
+  for (const id of ['id-code', 'id-workout']) expect(file(id).after, id).toContain('if (!/^\\d{1,18}$/.test(id)) notFound();')
+  expect(out('id-green')).toMatch(/^ {2}2 passed \(/m)
+
+  // пустой комментарий: красный — под полем ничего; после — действие возвращает ошибку, форма показывает её под полем
+  expect(out('cm-red')).toContain('Expected: "Комментарий пустой — напишите текст"')
+  expect(out('cm-red')).toContain('Error: element(s) not found')
+  expect(out('cm-red')).toMatch(/^ {2}1 failed$/m)
+  expect(file('cm-action').path).toBe('app/workouts/[id]/comments.ts')
+  expect(file('cm-action').before).toContain('if (body === "" || body.length > 1000) return;')
+  expect(file('cm-action').after).toContain('if (body === "") return "Комментарий пустой — напишите текст";')
+  expect(file('cm-code').path).toBe('components/Comments.tsx')
+  for (const part of ['"use client";', 'const [error, send] = useActionState(action, null);', '<p id={errorId} role="alert" className="text-red-600">']) {
+    expect(file('cm-code').after, part).toContain(part)
+  }
+  expect(out('cm-green')).toMatch(/^ {2}1 passed \(/m)
+
+  // три коммита — в каждом тест (e2e/) и код
+  expect(run('fix-log')).toMatchObject({ cmd: 'git log --stat --oneline -3', code: 0 })
+  const blocks: { head: string; paths: string[] }[] = []
+  for (const line of run('fix-log').out) {
+    if (/^[0-9a-f]{7} /.test(line)) blocks.push({ head: line, paths: [] })
+    else if (line.includes(' | ')) blocks.at(-1)!.paths.push(line.split(' | ')[0].trim())
+  }
+  expect(blocks.map((b) => b.head)).toEqual(
+    ['c-comment-fix', 'c-id-fix', 'c-join-fix'].map((id) => `${commit(id).hash} ${commit(id).message}`),
+  )
+  expect(blocks.map((b) => b.paths)).toEqual([
+    ['app/workouts/[id]/comments.ts', 'components/Comments.tsx', 'e2e/empty-comment.spec.ts'],
+    ['app/clients/[id]/page.tsx', 'app/workouts/[id]/page.tsx', 'e2e/not-found.spec.ts'],
+    ['app/join/[code]/actions.ts', 'e2e/join-limit.spec.ts'],
+  ])
+  for (const b of blocks) {
+    expect(b.paths.some((p) => /^(e2e|test)\//.test(p)), b.head).toBe(true)
+    expect(b.paths.some((p) => !/^(e2e|test)\//.test(p)), b.head).toBe(true)
+  }
+
+  // ветка «исправь всё» не влита: её миграции нет ни в одном коммите main; файлов людей и отчётов тестов — тоже (Review Focus 3)
+  for (const e of events) {
+    if (e.kind !== 'commit' || e.branch !== 'main') continue
+    expect(e.files.map((f) => f.path), e.id).not.toContain('supabase/migrations/0017_programs_coach.sql')
+    expect(e.files.filter((f) => /^(public\/uploads|storage|backups|test-results|playwright-report)\//.test(f.path)), e.id).toEqual([])
+    expect(e.files.map((f) => f.path), e.id).not.toContain('supabase/tests/beta-invites.sql')
+  }
+})
