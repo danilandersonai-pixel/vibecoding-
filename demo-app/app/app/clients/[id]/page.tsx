@@ -24,9 +24,15 @@ type Workout = { id: string; title: string; day: Date; sets: { id: number; weigh
 type Goals = { kcal: number; protein: number; fat: number; carbs: number };
 // День недели в сводке питания: ГГГГ-ММ-ДД и записи дневника за этот день (значения из json — числа)
 type NutritionDay = { day: string; entries: FoodEntry[] };
+// Замер: день и числа — вес, кг; талия и бёдра, см
+type Measurement = { id: string; day: string; weight: number; waist: number; hips: number };
+// Снимок прогресса: id и день; файл отдаёт /api/photos/<id>
+type Photo = { id: string; day: string };
 
 // День «ГГГГ-ММ-ДД» по-русски: «12 ноября» (полночь по времени сервера — formatDay покажет тот же день)
 const dayOf = (day: string) => formatDay(new Date(`${day}T00:00`));
+// Число по-русски, с запятой: 64,8
+const num = (value: number) => value.toLocaleString("ru-RU");
 
 // Поля целей: имя в форме, подпись и границы — как в 0010_nutrition.sql
 const GOALS: [name: keyof Goals, label: string, min: number, max: number][] = [
@@ -36,8 +42,8 @@ const GOALS: [name: keyof Goals, label: string, min: number, max: number][] = [
   ["carbs", "Углеводы, г", 0, 1000],
 ];
 
-// Карточка подопечного по id из адреса: имя; питание — цели на день и сводка недели из адреса (?week=ГГГГ-ММ-ДД, неделя
-// с понедельника — docs/nutrition.md); форма «Назначить» и тренировки с подходами, объёмом и комментариями
+// Карточка подопечного по id из адреса: имя; замеры по датам и снимки прогресса; питание — цели на день и сводка недели из адреса (?week=ГГГГ-ММ-ДД,
+// неделя с понедельника — docs/nutrition.md); форма «Назначить» и тренировки с подходами, объёмом и комментариями
 export default async function ClientPage({ params, searchParams }: PageProps<"/clients/[id]">) {
   const uid = await currentUser();
   if (!uid) redirect("/login");
@@ -83,6 +89,16 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
           [id, weekDay],
         )
       : null;
+    // замеры подопечного по датам (0011_measurements.sql): записывает их подопечный, тренер только читает
+    const measurements = await db.query<Measurement>(
+      `select id, day::text as day, weight::float8 as weight, waist::float8 as waist, hips::float8 as hips
+         from measurements
+        where client_id = $1
+        order by day`,
+      [id],
+    );
+    // снимки прогресса (0012_photos.sql): загружает подопечный, тренер видит; файл отдаёт /api/photos/<id>, проверив, кто вошёл
+    const photos = await db.query<Photo>("select id, day::text as day from photos where client_id = $1 order by day", [id]);
     // без недели в адресе — недели, за которые есть записи: понедельник каждой
     const weeks = await db.query<{ week: string }>(
       `select distinct (day - (extract(isodow from day)::int - 1))::text as week
@@ -95,6 +111,8 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
           name: client.rows[0].name,
           workouts: workouts.rows,
           comments: comments.rows,
+          measurements: measurements.rows,
+          photos: photos.rows,
           goals: goals.rows[0],
           days: days?.rows,
           weeks: weeks.rows.map((row) => row.week),
@@ -112,6 +130,35 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
   return (
     <main className="mx-auto w-full max-w-md p-8">
       <h1 className="text-3xl font-semibold">{card.name}</h1>
+
+      <section className="mt-6">
+        <h2 className="text-xl font-semibold">Замеры</h2>
+        {card.measurements.length === 0 ? (
+          <p className="mt-2 text-zinc-500">Замеров пока нет: подопечный записывает их сам, в разделе «Замеры».</p>
+        ) : (
+          <ul className="mt-2 flex flex-col gap-1">
+            {card.measurements.map((m) => (
+              <li key={m.id}>
+                {dayOf(m.day)}: вес {num(m.weight)} кг, талия {num(m.waist)} см, бёдра {num(m.hips)} см
+              </li>
+            ))}
+          </ul>
+        )}
+        <h3 className="mt-4 font-semibold">Фото прогресса</h3>
+        {card.photos.length === 0 ? (
+          <p className="mt-2 text-zinc-500">Снимков пока нет: подопечный загружает их сам.</p>
+        ) : (
+          <ul className="mt-2 flex flex-col gap-1">
+            {card.photos.map((photo) => (
+              <li key={photo.id}>
+                <a href={`/api/photos/${photo.id}`} className="underline">
+                  Снимок {dayOf(photo.day)}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="mt-6">
         <h2 className="text-xl font-semibold">Питание</h2>

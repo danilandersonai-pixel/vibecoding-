@@ -2,7 +2,7 @@ import Link from "next/link";
 import { asUser } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 
-// Разделы по роли: тренеру — подопечные, программы и отчёт, подопечному — его тренировки и дневник питания
+// Разделы по роли: тренеру — подопечные, программы и отчёт, подопечному — его тренировки, дневник питания и замеры
 const LINKS: Record<string, [href: string, label: string][]> = {
   coach: [
     ["/clients", "Подопечные"],
@@ -12,6 +12,7 @@ const LINKS: Record<string, [href: string, label: string][]> = {
   client: [
     ["/workouts", "Мои тренировки"],
     ["/nutrition", "Питание"],
+    ["/measurements", "Замеры"],
   ],
 };
 

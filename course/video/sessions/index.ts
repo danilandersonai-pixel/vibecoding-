@@ -25,6 +25,7 @@ import s18QuickSet from './s18-quick-set.json'
 import s19Reliability from './s19-reliability.json'
 import s20FirstRun from './s20-first-run.json'
 import s21Nutrition from './s21-nutrition.json'
+import s22Progress from './s22-progress.json'
 import { makeFind } from './types'
 import type { Find, SessionRecord } from './types'
 
@@ -51,6 +52,7 @@ export const sessions: Record<string, SessionRecord> = {
   's19-reliability': s19Reliability as SessionRecord,
   's20-first-run': s20FirstRun as SessionRecord,
   's21-nutrition': s21Nutrition as SessionRecord,
+  's22-progress': s22Progress as SessionRecord,
 }
 
 export const find: Find = makeFind(Object.values(sessions))

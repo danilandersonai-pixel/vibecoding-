@@ -2373,3 +2373,176 @@ test('s21: тесты расчёта до кода; два итога за де�
   expect(anna2.url).toBe(DAY)
   expect(kcalOf(anna2.after, /^Итого: (\d+) ккал$/m)).toBe(coachTotal)
 })
+
+test('s22: фото в public открывается без входа и просится в git; после — только своим, удаление с файлом; файлов людей нет в коммитах', () => {
+  const events = sessions['s22-progress'].events
+  expect(events.map((e) => e.id)).toEqual([
+    ...['typegen', 'ask-measure', 'm-sql', 'm-apply', 'm-page', 'm-actions', 'm-coach', 'm-test', 'm-run', 'm-nav', 'm-e2e', 'c-measure'],
+    ...['m-data-file', 'm-data-apply', 'ask-photos', 'ph-sql', 'ph-apply', 'ph-route', 'ph-page', 'ph-coach', 'c-photos'],
+    ...['dev', 'login-anna', 'anna-measure', 'photo-make', 'anna-curl', 'photo-upload', 'photo-open', 'photo-git'],
+    ...['ask-private', 'pr-test', 'pr-vitest', 'pr-red', 'ask-private-go', 'pr-store', 'pr-get', 'pr-page', 'pr-coach', 'pr-ignore', 'pr-clean', 'pr-green'],
+    ...['c-private', 'photo-upload2', 'photo-anon', 'sveta-curl', 'photo-sveta', 'marina-curl', 'photo-marina', 'photo-old'],
+    ...['anna-logout', 'login-marina', 'coach-measure', 'photo-del', 'photo-ls'],
+  ])
+  const run = (id: string) => find('s22-progress', id, 'run')
+  const file = (id: string) => find('s22-progress', id, 'file')
+  const agent = (id: string) => find('s22-progress', id, 'agent')
+  const browser = (id: string) => find('s22-progress', id, 'browser')
+  const commit = (id: string) => find('s22-progress', id, 'commit')
+  const at = (id: string) => events.findIndex((e) => e.id === id)
+  // шаги внутри запросов — агента, остальные — человека: меню, файл замеров, curl, браузер, коммиты
+  const inner = new Set(['ask-measure', 'ask-photos', 'ask-private', 'ask-private-go'].flatMap((id) => agent(id).steps))
+  for (const e of events) {
+    if (e.kind !== 'agent') expect((e as { by?: string }).by, e.id).toBe(inner.has(e.id) ? 'agent' : undefined)
+  }
+  const BASE = 'http://localhost:3000'
+  const out = (id: string) => run(id).out.join('\n')
+  expect(run('typegen')).toMatchObject({ cmd: 'npx next typegen', code: 0 })
+
+  // замеры: RLS сразу, миграция — с подтверждения; негативный тест — Света не видит замеры Анны
+  expect(agent('ask-measure').prompt).toBe(
+    'Замеры тела — вес, талия, бёдра по датам: у подопечного форма, у тренера строки на карточке. RLS сразу, миграцию — с подтверждения',
+  )
+  expect(agent('ask-measure').steps).toEqual(['m-sql', 'm-apply', 'm-page', 'm-actions', 'm-coach', 'm-test', 'm-run'])
+  const sql = file('m-sql')
+  expect(sql).toMatchObject({ path: 'supabase/migrations/0011_measurements.sql', before: null })
+  for (const part of ['create table measurements', 'day date not null', 'check (weight > 0)', 'check (waist > 0)', 'check (hips > 0)', 'alter table measurements enable row level security']) {
+    expect(sql.after, part).toContain(part)
+  }
+  expect(sql.after.match(/create policy/g)).toHaveLength(2)
+  expect(run('m-apply')).toMatchObject({ cmd: 'psql -f supabase/migrations/0011_measurements.sql', code: 0, out: ['CREATE TABLE', 'ALTER TABLE', 'CREATE POLICY', 'CREATE POLICY'] })
+  expect(['m-page', 'm-actions', 'm-coach'].map((id) => file(id).path)).toEqual(['app/measurements/page.tsx', 'app/measurements/actions.ts', 'app/clients/[id]/page.tsx'])
+  // дата замера — в форме, не от часов
+  expect(file('m-page').after).toContain('type="date"')
+  for (const id of ['m-page', 'm-actions', 'm-coach', 'ph-route', 'pr-store', 'pr-get']) expect(file(id).after, id).not.toMatch(/new Date\(\)|Date\.now\(\)/)
+  const dbTest = file('m-test')
+  expect(dbTest).toMatchObject({ path: 'test/measurements.test.ts', before: null })
+  for (const part of ['Марина, тренер Анны, видит её замеры', 'Света, подопечная Игоря, не видит замеры Анны', 'row-level security']) {
+    expect(dbTest.after, part).toContain(part)
+  }
+  expect(run('m-run')).toMatchObject({ cmd: 'npx vitest run test/measurements.test.ts', code: 0 })
+  expect(out('m-run')).toMatch(/Tests\s+4 passed \(4\)/)
+  // меню подопечного — «Замеры»; сквозной тест s20 знает меню дословно
+  expect(file('m-nav')).toMatchObject({ path: 'components/Nav.tsx' })
+  expect(file('m-nav').after).toContain('["/measurements", "Замеры"]')
+  expect(file('m-e2e').after).toContain('toHaveText(["Мои тренировки", "Питание", "Замеры"])')
+  expect(commit('c-measure')).toMatchObject({ message: 'Замеры тела', branch: 'main', parents: [find('s21-nutrition', 'c-one', 'commit').hash] })
+  expect(commit('c-measure').files.map((f) => f.path)).toEqual(
+    expect.arrayContaining(['supabase/migrations/0011_measurements.sql', 'app/measurements/page.tsx', 'app/measurements/actions.ts', 'test/measurements.test.ts']),
+  )
+
+  // замеры Анны — файл человека с датами, а не часы
+  const data = file('m-data-file')
+  expect(data).toMatchObject({ path: 'supabase/tests/measurements.sql', before: null })
+  for (const day of ['2026-10-16', '2026-10-23', '2026-10-30', '2026-11-06']) expect(data.after, day).toContain(`(1, '${day}'`)
+  expect(run('m-data-apply')).toMatchObject({ cmd: 'psql -f supabase/tests/measurements.sql', code: 0, out: ['INSERT 0 4'] })
+
+  // фото «просто»: снимок — в public/uploads, в строке — адрес
+  expect(agent('ask-photos').prompt).toBe('Фото прогресса раз в месяц: подопечный загружает снимок, тренер видит. Сделай просто')
+  expect(agent('ask-photos').steps).toEqual(['ph-sql', 'ph-apply', 'ph-route', 'ph-page', 'ph-coach'])
+  expect(file('ph-sql')).toMatchObject({ path: 'supabase/migrations/0012_photos.sql', before: null })
+  for (const part of ['create table photos', 'path text not null', 'alter table photos enable row level security']) expect(file('ph-sql').after, part).toContain(part)
+  expect(run('ph-apply')).toMatchObject({ cmd: 'psql -f supabase/migrations/0012_photos.sql', code: 0, out: ['CREATE TABLE', 'ALTER TABLE', 'CREATE POLICY', 'CREATE POLICY'] })
+  expect(file('ph-route')).toMatchObject({ path: 'app/api/photos/route.ts', before: null })
+  expect(file('ph-route').after).toContain('const path = `/uploads/${clientId}/${day}.jpg`;')
+  expect(file('ph-route').after).toContain('"public"')
+  for (const id of ['ph-page', 'ph-coach']) expect(file(id).after, id).toContain('<a href={photo.path}')
+  expect(commit('c-photos')).toMatchObject({ message: 'Фото прогресса', branch: 'main', parents: [commit('c-measure').hash] })
+
+  // у Анны — четыре замера по датам из файла (Review Focus 2: даты те же в любой день записи)
+  expect(run('dev')).toMatchObject({ cmd: 'npm run dev', code: null })
+  expect(browser('login-anna').urlAfter).toBe(`${BASE}/workouts`)
+  const anna = browser('anna-measure')
+  expect(anna.url).toBe(`${BASE}/measurements`)
+  expect(anna.after.join('\n')).toContain('16 октября')
+  expect(anna.after.join('\n')).toContain('6 ноября')
+  const rows = anna.after.filter((line) => /^\d+ \S+: вес [\d,]+ кг, талия [\d,]+ см, бёдра [\d,]+ см$/.test(line))
+  expect(rows.map((line) => line.split(':')[0])).toEqual(['16 октября', '23 октября', '30 октября', '6 ноября'])
+
+  // снимок и cookie — вне проекта (~ — домашняя папка записи); загрузка — curl -F, день — в форме
+  expect(run('photo-make')).toMatchObject({ cmd: 'convert -size 600x800 xc:gray $HOME/photo.jpg', code: 0 })
+  expect(run('anna-curl').cmd).toContain('-c ~/anna.txt')
+  expect(run('anna-curl').out).toEqual(['{"role":"client"}'])
+  const upload = 'curl -s -b ~/anna.txt -F photo=@$HOME/photo.jpg -F day=2026-11-13 http://localhost:3000/api/photos'
+  expect(run('photo-upload')).toMatchObject({ cmd: upload, code: 0, out: ['{"id":"1","path":"/uploads/1/2026-11-13.jpg"}'] })
+  // подводный камень: без cookie адрес из public открывается — 200 и image/jpeg; и папка снимков просится в git
+  const STATUS = "| grep -iE '^(http|content-type)'"
+  expect(run('photo-open').cmd).toBe(`curl -sI ${BASE}/uploads/1/2026-11-13.jpg ${STATUS}`)
+  expect(out('photo-open')).toContain('200')
+  expect(out('photo-open')).toContain('image/jpeg')
+  expect(run('photo-git')).toMatchObject({ cmd: 'git status --short', code: 0 })
+  expect(out('photo-git')).toContain('public/uploads/')
+
+  // исправление: сначала тест — красный на самой беде (снимок теста лёг в public), вторым ходом — правки, тест зелёный
+  expect(agent('ask-private').prompt).toBe(
+    'Фото открывается без входа по угадываемому адресу и лежит в public, рядом с кодом. Сделай: файлы вне public и вне git, ' +
+      'выдача только вошедшему — подопечному и его тренеру — через RLS, удаление — строка и файл. Сначала тест',
+  )
+  expect(agent('ask-private').steps).toEqual(['pr-test', 'pr-vitest', 'pr-red'])
+  expect(agent('ask-private-go')).toMatchObject({ prompt: 'Делай', steps: ['pr-store', 'pr-get', 'pr-page', 'pr-coach', 'pr-ignore', 'pr-clean', 'pr-green'] })
+  expect(file('pr-test')).toMatchObject({ path: 'test/photos.test.ts', before: null })
+  expect(file('pr-vitest').after).toContain('resolve: { tsconfigPaths: true }')
+  const unit = 'npx vitest run test/photos.test.ts'
+  expect(run('pr-red').cmd).toBe(unit)
+  expect(run('pr-red').code).not.toBe(0)
+  expect(run('pr-red').out).toContain('+   "uploads/1/2026-10-13.jpg",')
+  expect(out('pr-red')).toMatch(/Tests\s+3 failed \(3\)/)
+  expect(file('pr-store').after).toContain('const path = `storage/photos/${clientId}/${day}.jpg`;')
+  expect(file('pr-store').after).not.toContain('"public"')
+  const byId = file('pr-get')
+  expect(byId).toMatchObject({ path: 'app/api/photos/[id]/route.ts', before: null })
+  for (const part of ['export async function GET(', 'export async function DELETE(', 'status: 401', 'status: 404', 'asUser(uid', 'delete from photos where id = $1 returning path']) {
+    expect(byId.after, part).toContain(part)
+  }
+  for (const id of ['pr-page', 'pr-coach']) {
+    expect(file(id).after, id).toContain('<a href={`/api/photos/${photo.id}`}')
+    expect(file(id).after, id).not.toContain('photo.path')
+  }
+  expect(file('pr-ignore')).toMatchObject({ path: '.gitignore' })
+  expect(file('pr-ignore').after).toContain('\n/storage/\n')
+  expect(run('pr-clean')).toMatchObject({ cmd: 'rm -r public/uploads', code: 0 })
+  expect(run('pr-green')).toMatchObject({ cmd: unit, code: 0 })
+  expect(out('pr-green')).toMatch(/Tests\s+3 passed \(3\)/)
+  expect(at('pr-red')).toBeLessThan(at('pr-store'))
+  expect(commit('c-private')).toMatchObject({ message: 'Фото — только своим, удаление вместе с файлом', branch: 'main', parents: [commit('c-photos').hash] })
+
+  // после: тот же снимок — новый адрес; без входа 401, Свете 404, Марине — снимок; старый адрес — 404
+  const NEW = `${BASE}/api/photos/1`
+  expect(run('photo-upload2')).toMatchObject({ cmd: upload, code: 0, out: ['{"id":"1","url":"/api/photos/1"}'] })
+  expect(run('photo-anon').cmd).toBe(`curl -sI ${NEW} ${STATUS}`)
+  expect(out('photo-anon')).toContain('401')
+  expect(run('photo-sveta').cmd).toBe(`curl -sI -b ~/sveta.txt ${NEW} ${STATUS}`)
+  expect(out('photo-sveta')).toContain('404')
+  expect(run('photo-marina').cmd).toBe(`curl -sI -b ~/marina.txt ${NEW} ${STATUS}`)
+  expect(out('photo-marina')).toContain('200')
+  expect(out('photo-marina')).toContain('image/jpeg')
+  expect(run('photo-old').cmd).toBe(run('photo-open').cmd)
+  expect(out('photo-old')).toContain('404')
+  expect(run('sveta-curl').out).toEqual(['{"role":"client"}'])
+  expect(run('marina-curl').out).toEqual(['{"role":"coach"}'])
+  // настоящих часов в кадре нет: заголовки Date и Last-Modified в вывод не попали
+  for (const id of ['photo-open', 'photo-anon', 'photo-sveta', 'photo-marina', 'photo-old', 'photo-del']) expect(out(id), id).not.toMatch(/GMT/)
+
+  // у Марины на карточке — замеры Анны по датам и снимок; перед её входом Анна вышла через меню
+  expect(browser('anna-logout').urlAfter).toBe(`${BASE}/login`)
+  expect(at('anna-logout') + 1).toBe(at('login-marina'))
+  expect(browser('login-marina').buttons).toEqual(['Войти'])
+  const coach = browser('coach-measure')
+  expect(coach.url).toBe(`${BASE}/clients/1`)
+  for (const line of ['16 октября: вес 64,8 кг, талия 74 см, бёдра 99 см', '6 ноября: вес 64,3 кг, талия 72 см, бёдра 97,5 см', 'Снимок 13 ноября']) {
+    expect(coach.after, line).toContain(line)
+  }
+
+  // Анна удаляет снимок — строки и файла нет
+  expect(run('photo-del').cmd).toBe(`curl -si -X DELETE -b ~/anna.txt ${NEW} ${STATUS}`)
+  expect(out('photo-del')).toContain('204')
+  expect(run('photo-ls')).toMatchObject({ cmd: 'ls storage/photos/1; psql -At -c "select count(*) from photos"', code: 0 })
+  expect(run('photo-ls').out.at(-1)).toBe('0')
+  expect(run('photo-ls').out.filter(Boolean)).toEqual(['0'])
+
+  // файлов людей нет ни в одном коммите сессии: снимков, копий базы, cookie (Review Focus 3)
+  for (const e of events) {
+    if (e.kind !== 'commit') continue
+    expect(e.files.filter((f) => /^(public\/uploads|storage|backups)\//.test(f.path) || /\.(jpg|txt)$/.test(f.path)), e.id).toEqual([])
+  }
+})

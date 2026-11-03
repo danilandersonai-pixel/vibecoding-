@@ -38,6 +38,9 @@ yarn-error.log*
 # копии базы (pg_dump): в них почты и хеши паролей
 /backups/
 
+# фото прогресса подопечных (app/api/photos): снимки людей — не код
+/storage/
+
 # vercel
 .vercel
 
