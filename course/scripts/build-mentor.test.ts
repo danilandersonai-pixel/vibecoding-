@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import day1 from '../content/days/day-01.json'
 import day2 from '../content/days/day-02.json'
+import day3 from '../content/days/day-03.json'
 // @ts-expect-error — скрипт на чистом JS, типы не нужны
 import { buildMentor } from './build-mentor.mjs'
 
@@ -24,6 +25,13 @@ describe('build-mentor', () => {
     expect(md).toContain('# День 2 — Эталоны и спецификация')
     for (const c of day2.mentor.checklist) expect(md).toContain(c.text)
     for (const q of day2.mentor.questions) expect(md).toContain(q)
+  })
+
+  it('готовый день 3 получает свой чек-лист', () => {
+    const md = readFileSync(join(out, 'day-03.md'), 'utf8')
+    expect(md).toContain('# День 3 — Прототип экранов')
+    for (const c of day3.mentor.checklist) expect(md).toContain(c.text)
+    for (const q of day3.mentor.questions) expect(md).toContain(q)
   })
 
   // Дни 2–7 наполняются один за другим, поэтому черновики здесь — из недели 2
