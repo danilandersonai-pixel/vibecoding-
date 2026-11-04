@@ -14,7 +14,7 @@ npm install
 npm run dev        # курс на http://localhost:5173
 ```
 
-Вне Claude работает всё, кроме ИИ на странице и скачивания MP4; прогресс хранится в браузере.
+Вне Claude работает всё, кроме ИИ на странице; прогресс хранится в браузере.
 
 ## Проверки
 
@@ -49,11 +49,19 @@ npm run render:all -- day-08 day-09                 # или только пер
 
 ### Как добавить ролик
 
-1. Папка `video/<id>/`: `script.ts` (сцены, реплики, горячие точки — `buildScript` из `video/kit`), `layout.ts`, `scenes/*.tsx`, `Video.tsx` и `script.test.ts` с `scriptProblems(script, 'chapter' | 'day')` и `stagingProblems`. Детали кадра — из набора `video/kit` (`Slot`, `Callout`, `Pill`, …); правила кадра и нормы длины — в `video/RULES.md`.
-2. Запись в `video/catalog.ts`: название, вид (`chapter` или `day`), сценарий и ленивая загрузка `Video.tsx`.
+Ролик — урок набора «Репозиторий»: каркас, правила кадра, нормы длины и ловушки — в [`video/term/README.md`](video/term/README.md).
+
+1. Папка `video/lessons/<id>/`, по образцу соседних уроков:
+   - `lesson.ts` — данные урока: сцены, реплики, кадры записей и схем, камера, пояснения и вердикты (всё привязано к номеру реплики);
+   - `lesson.test.ts` — `lessonProblems(урок, { minFrames })` пуст, и снимок `buildLesson(урок).script` совпадает с `script.gen.json` (`toMatchFileSnapshot`);
+   - `script.gen.json` — этот снимок, сценарий для сайта: `npx vitest run video/lessons/<id>`, при расхождении — `-u` и коммит вместе с уроком;
+   - `script.ts` читает снимок, `Video.tsx` — ленивый кусок: `<LessonVideo lesson={урок} {...p} />` с пробросом пропов (ловушка 7 набора).
+2. Запись в `video/catalog.ts`: название, вид (`chapter` или `day`), сценарий из `./lessons/<id>/script` и ленивая загрузка `./lessons/<id>/Video`.
 3. Блок `{"type": "video", "videoId": "<id>", "title": "…"}` в `content/days/day-NN.json`.
 4. Латиница в репликах читается голосом по таблице `SAY` в `src/video/narration.ts` — тест не пропустит реплику без строки произношения.
-5. `npm run render:video -- <id> out/<id>.mp4`, загрузить MP4 в хранилище страницы и вписать адрес в словарь `MP4` в `src/video/registry.ts`.
+5. E2e: импорт `script.gen.json` урока в `SCRIPTS` и день в `DAYS` в `e2e/video-chapters.spec.ts` (ловушка 13 набора), затем `npm test` и `npm run e2e`.
+
+MP4 ролика сейчас не загружается: «Скачать MP4» ждёт решения автора об озвучке ([`docs/superpowers/notes/2026-10-30-voiceover.md`](../docs/superpowers/notes/2026-10-30-voiceover.md)), словарь `MP4` в `src/video/registry.ts` пуст.
 
 ## Публикация
 
@@ -61,4 +69,4 @@ npm run render:all -- day-08 day-09                 # или только пер
 npm run build:artifact   # out/artifact/page.html + assets/ + book.html
 ```
 
-Дальше Claude публикует `out/artifact/page.html` инструментом Artifact по тому же адресу: файлы из `assets/` и `book.html` передаются в `files`, возможности страницы — `sample`, `db`, `user`, `assets`, `downloads`. MP4 загружается в хранилище страницы (`asset: true`), а его адрес вписывается в `src/video/registry.ts`.
+Дальше Claude публикует `out/artifact/page.html` инструментом Artifact по тому же адресу: файлы из `assets/` и `book.html` передаются в `files`, возможности страницы — `sample`, `db`, `user`, `assets`, `downloads`. MP4 роликов в хранилище страницы сейчас нет: загрузка (`asset: true`) и адрес в словаре `MP4` в `src/video/registry.ts` — после решения автора об озвучке.
