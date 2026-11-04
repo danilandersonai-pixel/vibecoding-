@@ -217,18 +217,25 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
     goToResult(target)
   }
 
-  // «На графе»: окно закрывается так же сразу, затем переход к узлу термина. Фокус возвращается, куда был при открытии:
-  // открыли поверх графа — туда же на экране графа; с другой страницы — та уйдёт вместе с кнопкой «Поиск».
-  // Граф уже открыт — адрес заменяется, как при выборе узла на самом графе: «Назад» уводит с графа, а не по узлам
-  const toGraph = (graphId: string) => {
-    let onGraph = false
+  // «На графе» и ссылки в книгу: окно закрывается так же сразу, затем переход к узлу термина или разделу книги.
+  // Фокус возвращается, куда был при открытии: открыли поверх графа или книги — туда же; с другой страницы — та уйдёт
+  // вместе с кнопкой «Поиск». Этот экран уже открыт — адрес заменяется, как при выборе узла на самом графе:
+  // «Назад» (и «К курсу» в книге) уводит с экрана, а не по узлам и разделам
+  const toScreen = (hash: string) => {
+    let same = false
     try {
-      onGraph = parseRoute(window.location.hash).name === 'graph'
+      same = parseRoute(window.location.hash).name === parseRoute(hash).name
     } catch {
       // якорь недоступен — обычный переход
     }
     flushSync(onClose)
-    navigate(`#/graph/${encodeURIComponent(graphId)}`, { replace: onGraph })
+    navigate(hash, { replace: same })
+  }
+  // Ссылка-переход внутри курса: обычный щелчок — toScreen, с Ctrl/⌘/Shift — как обычная ссылка
+  const screenLink = (hash: string) => (e: MouseEvent) => {
+    if (!plainClick(e)) return
+    e.preventDefault()
+    toScreen(hash)
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -345,7 +352,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                         </span>
                         <span className="search-links">
                           {t.bookRef && (
-                            <a className="search-link" href={`book.html#${t.bookRef}`} target="_blank" rel="noopener">
+                            <a className="search-link" href={`#/book/${t.bookRef}`} onClick={screenLink(`#/book/${t.bookRef}`)}>
                               <IconBook size={16} />В книге
                             </a>
                           )}
@@ -362,15 +369,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                               {`День ${t.day}`}
                             </a>
                           )}
-                          <a
-                            className="search-link"
-                            href={`#/graph/${encodeURIComponent(t.graphId)}`}
-                            onClick={(e) => {
-                              if (!plainClick(e)) return
-                              e.preventDefault()
-                              toGraph(t.graphId)
-                            }}
-                          >
+                          <a className="search-link" href={`#/graph/${encodeURIComponent(t.graphId)}`} onClick={screenLink(`#/graph/${encodeURIComponent(t.graphId)}`)}>
                             <IconGraph size={16} />На графе
                           </a>
                         </span>
@@ -403,7 +402,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                     // Раздел виден один раз: у записи-заголовка — названием, у абзаца — в подписи
                     const heading = s !== '' && t === s
                     return (
-                      <a className="search-hit" href={`book.html#${a}`} target="_blank" rel="noopener">
+                      <a className="search-hit" href={`#/book/${a}`} onClick={screenLink(`#/book/${a}`)}>
                         <HitBody label={s && !heading ? `Книга · ${c} → ${s}` : `Книга · ${c}`} title={heading ? s : ''} text={t} hit={hit} />
                       </a>
                     )

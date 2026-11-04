@@ -29,7 +29,8 @@ describe('блоки теории', () => {
     expect(within(card).getByText('Мысль 1 из 6')).toBeInTheDocument()
     expect(card).toHaveClass('paper')
     const link = within(card).getByRole('link', { name: `В книге: ${first.bookRef!.label}` })
-    expect(link).toHaveAttribute('href', `book.html#${first.bookRef!.section}`)
+    expect(link).toHaveAttribute('href', `#/book/${first.bookRef!.section}`)
+    expect(link).not.toHaveAttribute('target')
     expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
     // Считаются только мысли: между ними схема, тренажёр и ситуация, а последняя мысль — шестая
     expect(within(cardByTitle(ideas[5].title)).getByText('Мысль 6 из 6')).toBeInTheDocument()

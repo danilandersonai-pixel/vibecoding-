@@ -38,9 +38,9 @@ export function SiteBar({ current }: { current: 'map' | 'day' }) {
         )}
         <SearchButton className="sitebar-link sitebar-search" />
         <GraphButton className="sitebar-link" />
-        <a className="sitebar-link sitebar-book" href="book.html" target="_blank" rel="noopener">
+        <RouteLink to="#/book" className="sitebar-link">
           Книга
-        </a>
+        </RouteLink>
         <ThemeToggle className="sitebar-link" />
       </nav>
       <section className="sitebar-progress" aria-label="Прогресс">

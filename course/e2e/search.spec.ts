@@ -26,8 +26,8 @@ test('с главной: «RLS» — в терминах, в курсе и в к
   await field(page).fill('RLS')
   await expect(dialog(page).getByText(/^Найдено: \d+$/)).toBeVisible()
   for (const name of ['Термины', 'В курсе', 'В книге']) await expect(group(page, name).getByRole('listitem').first()).toBeVisible()
-  await expect(group(page, 'В книге').getByRole('link').first()).toHaveAttribute('href', /^book\.html#.+/)
-  await expect(group(page, 'В книге').getByRole('link').first()).toHaveAttribute('target', '_blank')
+  await expect(group(page, 'В книге').getByRole('link').first()).toHaveAttribute('href', /^#\/book\/[\w-]+$/)
+  expect(await group(page, 'В книге').getByRole('link').first().getAttribute('target')).toBeNull()
   await expect(group(page, 'Термины').getByRole('listitem').first()).toContainText('Политики доступа к строкам (RLS)')
 
   // Esc закрывает и возвращает фокус на кнопку; запрос остаётся

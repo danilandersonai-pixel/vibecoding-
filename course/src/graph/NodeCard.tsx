@@ -68,10 +68,10 @@ function Actions({ node }: { node: GraphNode }) {
   return (
     <div className="graph-actions">
       {book !== undefined && (
-        <a className="btn" href={`book.html#${book}`} target="_blank" rel="noopener">
+        <RouteLink to={`#/book/${book}`} className="btn">
           <IconBook size={18} />
           Открыть в книге
-        </a>
+        </RouteLink>
       )}
       {day !== undefined && (
         <RouteLink to={`#/day/${day}`} className="btn">

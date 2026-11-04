@@ -12,9 +12,8 @@
 .sitebar-link:hover,.sitebar-link[aria-current="page"]{background:var(--raised);color:var(--ink)}
 .sitebar-link svg{display:none;flex:none}
 .sitebar-today-day{margin-left:auto;color:var(--ink)}
-/* Подсказки справа в строке — только для глаз (alt-текст содержимого пустой): горячая клавиша, внешняя ссылка, состояние темы */
+/* Подсказки справа в строке — только для глаз (alt-текст содержимого пустой): горячая клавиша, состояние темы */
 .sitebar-search::after{content:"⌘K"/"";margin-left:auto;padding:3px 5px;border:1px solid var(--rule);border-radius:var(--radius-s);color:var(--ink-soft);font:500 11px/1 var(--font-ui)}
-.sitebar-book::after{content:"↗"/"";margin-left:auto}
 .theme-toggle::after{content:"выкл"/"";margin-left:auto;color:var(--ink-soft);font-size:12px}
 .theme-toggle[aria-pressed="true"]::after{content:"вкл"/"";color:var(--ink)}
 
@@ -126,7 +125,7 @@
   .sitebar-links{flex-direction:row;flex-wrap:wrap;gap:2px}
   .sitebar-link{width:auto;min-height:44px;min-width:44px;justify-content:center;padding:0 10px}
   .sitebar-link svg{display:block}
-  .sitebar-search::after,.sitebar-book::after,.theme-toggle::after{display:none}
+  .sitebar-search::after,.theme-toggle::after{display:none}
   .sitebar-map-tail,.theme-toggle-label,.search-open-label,.graph-open-label{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   .intro-title{font-size:38px}
 }
