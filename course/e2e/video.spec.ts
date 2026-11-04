@@ -1,15 +1,18 @@
 import { expect, test } from '@playwright/test'
 import day21 from '../content/days/day-21.json' with { type: 'json' }
-import { day21Script } from '../video/day-21/script'
+import day21Data from '../video/lessons/day-21/script.gen.json' with { type: 'json' }
+import type { VideoScript } from '../video/types'
 
 // Кнопка панели — «Смотреть» / «Пауза» точно: у обложки имя длиннее («Смотреть ролик «…»»)
 const PLAY = { name: 'Смотреть', exact: true }
 const PAUSE = { name: 'Пауза', exact: true }
 
-// День 21 — старый ролик day-21 (1280 × 720), который неделя 3 заменяет последним: на нём проверяются обложка, пояснение зоны,
-// отказ загрузки и телефон. Название дня и ролика — из day-21.json, зоны и реплики — из day21Script
+// День 21 — ролик дня day-21 (1920 × 1080, набор «Репозиторий»): на нём проверяются обложка, пояснение зоны, отказ загрузки
+// и телефон. Название дня и ролика — из day-21.json, зоны, кадр обложки (poster) и реплики — из снимка сценария script.gen.json
+// (его читает video/lessons/day-21/script.ts; Playwright импортирует сам JSON — ловушка 7 README набора)
 const DAY = day21.title
 const VIDEO = day21.blocks[0].title
+const day21Script = day21Data as VideoScript
 
 test('ролик дня 21 запускается с обложки, на паузе открывается пояснение зоны', async ({ page }) => {
   await page.goto('/#/day/21')
@@ -20,8 +23,9 @@ test('ролик дня 21 запускается с обложки, на пау
   await page.getByRole('button', PAUSE).click()
 
   const zone = day21Script.hotspots[1]
+  expect(zone.from + 15).toBeLessThan(zone.to)
   await page.getByRole('slider', { name: 'Перемотка' }).fill(String(zone.from + 15))
-  await page.getByRole('button', { name: zone.title }).click()
+  await page.getByRole('button', { name: zone.title, exact: true }).click()
   await expect(page.getByText(zone.text)).toBeVisible()
 })
 
@@ -68,26 +72,18 @@ test('до запуска ролик не пустой: видна обложк�
   for (const r of rows) expect(Math.abs(r.width - grid)).toBeLessThan(2)
 })
 
-// День 21 — один старый ролик day-21 (1280 × 720): дня с двумя старыми роликами в курсе больше нет (на дне 7 оба ролика, ch-10
-// и ch-11, — новые, тёмные 1920 × 1080; день 8 — новый ролик дня). Одинокий ролик сетки — во всю её ширину (правило :only-child
-// в video.css), а не в половину
-test('старый ролик (1280 × 720) один на дне — во всю ширину сетки', async ({ page }) => {
-  await page.goto('/#/day/21')
-  await expect(page.locator('.video-grid .video-stage')).toHaveCount(1)
-  await expect(page.locator('.video-grid .video-stage.is-dark')).toHaveCount(0)
-  const stage = await page.locator('.video-grid .video-stage').evaluate((el) => el.getBoundingClientRect().width)
-  const grid = await page.locator('.video-grid').evaluate((el) => el.getBoundingClientRect().width)
-  expect(Math.abs(stage - grid)).toBeLessThan(2)
-})
-
+// Кадр обложки нового ролика — poster из сценария (середина первой сцены «Примера»), а не начало первой горячей точки, как у старых
 test('на обложке субтитров нет, после запуска — идут', async ({ page }) => {
-  const poster = day21Script.hotspots[0].from
-  const atPoster = day21Script.cues.find((c) => poster >= c.from && poster < c.to)!
+  const poster = day21Script.poster!
+  expect(poster).toBeGreaterThan(0)
+  // реплика, которая шла бы на кадре обложки, если бы субтитры показывались до запуска
+  const atPoster = day21Script.cues.find((c) => poster >= c.from && poster < c.to)
+  expect(atPoster, `реплика на кадре обложки ${poster}`).toBeDefined()
   await page.goto('/#/day/21')
   const frame = page.locator('.video-frame')
   // кадр обложки уже нарисован, но реплики этого кадра в нём нет
   await expect(frame.locator('svg').first()).toBeVisible()
-  await expect(frame.getByText(atPoster.text)).toHaveCount(0)
+  await expect(frame.getByText(atPoster!.text)).toHaveCount(0)
   await page.getByRole('button', { name: `Смотреть ролик «${VIDEO}»` }).click()
   await expect(frame.getByText(day21Script.cues[0].text)).toBeVisible({ timeout: 5000 })
 })

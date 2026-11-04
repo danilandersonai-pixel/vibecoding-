@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs'
 import { inflateSync } from 'node:zlib'
 import { chapterIndexAt, clock } from '../src/video/chapters'
 import type { VideoScript } from '../video/types'
-import { day21Script } from '../video/day-21/script'
 import ch01Data from '../video/lessons/ch-01/script.gen.json' with { type: 'json' }
 import ch02Data from '../video/lessons/ch-02/script.gen.json' with { type: 'json' }
 import ch03Data from '../video/lessons/ch-03/script.gen.json' with { type: 'json' }
@@ -29,6 +28,7 @@ import day17Data from '../video/lessons/day-17/script.gen.json' with { type: 'js
 import day18Data from '../video/lessons/day-18/script.gen.json' with { type: 'json' }
 import day19Data from '../video/lessons/day-19/script.gen.json' with { type: 'json' }
 import day20Data from '../video/lessons/day-20/script.gen.json' with { type: 'json' }
+import day21Data from '../video/lessons/day-21/script.gen.json' with { type: 'json' }
 import pilotRlsData from '../video/lessons/pilot-rls/script.gen.json' with { type: 'json' }
 import day02 from '../content/days/day-02.json' with { type: 'json' }
 import day03 from '../content/days/day-03.json' with { type: 'json' }
@@ -70,7 +70,7 @@ const chAbcScript = chAbcData as VideoScript
 const ch01Script = ch01Data as VideoScript
 const chapters = chAbcScript.chapters!
 
-// Сценарии роликов дней 2–21 по id ролика (как в video/catalog.ts): новые — снимки script.gen.json, старый день 21 — его script.ts
+// Сценарии роликов дней 2–21 по id ролика (как в video/catalog.ts) — снимки script.gen.json: старых роликов в каталоге больше нет
 const SCRIPTS: Record<string, VideoScript> = {
   'ch-02': ch02Data as VideoScript,
   'ch-12': ch12Data as VideoScript,
@@ -96,7 +96,7 @@ const SCRIPTS: Record<string, VideoScript> = {
   'day-18': day18Data as VideoScript,
   'day-19': day19Data as VideoScript,
   'day-20': day20Data as VideoScript,
-  'day-21': day21Script,
+  'day-21': day21Data as VideoScript,
 }
 type DayJson = { blocks: { type: string; videoId?: string; title?: string }[] }
 const DAYS: Record<number, DayJson> = {
@@ -673,8 +673,8 @@ function agendaParts(figure: Locator) {
   })
 }
 
-// Review Focus 5 недели 1 и Review Focus 3 недели 2: дни 2–21 на телефоне. Дни 2–7 — ролики глав, дни 8–20 — ролики дня,
-// день 21 — старый ролик 1280 × 720 (глав у него нет, списка тоже). Страница не шире
+// Review Focus 5 недели 1 и Review Focus 3 недели 2: дни 2–21 на телефоне. Дни 2–7 — ролики глав, дни 8–21 — ролики дня
+// (старых роликов без глав в курсе больше нет: у каждого ролика — список глав). Страница не шире
 // экрана, списки «Главы ролика» видны и переносятся (длинное название — в несколько строк внутри пункта, а не за край), а первое пояснение первого ролика дня открывается
 // по нажатию на паузе и встаёт под кадром, не закрывая его (как у дня 1 выше). У ролика дня план «Что строим сегодня» перечисляет
 // пункты из lesson.ts, и каждый пункт (перенесённый — обеими строками) стоит в SAFE кадра
@@ -692,8 +692,7 @@ for (const day of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 1
     expect(await fitsWidth(page)).toBe(true)
 
     const withChapters = videos.filter((v) => v.script.chapters?.length)
-    if (day === 21) expect(withChapters).toEqual([])
-    else expect(withChapters).toHaveLength(videos.length)
+    expect(withChapters).toHaveLength(videos.length)
     await expect(page.getByRole('list', { name: 'Главы ролика' })).toHaveCount(withChapters.length)
     for (const { title, script } of withChapters) {
       const list = videoFigure(page, title).getByRole('list', { name: 'Главы ролика' })
@@ -743,7 +742,7 @@ for (const day of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 1
 
     // ролик дня: план в конце своей сцены — пункты из lesson.ts по порядку, все видны и в SAFE кадра (длинный — переносом)
     const dayLesson = script.chapters?.[0]?.title === DAY_TITLES[0]
-    expect(dayLesson).toBe(day >= 8 && day <= 20)
+    expect(dayLesson).toBe(day >= 8 && day <= 21)
     if (dayLesson) {
       const items = agendaItems(script.id)
       await seekAgendaEnd(figure, script)

@@ -4,10 +4,9 @@ import type { VideoScript } from '../../video/types'
 
 export type VideoEntry = { script: VideoScript; load: () => Promise<{ default: ComponentType }>; mp4Url?: string }
 
-// Адреса MP4 в хранилище страницы: появляются после загрузки файла (asset: true).
-const MP4: Record<string, string> = {
-  'day-21': '/_blob/f9ec61423c0a918e7117913e1f4baf49',
-}
+// Адреса MP4 в хранилище страницы: появляются после загрузки файла (asset: true). Были только у старых роликов 1280 × 720,
+// а их в каталоге больше нет; кнопку «Скачать MP4» держит VideoBlock (тесты — на фикстуре old-video.json) до решения об озвучке.
+const MP4: Record<string, string> = {}
 
 // Ролики курса по videoId из блока дня: список берётся из каталога, адреса MP4 — из словаря выше.
 export const videos: Record<string, VideoEntry> = Object.fromEntries(
