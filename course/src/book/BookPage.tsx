@@ -1,4 +1,5 @@
 import { useMemo, useSyncExternalStore } from 'react'
+import { currentTheme } from '../theme'
 import { bookSrcdoc } from './bookFrame'
 import { BookBar, BookNote } from './BookStatus'
 
@@ -51,7 +52,7 @@ const snapshot = () => text
 // Шапка одна и та же, пока книга грузится и после: фокус на «К курсу» не теряется. Ленивый кусок сборки, как экран графа
 export default function BookPage({ section }: { section?: string }) {
   const book = useSyncExternalStore(subscribe, snapshot)
-  const doc = useMemo(() => (book.status === 'ready' ? bookSrcdoc(book.html, section) : ''), [book, section])
+  const doc = useMemo(() => (book.status === 'ready' ? bookSrcdoc(book.html, section, currentTheme()) : ''), [book, section])
   return (
     <div className="book-page">
       <BookBar />

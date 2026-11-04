@@ -36,4 +36,11 @@ describe('bookSrcdoc', () => {
     const other = '<script>const h = location.hash.slice(1);</script>'
     expect(bookSrcdoc(other, 's77')).toBe(other)
   })
+
+  it('тема курса передаётся книге: тёмная по умолчанию, светлая — по выбору ученика', () => {
+    expect(BOOK.startsWith('<!doctype html><html><head>')).toBe(true)
+    expect(bookSrcdoc(BOOK, undefined, 'dark')).toContain('<!doctype html><html data-theme="dark"><head>')
+    expect(bookSrcdoc(BOOK, 's77', 'light')).toContain('<html data-theme="light"><head>')
+    expect(count(bookSrcdoc(BOOK, 's77', 'light'), 'data-theme="light"><head>')).toBe(1)
+  })
 })
