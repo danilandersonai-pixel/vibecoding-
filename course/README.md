@@ -43,7 +43,7 @@ npm run render:all -- day-08 day-09                 # или только пер
 
 Все ролики перечислены в `video/catalog.ts` (название, вид, сценарий, ленивая загрузка сцен): по нему строятся композиции Remotion и реестр сайта `src/video/registry.ts`. Ролик — урок набора «Репозиторий» в `video/lessons/<id>/`: данные в `lesson.ts`, сценарий для сайта — снимок `script.gen.json` (`buildLesson`); тайминги считаются из длины реплик, всё в кадре привязано к началу реплик (правила — `video/term/README.md`).
 
-`render:all` пропускает ролики, у которых MP4 новее файлов ролика и общих деталей (`video/kit`, `video/actors`, `video/lib`, `video/theme.ts`), печатает таблицу «ролик — длительность — МБ» и завершается с ошибкой, если хоть один файл больше 20 МБ (лимит хранилища страницы).
+`render:all` пропускает ролики, у которых MP4 новее файлов урока (`video/lessons/<id>`) и общих деталей (`video/kit`, `video/term`, `video/sessions`, `video/actors`, `video/lib`, `video/theme.ts`), печатает таблицу «ролик — длительность — МБ» и завершается с ошибкой, если хоть один файл больше 20 МБ (лимит хранилища страницы).
 
 Для рендера нужны браузер Chromium (путь — в `scripts/render-video.mjs`, по умолчанию `/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell`) и `ffprobe` из пакета ffmpeg.
 
