@@ -16,7 +16,9 @@ function repeats(ids: string[]): string[] {
 }
 
 // Каждый список — своё пространство id: шаг и пункт наставника могут называться одинаково, два шага — нет.
-// Вопросы теста дня и теста недели — один список
+// Вопросы теста дня и теста недели — один список.
+// Термины дня, вопросы наставника, подписи выборов в узле ситуации и варианты части запроса — тоже id: по ним React
+// ставит ключи списков (Cards, MentorBlock, Scenario, PromptBuilder), а выбор ситуации ещё и запоминается по подписи
 function idProblems(day: Day): string[] {
   const out: string[] = []
   const check = (where: string, ids: string[]) => {
@@ -26,13 +28,19 @@ function idProblems(day: Day): string[] {
   check('вопросы', [...day.quiz, ...day.weekTest].map((q) => q.id))
   check('шаги практики', day.practice.map((s) => s.id))
   check('пункты наставника', day.mentor.checklist.map((c) => c.id))
+  check('вопросы наставника', day.mentor.questions)
+  check('карточки', day.cards)
   for (const b of day.blocks) {
     if (b.type === 'diagram') check(`${b.id}: точки схемы`, b.hotspots.map((h) => h.id))
     if (b.type === 'trainer' && b.kind === 'sort') {
       check(`${b.id}: корзины`, b.buckets.map((x) => x.id))
       check(`${b.id}: карточки`, b.items.map((x) => x.id))
     }
-    if (b.type === 'trainer' && b.kind === 'prompt-builder') check(`${b.id}: части запроса`, b.parts.map((p) => p.key))
+    if (b.type === 'trainer' && b.kind === 'prompt-builder') {
+      check(`${b.id}: части запроса`, b.parts.map((p) => p.key))
+      for (const p of b.parts) check(`${b.id}: варианты части «${p.key}»`, [...p.good, ...p.bad])
+    }
+    if (b.type === 'scenario') for (const [name, node] of Object.entries(b.nodes)) check(`${b.id}: выборы узла «${name}»`, node.choices.map((c) => c.label))
   }
   return out
 }
@@ -127,6 +135,22 @@ describe('проверка уникальности id ловит повтор (
       /pb: части запроса: повтор id «goal»/,
     ],
     ['точка схемы', (d) => (d.blocks.find((b) => b.type === 'diagram')!.hotspots[1].id = 'hall'), /restaurant-map: точки схемы: повтор id «hall»/],
+    ['карточка дня', (d) => d.cards.push(d.cards[0]), /^карточки: повтор id «Фронтенд»$/],
+    [
+      'выбор в узле ситуации',
+      (d) => {
+        const sc = scenarioOf(d)
+        const node = sc.nodes[sc.start]
+        node.choices[1].label = node.choices[0].label
+      },
+      /^pick-model: выборы узла «start»: повтор id «Самую мощную — на все задачи подряд»$/,
+    ],
+    ['вопрос наставника', (d) => d.mentor.questions.push(d.mentor.questions[0]), /^вопросы наставника: повтор id «/],
+    [
+      'вариант части запроса',
+      (d) => d.blocks.push({ type: 'trainer', kind: 'prompt-builder', id: 'pb', task: 'Т', parts: [{ key: 'goal', label: 'Цель', good: ['а'], bad: ['а'] }] }),
+      /^pb: варианты части «goal»: повтор id «а»$/,
+    ],
   ]
   it.each(cases)('повтор: %s', (_, spoil, problem) => {
     const day = day1()

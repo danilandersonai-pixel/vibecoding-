@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -13,8 +13,9 @@ import day7 from '../content/days/day-07.json'
 import { buildMentor } from './build-mentor.mjs'
 
 describe('build-mentor', () => {
+  const daysDir = join(__dirname, '..', 'content', 'days')
   const out = mkdtempSync(join(tmpdir(), 'mentor-'))
-  buildMentor(join(__dirname, '..', 'content', 'days'), out)
+  buildMentor(daysDir, out)
 
   it('пишет чек-лист готового дня со всеми пунктами и вопросами', () => {
     const md = readFileSync(join(out, 'day-01.md'), 'utf8')
@@ -70,9 +71,20 @@ describe('build-mentor', () => {
     for (const auto of ['file', 'tests']) expect(md).toContain(`[auto: ${auto}]`)
   })
 
-  // Дни 2–7 наполняются один за другим, поэтому черновики здесь — из недели 2
-  it('для черновиков файлы не создаёт', () => {
-    expect(existsSync(join(out, 'day-08.md'))).toBe(false)
-    expect(existsSync(join(out, 'day-10.md'))).toBe(false)
+  // Статусы — из самих файлов дней, как их читает скрипт: дни наполняются один за другим, и номера черновиков не зашиты.
+  // Когда черновиков не останется, проверка черновиков пропускается
+  const days = readdirSync(daysDir)
+    .filter((f) => /^day-\d{2}\.json$/.test(f))
+    .map((f) => JSON.parse(readFileSync(join(daysDir, f), 'utf8')) as { id: string; status: string })
+  const ready = days.filter((d) => d.status === 'ready')
+  const drafts = days.filter((d) => d.status !== 'ready')
+
+  it('у каждого готового дня есть чек-лист', () => {
+    expect(ready.length).toBeGreaterThan(0)
+    for (const d of ready) expect(existsSync(join(out, `${d.id}.md`)), d.id).toBe(true)
+  })
+
+  it.skipIf(drafts.length === 0)('для черновиков файлы не создаёт', () => {
+    for (const d of drafts) expect(existsSync(join(out, `${d.id}.md`)), d.id).toBe(false)
   })
 })

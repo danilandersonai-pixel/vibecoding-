@@ -1,8 +1,8 @@
 import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getDay } from '../content/load'
-import { daySummaryLine } from '../course/summary'
+import { getDay, getDays } from '../content/load'
+import { dayVideoSummary, daySummaryLine, formatDuration } from '../course/summary'
 import { DayPage } from '../pages/DayPage'
 import { CourseProgressContext } from '../progress/courseProgress'
 import { emptyProgress, type Progress } from '../progress/model'
@@ -19,6 +19,9 @@ function renderDay(n: number, progress: Progress = emptyProgress()) {
 }
 
 const plan = () => within(screen.getByRole('navigation', { name: 'План дня' }))
+// Первый черновой день из данных: дни наполняются один за другим, и номер черновика меняется.
+// Когда черновиков не останется, проверки чернового дня пропускаются
+const draft = getDays().find((d) => d.status === 'draft')
 const partIds = () => Array.from(document.querySelectorAll('section[id^="part-"]'), (s) => s.id)
 
 // Подменённый IntersectionObserver: запоминает обработчик и наблюдаемые секции; отключение — шпион.
@@ -205,8 +208,8 @@ describe('страница дня', () => {
     expect(plan().getAllByRole('button').map((b) => b.querySelector('.toc-num')!.textContent)).toEqual(['01', '02', '✓', '✓', '✓', '06'])
   })
 
-  it('черновой день 10: одна карточка «Остальное готовится», без «Скоро»', () => {
-    renderDay(10)
+  it.skipIf(!draft)('первый черновой день: одна карточка «Остальное готовится», без «Скоро»', () => {
+    renderDay(draft!.number)
     expect(screen.getAllByText(/Остальное готовится/)).toHaveLength(1)
     expect(screen.getByText('Остальное готовится: проверка понимания, практика и наставник появятся позже.')).toBeInTheDocument()
     expect(screen.queryByText('Скоро')).toBeNull()
@@ -220,7 +223,8 @@ describe('страница дня', () => {
     expect(screen.queryByText('Результат дня')).toBeNull()
     const hero = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
     expect(hero.getAllByRole('term').map((dt) => dt.textContent)).toEqual(['видеоуроки'])
-    expect(hero.getAllByRole('definition').map((dd) => dd.textContent)).toEqual(['1 (2:48)'])
+    const video = dayVideoSummary(draft!)
+    expect(hero.getAllByRole('definition').map((dd) => dd.textContent)).toEqual([`${video.count} (${formatDuration(video.seconds)})`])
     // строка в пунктирной рамке, без «бумаги» и без героя
     const notice = screen.getByText(/Остальное готовится/).closest('.draft-notice')!
     expect(notice).not.toBeNull()
@@ -228,8 +232,8 @@ describe('страница дня', () => {
     expect(notice.querySelectorAll('svg')).toHaveLength(0)
   })
 
-  it('у чернового дня в плане нет счёта «Сделано» и полосы — день ещё нельзя засчитать', () => {
-    renderDay(10)
+  it.skipIf(!draft)('у чернового дня в плане нет счёта «Сделано» и полосы — день ещё нельзя засчитать', () => {
+    renderDay(draft!.number)
     expect(plan().queryByText(/^Сделано/)).toBeNull()
     expect(document.querySelector('.toc-bar')).toBeNull()
     expect(plan().getByRole('button', { name: 'Итог дня' })).toBeEnabled()
