@@ -202,6 +202,8 @@ describe('tokens.css', () => {
       ['--fig-ok', '--desk'],
       // Рамка «Смотреть ещё раз» в конце ролика поверх белого кадра
       ['--term-soft', ['#FBFAF6', ['--term-bg', 0.8]]],
+      // Рамка пояснения на тёмном кадре ролика (кадр всегда тёмный, значения не зависят от темы страницы)
+      ['#E9EBEE', '#141619'],
     ])
   })
 
@@ -214,6 +216,19 @@ describe('tokens.css', () => {
     expect(cssDecls('home.css', '.sitebar').background).toBe('var(--paper)')
     expect(cssDecls('home.css', '.sitebar-cells li.is-now')['box-shadow']).toBe('inset 0 0 0 2px var(--ink)')
     expect(cssDecls('video.css', '.video-end .btn')['border-color']).toBe('var(--term-soft)')
+    // Полоса глав под перемоткой: непройденная часть — --edge (3 : 1 к фону страницы), пройденная — --ink
+    expect(cssDecls('video.css', '.video-seek-chapter').background).toBe('linear-gradient(90deg,var(--ink) var(--fill,0%),var(--edge) var(--fill,0%))')
+    // Рамка пояснения (outline снаружи зоны): на светлом кадре старых роликов тёмная, на тёмном кадре новых — светлая
+    expect(cssDecls('video.css', '.video-hotspot').outline).toBe('2px solid #16181B')
+    expect(cssDecls('video.css', '.hotspot-layer.is-dark .video-hotspot')['outline-color']).toBe('#E9EBEE')
+    // Кольцо фокуса зоны на тёмном кадре — светлое в обеих темах страницы (общее кольцо в светлой теме тёмное и на кадре пропало бы)
+    expect(cssDecls('video.css', '.hotspot-layer.is-dark .video-hotspot:focus-visible')['outline-color']).toBe('#E9EBEE')
+    expect(cssDecls('video.css', '.hotspot-layer.is-dark .video-hotspot:focus-visible')['box-shadow']).toBe('0 0 0 6px #141619,0 0 0 8px #E9EBEE')
+    // Сцена до загрузки кода ролика: у новых — тёмный фон кадра (--desk тёмной темы), у старых — бумага роликов
+    expect(cssDecls('video.css', '.video-stage.is-dark').background).toBe('#141619')
+    // Название главы уходит на свою строку, если рядом с ним меньше 9em, а не сжимается до «2/…»
+    // (в узком окне ≤ 600 px подпись всегда на своей строке — flex:1 1 100% в @media, поэтому смотрим на текст основного правила)
+    expect(read(resolve(here, 'video.css'))).toContain('.video-chapter{flex:1 1 9em;')
     expect(cssDecls('video.css', '.video-end').background).toBe('color-mix(in srgb,var(--term-bg) 80%,transparent)')
     expect(cssDecls('base.css', '.btn-primary:hover:not(:disabled)').background).toBe('color-mix(in srgb,var(--ink) 86%,var(--desk))')
   })
@@ -233,6 +248,16 @@ describe('tokens.css', () => {
     }
     expect(cssDecls('search.css', '.search-layer').background).toBe('var(--scrim)')
     expect(cssDecls('base.css', '.paper').background).toBe('var(--paper)')
+  })
+
+  it('фон тёмной сцены не перекрывает фон «Ролик не загрузился»: правило стоит в файле раньше', () => {
+    // Равная специфичность (.video-stage.is-dark и .video-stage:has(.video-failed)) — побеждает более позднее правило;
+    // иначе в светлой теме страницы серый текст сообщения попал бы на тёмный фон
+    const src = read(resolve(here, 'video.css'))
+    const dark = src.indexOf('.video-stage.is-dark{')
+    const failed = src.indexOf('.video-stage:has(.video-failed){')
+    expect(dark).toBeGreaterThan(-1)
+    expect(failed).toBeGreaterThan(dark)
   })
 
   it('метки обложки ролика — светлый текст на плашке терминала 88 %: читаются даже на белом кадре', () => {

@@ -1,0 +1,7 @@
+import type { VideoScript } from '../../types'
+import data from './script.gen.json'
+
+// Сценарий ролика ch-11 для сайта — снимок buildLesson(ch11).script: lesson.test.ts сверяет его со сборкой, поэтому
+// JSON (у него fps: number, а не 30) приводится к VideoScript. Записи сессий и код кадров в основной файл сайта не попадают:
+// они в ленивом куске ролика (Video.tsx).
+export const ch11Script = data as VideoScript

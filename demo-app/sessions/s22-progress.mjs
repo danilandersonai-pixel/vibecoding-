@@ -1,0 +1,1475 @@
+// Сессия 22: замеры и фото прогресса (утро 13 ноября; база — из миграций и seed, db: true). Третья сессия недели 3, ролик дня 17.
+// Первый шаг typegen (npx next typegen): в состоянии сессии нет папки .next, а tsc ищет типы маршрутов Next (как в s13, s19–s21).
+// Замеры (Accept edits): 0011_measurements.sql — день, вес, талия и бёдра, проверки > 0, один замер в день; RLS сразу, в той же
+// миграции (урок дня 11: таблица из SQL без RLS открыта любому вошедшему). psql -f — с подтверждения. Страница /measurements —
+// строки по датам и форма (дата вписывается в форме, настоящих часов нет), действие — свой файл; на карточке подопечного у тренера —
+// строки по датам. Тест с базой test/measurements.test.ts, как test/nutrition.test.ts: Света замеры Анны не видит и не пишет —
+// зелёный с первого раза. Человек ставит «Замеры» в меню подопечного и в e2e/first-run.spec.ts (меню s20 тест знает дословно).
+// С s23 миграции 0011 и 0012 применяет рекордер.
+// Данные кадра — файл человека supabase/tests/measurements.sql: четыре замера Анны 16, 23, 30 октября и 6 ноября; psql -f.
+// Фото «просто» (Accept edits): 0012_photos.sql — подопечный, день, путь, RLS сразу; POST /api/photos кладёт снимок в
+// public/uploads/<подопечный>/<день>.jpg и пишет строку с адресом /uploads/…; на странице замеров и на карточке — ссылки на снимки.
+// Подводный камень — настоящий вывод (проверен черновым прогоном): Анна входит curl (cookie — в файле вне проекта, ~ — домашняя папка
+// записи, ловушка 19), снимок — convert 600 × 800 серого, тоже вне проекта; загрузка curl -F (браузер записи файл не выберет).
+// curl -sI /uploads/1/2026-11-13.jpg без cookie — «HTTP/1.1 200 OK» и «Content-Type: image/jpeg»: next dev отдаёт всё, что в public,
+// любому, и файл, добавленный при запущенном сервере, тоже; адрес угадывается — номер подопечного и дата (IDOR, s48). RLS закрыла
+// строку, а файл лежит отдельно. git status --short — «?? public/uploads/»: снимки людей просятся в коммит (ср. backups/ в s19).
+// Из заголовков curl -sI в кадр идут строка статуса и Content-Type (| grep): в Date и Last-Modified — настоящие часы записи.
+// Исправление — сначала тест test/photos.test.ts: маршруты app/api/photos вызываются, как их вызывает сервер, вход подменён
+// (vi.mock currentUser); для импортов «@/…» в vitest — resolve.tsconfigPaths (pr-vitest). Красный на самой беде: в public появился
+// снимок теста, PNG под именем photo.jpg загрузка приняла (тип из запроса ставит клиент), маршрута по id нет. Вторым ходом («Делай»):
+// файлы — в storage/photos/<подопечный>/<день>.jpg, вне public и вне git (/storage/ в .gitignore); путь собирает lib/photos.ts из
+// номера подопечного и дня — строке пути из базы файлы не доверяют; загрузка — JPEG по первым байтам FF D8 FF, до 10 МБ (больше — 413);
+// GET /api/photos/[id] — без входа 401, строку ищет asUser (RLS: подопечный и его тренер), чужим (Света, Игорь, Олег) 404, строка
+// без файла — тоже 404, а не 500, ответ — с nosniff; DELETE — строка и файл одной транзакцией; ссылки страниц — на /api/photos/<id>;
+// папка public/uploads удаляется буквальным путём. Тест зелёный.
+// turbopackIgnore в пути к storage/ — из чернового прогона: по вычисленному пути next build иначе прикладывает к серверной сборке
+// файлы storage/ (снимки людей), а по пути из базы — весь проект, с backups/.
+// Проверки: тот же снимок — новый адрес /api/photos/1 (один снимок в день: строка та же); git status --short молчит — снимок на диске,
+// а в git не просится (photo-git2); curl без cookie — 401, cookie Светы — 404,
+// cookie Марины — 200 и image/jpeg; старый /uploads/… — 404. Марина на карточке видит замеры Анны по датам и снимок; Анна удаляет
+// снимок curl -X DELETE — в storage/photos/1 пусто, строк в photos — 0.
+// Сверх таблицы плана (шаг — один файл): m-actions (действие формы замеров), ph-coach (снимки на карточке — их видит тренер),
+// pr-vitest (импорты «@/…» в тесте), pr-lib (где лежат снимки — для загрузки, выдачи и удаления), pr-page и pr-coach (ссылки на
+// /api/photos/<id>), photo-git2 («Верно» для git status); m-nav и m-e2e — правки человека (меню
+// подопечного и его сквозной тест): в окне агента ask-measure им нет места; ask-private-go — второй ход агента («Делай», как
+// ask-first-go в s20): одиннадцать шагов в одно окно не помещаются; anna-logout — перед входом Марины Анна выходит через меню, как
+// natasha-logout в s20.
+// Файлы людей — вне git: ни в одном коммите сессии нет public/uploads/, storage/, backups/, cookie и снимка.
+// Запись с середины цепочки: node scripts/record-session.mjs --from s22-progress (из course/). Id шагов постоянные: на них ссылаются уроки.
+// Режимы в ролике: все запросы — Accept edits (правки без вопроса, psql, vitest и rm — с вопросом [y / n]).
+// Разработчица в репликах агента и в документах по имени не названа: подопечная тоже Анна.
+
+// Схема замеров — пишет агент: вес, талия и бёдра по датам, проверки > 0, один замер в день; RLS сразу, в той же миграции
+// (урок 0006/0007). Имена политик по-русски короче 63 байт, как в 0002
+const MEASURE_SQL = `-- Замеры тела подопечного по датам: вес, талия и бёдра. Это данные о здоровье, поэтому RLS включается здесь же, сразу:
+-- таблица из SQL без RLS открыта любому вошедшему (так было с comments: в 0006 Света видела комментарии Анны).
+
+-- Замер за день: вес, кг; талия и бёдра, см — все больше нуля. За один день — один замер
+create table measurements (
+  id bigint generated by default as identity primary key,
+  client_id bigint not null references clients (id),
+  day date not null,
+  weight numeric not null check (weight > 0),
+  waist numeric not null check (waist > 0),
+  hips numeric not null check (hips > 0),
+  unique (client_id, day)
+);
+
+alter table measurements enable row level security;
+
+-- Подопечный ведёт свои замеры — пишет, читает, правит и удаляет; тренер замеры своих подопечных только читает
+create policy "подопечный ведёт свои замеры" on measurements
+  for all to authenticated
+  using (client_id in (select id from clients where user_id = auth.uid()))
+  with check (client_id in (select id from clients where user_id = auth.uid()));
+create policy "тренер видит замеры своих" on measurements
+  for select to authenticated using (client_id in (select id from clients where coach_id = auth.uid()));
+`
+
+// Страница замеров подопечного — пишет агент: строки по датам и форма; дата — из формы, от сегодняшнего дня страница не зависит.
+// Тренеру — что замеры ведёт подопечный
+const MEASURE_PAGE = `import type { Metadata } from "next";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { formatDay } from "@/lib/dates";
+import { asUser } from "@/lib/db";
+import { currentUser } from "@/lib/session";
+import { addMeasurement } from "./actions";
+
+export const metadata: Metadata = { title: "Замеры" };
+
+// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки
+export const instant = false;
+
+// День «ГГГГ-ММ-ДД» по-русски: «16 октября» (полночь по времени сервера — formatDay покажет тот же день)
+const dayOf = (day: string) => formatDay(new Date(\`\${day}T00:00\`));
+// Число по-русски, с запятой: 64,8
+const num = (value: number) => value.toLocaleString("ru-RU");
+
+// Замер: день и числа — вес, кг; талия и бёдра, см
+type Measurement = { id: string; day: string; weight: number; waist: number; hips: number };
+
+// Поля замера: имя в форме и подпись
+const FIELDS: [name: string, label: string][] = [
+  ["weight", "Вес, кг"],
+  ["waist", "Талия, см"],
+  ["hips", "Бёдра, см"],
+];
+
+// Замеры вошедшего подопечного по датам и форма нового замера. Дату вписывают в форме: от сегодняшнего дня страница не зависит.
+// Замеры ведёт подопечный, тренер видит их на карточке подопечного. Чужие замеры база не отдаст (RLS)
+export default async function MeasurementsPage({ searchParams }: PageProps<"/measurements">) {
+  const uid = await currentUser();
+  if (!uid) redirect("/login");
+  const { error } = await searchParams;
+
+  const measurements = await asUser(uid, async (db) => {
+    // замеры есть только у подопечного: вошедший — подопечный, если у него есть строка в clients
+    const client = await db.query<{ id: string }>("select id from clients where user_id = $1", [uid]);
+    if (client.rows.length === 0) return null;
+    // значения из numeric — числами (float8)
+    const { rows } = await db.query<Measurement>(
+      \`select id, day::text as day, weight::float8 as weight, waist::float8 as waist, hips::float8 as hips
+         from measurements
+        where client_id = $1
+        order by day\`,
+      [client.rows[0].id],
+    );
+    return rows;
+  });
+
+  if (!measurements) {
+    return (
+      <main className="mx-auto w-full max-w-md p-8">
+        <h1 className="text-3xl font-semibold">Замеры</h1>
+        <p className="mt-6">Замеры ведёт подопечный. Его замеры по датам — на карточке подопечного.</p>
+        <Link href="/clients" className="mt-4 inline-block rounded bg-zinc-900 px-4 py-2 text-white">
+          К подопечным
+        </Link>
+      </main>
+    );
+  }
+
+  return (
+    <main className="mx-auto w-full max-w-md p-8">
+      <h1 className="text-3xl font-semibold">Замеры</h1>
+
+      {measurements.length === 0 ? (
+        <section className="mt-6 rounded border border-zinc-300 p-4">
+          <h2 className="text-xl font-semibold">Замеров пока нет</h2>
+          <p className="mt-2 text-zinc-500">Здесь будут вес, талия и бёдра по датам: видно, как меняется тело, даже когда вес стоит.</p>
+          <p className="mt-2">Запишите первый замер ниже: дату и три числа.</p>
+        </section>
+      ) : (
+        <ul className="mt-6 flex flex-col gap-2">
+          {measurements.map((m) => (
+            <li key={m.id}>
+              {dayOf(m.day)}: вес {num(m.weight)} кг, талия {num(m.waist)} см, бёдра {num(m.hips)} см
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form action={addMeasurement} className="mt-8 flex flex-col gap-4">
+        <h2 className="text-xl font-semibold">Новый замер</h2>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="day">Дата</label>
+          <input id="day" name="day" type="date" required className="rounded border border-zinc-300 px-3 py-2" />
+        </div>
+        {FIELDS.map(([name, label]) => (
+          <div key={name} className="flex flex-col gap-1">
+            <label htmlFor={name}>{label}</label>
+            <input id={name} name={name} inputMode="decimal" required className="rounded border border-zinc-300 px-3 py-2" />
+          </div>
+        ))}
+        <button type="submit" className="rounded bg-zinc-900 px-4 py-2 text-white">
+          Записать
+        </button>
+      </form>
+
+      {typeof error === "string" && (
+        <p role="alert" className="mt-4 text-red-600">
+          {error}
+        </p>
+      )}
+    </main>
+  );
+}
+`
+
+// Новый замер — пишет агент: день — isDay, числа — parseAmount из lib/nutrition.ts («64,8» с запятой); за день — один замер
+const MEASURE_ACTIONS = `"use server";
+
+import { redirect } from "next/navigation";
+import { asUser } from "@/lib/db";
+import { isDay, parseAmount } from "@/lib/nutrition";
+import { currentUser } from "@/lib/session";
+
+// Новый замер вошедшего подопечного: дата из формы и три числа — вес, кг; талия и бёдра, см («64,8» с запятой тоже число,
+// как parseAmount в дневнике питания). За один день — один замер: новый заменяет прежний.
+// Запрос идёт от имени вошедшего: записать замер чужому не даст RLS (политика «подопечный ведёт свои замеры»)
+export async function addMeasurement(form: FormData) {
+  const uid = await currentUser();
+  if (!uid) redirect("/login");
+  // ошибку страница покажет под формой: её текст — в адресе
+  const fail = (error: string) => \`/measurements?error=\${encodeURIComponent(error)}\`;
+
+  const day = String(form.get("day") ?? "");
+  if (!isDay(day)) redirect(fail("Дата замера — день из календаря"));
+  const [weight, waist, hips] = ["weight", "waist", "hips"].map((name) => parseAmount(String(form.get(name) ?? "")));
+  // parseAmount пропускает 0, а замер — больше нуля
+  if (!weight || !waist || !hips) redirect(fail("Вес, талия и бёдра — числа больше нуля, например 64,8"));
+
+  // замер — в строку вошедшего подопечного; у тренера строки в clients нет, и не запишется ничего
+  const { rowCount } = await asUser(uid, (db) =>
+    db.query(
+      \`insert into measurements (client_id, day, weight, waist, hips)
+       select id, $2::date, $3::numeric, $4::numeric, $5::numeric from clients where user_id = $1
+       on conflict (client_id, day) do update set weight = excluded.weight, waist = excluded.waist, hips = excluded.hips\`,
+      [uid, day, weight, waist, hips],
+    ),
+  );
+  if (rowCount === 0) redirect(fail("Замеры ведёт подопечный"));
+  // страница заново — с новым замером и без прежней ошибки в адресе
+  redirect("/measurements");
+}
+`
+
+// Карточка подопечного после s21 — дословно, как в состоянии s21-nutrition
+const CLIENT_PAGE = `import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { addComment } from "@/app/workouts/[id]/comments";
+import Comments, { type WorkoutComment } from "@/components/Comments";
+import ProgressChart from "@/components/ProgressChart";
+import SetList from "@/components/SetList";
+import { formatDay } from "@/lib/dates";
+import { asUser } from "@/lib/db";
+import { daySummary, isDay, type FoodEntry } from "@/lib/nutrition";
+import { progress } from "@/lib/progress";
+import { currentUser } from "@/lib/session";
+import { volume } from "@/lib/volume";
+import { assignWorkout, saveGoals } from "./actions";
+
+export const metadata: Metadata = { title: "Подопечный" };
+
+// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки
+export const instant = false;
+
+// Тренировка подопечного с подходами: id подхода из json_agg — число
+type Workout = { id: string; title: string; day: Date; sets: { id: number; weight: number; reps: number }[] };
+// Цели на день: ккал, белки, жиры и углеводы, г
+type Goals = { kcal: number; protein: number; fat: number; carbs: number };
+// День недели в сводке питания: ГГГГ-ММ-ДД и записи дневника за этот день (значения из json — числа)
+type NutritionDay = { day: string; entries: FoodEntry[] };
+
+// День «ГГГГ-ММ-ДД» по-русски: «12 ноября» (полночь по времени сервера — formatDay покажет тот же день)
+const dayOf = (day: string) => formatDay(new Date(\`\${day}T00:00\`));
+
+// Поля целей: имя в форме, подпись и границы — как в 0010_nutrition.sql
+const GOALS: [name: keyof Goals, label: string, min: number, max: number][] = [
+  ["kcal", "Ккал", 1, 10000],
+  ["protein", "Белки, г", 0, 1000],
+  ["fat", "Жиры, г", 0, 1000],
+  ["carbs", "Углеводы, г", 0, 1000],
+];
+
+// Карточка подопечного по id из адреса: имя; питание — цели на день и сводка недели из адреса (?week=ГГГГ-ММ-ДД, неделя
+// с понедельника — docs/nutrition.md); форма «Назначить» и тренировки с подходами, объёмом и комментариями
+export default async function ClientPage({ params, searchParams }: PageProps<"/clients/[id]">) {
+  const uid = await currentUser();
+  if (!uid) redirect("/login");
+  const { id } = await params;
+  const { week, error } = await searchParams;
+  // неделя — из адреса, от сегодняшней даты сводка не зависит; дня нет в календаре — страница так и говорит
+  const weekDay = typeof week === "string" && isDay(week) ? week : null;
+  const badWeek = typeof week === "string" && week !== "" && !weekDay ? week : null;
+  const card = await asUser(uid, async (db) => {
+    const client = await db.query<{ name: string }>("select name from clients where id = $1", [id]);
+    // тренировки с подходами одним запросом: left join берёт и тренировки без подходов, json_agg собирает подходы в массив
+    const workouts = await db.query<Workout>(
+      \`select w.id, w.title, w.day, coalesce(json_agg(s order by s.id) filter (where s.id is not null), '[]') as sets
+         from workouts w left join sets s on s.workout_id = w.id
+        where w.client_id = $1
+        group by w.id
+        order by w.day\`,
+      [id],
+    );
+    // комментарии к тренировкам подопечного одним запросом: автор — подопечный (его имя) или тренер
+    const comments = await db.query<WorkoutComment & { workout_id: string }>(
+      \`select cm.id, cm.workout_id, cm.body, case when cm.author_id = c.user_id then c.name else 'Тренер' end as author
+         from comments cm
+         join workouts w on w.id = cm.workout_id
+         join clients c on c.id = w.client_id
+        where w.client_id = $1
+        order by cm.id\`,
+      [id],
+    );
+    // цели на день — одна строка на подопечного (0010_nutrition.sql)
+    const goals = await db.query<Goals>("select kcal, protein, fat, carbs from nutrition_goals where client_id = $1", [id]);
+    // неделя из адреса: с понедельника той недели, где день weekDay, семь дней, у каждого — записи дневника.
+    // Дни считает база: понедельник — день минус (номер дня недели − 1), дальше + 0 … 6
+    const days = weekDay
+      ? await db.query<NutritionDay>(
+          \`select d.day::text as day,
+                  coalesce(json_agg(json_build_object('grams', f.grams, 'kcal', f.kcal, 'protein', f.protein, 'fat', f.fat,
+                                                      'carbs', f.carbs) order by f.id) filter (where f.id is not null), '[]') as entries
+             from (select $2::date - (extract(isodow from $2::date)::int - 1) + n as day from generate_series(0, 6) as n) d
+             left join food_entries f on f.client_id = $1 and f.day = d.day
+            group by d.day
+            order by d.day\`,
+          [id, weekDay],
+        )
+      : null;
+    // без недели в адресе — недели, за которые есть записи: понедельник каждой
+    const weeks = await db.query<{ week: string }>(
+      \`select distinct (day - (extract(isodow from day)::int - 1))::text as week
+         from food_entries where client_id = $1
+        order by week desc\`,
+      [id],
+    );
+    return client.rows.length > 0
+      ? {
+          name: client.rows[0].name,
+          workouts: workouts.rows,
+          comments: comments.rows,
+          goals: goals.rows[0],
+          days: days?.rows,
+          weeks: weeks.rows.map((row) => row.week),
+        }
+      : null;
+  });
+  if (!card) notFound();
+  // поля приходят из формы, а id подопечного действие получает отсюда
+  const assign = assignWorkout.bind(null, id);
+  const setGoals = saveGoals.bind(null, id);
+  const goals = card.goals;
+  // комментарии одной тренировки
+  const commentsOf = (workoutId: string) => card.comments.filter((comment) => comment.workout_id === workoutId);
+
+  return (
+    <main className="mx-auto w-full max-w-md p-8">
+      <h1 className="text-3xl font-semibold">{card.name}</h1>
+
+      <section className="mt-6">
+        <h2 className="text-xl font-semibold">Питание</h2>
+        <p className="mt-2 text-zinc-500">
+          {goals
+            ? \`Цель на день: \${goals.kcal} ккал, белки \${goals.protein} г, жиры \${goals.fat} г, углеводы \${goals.carbs} г\`
+            : "Целей на день пока нет"}
+        </p>
+        <form action={setGoals} className="mt-4 flex flex-col gap-4">
+          {GOALS.map(([name, label, min, max]) => (
+            <div key={name} className="flex flex-col gap-1">
+              <label htmlFor={name}>{label}</label>
+              <input
+                id={name}
+                name={name}
+                type="number"
+                min={min}
+                max={max}
+                required
+                defaultValue={goals?.[name]}
+                className="rounded border border-zinc-300 px-3 py-2"
+              />
+            </div>
+          ))}
+          <button type="submit" className="rounded bg-zinc-900 px-4 py-2 text-white">
+            Сохранить
+          </button>
+        </form>
+        {typeof error === "string" && (
+          <p role="alert" className="mt-4 text-red-600">
+            {error}
+          </p>
+        )}
+
+        {badWeek && (
+          <p role="alert" className="mt-6 text-red-600">
+            Дня «{badWeek}» в календаре нет — выберите неделю ниже.
+          </p>
+        )}
+        {card.days ? (
+          <>
+            <h3 className="mt-6 font-semibold">Неделя с {dayOf(card.days[0].day)}</h3>
+            <ul className="mt-2 flex flex-col gap-2">
+              {card.days.map(({ day, entries }) => {
+                if (entries.length === 0) {
+                  return (
+                    <li key={day} className="text-zinc-500">
+                      {dayOf(day)}: нет записей
+                    </li>
+                  );
+                }
+                // итоги дня — daySummary: dayTotal и одно округление; у каждого числа — единица
+                const sum = daySummary(entries);
+                return (
+                  <li key={day}>
+                    {dayOf(day)}: {sum.kcal} ккал{goals && \` из \${goals.kcal} ккал\`}
+                    <span className="block text-sm text-zinc-500">
+                      белки {sum.protein} г{goals && \` из \${goals.protein} г\`}, жиры {sum.fat} г{goals && \` из \${goals.fat} г\`}, углеводы{" "}
+                      {sum.carbs} г{goals && \` из \${goals.carbs} г\`}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        ) : card.weeks.length === 0 ? (
+          <p className="mt-6 text-zinc-500">Записей в дневнике пока нет: подопечный ведёт его сам, в разделе «Питание».</p>
+        ) : (
+          <ul className="mt-6 flex flex-col gap-2">
+            {card.weeks.map((start) => (
+              <li key={start}>
+                <Link href={\`/clients/\${id}?week=\${start}\`} className="underline">
+                  Неделя с {dayOf(start)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <form action={assign} className="mt-6 flex flex-col gap-4">
+        <h2 className="text-xl font-semibold">Новая тренировка</h2>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="title">Название</label>
+          <input
+            id="title"
+            name="title"
+            required
+            className="rounded border border-zinc-300 px-3 py-2"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="day">Дата</label>
+          <input
+            id="day"
+            name="day"
+            type="date"
+            required
+            className="rounded border border-zinc-300 px-3 py-2"
+          />
+        </div>
+        <button type="submit" className="rounded bg-zinc-900 px-4 py-2 text-white">
+          Назначить
+        </button>
+      </form>
+
+      <h2 className="mt-8 text-xl font-semibold">Тренировки</h2>
+      {card.workouts.length === 0 ? (
+        <p className="mt-2 text-zinc-500">Тренировок пока нет</p>
+      ) : (
+        <ul className="mt-2 flex flex-col gap-3">
+          {card.workouts.map((workout) => (
+            <li key={workout.id}>
+              <Link href={\`/workouts/\${workout.id}\`} className="font-semibold underline">
+                {workout.title}
+              </Link>
+              <p className="text-sm text-zinc-500">{formatDay(workout.day)}</p>
+              <SetList sets={workout.sets} className="mt-1 text-sm" />
+              <p className="text-sm font-medium">Объём, кг: {volume(workout.sets)}</p>
+              {/* под тренировкой, где подопечный написал, — его комментарии и ответ тренера; после отправки — снова эта карточка */}
+              {commentsOf(workout.id).length > 0 && (
+                <Comments
+                  comments={commentsOf(workout.id)}
+                  action={addComment.bind(null, workout.id, \`/clients/\${id}\`)}
+                  className="mt-2 text-sm"
+                />
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <ProgressChart data={progress(card.workouts)} />
+    </main>
+  );
+}
+`
+
+// Карточка подопечного — правка агента (m-coach): замеры по датам — над питанием; тренер их только читает
+const CLIENT_PAGE_MEASURE = chain(CLIENT_PAGE, [
+  [
+    `type NutritionDay = { day: string; entries: FoodEntry[] };
+
+`,
+    `type NutritionDay = { day: string; entries: FoodEntry[] };
+// Замер: день и числа — вес, кг; талия и бёдра, см
+type Measurement = { id: string; day: string; weight: number; waist: number; hips: number };
+
+`,
+  ],
+  [
+    `const dayOf = (day: string) => formatDay(new Date(\`\${day}T00:00\`));
+
+`,
+    `const dayOf = (day: string) => formatDay(new Date(\`\${day}T00:00\`));
+// Число по-русски, с запятой: 64,8
+const num = (value: number) => value.toLocaleString("ru-RU");
+
+`,
+  ],
+  [
+    `
+// Карточка подопечного по id из адреса: имя; питание — цели на день и сводка недели из адреса (?week=ГГГГ-ММ-ДД, неделя
+// с понедельника — docs/nutrition.md); форма «Назначить» и тренировки с подходами, объёмом и комментариями
+export default async function ClientPage({ params, searchParams }: PageProps<"/clients/[id]">) {
+`,
+    `
+// Карточка подопечного по id из адреса: имя; замеры по датам; питание — цели на день и сводка недели из адреса (?week=ГГГГ-ММ-ДД,
+// неделя с понедельника — docs/nutrition.md); форма «Назначить» и тренировки с подходами, объёмом и комментариями
+export default async function ClientPage({ params, searchParams }: PageProps<"/clients/[id]">) {
+`,
+  ],
+  [
+    `      : null;
+    // без недели в адресе — недели, за которые есть записи: понедельник каждой
+`,
+    `      : null;
+    // замеры подопечного по датам (0011_measurements.sql): записывает их подопечный, тренер только читает
+    const measurements = await db.query<Measurement>(
+      \`select id, day::text as day, weight::float8 as weight, waist::float8 as waist, hips::float8 as hips
+         from measurements
+        where client_id = $1
+        order by day\`,
+      [id],
+    );
+    // без недели в адресе — недели, за которые есть записи: понедельник каждой
+`,
+  ],
+  [
+    `          comments: comments.rows,
+          goals: goals.rows[0],
+`,
+    `          comments: comments.rows,
+          measurements: measurements.rows,
+          goals: goals.rows[0],
+`,
+  ],
+  [
+    `      <h1 className="text-3xl font-semibold">{card.name}</h1>
+
+`,
+    `      <h1 className="text-3xl font-semibold">{card.name}</h1>
+
+      <section className="mt-6">
+        <h2 className="text-xl font-semibold">Замеры</h2>
+        {card.measurements.length === 0 ? (
+          <p className="mt-2 text-zinc-500">Замеров пока нет: подопечный записывает их сам, в разделе «Замеры».</p>
+        ) : (
+          <ul className="mt-2 flex flex-col gap-1">
+            {card.measurements.map((m) => (
+              <li key={m.id}>
+                {dayOf(m.day)}: вес {num(m.weight)} кг, талия {num(m.waist)} см, бёдра {num(m.hips)} см
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+`,
+  ],
+])
+
+// Разделы меню (s21) — дословно; правка человека (m-nav): у подопечного — «Замеры»
+const NAV_LINKS = `// Разделы по роли: тренеру — подопечные, программы и отчёт, подопечному — его тренировки и дневник питания
+const LINKS: Record<string, [href: string, label: string][]> = {
+  coach: [
+    ["/clients", "Подопечные"],
+    ["/programs", "Программы"],
+    ["/report", "Отчёт"],
+  ],
+  client: [
+    ["/workouts", "Мои тренировки"],
+    ["/nutrition", "Питание"],
+  ],
+};
+`
+
+// У подопечного в меню — «Замеры»
+const NAV_LINKS_MEASURE = `// Разделы по роли: тренеру — подопечные, программы и отчёт, подопечному — его тренировки, дневник питания и замеры
+const LINKS: Record<string, [href: string, label: string][]> = {
+  coach: [
+    ["/clients", "Подопечные"],
+    ["/programs", "Программы"],
+    ["/report", "Отчёт"],
+  ],
+  client: [
+    ["/workouts", "Мои тренировки"],
+    ["/nutrition", "Питание"],
+    ["/measurements", "Замеры"],
+  ],
+};
+`
+
+// Меню подопечного в сквозном тесте s20 (после s21) — дословно; правка человека (m-e2e): меню длиннее — тест знает о «Замерах».
+// Запустить его здесь нельзя: Наташи и Веры в базе этой сессии нет (база сбрасывается), общий прогон — в s26
+const VERA_MENU = `  await expect(menu.getByRole("link")).toHaveText(["Мои тренировки", "Питание"]);
+`
+
+// Меню подопечного в сквозном тесте — с «Замерами»
+const VERA_MENU_MEASURE = `  await expect(menu.getByRole("link")).toHaveText(["Мои тренировки", "Питание", "Замеры"]);
+`
+
+// Тест с базой — пишет агент, по образцу test/nutrition.test.ts: Анна пишет свой замер, Марина видит, Света не видит и записать не может
+const MEASURE_DB_TEST = `// @vitest-environment node
+// Негативный тест: замеры тела Анны — данные о здоровье — видят она и её тренер Марина, а Света, подопечная Игоря, — нет;
+// записать замер Анне Света тоже не может.
+// Права проверяет база (RLS, supabase/migrations/0011_measurements.sql): запросы идут от имени разных людей, как в asUser из lib/db.ts.
+// Данные тест создаёт сам в одной транзакции и в конце откатывает (rollback): в базе после него ничего не остаётся.
+// Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения, как у test/rls.test.ts.
+import type { PoolClient } from "pg";
+import { afterAll, expect, test } from "vitest";
+import { pool } from "../lib/db";
+
+// id из supabase/seed.sql: Марина — тренер Анны, Света — подопечная Игоря; Анна в clients — id 1
+const MARINA = "11111111-1111-1111-1111-111111111111";
+const ANNA = "33333333-3333-3333-3333-333333333333";
+const SVETA = "55555555-5555-5555-5555-555555555555";
+const ANNA_CLIENT = 1;
+// замер за 13 ноября: вес 64,1 кг, талия 71,5 см, бёдра 97 см
+const INSERT = \`insert into measurements (client_id, day, weight, waist, hips) values ($1, '2026-11-13', 64.1, 71.5, 97)\`;
+
+afterAll(() => pool.end());
+
+// Запросы fn в одной транзакции с откатом; as(uid) — дальше от имени uid: роль authenticated и sub в request.jwt.claims
+async function rolledBack<T>(fn: (db: PoolClient, as: (uid: string) => Promise<void>) => Promise<T>): Promise<T> {
+  const db = await pool.connect();
+  const as = async (uid: string) => {
+    await db.query("set local role authenticated");
+    await db.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify({ sub: uid, role: "authenticated" })]);
+  };
+  try {
+    await db.query("begin");
+    return await fn(db, as);
+  } finally {
+    await db.query("rollback");
+    db.release();
+  }
+}
+
+// Анна записывает свой замер, затем reader читает замеры Анны: дни замеров
+const measurementsSeenBy = (reader: string) =>
+  rolledBack(async (db, as) => {
+    await as(ANNA);
+    await db.query(INSERT, [ANNA_CLIENT]);
+    await as(reader);
+    const { rows } = await db.query<{ day: string }>("select day::text as day from measurements where client_id = $1", [ANNA_CLIENT]);
+    return rows.map((row) => row.day);
+  });
+
+// у Анны могут быть и замеры из приложения — проверяем замер теста, а не точный состав
+test("Анна записывает свой замер и видит его", async () => {
+  expect(await measurementsSeenBy(ANNA)).toContain("2026-11-13");
+});
+
+test("Марина, тренер Анны, видит её замеры", async () => {
+  expect(await measurementsSeenBy(MARINA)).toContain("2026-11-13");
+});
+
+test("Света, подопечная Игоря, не видит замеры Анны", async () => {
+  expect(await measurementsSeenBy(SVETA)).toEqual([]);
+});
+
+test("Света не может записать замер Анне", async () => {
+  const write = rolledBack(async (db, as) => {
+    await as(SVETA);
+    await db.query(INSERT, [ANNA_CLIENT]);
+  });
+  await expect(write).rejects.toThrow("row-level security");
+});
+`
+
+// Замеры Анны — пишет человек: четыре пятницы, 16, 23, 30 октября и 6 ноября. Даты — в файле, настоящих часов в кадре нет
+const MEASURE_DATA = `-- Замеры Анны (подопечная 1 в seed.sql) за четыре недели, раз в неделю по пятницам: 16, 23, 30 октября и 6 ноября.
+-- Даты — в файле, а не от сегодняшнего дня: страница замеров покажет те же строки, в какой бы день её ни открыли.
+-- Это не демо-данные и не миграция: запускается вручную (psql -f), чтобы у Анны и у Марины были замеры по датам.
+-- Вес, кг; талия и бёдра, см
+insert into measurements (client_id, day, weight, waist, hips) values
+  (1, '2026-10-16', 64.8, 74, 99),
+  (1, '2026-10-23', 64.5, 73.5, 98.5),
+  (1, '2026-10-30', 64.6, 72.5, 98),
+  (1, '2026-11-06', 64.3, 72, 97.5);
+`
+
+// Схема снимков — пишет агент: подопечный, день, путь к файлу, один снимок в день; RLS сразу. Строку RLS закрывает —
+// а файл лежит отдельно, и о нём RLS ничего не знает
+const PHOTOS_SQL = `-- Фото прогресса: раз в месяц подопечный загружает снимок, тренер его видит. Сам файл лежит отдельно, в таблице — чей снимок,
+-- за какой день и путь к файлу. Снимок тела — данные о здоровье, поэтому RLS — сразу, в той же миграции.
+
+-- Снимок подопечного за день; за один день — один снимок
+create table photos (
+  id bigint generated by default as identity primary key,
+  client_id bigint not null references clients (id),
+  day date not null,
+  path text not null,
+  unique (client_id, day)
+);
+
+alter table photos enable row level security;
+
+-- Подопечный ведёт свои снимки — загружает, видит, заменяет и удаляет; тренер снимки своих подопечных только видит
+create policy "подопечный ведёт свои фото" on photos
+  for all to authenticated
+  using (client_id in (select id from clients where user_id = auth.uid()))
+  with check (client_id in (select id from clients where user_id = auth.uid()));
+create policy "тренер видит фото своих" on photos
+  for select to authenticated using (client_id in (select id from clients where coach_id = auth.uid()));
+`
+
+// Загрузка снимка — пишет агент «просто», как у большинства: файл — в public/uploads/<подопечный>/<день>.jpg, в строке — адрес /uploads/….
+// Подводный камень: next dev отдаёт всё из public любому, без входа, — а адрес угадывается по номеру подопечного и дате (IDOR, s48);
+// и папка public/uploads — в проекте, рядом с кодом: git status предлагает добавить снимки людей в коммит
+const PHOTOS_ROUTE = `import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { asUser } from "@/lib/db";
+import { isDay } from "@/lib/nutrition";
+import { currentUser } from "@/lib/session";
+
+// POST /api/photos — снимок прогресса вошедшего подопечного: form-data photo (JPEG) и day — день снимка, ГГГГ-ММ-ДД.
+// Файл — public/uploads/<подопечный>/<день>.jpg, в photos — строка с его адресом /uploads/…: по нему снимок и открывается.
+// За один день — один снимок: новый заменяет прежний. Ответ — id строки и адрес снимка
+export async function POST(request: Request) {
+  const uid = await currentUser();
+  if (!uid) return Response.json({ error: "Нужно войти" }, { status: 401 });
+  // не form-data — ответ 400, а не падение сервера с 500
+  const form = await request.formData().catch(() => null);
+  const photo = form?.get("photo");
+  const day = String(form?.get("day") ?? "");
+  if (!(photo instanceof File) || photo.type !== "image/jpeg") {
+    return Response.json({ error: "Нужен снимок JPEG в поле photo" }, { status: 400 });
+  }
+  // день — как в дневнике питания: ГГГГ-ММ-ДД, и такой день есть в календаре
+  if (!isDay(day)) return Response.json({ error: "День снимка — ГГГГ-ММ-ДД, например 2026-11-13" }, { status: 400 });
+
+  const saved = await asUser(uid, async (db) => {
+    // снимки загружает подопечный: вошедший — подопечный, если у него есть строка в clients
+    const client = await db.query<{ id: string }>("select id from clients where user_id = $1", [uid]);
+    if (client.rows.length === 0) return null;
+    const clientId = client.rows[0].id;
+    const path = \`/uploads/\${clientId}/\${day}.jpg\`;
+    await mkdir(join(process.cwd(), "public", "uploads", clientId), { recursive: true });
+    await writeFile(join(process.cwd(), "public", path), Buffer.from(await photo.arrayBuffer()));
+    const { rows } = await db.query<{ id: string }>(
+      \`insert into photos (client_id, day, path) values ($1, $2, $3)
+       on conflict (client_id, day) do update set path = excluded.path
+       returning id\`,
+      [clientId, day, path],
+    );
+    return { id: rows[0].id, path };
+  });
+  if (!saved) return Response.json({ error: "Фото прогресса загружает подопечный" }, { status: 403 });
+  return Response.json(saved, { status: 201 });
+}
+`
+
+// Страница замеров — правка агента (ph-page): снимки прогресса — ссылки на адрес файла из строки photos
+const MEASURE_PAGE_PHOTOS = chain(MEASURE_PAGE, [
+  [
+    `type Measurement = { id: string; day: string; weight: number; waist: number; hips: number };
+
+`,
+    `type Measurement = { id: string; day: string; weight: number; waist: number; hips: number };
+// Снимок прогресса: день и адрес файла
+type Photo = { id: string; day: string; path: string };
+
+`,
+  ],
+  [
+    `
+// Замеры вошедшего подопечного по датам и форма нового замера. Дату вписывают в форме: от сегодняшнего дня страница не зависит.
+// Замеры ведёт подопечный, тренер видит их на карточке подопечного. Чужие замеры база не отдаст (RLS)
+export default async function MeasurementsPage({ searchParams }: PageProps<"/measurements">) {
+`,
+    `
+// Замеры вошедшего подопечного по датам, форма нового замера и снимки прогресса. Дату вписывают в форме: от сегодняшнего дня
+// страница не зависит. Замеры и снимки ведёт подопечный, тренер видит их на карточке подопечного. Чужие база не отдаст (RLS)
+export default async function MeasurementsPage({ searchParams }: PageProps<"/measurements">) {
+`,
+  ],
+  [
+    `
+  const measurements = await asUser(uid, async (db) => {
+    // замеры есть только у подопечного: вошедший — подопечный, если у него есть строка в clients
+`,
+    `
+  const data = await asUser(uid, async (db) => {
+    // замеры есть только у подопечного: вошедший — подопечный, если у него есть строка в clients
+`,
+  ],
+  [
+    `    // значения из numeric — числами (float8)
+    const { rows } = await db.query<Measurement>(
+      \`select id, day::text as day, weight::float8 as weight, waist::float8 as waist, hips::float8 as hips
+`,
+    `    // значения из numeric — числами (float8)
+    const measurements = await db.query<Measurement>(
+      \`select id, day::text as day, weight::float8 as weight, waist::float8 as waist, hips::float8 as hips
+`,
+  ],
+  [
+    `    );
+    return rows;
+  });
+
+  if (!measurements) {
+    return (
+`,
+    `    );
+    // снимки прогресса (0012_photos.sql): день и адрес файла
+    const photos = await db.query<Photo>(
+      "select id, day::text as day, path from photos where client_id = $1 order by day",
+      [client.rows[0].id],
+    );
+    return { measurements: measurements.rows, photos: photos.rows };
+  });
+
+  if (!data) {
+    return (
+`,
+  ],
+  [
+    `
+      {measurements.length === 0 ? (
+        <section className="mt-6 rounded border border-zinc-300 p-4">
+`,
+    `
+      {data.measurements.length === 0 ? (
+        <section className="mt-6 rounded border border-zinc-300 p-4">
+`,
+  ],
+  [
+    `        <ul className="mt-6 flex flex-col gap-2">
+          {measurements.map((m) => (
+            <li key={m.id}>
+`,
+    `        <ul className="mt-6 flex flex-col gap-2">
+          {data.measurements.map((m) => (
+            <li key={m.id}>
+`,
+  ],
+  [
+    `      )}
+    </main>
+`,
+    `      )}
+
+      <h2 className="mt-8 text-xl font-semibold">Фото прогресса</h2>
+      {data.photos.length === 0 ? (
+        <p className="mt-2 text-zinc-500">Снимков пока нет: раз в месяц — снимок, и рядом с замерами видно, как меняется тело.</p>
+      ) : (
+        <ul className="mt-2 flex flex-col gap-1">
+          {data.photos.map((photo) => (
+            <li key={photo.id}>
+              <a href={photo.path} className="underline">
+                Снимок {dayOf(photo.day)}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </main>
+`,
+  ],
+])
+
+// Карточка подопечного — правка агента (ph-coach): снимки прогресса под замерами — ссылки на адрес файла
+const CLIENT_PAGE_PHOTOS = chain(CLIENT_PAGE_MEASURE, [
+  [
+    `type Measurement = { id: string; day: string; weight: number; waist: number; hips: number };
+
+`,
+    `type Measurement = { id: string; day: string; weight: number; waist: number; hips: number };
+// Снимок прогресса: день и адрес файла
+type Photo = { id: string; day: string; path: string };
+
+`,
+  ],
+  [
+    `
+// Карточка подопечного по id из адреса: имя; замеры по датам; питание — цели на день и сводка недели из адреса (?week=ГГГГ-ММ-ДД,
+// неделя с понедельника — docs/nutrition.md); форма «Назначить» и тренировки с подходами, объёмом и комментариями
+`,
+    `
+// Карточка подопечного по id из адреса: имя; замеры по датам и снимки прогресса; питание — цели на день и сводка недели из адреса (?week=ГГГГ-ММ-ДД,
+// неделя с понедельника — docs/nutrition.md); форма «Назначить» и тренировки с подходами, объёмом и комментариями
+`,
+  ],
+  [
+    `    );
+    // без недели в адресе — недели, за которые есть записи: понедельник каждой
+`,
+    `    );
+    // снимки прогресса (0012_photos.sql): загружает подопечный, тренер видит
+    const photos = await db.query<Photo>("select id, day::text as day, path from photos where client_id = $1 order by day", [id]);
+    // без недели в адресе — недели, за которые есть записи: понедельник каждой
+`,
+  ],
+  [
+    `          measurements: measurements.rows,
+          goals: goals.rows[0],
+`,
+    `          measurements: measurements.rows,
+          photos: photos.rows,
+          goals: goals.rows[0],
+`,
+  ],
+  [
+    `                {dayOf(m.day)}: вес {num(m.weight)} кг, талия {num(m.waist)} см, бёдра {num(m.hips)} см
+              </li>
+`,
+    `                {dayOf(m.day)}: вес {num(m.weight)} кг, талия {num(m.waist)} см, бёдра {num(m.hips)} см
+              </li>
+            ))}
+          </ul>
+        )}
+        <h3 className="mt-4 font-semibold">Фото прогресса</h3>
+        {card.photos.length === 0 ? (
+          <p className="mt-2 text-zinc-500">Снимков пока нет: подопечный загружает их сам.</p>
+        ) : (
+          <ul className="mt-2 flex flex-col gap-1">
+            {card.photos.map((photo) => (
+              <li key={photo.id}>
+                <a href={photo.path} className="underline">
+                  Снимок {dayOf(photo.day)}
+                </a>
+              </li>
+`,
+  ],
+])
+
+// Тест — пишет агент до исправления: маршруты app/api/photos вызываются, как их вызывает сервер, вход подменён (vi.mock currentUser).
+// Красный на самой беде: снимок теста появился в public, PNG под именем photo.jpg загрузка приняла; маршрута по id (выдача
+// с проверкой и удаление) нет. Чужие снимку — Света, Игорь и Олег; строка без файла — 404, а не 500
+const PHOTOS_TEST = `// @vitest-environment node
+// Фото прогресса — снимок тела, данные о здоровье. Файл лежит вне public и вне git; открыть его можно только через маршрут
+// с проверкой, кто вошёл: снимок видят подопечный и его тренер (RLS, supabase/migrations/0012_photos.sql), удаляет — сам подопечный,
+// строку вместе с файлом. Загрузка принимает только JPEG — по первым байтам файла, а не по типу из запроса — и до 10 МБ.
+// Тест вызывает маршруты app/api/photos, как их вызывает сервер; вход подменён (currentUser из lib/session): подпись cookie
+// проверяет вход, здесь проверяются права. Снимок теста — за 13 октября, в конце тест убирает его строки и файл.
+// Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения, как у test/rls.test.ts.
+import { execFileSync } from "node:child_process";
+import { existsSync, readdirSync } from "node:fs";
+import { rm } from "node:fs/promises";
+import { afterAll, beforeAll, expect, test, vi } from "vitest";
+import { POST } from "../app/api/photos/route";
+import { pool } from "../lib/db";
+
+// Кто вошёл: маршрут спросит currentUser, а тест отвечает за него — Анна, Света, Марина или никто
+const login = vi.hoisted(() => ({ uid: null as string | null }));
+vi.mock("@/lib/session", () => ({ currentUser: async () => login.uid }));
+
+// id из supabase/seed.sql: Марина — тренер Анны и Олега, Игорь — тренер Светы; Анна в clients — id 1
+const MARINA = "11111111-1111-1111-1111-111111111111";
+const IGOR = "22222222-2222-2222-2222-222222222222";
+const ANNA = "33333333-3333-3333-3333-333333333333";
+const OLEG = "44444444-4444-4444-4444-444444444444";
+const SVETA = "55555555-5555-5555-5555-555555555555";
+// чужие снимку Анны: подопечная другого тренера, другой тренер, другой подопечный того же тренера
+const OTHERS = [SVETA, IGOR, OLEG];
+const DAY = "2026-10-13";
+const STORED = \`storage/photos/1/\${DAY}.jpg\`;
+// строка снимка без файла: файла за этот день нет
+const LOST_DAY = "2026-09-13";
+// начало и конец файла JPEG: FF D8 FF … FF D9
+const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+// начало файла PNG — не снимок JPEG, как бы ни назывался файл
+const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+
+// маршрут снимка по id — GET и DELETE
+const byId = () => import("../app/api/photos/[id]/route");
+// файлы и папки внутри dir, пути от dir
+const filesIn = (dir: string) => readdirSync(dir, { recursive: true, encoding: "utf8" }).sort();
+
+// Загрузка от имени Анны за DAY: файл photo.jpg с типом image/jpeg и содержимым bytes
+function upload(bytes: BlobPart) {
+  login.uid = ANNA;
+  const form = new FormData();
+  form.append("photo", new File([bytes], "photo.jpg", { type: "image/jpeg" }));
+  form.append("day", DAY);
+  return POST(new Request("http://localhost/api/photos", { method: "POST", body: form }));
+}
+
+let id = "";
+let publicBefore: string[] = [];
+
+// Анна загружает снимок за 13 октября
+beforeAll(async () => {
+  publicBefore = filesIn("public");
+  id = (await (await upload(JPEG)).json()).id;
+});
+
+// строки и файл снимка теста — прочь, даже если тест упал
+afterAll(async () => {
+  await pool.query("delete from photos where client_id = 1 and day in ($1, $2)", [DAY, LOST_DAY]);
+  await rm(STORED, { force: true });
+  await pool.end();
+});
+
+test("снимок лежит вне public и вне git", () => {
+  // в public ничего не прибавилось: по адресу /uploads/… снимок без входа не открыть
+  expect(filesIn("public")).toEqual(publicBefore);
+  // git check-ignore -q: путь в .gitignore — код 0, иначе execFileSync бросит ошибку
+  expect(() => execFileSync("git", ["check-ignore", "-q", STORED])).not.toThrow();
+});
+
+test("загрузка: JPEG — по первым байтам, а не по типу из запроса; больше 10 МБ — 413", async () => {
+  // PNG под именем photo.jpg и с типом image/jpeg
+  expect((await upload(PNG)).status).toBe(400);
+  // JPEG на 10 МБ и 1 байт
+  const big = new Uint8Array(10 * 1024 * 1024 + 1);
+  big.set(JPEG);
+  expect((await upload(big)).status).toBe(413);
+});
+
+test("открыть снимок: без входа — 401, чужим — 404, Марине и Анне — JPEG", async () => {
+  const { GET } = await byId();
+  const open = (uid: string | null) => {
+    login.uid = uid;
+    return GET(new Request(\`http://localhost/api/photos/\${id}\`), { params: Promise.resolve({ id }) });
+  };
+  expect((await open(null)).status).toBe(401);
+  for (const uid of OTHERS) expect((await open(uid)).status, uid).toBe(404);
+  for (const uid of [MARINA, ANNA]) {
+    const response = await open(uid);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/jpeg");
+    // браузер не угадывает тип по содержимому
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+  }
+});
+
+test("строка есть, а файла нет — 404, а не 500", async () => {
+  const { GET } = await byId();
+  const { rows } = await pool.query<{ id: string }>(
+    "insert into photos (client_id, day, path) values (1, $1, $2) returning id",
+    [LOST_DAY, \`storage/photos/1/\${LOST_DAY}.jpg\`],
+  );
+  login.uid = ANNA;
+  const response = await GET(new Request(\`http://localhost/api/photos/\${rows[0].id}\`), { params: Promise.resolve({ id: rows[0].id }) });
+  expect(response.status).toBe(404);
+});
+
+test("удаляет снимок сам подопечный — строку и файл; чужим и Марине нельзя", async () => {
+  const { DELETE } = await byId();
+  const remove = (uid: string) => {
+    login.uid = uid;
+    return DELETE(new Request(\`http://localhost/api/photos/\${id}\`, { method: "DELETE" }), { params: Promise.resolve({ id }) });
+  };
+  for (const uid of [...OTHERS, MARINA]) expect((await remove(uid)).status, uid).toBe(404);
+  expect(existsSync(STORED)).toBe(true);
+  expect((await remove(ANNA)).status).toBe(204);
+  expect(existsSync(STORED)).toBe(false);
+  const { rows } = await pool.query("select id from photos where id = $1", [id]);
+  expect(rows).toEqual([]);
+});
+`
+
+// Настройка vitest (s04) — дословно; правка агента (pr-vitest): импорты «@/…», как в tsconfig.json, — без них тест не вызовет маршрут
+const VITEST_CONFIG = `export default defineConfig({
+`
+
+// resolve.tsconfigPaths — у Vite 8 своё, без пакетов
+const VITEST_CONFIG_PATHS = `// tsconfigPaths: импорты «@/…», как в tsconfig.json, — так тест может вызвать маршрут приложения
+export default defineConfig({
+  resolve: { tsconfigPaths: true },
+`
+
+// Где лежат снимки — пишет агент (pr-lib): путь собирает сервер из номера подопечного и дня (не строкой из базы), «../» не пройдёт.
+// turbopackIgnore — из чернового прогона: по вычисленному пути next build иначе прикладывает к серверной сборке storage/ и backups/
+const PHOTOS_LIB = `import { join } from "node:path";
+
+// Где лежат снимки прогресса: storage/photos/<подопечный>/<день>.jpg — вне public (сервер сам их не отдаёт) и вне git
+// (/storage/ в .gitignore). Путь к файлу собирает сервер из номера подопечного и дня: строке пути из базы файлы не доверяют.
+
+// Путь снимка от корня проекта. Только номер и день ГГГГ-ММ-ДД — «../» и чужая папка в путь не пройдут
+export function photoPath(clientId: string, day: string): string {
+  if (!/^\\d+$/.test(clientId) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(day)) throw new Error(\`Нет пути снимка для «\${clientId}», «\${day}»\`);
+  return \`storage/photos/\${clientId}/\${day}.jpg\`;
+}
+
+// Файл снимка на диске. turbopackIgnore: путь вычисляется, и next build иначе приложил бы к серверной сборке весь проект —
+// со storage/ (снимки людей) и backups/ (копии базы)
+export function photoFile(clientId: string, day: string): string {
+  return join(/*turbopackIgnore: true*/ process.cwd(), photoPath(clientId, day));
+}
+`
+
+// Загрузка — правка агента (pr-store): файл — в storage/photos/<подопечный>/<день>.jpg (lib/photos.ts), вне public и вне git;
+// JPEG — по первым байтам FF D8 FF, а не по типу из запроса; до 10 МБ, больше — 413; ответ — адрес /api/photos/<id>
+const PHOTOS_ROUTE_PRIVATE = chain(PHOTOS_ROUTE, [
+  [
+    `import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { asUser } from "@/lib/db";
+import { isDay } from "@/lib/nutrition";
+import { currentUser } from "@/lib/session";
+
+// POST /api/photos — снимок прогресса вошедшего подопечного: form-data photo (JPEG) и day — день снимка, ГГГГ-ММ-ДД.
+// Файл — public/uploads/<подопечный>/<день>.jpg, в photos — строка с его адресом /uploads/…: по нему снимок и открывается.
+// За один день — один снимок: новый заменяет прежний. Ответ — id строки и адрес снимка
+export async function POST(request: Request) {
+`,
+    `import { mkdir, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
+import { asUser } from "@/lib/db";
+import { isDay } from "@/lib/nutrition";
+import { photoFile, photoPath } from "@/lib/photos";
+import { currentUser } from "@/lib/session";
+
+// Предел снимка — 10 МБ: снимок с телефона меньше
+const MAX_BYTES = 10 * 1024 * 1024;
+
+// POST /api/photos — снимок прогресса вошедшего подопечного: form-data photo (JPEG до 10 МБ) и day — день снимка, ГГГГ-ММ-ДД.
+// Файл — storage/photos/<подопечный>/<день>.jpg (lib/photos.ts): вне public и вне git. В photos — строка снимка; открыть его
+// можно только через GET /api/photos/<id>, где проверяют, кто вошёл. За один день — один снимок: новый заменяет прежний.
+// Ответ — id строки и адрес снимка
+export async function POST(request: Request) {
+`,
+  ],
+  [
+    `  if (!uid) return Response.json({ error: "Нужно войти" }, { status: 401 });
+  // не form-data — ответ 400, а не падение сервера с 500
+`,
+    `  if (!uid) return Response.json({ error: "Нужно войти" }, { status: 401 });
+  // Content-Length — размер всего запроса: снимок и поля формы (на них — запас 64 КБ). Больше предела — 413, запрос не читаем
+  if (Number(request.headers.get("content-length")) > MAX_BYTES + 64 * 1024) {
+    return Response.json({ error: "Снимок — до 10 МБ" }, { status: 413 });
+  }
+  // не form-data — ответ 400, а не падение сервера с 500
+`,
+  ],
+  [
+    `  const day = String(form?.get("day") ?? "");
+  if (!(photo instanceof File) || photo.type !== "image/jpeg") {
+    return Response.json({ error: "Нужен снимок JPEG в поле photo" }, { status: 400 });
+`,
+    `  const day = String(form?.get("day") ?? "");
+  if (!(photo instanceof File)) return Response.json({ error: "Нужен снимок JPEG в поле photo" }, { status: 400 });
+  if (photo.size > MAX_BYTES) return Response.json({ error: "Снимок — до 10 МБ" }, { status: 413 });
+  // JPEG — по первым байтам файла (FF D8 FF), а не по типу из запроса: тип ставит клиент, curl -F — по расширению имени
+  const bytes = Buffer.from(await photo.arrayBuffer());
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[2] !== 0xff) {
+    return Response.json({ error: "Нужен снимок JPEG в поле photo" }, { status: 400 });
+`,
+  ],
+  [
+    `    const clientId = client.rows[0].id;
+    const path = \`/uploads/\${clientId}/\${day}.jpg\`;
+    await mkdir(join(process.cwd(), "public", "uploads", clientId), { recursive: true });
+    await writeFile(join(process.cwd(), "public", path), Buffer.from(await photo.arrayBuffer()));
+    const { rows } = await db.query<{ id: string }>(
+`,
+    `    const clientId = client.rows[0].id;
+    const file = photoFile(clientId, day);
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, bytes);
+    const { rows } = await db.query<{ id: string }>(
+`,
+  ],
+  [
+    `       returning id\`,
+      [clientId, day, path],
+    );
+    return { id: rows[0].id, path };
+  });
+`,
+    `       returning id\`,
+      [clientId, day, photoPath(clientId, day)],
+    );
+    return { id: rows[0].id, url: \`/api/photos/\${rows[0].id}\` };
+  });
+`,
+  ],
+])
+
+// Снимок по id — пишет агент: GET — без входа 401, строку ищет asUser (RLS: подопечный и его тренер), чужому 404, строка без файла —
+// тоже 404; файл — по номеру подопечного и дню из строки; nosniff. DELETE — строка и файл одной транзакцией, удаляет только подопечный
+const PHOTO_ROUTE = `import { readFile, rm } from "node:fs/promises";
+import { asUser } from "@/lib/db";
+import { photoFile } from "@/lib/photos";
+import { currentUser } from "@/lib/session";
+
+// Снимок прогресса по id: файл лежит в storage/photos, вне public, — отдаёт и удаляет его только этот маршрут.
+// Строку снимка ищет запрос от имени вошедшего (asUser): RLS отдаёт её подопечному и его тренеру. Остальным строки нет,
+// и ответ им тот же, что на несуществующий снимок, — 404: чужой не узнает даже, что снимок есть.
+// Файл — по номеру подопечного и дню из строки (photoFile в lib/photos.ts), а не по строке пути.
+
+// Строка снимка: чей и за какой день
+type Photo = { client_id: string; day: string };
+
+// GET /api/photos/<id> — файл снимка: без входа 401, чужому 404, подопечному и его тренеру — JPEG
+export async function GET(_request: Request, { params }: RouteContext<"/api/photos/[id]">) {
+  const uid = await currentUser();
+  if (!uid) return Response.json({ error: "Нужно войти" }, { status: 401 });
+  const { id } = await params;
+  // id — число: «abc» не дойдёт до базы
+  const photo = /^\\d+$/.test(id)
+    ? await asUser(uid, async (db) => {
+        const { rows } = await db.query<Photo>("select client_id, day::text as day from photos where id = $1", [id]);
+        return rows[0];
+      })
+    : undefined;
+  // строки нет — или строка есть, а файла нет: тот же ответ 404, а не 500
+  const file = photo && (await readFile(photoFile(photo.client_id, photo.day)).catch(() => null));
+  if (!file) return Response.json({ error: "Снимка нет" }, { status: 404 });
+  // тип ставит сервер, nosniff — браузер не угадывает его по содержимому; снимок личный — ни браузер, ни прокси его не сохраняют
+  return new Response(file, {
+    headers: { "Content-Type": "image/jpeg", "X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-store" },
+  });
+}
+
+// DELETE /api/photos/<id> — подопечный удаляет свой снимок: строку и файл, одной транзакцией — не удалился файл, вернётся строка.
+// Тренер снимки только видит: удалить строку ему, как и чужому, не даст RLS — ответ 404
+export async function DELETE(_request: Request, { params }: RouteContext<"/api/photos/[id]">) {
+  const uid = await currentUser();
+  if (!uid) return Response.json({ error: "Нужно войти" }, { status: 401 });
+  const { id } = await params;
+  const deleted = /^\\d+$/.test(id)
+    ? await asUser(uid, async (db) => {
+        // returning вернёт строку, только если RLS дала её удалить
+        const { rows } = await db.query<Photo>("delete from photos where id = $1 returning client_id, day::text as day", [id]);
+        if (rows[0]) await rm(photoFile(rows[0].client_id, rows[0].day), { force: true });
+        return rows[0];
+      })
+    : undefined;
+  if (!deleted) return Response.json({ error: "Снимка нет" }, { status: 404 });
+  return new Response(null, { status: 204 });
+}
+`
+
+// Страница замеров — правка агента (pr-page): ссылка на снимок — /api/photos/<id>, путь к файлу странице не нужен
+const MEASURE_PAGE_PRIVATE = chain(MEASURE_PAGE_PHOTOS, [
+  [
+    `type Measurement = { id: string; day: string; weight: number; waist: number; hips: number };
+// Снимок прогресса: день и адрес файла
+type Photo = { id: string; day: string; path: string };
+
+`,
+    `type Measurement = { id: string; day: string; weight: number; waist: number; hips: number };
+// Снимок прогресса: id и день; файл отдаёт /api/photos/<id>
+type Photo = { id: string; day: string };
+
+`,
+  ],
+  [
+    `    );
+    // снимки прогресса (0012_photos.sql): день и адрес файла
+    const photos = await db.query<Photo>(
+      "select id, day::text as day, path from photos where client_id = $1 order by day",
+      [client.rows[0].id],
+    );
+    return { measurements: measurements.rows, photos: photos.rows };
+`,
+    `    );
+    // снимки прогресса (0012_photos.sql): id и день — файл отдаёт маршрут /api/photos/<id>, проверив, кто вошёл
+    const photos = await db.query<Photo>("select id, day::text as day from photos where client_id = $1 order by day", [
+      client.rows[0].id,
+    ]);
+    return { measurements: measurements.rows, photos: photos.rows };
+`,
+  ],
+  [
+    `            <li key={photo.id}>
+              <a href={photo.path} className="underline">
+                Снимок {dayOf(photo.day)}
+`,
+    `            <li key={photo.id}>
+              <a href={\`/api/photos/\${photo.id}\`} className="underline">
+                Снимок {dayOf(photo.day)}
+`,
+  ],
+])
+
+// Карточка — правка агента (pr-coach): ссылка на снимок — /api/photos/<id>
+const CLIENT_PAGE_PRIVATE = chain(CLIENT_PAGE_PHOTOS, [
+  [
+    `type Measurement = { id: string; day: string; weight: number; waist: number; hips: number };
+// Снимок прогресса: день и адрес файла
+type Photo = { id: string; day: string; path: string };
+
+`,
+    `type Measurement = { id: string; day: string; weight: number; waist: number; hips: number };
+// Снимок прогресса: id и день; файл отдаёт /api/photos/<id>
+type Photo = { id: string; day: string };
+
+`,
+  ],
+  [
+    `    );
+    // снимки прогресса (0012_photos.sql): загружает подопечный, тренер видит
+    const photos = await db.query<Photo>("select id, day::text as day, path from photos where client_id = $1 order by day", [id]);
+    // без недели в адресе — недели, за которые есть записи: понедельник каждой
+`,
+    `    );
+    // снимки прогресса (0012_photos.sql): загружает подопечный, тренер видит; файл отдаёт /api/photos/<id>, проверив, кто вошёл
+    const photos = await db.query<Photo>("select id, day::text as day from photos where client_id = $1 order by day", [id]);
+    // без недели в адресе — недели, за которые есть записи: понедельник каждой
+`,
+  ],
+  [
+    `              <li key={photo.id}>
+                <a href={photo.path} className="underline">
+                  Снимок {dayOf(photo.day)}
+`,
+    `              <li key={photo.id}>
+                <a href={\`/api/photos/\${photo.id}\`} className="underline">
+                  Снимок {dayOf(photo.day)}
+`,
+  ],
+])
+
+// Копии базы в .gitignore (s19) — дословно; правка агента (pr-ignore): /storage/ — снимки людей не попадут в git
+const GITIGNORE_BACKUPS = `# копии базы (pg_dump): в них почты и хеши паролей
+/backups/
+`
+
+// /storage/ — рядом с /backups/: в обеих папках данные людей
+const GITIGNORE_STORAGE = `# копии базы (pg_dump): в них почты и хеши паролей
+/backups/
+
+# фото прогресса подопечных (app/api/photos): снимки людей — не код
+/storage/
+`
+
+// Замена ровно одного вхождения: если его нет или их несколько, сессия не загрузится (лучше, чем тихо записать не то)
+function replaceOnce(text, find, replace) {
+  const at = text.indexOf(find)
+  if (at < 0 || text.indexOf(find, at + 1) >= 0) throw new Error(`s22-progress: «${find.slice(0, 40)}…» должно встречаться ровно один раз`)
+  return text.slice(0, at) + replace + text.slice(at + find.length)
+}
+
+// Несколько замен подряд, каждая — ровно одного вхождения
+function chain(text, pairs) {
+  return pairs.reduce((acc, [find, replace]) => replaceOnce(acc, find, replace), text)
+}
+
+const login = (email) => ({ url: '/login', fill: { Почта: email, Пароль: 'demo-password' }, click: 'Войти' })
+
+const BASE = 'http://localhost:3000'
+// Вход curl, как login-curl в s09: cookie — в файле вне проекта (~ — домашняя папка записи, проект — ~/trainer-app; ловушка 19)
+const curlLogin = (who) =>
+  `curl -s -c ~/${who}.txt -H 'Content-Type: application/json' -d '{"email":"${who}@example.com","password":"demo-password"}' ${BASE}/api/login`
+// Снимок — вне проекта, рядом с cookie. В -F photo=@… тильда не раскрывается, поэтому $HOME
+const PHOTO = '$HOME/photo.jpg'
+// Загрузка снимка Анны за 13 ноября: день — в форме, не от часов
+const UPLOAD = `curl -s -b ~/anna.txt -F photo=@${PHOTO} -F day=2026-11-13 ${BASE}/api/photos`
+// Из заголовков ответа — строка статуса и Content-Type: в остальных (Date, Last-Modified) настоящие часы записи
+const STATUS = "| grep -iE '^(http|content-type)'"
+// Старый адрес снимка в public и новый — маршрут с проверкой входа
+const OLD_URL = `${BASE}/uploads/1/2026-11-13.jpg`
+const NEW_URL = `${BASE}/api/photos/1`
+
+// Ответы агента — авторские, по выводу его шагов; что видно в строках Write / Edit / Run, ответ не повторяет
+const ASK_MEASURE_REPLY =
+  'Замер — день, вес, талия и бёдра больше нуля, один в день. RLS в той же миграции: подопечный ведёт свои, ' +
+  'тренер читает своих; Света замеры Анны не видит.'
+const ASK_PHOTOS_REPLY =
+  'POST /api/photos кладёт снимок в public/uploads/<подопечный>/<день>.jpg и пишет строку с его адресом. ' +
+  'Ссылки на снимки — на странице замеров и на карточке подопечного.'
+const ASK_PRIVATE_REPLY =
+  'Тест красный: снимок теста лёг в public, PNG под именем photo.jpg загрузка приняла, маршрута по id нет. Дальше: файлы — ' +
+  'в storage/photos вне git, JPEG по первым байтам и до 10 МБ, GET и DELETE /api/photos/<id> через RLS. Делать?'
+const ASK_PRIVATE_GO_REPLY =
+  'Снимки — в storage/photos, вне public и вне git; путь сервер собирает из номера подопечного и дня. Загрузка — JPEG по первым ' +
+  'байтам, до 10 МБ. /api/photos/<id>: без входа 401, чужим 404, подопечному и тренеру — JPEG; DELETE — строка и файл.'
+
+export default {
+  id: 's22-progress',
+  from: 's21-nutrition',
+  date: '2026-11-13T10:00:00+03:00',
+  db: true,
+  steps: [
+    // подготовка: в состоянии сессии нет папки .next, а tsc ищет типы маршрутов Next
+    { id: 'typegen', run: 'npx next typegen' },
+    {
+      // Accept edits: файлы — без вопроса, psql и vitest — с вопросом [y / n]
+      id: 'ask-measure',
+      agent: {
+        prompt:
+          'Замеры тела — вес, талия, бёдра по датам: у подопечного форма, у тренера строки на карточке. RLS сразу, миграцию — с подтверждения',
+        reply: ASK_MEASURE_REPLY,
+      },
+      steps: [
+        { id: 'm-sql', write: 'supabase/migrations/0011_measurements.sql', content: MEASURE_SQL },
+        { id: 'm-apply', run: 'psql -f supabase/migrations/0011_measurements.sql' },
+        { id: 'm-page', write: 'app/measurements/page.tsx', content: MEASURE_PAGE },
+        // сверх таблицы плана: действие формы — свой файл (план называет его в m-page)
+        { id: 'm-actions', write: 'app/measurements/actions.ts', content: MEASURE_ACTIONS },
+        { id: 'm-coach', edit: 'app/clients/[id]/page.tsx', find: CLIENT_PAGE, replace: CLIENT_PAGE_MEASURE },
+        // негативный тест с базой: чужой не видит замеры и не пишет их
+        { id: 'm-test', write: 'test/measurements.test.ts', content: MEASURE_DB_TEST },
+        { id: 'm-run', run: 'npx vitest run test/measurements.test.ts' },
+      ],
+    },
+    // сверх таблицы плана — правит человек (в окне агента не помещается): страница — в меню подопечного, а сквозной тест s20
+    // знает это меню дословно
+    { id: 'm-nav', edit: 'components/Nav.tsx', find: NAV_LINKS, replace: NAV_LINKS_MEASURE },
+    { id: 'm-e2e', edit: 'e2e/first-run.spec.ts', find: VERA_MENU, replace: VERA_MENU_MEASURE },
+    { id: 'c-measure', commit: 'Замеры тела' },
+    // данные кадра — пишет человек: даты в файле, а не от часов
+    { id: 'm-data-file', write: 'supabase/tests/measurements.sql', content: MEASURE_DATA },
+    { id: 'm-data-apply', run: 'psql -f supabase/tests/measurements.sql' },
+    {
+      // Accept edits: «сделай просто» — снимок в public
+      id: 'ask-photos',
+      agent: { prompt: 'Фото прогресса раз в месяц: подопечный загружает снимок, тренер видит. Сделай просто', reply: ASK_PHOTOS_REPLY },
+      steps: [
+        { id: 'ph-sql', write: 'supabase/migrations/0012_photos.sql', content: PHOTOS_SQL },
+        { id: 'ph-apply', run: 'psql -f supabase/migrations/0012_photos.sql' },
+        { id: 'ph-route', write: 'app/api/photos/route.ts', content: PHOTOS_ROUTE },
+        { id: 'ph-page', edit: 'app/measurements/page.tsx', find: MEASURE_PAGE, replace: MEASURE_PAGE_PHOTOS },
+        // сверх таблицы плана: снимки видит тренер — на карточке подопечного
+        { id: 'ph-coach', edit: 'app/clients/[id]/page.tsx', find: CLIENT_PAGE_MEASURE, replace: CLIENT_PAGE_PHOTOS },
+      ],
+    },
+    { id: 'c-photos', commit: 'Фото прогресса' },
+    { id: 'dev', run: 'npm run dev', until: 'Ready' },
+    { id: 'login-anna', browser: login('anna@example.com') },
+    // четыре замера по датам из файла — 16 октября … 6 ноября
+    { id: 'anna-measure', browser: { url: '/measurements' } },
+    // снимок 600 × 800, серый, — вне проекта
+    { id: 'photo-make', run: `convert -size 600x800 xc:gray ${PHOTO}` },
+    { id: 'anna-curl', run: curlLogin('anna') },
+    { id: 'photo-upload', run: UPLOAD },
+    // подводный камень: без cookie — 200 и image/jpeg
+    { id: 'photo-open', run: `curl -sI ${OLD_URL} ${STATUS}` },
+    // и снимки людей просятся в git
+    { id: 'photo-git', run: 'git status --short' },
+    {
+      // Accept edits: сначала тест — красный на самой беде; правки — вторым ходом
+      id: 'ask-private',
+      agent: {
+        prompt:
+          'Фото открывается без входа по угадываемому адресу и лежит в public, рядом с кодом. Сделай: файлы вне public и вне git, ' +
+          'выдача только вошедшему — подопечному и его тренеру — через RLS, удаление — строка и файл. Сначала тест',
+        reply: ASK_PRIVATE_REPLY,
+      },
+      steps: [
+        { id: 'pr-test', write: 'test/photos.test.ts', content: PHOTOS_TEST },
+        // сверх таблицы плана: тест вызывает маршрут, а в нём импорты «@/…»
+        { id: 'pr-vitest', edit: 'vitest.config.mts', find: VITEST_CONFIG, replace: VITEST_CONFIG_PATHS },
+        { id: 'pr-red', run: 'npx vitest run test/photos.test.ts' },
+      ],
+    },
+    {
+      // сверх таблицы плана: тот же запрос, второй ход — правки и зелёный тест (одним ходом одиннадцать шагов в окно агента не помещаются)
+      id: 'ask-private-go',
+      agent: { prompt: 'Делай', reply: ASK_PRIVATE_GO_REPLY },
+      steps: [
+        // сверх таблицы плана: где лежат снимки — в одном месте для загрузки, выдачи и удаления
+        { id: 'pr-lib', write: 'lib/photos.ts', content: PHOTOS_LIB },
+        { id: 'pr-store', edit: 'app/api/photos/route.ts', find: PHOTOS_ROUTE, replace: PHOTOS_ROUTE_PRIVATE },
+        { id: 'pr-get', write: 'app/api/photos/[id]/route.ts', content: PHOTO_ROUTE },
+        // сверх таблицы плана: ссылки на снимки — на маршрут с проверкой
+        { id: 'pr-page', edit: 'app/measurements/page.tsx', find: MEASURE_PAGE_PHOTOS, replace: MEASURE_PAGE_PRIVATE },
+        { id: 'pr-coach', edit: 'app/clients/[id]/page.tsx', find: CLIENT_PAGE_PHOTOS, replace: CLIENT_PAGE_PRIVATE },
+        { id: 'pr-ignore', edit: '.gitignore', find: GITIGNORE_BACKUPS, replace: GITIGNORE_STORAGE },
+        // буквальный путь: папка снимков в public больше не нужна
+        { id: 'pr-clean', run: 'rm -r public/uploads' },
+        { id: 'pr-green', run: 'npx vitest run test/photos.test.ts' },
+      ],
+    },
+    { id: 'c-private', commit: 'Фото — только своим, удаление вместе с файлом' },
+    // тот же снимок за тот же день — та же строка, новый адрес
+    { id: 'photo-upload2', run: UPLOAD },
+    // сверх таблицы плана: снимок на диске, а git его не видит — «Верно» для git-половины камня (photo-git)
+    { id: 'photo-git2', run: 'git status --short' },
+    { id: 'photo-anon', run: `curl -sI ${NEW_URL} ${STATUS}` },
+    { id: 'sveta-curl', run: curlLogin('sveta') },
+    { id: 'photo-sveta', run: `curl -sI -b ~/sveta.txt ${NEW_URL} ${STATUS}` },
+    { id: 'marina-curl', run: curlLogin('marina') },
+    { id: 'photo-marina', run: `curl -sI -b ~/marina.txt ${NEW_URL} ${STATUS}` },
+    { id: 'photo-old', run: `curl -sI ${OLD_URL} ${STATUS}` },
+    // сверх таблицы плана: Анна выходит через меню, прежде чем войдёт Марина
+    { id: 'anna-logout', browser: { url: '/measurements', click: 'Выйти' } },
+    { id: 'login-marina', browser: login('marina@example.com') },
+    // замеры Анны по датам и снимок 13 ноября
+    { id: 'coach-measure', browser: { url: '/clients/1' } },
+    // удаляет снимок сама Анна: строка и файл
+    { id: 'photo-del', run: `curl -si -X DELETE -b ~/anna.txt ${NEW_URL} ${STATUS}` },
+    { id: 'photo-ls', run: 'ls storage/photos/1; psql -At -c "select count(*) from photos"' },
+  ],
+}

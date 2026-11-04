@@ -22,15 +22,15 @@ export function plural(n: number, one: string, few: string, many: string): strin
 
 export type VideoMeta = { seconds: number; posterFrame: number; hotspots: number }
 
-// Длительность и кадр обложки ролика: начало первой горячей точки (схема в этот момент готова),
-// а без горячих точек — треть ролика. Неизвестный ролик — null.
+// Длительность и кадр обложки ролика: poster сценария (у роликов «Репозиторий» — середина первого примера),
+// без него — начало первой горячей точки (схема в этот момент готова), а без горячих точек — треть ролика. Неизвестный ролик — null.
 export function videoMeta(videoId: string): VideoMeta | null {
   const script = videos[videoId]?.script
   if (!script) return null
   const frames = totalFrames(script)
   return {
     seconds: Math.round(frames / script.fps),
-    posterFrame: script.hotspots[0]?.from ?? Math.floor(frames / 3),
+    posterFrame: script.poster ?? script.hotspots[0]?.from ?? Math.floor(frames / 3),
     hotspots: script.hotspots.length,
   }
 }

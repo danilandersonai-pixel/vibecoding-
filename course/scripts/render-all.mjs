@@ -1,5 +1,5 @@
 // Рендер MP4 всех роликов каталога (или перечисленных) в out/<id>.mp4.
-// Пропускает ролик, если его MP4 новее исходников (папка ролика, набор, герои, тема).
+// Пропускает ролик, если его MP4 новее исходников (урок ролика, набор, записи сессий, герои, тема).
 // В конце печатает таблицу «ролик — длительность — МБ»; файл больше 20 МБ — ошибка.
 // Запуск: node scripts/render-all.mjs [id …]
 import { execFileSync } from 'node:child_process'
@@ -18,6 +18,12 @@ export function catalogIds(text) {
 // MP4 свежий, если он есть и новее каждого исходника
 export function isFresh(mp4Mtime, sourceMtimes) {
   return mp4Mtime !== undefined && sourceMtimes.every((t) => t < mp4Mtime)
+}
+
+// Исходники ролика относительно course/: урок video/lessons/<id> и общие детали всех уроков
+export const SHARED = ['video/kit', 'video/term', 'video/sessions', 'video/actors', 'video/lib', 'video/theme.ts']
+export function sourcePaths(id) {
+  return [...SHARED, `video/lessons/${id}`]
 }
 
 const clock = (s) => `${Math.floor(Math.round(s) / 60)}:${String(Math.round(s) % 60).padStart(2, '0')}`
@@ -49,11 +55,10 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(1)
   }
   const ids = asked.length ? asked : all
-  const shared = ['video/kit', 'video/actors', 'video/lib', 'video/theme.ts'].flatMap((p) => mtimes(join(root, p)))
   const rows = []
   for (const id of ids) {
     const out = join(root, 'out', `${id}.mp4`)
-    const sources = [...shared, ...mtimes(join(root, 'video', id))]
+    const sources = sourcePaths(id).flatMap((p) => mtimes(join(root, p)))
     if (isFresh(existsSync(out) ? statSync(out).mtimeMs : undefined, sources)) {
       console.log(`${id}: MP4 свежий, пропускаю`)
     } else {

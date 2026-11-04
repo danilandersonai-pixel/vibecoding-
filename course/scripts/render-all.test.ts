@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error — скрипт на чистом JS, типы не нужны
-import { catalogIds, isFresh, LIMIT_BYTES, summary } from './render-all.mjs'
+import { catalogIds, isFresh, LIMIT_BYTES, sourcePaths, summary } from './render-all.mjs'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 describe('catalogIds', () => {
   it('берёт id роликов из каталога по порядку', () => {
@@ -30,5 +32,22 @@ describe('summary', () => {
     const { lines, tooBig } = summary(rows)
     expect(lines).toEqual(['ch-01  4:22  3.8 МБ', 'day-08  2:30  20.0 МБ'])
     expect(tooBig).toEqual(['day-08'])
+  })
+})
+
+describe('sourcePaths', () => {
+  const root = join(__dirname, '..')
+  const ids = catalogIds(readFileSync(join(root, 'video/catalog.ts'), 'utf8'))
+
+  it('урок ролика — в video/lessons/<id>, общие исходники — набор, записи сессий, тема', () => {
+    const paths = sourcePaths('day-21')
+    expect(paths).toContain('video/lessons/day-21')
+    expect(paths).toEqual(expect.arrayContaining(['video/kit', 'video/term', 'video/sessions', 'video/theme.ts']))
+  })
+
+  it('у каждого ролика каталога все исходники есть на диске (иначе render:all падает)', () => {
+    expect(ids.length).toBe(27)
+    const missing = ids.flatMap((id) => sourcePaths(id).filter((p: string) => !existsSync(join(root, p))))
+    expect(missing).toEqual([])
   })
 })

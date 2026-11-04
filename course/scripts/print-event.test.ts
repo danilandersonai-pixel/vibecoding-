@@ -1,0 +1,185 @@
+import { describe, expect, it } from 'vitest'
+import { makeFind } from '../video/sessions/types'
+import { FRAMES } from '../video/term/frames'
+import { FIXTURE, ctx } from '../video/term/frames/fixture'
+// @ts-expect-error — скрипт на чистом JS, типы не нужны
+import { formatEvent, loadRecord, listEvents } from './print-event.mjs'
+
+const event = (id: string) => FIXTURE.events.find((e) => e.id === id)!
+
+describe('formatEvent', () => {
+  it('run: заголовок и вывод с номерами строк с 1 (по ним задаётся lines у Terminal)', () => {
+    const lines: string[] = formatEvent(event('fail'))
+    expect(lines[0]).toContain('fail')
+    expect(lines[0]).toContain('npm test')
+    expect(lines).toContain('1  > trainer-app@0.1.0 test')
+    expect(lines).toContain('3  Ошибка: вес должен быть числом')
+  })
+
+  it('номера выравниваются по ширине самого большого', () => {
+    const lines: string[] = formatEvent(event('many'))
+    expect(lines).toContain(' 1  строка 1')
+    expect(lines).toContain('40  строка 40')
+  })
+
+  it('browser: строки server', () => {
+    const lines: string[] = formatEvent(event('save'))
+    expect(lines).toContain('3   POST /api/sets 400 in 10ms')
+  })
+
+  it('commit: вывод коммита', () => {
+    expect(formatEvent(event('c1')).join('\n')).toContain('1  [main abc1234] Первое сохранение')
+  })
+
+  it('file: дифф с номерами от первой «@@» (lines и highlight у Diff) и файл после правки (lines и highlight у Editor)', () => {
+    const text: string = formatEvent(event('page')).join('\n')
+    expect(text).toContain('+3 −1')
+    // дифф: 1 — «@@», дальше строки как в записи со знаком в первой колонке
+    expect(text).toMatch(/^ ?1 @@ -1,6 \+1,8 @@$/m)
+    expect(text).toMatch(/^ ?5 \+  \/\/ вес в килограммах$/m)
+    expect(text).toMatch(/^ ?7 -  return null$/m)
+    // файл: номера строк файла, новые строки диффа помечены плюсом
+    expect(text).toMatch(/^4 \+  \/\/ вес в килограммах$/m)
+    expect(text).toMatch(/^5    const \[weight, setWeight\] = useState\(''\)$/m)
+    expect(text).toMatch(/^8 {2}\}$/m)
+  })
+
+  it('read: текст файла с номерами строк', () => {
+    const lines: string[] = formatEvent(event('pkg'))
+    expect(lines).toContain('2    "name": "trainer-app",')
+    expect(lines.join('\n')).not.toContain('+')
+  })
+
+  it('browser: сообщения консоли с номерами для Browser.consoleLines — как в DevTools, без %c', () => {
+    const text: string = formatEvent(event('form')).join('\n')
+    expect(text).toContain('Browser.consoleLines')
+    expect(text).toMatch(/^1 +info +Download the React DevTools for a better development experience: https:\/\/react\.dev\/link\/react-devtools$/m)
+    expect(text).toMatch(/^4 +error +Failed to load resource/m)
+    expect(text).not.toContain('%c')
+    expect(text).not.toContain('font-weight')
+  })
+
+  it('browser: текстовые строки страницы — их можно красить в Browser.marks; заголовок, подписи полей и кнопки — нет', () => {
+    const text: string = formatEvent(event('form')).join('\n')
+    const from = text.indexOf('Browser.marks')
+    expect(from).toBeGreaterThan(-1)
+    const marks = text.slice(from)
+    expect(marks).toContain('Вес должен быть числом, например 60') // есть только в after
+    expect(marks).toContain('Подходов пока нет')
+    expect(marks).not.toContain('Вес, кг')
+    expect(marks).not.toContain('Сохранить подход')
+    expect(marks).not.toMatch(/Тренировка/)
+  })
+
+  it('browser без сообщений консоли и строк сервера — без пустых разделов', () => {
+    const text: string = formatEvent(FIXTURE.events.find((e) => e.id === 'form-long')!).join('\n')
+    expect(text).not.toContain('Browser.consoleLines')
+    expect(text).not.toContain('Terminal.lines')
+  })
+
+  it('agent: шаги по порядку — по реплике на каждый в Agent.at.steps; у команд сказано, что их можно спрашивать в Agent.ask', () => {
+    const text: string = formatEvent(event('ag'), FIXTURE).join('\n')
+    expect(text).toContain('Agent.at.steps')
+    expect(text).toMatch(/^1 +rd-page +read +app\/page\.tsx$/m)
+    expect(text).toMatch(/^2 +route +file +app\/api\/sets\/route\.ts +\+4 −0$/m)
+    expect(text).toMatch(/^4 +fail +run +npm test.*Agent\.ask/m)
+    expect(text).toMatch(/^5 +c2 +commit +git commit.*Agent\.ask/m)
+    expect(text).not.toMatch(/rd-page.*Agent\.ask/)
+    expect(text).not.toMatch(/route .*Agent\.ask/)
+  })
+
+  it('agent без записи сессии: только id шагов, запрос и ответ — авторский текст', () => {
+    const text: string = formatEvent(event('ag')).join('\n')
+    expect(text).toMatch(/^1 +rd-page$/m)
+    expect(text).toMatch(/авторск/)
+  })
+
+  it('agent без шагов: так и сказано', () => {
+    const empty = { id: 'e', kind: 'agent', prompt: 'Вопрос', reply: 'Ответ', steps: [] }
+    expect(formatEvent(empty).join('\n')).toMatch(/шагов нет/)
+  })
+})
+
+describe('номера из печати совпадают с теми, по которым кадры выбирают строки', () => {
+  const numberOf = (text: string, needle: string, from = 0) => {
+    const rows = text.split('\n').slice(from)
+    const row = rows.find((r) => r.includes(needle))!
+    return Number(/^\s*(\d+)/.exec(row)![1])
+  }
+
+  it('Terminal.lines', () => {
+    const n = numberOf(formatEvent(event('save')).join('\n'), 'POST /api/sets')
+    const spec = { type: 'terminal' as const, items: [{ session: 'fixture', event: 'save', at: 0, lines: [n, n] as [number, number] }] }
+    expect(FRAMES.terminal.problems(spec, ctx, { beat: (i) => 30 + i * 90, duration: 300, lines: 2 })).toEqual([])
+    expect(Object.keys(FRAMES.terminal.layout(spec, ctx))).toContain('line:save:0')
+    expect(n).toBe(3)
+  })
+
+  it('Diff.lines: номер строки «+» — та же строка в показанном диффе', () => {
+    const printed = formatEvent(event('page')).join('\n')
+    const n = numberOf(printed, '+  const [error')
+    expect(n).toBe(8)
+    const spec = { type: 'diff' as const, items: [{ session: 'fixture', event: 'page', at: 0, lines: [n, n] as [number, number] }] }
+    expect(FRAMES.diff.problems(spec, ctx, { beat: (i) => 30 + i * 90, duration: 300, lines: 2 })).toEqual([])
+    expect(Object.keys(FRAMES.diff.layout(spec, ctx))).toContain('line:page:0')
+  })
+
+  it('Editor.lines: номер строки файла', () => {
+    const printed = formatEvent(event('page')).join('\n')
+    const n = numberOf(printed, 'const [error', printed.split('\n').findIndex((r) => r.includes('файл')))
+    expect(n).toBe(6)
+    const spec = { type: 'editor' as const, session: 'fixture', event: 'page', lines: [n, n] as [number, number] }
+    expect(Object.keys(FRAMES.editor.layout(spec, ctx))).toContain('line:6')
+  })
+})
+
+describe('номера консоли и шагов совпадают с теми, по которым кадры их выбирают', () => {
+  it('Browser.consoleLines: номер сообщения — то же сообщение в кадре', () => {
+    const printed: string[] = formatEvent(event('form'))
+    const row = printed.find((r) => r.includes('Failed to load resource'))!
+    const n = Number(/^\s*(\d+)/.exec(row)![1])
+    expect(n).toBe(4)
+    const spec = { type: 'browser' as const, session: 'fixture', event: 'form', console: true, consoleLines: [n, n] as [number, number], at: { page: 0 } }
+    const clock = { beat: (i: number) => 30 + i * 90, duration: 300, lines: 2 }
+    expect(FRAMES.browser.problems(spec, ctx, clock)).toEqual([])
+    expect(Object.keys(FRAMES.browser.layout(spec, ctx))).toContain('console:0')
+  })
+
+  it('Browser.pageLines: номер строки страницы — та же строка вверху прокрученного окна', () => {
+    const printed: string[] = formatEvent(event('form-long'))
+    expect(printed).toContain('строки страницы до нажатия (первая — заголовок) — номера для Browser.pageLines:')
+    const row = printed.find((r) => r.endsWith('Строка страницы 9'))!
+    const n = Number(/^\s*(\d+)/.exec(row)![1])
+    expect(n).toBe(9)
+    const spec = { type: 'browser' as const, session: 'fixture', event: 'form-long', pageLines: [n, 20] as [number, number], at: { page: 0 } }
+    const clock = { beat: (i: number) => 30 + i * 90, duration: 300, lines: 2 }
+    expect(FRAMES.browser.problems(spec, ctx, clock)).toEqual([])
+  })
+
+  it('Agent.at.steps: номер шага — его порядок в at.steps', () => {
+    const printed: string[] = formatEvent(event('ag'), FIXTURE)
+    const steps = (event('ag') as { steps: string[] }).steps
+    steps.forEach((id, i) => expect(printed.some((r) => new RegExp(`^${i + 1} +${id}\\b`).test(r)), id).toBe(true))
+  })
+})
+
+describe('loadRecord и listEvents', () => {
+  it('читает настоящую запись по id сессии', () => {
+    const record = loadRecord('s02-sets')
+    expect(record.id).toBe('s02-sets')
+    const dev = record.events.find((e: { id: string }) => e.id === 'dev')
+    // время запуска меняется от записи к записи, поэтому только его место: 8-я строка вывода
+    expect(formatEvent(dev).join('\n')).toMatch(/^8 {2}✓ Ready in \d+ms$/m)
+    expect(makeFind([record])('s02-sets', 'dev', 'run').cmd).toBe('npm run dev')
+  })
+
+  it('нет такой сессии — понятная ошибка со списком записей', () => {
+    expect(() => loadRecord('s99-нет')).toThrow(/s02-sets/)
+  })
+
+  it('listEvents: id, вид и подсказка для каждого события сессии', () => {
+    const lines: string[] = listEvents(loadRecord('s02-sets'))
+    expect(lines.some((l) => l.includes('dev') && l.includes('run'))).toBe(true)
+    expect(lines.some((l) => l.includes('save-bad') && l.includes('browser'))).toBe(true)
+  })
+})

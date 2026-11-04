@@ -1,0 +1,1209 @@
+{
+ "id": "s05-proto",
+ "from": "s04-rules",
+ "recorded": "2026-10-30",
+ "events": [
+  {
+   "id": "proto-branch",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "git switch -c proto/coach",
+   "out": [
+    "Switched to a new branch 'proto/coach'"
+   ],
+   "code": 0
+  },
+  {
+   "id": "proto-doc",
+   "kind": "file",
+   "path": "docs/prototype.md",
+   "before": null,
+   "after": "# Прототип: экран «Подопечные»\n\nВетка `proto/coach`. Это прототип, а не продукт: его не жалко выбросить.\n\n## Вопрос\n\nПоймёт ли тренер с первого взгляда, кому пора написать?\n\n## Таймбокс\n\nДва часа. Когда время выйдет, остановиться и оценить результат, а не дорабатывать.\n\n## Тонкий срез\n\nОдин экран «Подопечные» (`/coach`): имя подопечного и «последняя тренировка: N дн. назад». Больше ничего: ни входа, ни тренировок, ни графиков.\n\n## Данные\n\nВыдуманные: шесть подопечных Марины лежат в `lib/fake-clients.ts`, в памяти. Базы нет.\n\n## Готова выбросить\n\nЯ готова выбросить этот код: ценен ответ на вопрос, а не код. Ветка `proto/coach` в `main` не вливается: если ответ «да», настоящий экран строится заново.\n\n## Упрощения\n\n- нет входа: тренер всегда Марина;\n- нет базы: подопечные записаны прямо в код;\n- «сегодня» зашито в данные, а не берётся из часов;\n- нет тестов и обработки ошибок;\n- дизайн простой, на телефоне не проверен.\n\n## Журнал решений\n\nПока пусто: показ Марине ещё впереди.\n",
+   "diff": [
+    "diff --git a/docs/prototype.md b/docs/prototype.md",
+    "new file mode 100644",
+    "index 0000000..32afcc8",
+    "--- /dev/null",
+    "+++ b/docs/prototype.md",
+    "@@ -0,0 +1,35 @@",
+    "+# Прототип: экран «Подопечные»",
+    "+",
+    "+Ветка `proto/coach`. Это прототип, а не продукт: его не жалко выбросить.",
+    "+",
+    "+## Вопрос",
+    "+",
+    "+Поймёт ли тренер с первого взгляда, кому пора написать?",
+    "+",
+    "+## Таймбокс",
+    "+",
+    "+Два часа. Когда время выйдет, остановиться и оценить результат, а не дорабатывать.",
+    "+",
+    "+## Тонкий срез",
+    "+",
+    "+Один экран «Подопечные» (`/coach`): имя подопечного и «последняя тренировка: N дн. назад». Больше ничего: ни входа, ни тренировок, ни графиков.",
+    "+",
+    "+## Данные",
+    "+",
+    "+Выдуманные: шесть подопечных Марины лежат в `lib/fake-clients.ts`, в памяти. Базы нет.",
+    "+",
+    "+## Готова выбросить",
+    "+",
+    "+Я готова выбросить этот код: ценен ответ на вопрос, а не код. Ветка `proto/coach` в `main` не вливается: если ответ «да», настоящий экран строится заново.",
+    "+",
+    "+## Упрощения",
+    "+",
+    "+- нет входа: тренер всегда Марина;",
+    "+- нет базы: подопечные записаны прямо в код;",
+    "+- «сегодня» зашито в данные, а не берётся из часов;",
+    "+- нет тестов и обработки ошибок;",
+    "+- дизайн простой, на телефоне не проверен.",
+    "+",
+    "+## Журнал решений",
+    "+",
+    "+Пока пусто: показ Марине ещё впереди."
+   ],
+   "blob": "32afcc8f27a40d1a7aefce024e8fed42070d6187"
+  },
+  {
+   "id": "ask-proto",
+   "kind": "agent",
+   "prompt": "Это прототип, не продукт. Вопрос: поймёт ли тренер с первого взгляда, кому пора написать. Один экран «Подопечные»: имя и «последняя тренировка: N дн. назад». Данные выдуманные, в памяти, без входа и базы. Стек — как в проекте. В конце список упрощений",
+   "reply": "Сделал прототип. lib/fake-clients.ts: шесть выдуманных подопечных Марины с датой последней тренировки, в памяти. app/coach/page.tsx: экран «Подопечные» — имя и «последняя тренировка: N дн. назад». Запусти npm run dev и открой localhost:3000/coach. Упрощения, которые придётся убрать перед продакшеном. 1. Подопечные записаны в код, базы нет. 2. Входа нет, тренер всегда Марина. 3. «Сегодня» зашито в данные (30 октября), а не берётся из часов. 4. Тестов и обработки ошибок нет. 5. Дизайн простой, на телефоне не проверен.",
+   "steps": [
+    "fake-data",
+    "proto-page"
+   ]
+  },
+  {
+   "id": "fake-data",
+   "kind": "file",
+   "path": "lib/fake-clients.ts",
+   "before": null,
+   "after": "// Прототип: подопечные выдуманы и лежат в памяти. Ни базы, ни входа — так экран можно показать Марине за вечер.\n// Когда прототип вырастет в настоящее приложение, подопечных заменит база.\n\nexport type FakeClient = {\n  id: string;\n  name: string;\n  lastWorkout: string; // ГГГГ-ММ-ДД\n};\n\n// «Сегодня» в прототипе — выдуманная дата, чтобы показ не зависел от часов компьютера\nexport const TODAY = \"2026-10-30\";\n\n// Шесть подопечных Марины\nexport const FAKE_CLIENTS: FakeClient[] = [\n  { id: \"anna\", name: \"Анна\", lastWorkout: \"2026-10-26\" },\n  { id: \"denis\", name: \"Денис\", lastWorkout: \"2026-10-21\" },\n  { id: \"ksenia\", name: \"Ксения\", lastWorkout: \"2026-10-29\" },\n  { id: \"oleg\", name: \"Олег\", lastWorkout: \"2026-10-27\" },\n  { id: \"pavel\", name: \"Павел\", lastWorkout: \"2026-10-18\" },\n  { id: \"tatiana\", name: \"Татьяна\", lastWorkout: \"2026-10-28\" },\n];\n\nconst DAY_MS = 24 * 60 * 60 * 1000;\n\n// Сколько дней назад была тренировка. Даты читаются как UTC, поэтому часовой пояс счёт не сдвигает.\nexport function daysSince(date: string): number {\n  return Math.round((Date.parse(TODAY) - Date.parse(date)) / DAY_MS);\n}\n",
+   "diff": [
+    "diff --git a/lib/fake-clients.ts b/lib/fake-clients.ts",
+    "new file mode 100644",
+    "index 0000000..015ad90",
+    "--- /dev/null",
+    "+++ b/lib/fake-clients.ts",
+    "@@ -0,0 +1,28 @@",
+    "+// Прототип: подопечные выдуманы и лежат в памяти. Ни базы, ни входа — так экран можно показать Марине за вечер.",
+    "+// Когда прототип вырастет в настоящее приложение, подопечных заменит база.",
+    "+",
+    "+export type FakeClient = {",
+    "+  id: string;",
+    "+  name: string;",
+    "+  lastWorkout: string; // ГГГГ-ММ-ДД",
+    "+};",
+    "+",
+    "+// «Сегодня» в прототипе — выдуманная дата, чтобы показ не зависел от часов компьютера",
+    "+export const TODAY = \"2026-10-30\";",
+    "+",
+    "+// Шесть подопечных Марины",
+    "+export const FAKE_CLIENTS: FakeClient[] = [",
+    "+  { id: \"anna\", name: \"Анна\", lastWorkout: \"2026-10-26\" },",
+    "+  { id: \"denis\", name: \"Денис\", lastWorkout: \"2026-10-21\" },",
+    "+  { id: \"ksenia\", name: \"Ксения\", lastWorkout: \"2026-10-29\" },",
+    "+  { id: \"oleg\", name: \"Олег\", lastWorkout: \"2026-10-27\" },",
+    "+  { id: \"pavel\", name: \"Павел\", lastWorkout: \"2026-10-18\" },",
+    "+  { id: \"tatiana\", name: \"Татьяна\", lastWorkout: \"2026-10-28\" },",
+    "+];",
+    "+",
+    "+const DAY_MS = 24 * 60 * 60 * 1000;",
+    "+",
+    "+// Сколько дней назад была тренировка. Даты читаются как UTC, поэтому часовой пояс счёт не сдвигает.",
+    "+export function daysSince(date: string): number {",
+    "+  return Math.round((Date.parse(TODAY) - Date.parse(date)) / DAY_MS);",
+    "+}"
+   ],
+   "blob": "015ad900c545aa51ebdf8b4e92611fd669e591fc",
+   "by": "agent"
+  },
+  {
+   "id": "proto-page",
+   "kind": "file",
+   "path": "app/coach/page.tsx",
+   "before": null,
+   "after": "import type { Metadata } from \"next\";\nimport { FAKE_CLIENTS, daysSince } from \"@/lib/fake-clients\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\nexport default function CoachPage() {\n  // Сколько дней назад была последняя тренировка у каждого\n  const clients = FAKE_CLIENTS.map((client) => ({ ...client, days: daysSince(client.lastWorkout) }));\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      <p className=\"mt-1 text-zinc-500\">Тренер: Марина. Прототип, данные выдуманные</p>\n\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id} className=\"rounded border border-zinc-300 p-4\">\n            <h2 className=\"text-xl font-semibold\">{client.name}</h2>\n            <p className=\"text-zinc-500\">последняя тренировка: {client.days} дн. назад</p>\n          </li>\n        ))}\n      </ul>\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/coach/page.tsx b/app/coach/page.tsx",
+    "new file mode 100644",
+    "index 0000000..54b1c1e",
+    "--- /dev/null",
+    "+++ b/app/coach/page.tsx",
+    "@@ -0,0 +1,25 @@",
+    "+import type { Metadata } from \"next\";",
+    "+import { FAKE_CLIENTS, daysSince } from \"@/lib/fake-clients\";",
+    "+",
+    "+export const metadata: Metadata = { title: \"Подопечные\" };",
+    "+",
+    "+export default function CoachPage() {",
+    "+  // Сколько дней назад была последняя тренировка у каждого",
+    "+  const clients = FAKE_CLIENTS.map((client) => ({ ...client, days: daysSince(client.lastWorkout) }));",
+    "+",
+    "+  return (",
+    "+    <main className=\"mx-auto w-full max-w-md p-8\">",
+    "+      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>",
+    "+      <p className=\"mt-1 text-zinc-500\">Тренер: Марина. Прототип, данные выдуманные</p>",
+    "+",
+    "+      <ul className=\"mt-6 flex flex-col gap-3\">",
+    "+        {clients.map((client) => (",
+    "+          <li key={client.id} className=\"rounded border border-zinc-300 p-4\">",
+    "+            <h2 className=\"text-xl font-semibold\">{client.name}</h2>",
+    "+            <p className=\"text-zinc-500\">последняя тренировка: {client.days} дн. назад</p>",
+    "+          </li>",
+    "+        ))}",
+    "+      </ul>",
+    "+    </main>",
+    "+  );",
+    "+}"
+   ],
+   "blob": "54b1c1ea2b9618c6fd44f9a89e3f94bcb5511a21",
+   "by": "agent"
+  },
+  {
+   "id": "c-proto",
+   "kind": "commit",
+   "cmd": "git add -A && git commit -m \"Прототип: список подопечных\"",
+   "hash": "de69064",
+   "message": "Прототип: список подопечных",
+   "branch": "proto/coach",
+   "parents": [
+    "918d46b"
+   ],
+   "out": [
+    "[proto/coach de69064] Прототип: список подопечных",
+    " 3 files changed, 88 insertions(+)",
+    " create mode 100644 app/coach/page.tsx",
+    " create mode 100644 docs/prototype.md",
+    " create mode 100644 lib/fake-clients.ts"
+   ],
+   "files": [
+    {
+     "path": ".gitignore",
+     "blob": "5ef6a520780202a1d6addd833d800ccb1ecac0bb"
+    },
+    {
+     "path": "CLAUDE.md",
+     "blob": "eddd7ec69c49be4d9b10d0c43803834ac4ab4293"
+    },
+    {
+     "path": "README.md",
+     "blob": "e215bc4ccf138bbc38ad58ad57e92135484b3c0f"
+    },
+    {
+     "path": "app/api/sets/route.ts",
+     "blob": "86d7c8e5b7f6716c088e4661438b2ab14cbe31bc"
+    },
+    {
+     "path": "app/coach/page.tsx",
+     "blob": "54b1c1ea2b9618c6fd44f9a89e3f94bcb5511a21"
+    },
+    {
+     "path": "app/favicon.ico",
+     "blob": "af98450595e8b8efd9e505cddc5ed705b665a4d8"
+    },
+    {
+     "path": "app/globals.css",
+     "blob": "bb4f7dd716191366da8ab882e4194b8157a504dd"
+    },
+    {
+     "path": "app/layout.tsx",
+     "blob": "8515cad45d81c7b1929badb5a9da485bd379b523"
+    },
+    {
+     "path": "app/page.tsx",
+     "blob": "58c27d1e76bd2f9f7e7763f3d6256ea6a157749d"
+    },
+    {
+     "path": "app/workouts/page.tsx",
+     "blob": "5a7eda66a244f6781ea267aabd6cf42a454e27eb"
+    },
+    {
+     "path": "docs/etalons.md",
+     "blob": "fdfe7da9d3ffc22d6f656c0f62158b898645c1d2"
+    },
+    {
+     "path": "docs/idea.md",
+     "blob": "df36eb1f1505a363fadd7ad7fdb3975ccfdd2ffb"
+    },
+    {
+     "path": "docs/mini-set.md",
+     "blob": "423696ff8c914a7cd24f5e11a3c0d1855c251c6a"
+    },
+    {
+     "path": "docs/prototype.md",
+     "blob": "32afcc8f27a40d1a7aefce024e8fed42070d6187"
+    },
+    {
+     "path": "docs/spec.md",
+     "blob": "491b7a53d9b628346315e33365aefd7fc7e3a8cf"
+    },
+    {
+     "path": "eslint.config.mjs",
+     "blob": "05e726d1b4201bc8c7716d2b058279676582e8c0"
+    },
+    {
+     "path": "lib/fake-clients.ts",
+     "blob": "015ad900c545aa51ebdf8b4e92611fd669e591fc"
+    },
+    {
+     "path": "lib/weight.test.ts",
+     "blob": "eb7b55ea11479f8d43d61a53e08af9b780a27179"
+    },
+    {
+     "path": "lib/weight.ts",
+     "blob": "5534e4676b0358eaf2665bfa0f498d168ad7705b"
+    },
+    {
+     "path": "lib/workouts.ts",
+     "blob": "2a75b556cceb49b5cb143d7c860a9b451acc195c"
+    },
+    {
+     "path": "next.config.ts",
+     "blob": "a0cf0c7313a86b713eb9d9bcac6539bc5d0bd1a9"
+    },
+    {
+     "path": "package-lock.json",
+     "blob": "dfadb7d75ae11bc6061d5425f577963b22efbef0"
+    },
+    {
+     "path": "package.json",
+     "blob": "9a1cd2931b6322cca017b66691292d74af928fb0"
+    },
+    {
+     "path": "public/file.svg",
+     "blob": "004145cddf3f9db91b57b9cb596683c8eb420862"
+    },
+    {
+     "path": "public/globe.svg",
+     "blob": "567f17b0d7c7fb662c16d4357dd74830caf2dccb"
+    },
+    {
+     "path": "public/next.svg",
+     "blob": "5174b28c565c285e3e312ec5178be64fbeca8398"
+    },
+    {
+     "path": "public/vercel.svg",
+     "blob": "77053960334e2e34dc584dea8019925c3b4ccca9"
+    },
+    {
+     "path": "public/window.svg",
+     "blob": "b2b2a44f6ebc70c450043c05a002e7a93ba5d651"
+    },
+    {
+     "path": "tsconfig.json",
+     "blob": "3a13f90a773b0facb675bf5b1a8239c8f33d36f5"
+    }
+   ]
+  },
+  {
+   "id": "ask-advice",
+   "kind": "agent",
+   "prompt": "Добавь на /coach кнопку «Совет ИИ» у подопечного: запрос к сервису ИИ, ключ — в .env.local",
+   "reply": "Добавил кнопку «Совет ИИ» у каждого подопечного: по нажатию страница отправляет запрос к сервису ИИ и показывает совет под кнопкой. Ключ положил в .env.local как NEXT_PUBLIC_AI_KEY, кнопка читает его оттуда. Новый файл: app/coach/advice-button.tsx, плюс правка app/coach/page.tsx.",
+   "steps": [
+    "key-env",
+    "advice-btn",
+    "advice-use"
+   ]
+  },
+  {
+   "id": "key-env",
+   "kind": "file",
+   "path": ".env.local",
+   "before": "TRAINER_API_KEY=demo-key-not-real\n",
+   "after": "TRAINER_API_KEY=demo-key-not-real\nNEXT_PUBLIC_AI_KEY=demo-ai-key-not-real\n",
+   "diff": [
+    "diff --git a/.env.local b/.env.local",
+    "index 6c46d01..41292ed 100644",
+    "--- a/.env.local",
+    "+++ b/.env.local",
+    "@@ -1 +1,2 @@",
+    " TRAINER_API_KEY=demo-key-not-real",
+    "+NEXT_PUBLIC_AI_KEY=demo-ai-key-not-real"
+   ],
+   "blob": "41292ed9374ce2f6bda6b0108a8a42acc2b1bb72",
+   "by": "agent"
+  },
+  {
+   "id": "advice-btn",
+   "kind": "file",
+   "path": "app/coach/advice-button.tsx",
+   "before": null,
+   "after": "\"use client\";\n\nimport { useState } from \"react\";\n\n// Сервис ИИ: адрес для примера (example.com), настоящего сервиса у прототипа нет\nconst AI_URL = \"https://ai.example.com/v1/advice\";\n\nexport function AdviceButton({ name, days }: { name: string; days: number }) {\n  const [advice, setAdvice] = useState(\"\");\n\n  async function ask() {\n    const res = await fetch(AI_URL, {\n      method: \"POST\",\n      headers: {\n        \"Content-Type\": \"application/json\",\n        Authorization: `Bearer ${process.env.NEXT_PUBLIC_AI_KEY}`,\n      },\n      body: JSON.stringify({ client: name, daysSinceWorkout: days }),\n    });\n    const data = await res.json();\n    setAdvice(data.advice);\n  }\n\n  return (\n    <div className=\"mt-3\">\n      <button type=\"button\" onClick={ask} className=\"rounded bg-zinc-900 px-3 py-1 text-white\">\n        Совет ИИ\n      </button>\n      {advice && <p className=\"mt-2\">{advice}</p>}\n    </div>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/coach/advice-button.tsx b/app/coach/advice-button.tsx",
+    "new file mode 100644",
+    "index 0000000..0a4740f",
+    "--- /dev/null",
+    "+++ b/app/coach/advice-button.tsx",
+    "@@ -0,0 +1,32 @@",
+    "+\"use client\";",
+    "+",
+    "+import { useState } from \"react\";",
+    "+",
+    "+// Сервис ИИ: адрес для примера (example.com), настоящего сервиса у прототипа нет",
+    "+const AI_URL = \"https://ai.example.com/v1/advice\";",
+    "+",
+    "+export function AdviceButton({ name, days }: { name: string; days: number }) {",
+    "+  const [advice, setAdvice] = useState(\"\");",
+    "+",
+    "+  async function ask() {",
+    "+    const res = await fetch(AI_URL, {",
+    "+      method: \"POST\",",
+    "+      headers: {",
+    "+        \"Content-Type\": \"application/json\",",
+    "+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_AI_KEY}`,",
+    "+      },",
+    "+      body: JSON.stringify({ client: name, daysSinceWorkout: days }),",
+    "+    });",
+    "+    const data = await res.json();",
+    "+    setAdvice(data.advice);",
+    "+  }",
+    "+",
+    "+  return (",
+    "+    <div className=\"mt-3\">",
+    "+      <button type=\"button\" onClick={ask} className=\"rounded bg-zinc-900 px-3 py-1 text-white\">",
+    "+        Совет ИИ",
+    "+      </button>",
+    "+      {advice && <p className=\"mt-2\">{advice}</p>}",
+    "+    </div>",
+    "+  );",
+    "+}"
+   ],
+   "blob": "0a4740f6cb258e4c08dbd5c401633176dc3adad9",
+   "by": "agent"
+  },
+  {
+   "id": "advice-use",
+   "kind": "file",
+   "path": "app/coach/page.tsx",
+   "before": "import type { Metadata } from \"next\";\nimport { FAKE_CLIENTS, daysSince } from \"@/lib/fake-clients\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\nexport default function CoachPage() {\n  // Сколько дней назад была последняя тренировка у каждого\n  const clients = FAKE_CLIENTS.map((client) => ({ ...client, days: daysSince(client.lastWorkout) }));\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      <p className=\"mt-1 text-zinc-500\">Тренер: Марина. Прототип, данные выдуманные</p>\n\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id} className=\"rounded border border-zinc-300 p-4\">\n            <h2 className=\"text-xl font-semibold\">{client.name}</h2>\n            <p className=\"text-zinc-500\">последняя тренировка: {client.days} дн. назад</p>\n          </li>\n        ))}\n      </ul>\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport { AdviceButton } from \"./advice-button\";\nimport { FAKE_CLIENTS, daysSince } from \"@/lib/fake-clients\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\nexport default function CoachPage() {\n  // Сколько дней назад была последняя тренировка у каждого\n  const clients = FAKE_CLIENTS.map((client) => ({ ...client, days: daysSince(client.lastWorkout) }));\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      <p className=\"mt-1 text-zinc-500\">Тренер: Марина. Прототип, данные выдуманные</p>\n\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id} className=\"rounded border border-zinc-300 p-4\">\n            <h2 className=\"text-xl font-semibold\">{client.name}</h2>\n            <p className=\"text-zinc-500\">последняя тренировка: {client.days} дн. назад</p>\n            <AdviceButton name={client.name} days={client.days} />\n          </li>\n        ))}\n      </ul>\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/coach/page.tsx b/app/coach/page.tsx",
+    "index 54b1c1e..e1ec8df 100644",
+    "--- a/app/coach/page.tsx",
+    "+++ b/app/coach/page.tsx",
+    "@@ -1,4 +1,5 @@",
+    " import type { Metadata } from \"next\";",
+    "+import { AdviceButton } from \"./advice-button\";",
+    " import { FAKE_CLIENTS, daysSince } from \"@/lib/fake-clients\";",
+    " ",
+    " export const metadata: Metadata = { title: \"Подопечные\" };",
+    "@@ -17,6 +18,7 @@ export default function CoachPage() {",
+    "           <li key={client.id} className=\"rounded border border-zinc-300 p-4\">",
+    "             <h2 className=\"text-xl font-semibold\">{client.name}</h2>",
+    "             <p className=\"text-zinc-500\">последняя тренировка: {client.days} дн. назад</p>",
+    "+            <AdviceButton name={client.name} days={client.days} />",
+    "           </li>",
+    "         ))}",
+    "       </ul>"
+   ],
+   "blob": "e1ec8dfc193c6db3646589c24191fc10cc197e96",
+   "by": "agent"
+  },
+  {
+   "id": "build",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npm run build",
+   "out": [
+    "",
+    "> trainer-app@0.1.0 build",
+    "> next build",
+    "",
+    "▲ Next.js 16.4.3 (Turbopack)",
+    "- Environments: .env.local",
+    "✓ Running next.config.ts took 45ms",
+    "- Cache Components enabled",
+    "- Partial Prefetching enabled",
+    "",
+    "  Creating an optimized production build ...",
+    "✓ Compiled successfully in 4.4s",
+    "  Running TypeScript ...",
+    "  Finished TypeScript in 3.0s ...",
+    "  Collecting page data using 3 workers ...",
+    "  Generating static pages using 3 workers (0/7) ...",
+    "  Generating static pages using 3 workers (1/7) ",
+    "  Generating static pages using 3 workers (3/7) ",
+    "  Generating static pages using 3 workers (5/7) ",
+    "✓ Generating static pages using 3 workers (7/7) in 545ms",
+    "  Finalizing page optimization ...",
+    "",
+    "Route (app)",
+    "┌ ○ /",
+    "├ ○ /_not-found",
+    "├ ƒ /api/sets",
+    "├ ○ /coach",
+    "└ ○ /workouts",
+    "",
+    "",
+    "○  (Static)   prerendered as static content",
+    "ƒ  (Dynamic)  server-rendered on demand"
+   ],
+   "code": 0
+  },
+  {
+   "id": "leak",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "grep -rl demo-ai-key-not-real .next/static || echo \"не найдено\"",
+   "out": [
+    ".next/static/chunks/0cm045zwclnmv.js"
+   ],
+   "code": 0
+  },
+  {
+   "id": "ask-key-fix",
+   "kind": "agent",
+   "prompt": "Ключ попал в браузер: grep нашёл его в .next/static. Ключ — только на сервере: маршрут /api/advice, переменная без NEXT_PUBLIC_",
+   "reply": "Перенёс ключ на сервер. Новый маршрут app/api/advice/route.ts читает AI_KEY и сам обращается к сервису ИИ. В .env.local переменная теперь AI_KEY, без NEXT_PUBLIC_, а кнопка вызывает /api/advice. Пересобери проект и проверь тем же grep.",
+   "steps": [
+    "key-route",
+    "key-env-fix",
+    "key-btn-fix"
+   ]
+  },
+  {
+   "id": "key-route",
+   "kind": "file",
+   "path": "app/api/advice/route.ts",
+   "before": null,
+   "after": "// Совет ИИ: запрос к сервису идёт отсюда, с сервера. Ключ AI_KEY (без NEXT_PUBLIC_) в браузер не попадает.\n// Адрес сервиса для примера (example.com): настоящего сервиса у прототипа нет.\nconst AI_URL = \"https://ai.example.com/v1/advice\";\n\n// POST /api/advice — { client, daysSinceWorkout } → { advice }\nexport async function POST(request: Request) {\n  const key = process.env.AI_KEY;\n  if (!key) {\n    return Response.json({ error: \"На сервере не задан AI_KEY\" }, { status: 500 });\n  }\n\n  const body = await request.json().catch(() => null);\n  if (body === null || typeof body !== \"object\") {\n    return Response.json({ error: \"Нужен JSON: { client, daysSinceWorkout }\" }, { status: 400 });\n  }\n\n  try {\n    const res = await fetch(AI_URL, {\n      method: \"POST\",\n      headers: { \"Content-Type\": \"application/json\", Authorization: `Bearer ${key}` },\n      body: JSON.stringify(body),\n    });\n    if (!res.ok) throw new Error(`сервис ИИ ответил ${res.status}`);\n    return Response.json(await res.json());\n  } catch {\n    return Response.json({ error: \"Сервис ИИ не ответил\" }, { status: 502 });\n  }\n}\n",
+   "diff": [
+    "diff --git a/app/api/advice/route.ts b/app/api/advice/route.ts",
+    "new file mode 100644",
+    "index 0000000..94eebb3",
+    "--- /dev/null",
+    "+++ b/app/api/advice/route.ts",
+    "@@ -0,0 +1,28 @@",
+    "+// Совет ИИ: запрос к сервису идёт отсюда, с сервера. Ключ AI_KEY (без NEXT_PUBLIC_) в браузер не попадает.",
+    "+// Адрес сервиса для примера (example.com): настоящего сервиса у прототипа нет.",
+    "+const AI_URL = \"https://ai.example.com/v1/advice\";",
+    "+",
+    "+// POST /api/advice — { client, daysSinceWorkout } → { advice }",
+    "+export async function POST(request: Request) {",
+    "+  const key = process.env.AI_KEY;",
+    "+  if (!key) {",
+    "+    return Response.json({ error: \"На сервере не задан AI_KEY\" }, { status: 500 });",
+    "+  }",
+    "+",
+    "+  const body = await request.json().catch(() => null);",
+    "+  if (body === null || typeof body !== \"object\") {",
+    "+    return Response.json({ error: \"Нужен JSON: { client, daysSinceWorkout }\" }, { status: 400 });",
+    "+  }",
+    "+",
+    "+  try {",
+    "+    const res = await fetch(AI_URL, {",
+    "+      method: \"POST\",",
+    "+      headers: { \"Content-Type\": \"application/json\", Authorization: `Bearer ${key}` },",
+    "+      body: JSON.stringify(body),",
+    "+    });",
+    "+    if (!res.ok) throw new Error(`сервис ИИ ответил ${res.status}`);",
+    "+    return Response.json(await res.json());",
+    "+  } catch {",
+    "+    return Response.json({ error: \"Сервис ИИ не ответил\" }, { status: 502 });",
+    "+  }",
+    "+}"
+   ],
+   "blob": "94eebb3e8c3a929210a4c1ec667ce70b733bc9fd",
+   "by": "agent"
+  },
+  {
+   "id": "key-env-fix",
+   "kind": "file",
+   "path": ".env.local",
+   "before": "TRAINER_API_KEY=demo-key-not-real\nNEXT_PUBLIC_AI_KEY=demo-ai-key-not-real\n",
+   "after": "TRAINER_API_KEY=demo-key-not-real\nAI_KEY=demo-ai-key-not-real\n",
+   "diff": [
+    "diff --git a/.env.local b/.env.local",
+    "index 41292ed..c917542 100644",
+    "--- a/.env.local",
+    "+++ b/.env.local",
+    "@@ -1,2 +1,2 @@",
+    " TRAINER_API_KEY=demo-key-not-real",
+    "-NEXT_PUBLIC_AI_KEY=demo-ai-key-not-real",
+    "+AI_KEY=demo-ai-key-not-real"
+   ],
+   "blob": "c91754250d4a9bf2e956d21e0c0d6e689906609a",
+   "by": "agent"
+  },
+  {
+   "id": "key-btn-fix",
+   "kind": "file",
+   "path": "app/coach/advice-button.tsx",
+   "before": "\"use client\";\n\nimport { useState } from \"react\";\n\n// Сервис ИИ: адрес для примера (example.com), настоящего сервиса у прототипа нет\nconst AI_URL = \"https://ai.example.com/v1/advice\";\n\nexport function AdviceButton({ name, days }: { name: string; days: number }) {\n  const [advice, setAdvice] = useState(\"\");\n\n  async function ask() {\n    const res = await fetch(AI_URL, {\n      method: \"POST\",\n      headers: {\n        \"Content-Type\": \"application/json\",\n        Authorization: `Bearer ${process.env.NEXT_PUBLIC_AI_KEY}`,\n      },\n      body: JSON.stringify({ client: name, daysSinceWorkout: days }),\n    });\n    const data = await res.json();\n    setAdvice(data.advice);\n  }\n\n  return (\n    <div className=\"mt-3\">\n      <button type=\"button\" onClick={ask} className=\"rounded bg-zinc-900 px-3 py-1 text-white\">\n        Совет ИИ\n      </button>\n      {advice && <p className=\"mt-2\">{advice}</p>}\n    </div>\n  );\n}\n",
+   "after": "\"use client\";\n\nimport { useState } from \"react\";\n\nexport function AdviceButton({ name, days }: { name: string; days: number }) {\n  const [advice, setAdvice] = useState(\"\");\n\n  async function ask() {\n    // запрос идёт на наш сервер, а он уже обращается к сервису ИИ с ключом\n    const res = await fetch(\"/api/advice\", {\n      method: \"POST\",\n      headers: { \"Content-Type\": \"application/json\" },\n      body: JSON.stringify({ client: name, daysSinceWorkout: days }),\n    });\n    const data = await res.json();\n    setAdvice(data.advice);\n  }\n\n  return (\n    <div className=\"mt-3\">\n      <button type=\"button\" onClick={ask} className=\"rounded bg-zinc-900 px-3 py-1 text-white\">\n        Совет ИИ\n      </button>\n      {advice && <p className=\"mt-2\">{advice}</p>}\n    </div>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/coach/advice-button.tsx b/app/coach/advice-button.tsx",
+    "index 0a4740f..bcd088c 100644",
+    "--- a/app/coach/advice-button.tsx",
+    "+++ b/app/coach/advice-button.tsx",
+    "@@ -2,19 +2,14 @@",
+    " ",
+    " import { useState } from \"react\";",
+    " ",
+    "-// Сервис ИИ: адрес для примера (example.com), настоящего сервиса у прототипа нет",
+    "-const AI_URL = \"https://ai.example.com/v1/advice\";",
+    "-",
+    " export function AdviceButton({ name, days }: { name: string; days: number }) {",
+    "   const [advice, setAdvice] = useState(\"\");",
+    " ",
+    "   async function ask() {",
+    "-    const res = await fetch(AI_URL, {",
+    "+    // запрос идёт на наш сервер, а он уже обращается к сервису ИИ с ключом",
+    "+    const res = await fetch(\"/api/advice\", {",
+    "       method: \"POST\",",
+    "-      headers: {",
+    "-        \"Content-Type\": \"application/json\",",
+    "-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_AI_KEY}`,",
+    "-      },",
+    "+      headers: { \"Content-Type\": \"application/json\" },",
+    "       body: JSON.stringify({ client: name, daysSinceWorkout: days }),",
+    "     });",
+    "     const data = await res.json();"
+   ],
+   "blob": "bcd088c8d8834817ba1fd36608c8e0bc21a324aa",
+   "by": "agent"
+  },
+  {
+   "id": "build2",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npm run build",
+   "out": [
+    "",
+    "> trainer-app@0.1.0 build",
+    "> next build",
+    "",
+    "▲ Next.js 16.4.3 (Turbopack)",
+    "- Environments: .env.local",
+    "✓ Running next.config.ts took 33ms",
+    "- Cache Components enabled",
+    "- Partial Prefetching enabled",
+    "",
+    "  Creating an optimized production build ...",
+    "✓ Compiled successfully in 1300ms",
+    "  Running TypeScript ...",
+    "  Finished TypeScript in 2.5s ...",
+    "  Collecting page data using 3 workers ...",
+    "  Generating static pages using 3 workers (0/8) ...",
+    "  Generating static pages using 3 workers (2/8) ",
+    "  Generating static pages using 3 workers (4/8) ",
+    "  Generating static pages using 3 workers (6/8) ",
+    "✓ Generating static pages using 3 workers (8/8) in 379ms",
+    "  Finalizing page optimization ...",
+    "",
+    "Route (app)",
+    "┌ ○ /",
+    "├ ○ /_not-found",
+    "├ ƒ /api/advice",
+    "├ ƒ /api/sets",
+    "├ ○ /coach",
+    "└ ○ /workouts",
+    "",
+    "",
+    "○  (Static)   prerendered as static content",
+    "ƒ  (Dynamic)  server-rendered on demand"
+   ],
+   "code": 0
+  },
+  {
+   "id": "leak2",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "grep -rl demo-ai-key-not-real .next/static || echo \"не найдено\"",
+   "out": [
+    "не найдено"
+   ],
+   "code": 0
+  },
+  {
+   "id": "c-advice",
+   "kind": "commit",
+   "cmd": "git add -A && git commit -m \"Совет ИИ: ключ только на сервере\"",
+   "hash": "5ab3d14",
+   "message": "Совет ИИ: ключ только на сервере",
+   "branch": "proto/coach",
+   "parents": [
+    "de69064"
+   ],
+   "out": [
+    "[proto/coach 5ab3d14] Совет ИИ: ключ только на сервере",
+    " 3 files changed, 57 insertions(+)",
+    " create mode 100644 app/api/advice/route.ts",
+    " create mode 100644 app/coach/advice-button.tsx"
+   ],
+   "files": [
+    {
+     "path": ".gitignore",
+     "blob": "5ef6a520780202a1d6addd833d800ccb1ecac0bb"
+    },
+    {
+     "path": "CLAUDE.md",
+     "blob": "eddd7ec69c49be4d9b10d0c43803834ac4ab4293"
+    },
+    {
+     "path": "README.md",
+     "blob": "e215bc4ccf138bbc38ad58ad57e92135484b3c0f"
+    },
+    {
+     "path": "app/api/advice/route.ts",
+     "blob": "94eebb3e8c3a929210a4c1ec667ce70b733bc9fd"
+    },
+    {
+     "path": "app/api/sets/route.ts",
+     "blob": "86d7c8e5b7f6716c088e4661438b2ab14cbe31bc"
+    },
+    {
+     "path": "app/coach/advice-button.tsx",
+     "blob": "bcd088c8d8834817ba1fd36608c8e0bc21a324aa"
+    },
+    {
+     "path": "app/coach/page.tsx",
+     "blob": "e1ec8dfc193c6db3646589c24191fc10cc197e96"
+    },
+    {
+     "path": "app/favicon.ico",
+     "blob": "af98450595e8b8efd9e505cddc5ed705b665a4d8"
+    },
+    {
+     "path": "app/globals.css",
+     "blob": "bb4f7dd716191366da8ab882e4194b8157a504dd"
+    },
+    {
+     "path": "app/layout.tsx",
+     "blob": "8515cad45d81c7b1929badb5a9da485bd379b523"
+    },
+    {
+     "path": "app/page.tsx",
+     "blob": "58c27d1e76bd2f9f7e7763f3d6256ea6a157749d"
+    },
+    {
+     "path": "app/workouts/page.tsx",
+     "blob": "5a7eda66a244f6781ea267aabd6cf42a454e27eb"
+    },
+    {
+     "path": "docs/etalons.md",
+     "blob": "fdfe7da9d3ffc22d6f656c0f62158b898645c1d2"
+    },
+    {
+     "path": "docs/idea.md",
+     "blob": "df36eb1f1505a363fadd7ad7fdb3975ccfdd2ffb"
+    },
+    {
+     "path": "docs/mini-set.md",
+     "blob": "423696ff8c914a7cd24f5e11a3c0d1855c251c6a"
+    },
+    {
+     "path": "docs/prototype.md",
+     "blob": "32afcc8f27a40d1a7aefce024e8fed42070d6187"
+    },
+    {
+     "path": "docs/spec.md",
+     "blob": "491b7a53d9b628346315e33365aefd7fc7e3a8cf"
+    },
+    {
+     "path": "eslint.config.mjs",
+     "blob": "05e726d1b4201bc8c7716d2b058279676582e8c0"
+    },
+    {
+     "path": "lib/fake-clients.ts",
+     "blob": "015ad900c545aa51ebdf8b4e92611fd669e591fc"
+    },
+    {
+     "path": "lib/weight.test.ts",
+     "blob": "eb7b55ea11479f8d43d61a53e08af9b780a27179"
+    },
+    {
+     "path": "lib/weight.ts",
+     "blob": "5534e4676b0358eaf2665bfa0f498d168ad7705b"
+    },
+    {
+     "path": "lib/workouts.ts",
+     "blob": "2a75b556cceb49b5cb143d7c860a9b451acc195c"
+    },
+    {
+     "path": "next.config.ts",
+     "blob": "a0cf0c7313a86b713eb9d9bcac6539bc5d0bd1a9"
+    },
+    {
+     "path": "package-lock.json",
+     "blob": "dfadb7d75ae11bc6061d5425f577963b22efbef0"
+    },
+    {
+     "path": "package.json",
+     "blob": "9a1cd2931b6322cca017b66691292d74af928fb0"
+    },
+    {
+     "path": "public/file.svg",
+     "blob": "004145cddf3f9db91b57b9cb596683c8eb420862"
+    },
+    {
+     "path": "public/globe.svg",
+     "blob": "567f17b0d7c7fb662c16d4357dd74830caf2dccb"
+    },
+    {
+     "path": "public/next.svg",
+     "blob": "5174b28c565c285e3e312ec5178be64fbeca8398"
+    },
+    {
+     "path": "public/vercel.svg",
+     "blob": "77053960334e2e34dc584dea8019925c3b4ccca9"
+    },
+    {
+     "path": "public/window.svg",
+     "blob": "b2b2a44f6ebc70c450043c05a002e7a93ba5d651"
+    },
+    {
+     "path": "tsconfig.json",
+     "blob": "3a13f90a773b0facb675bf5b1a8239c8f33d36f5"
+    }
+   ]
+  },
+  {
+   "id": "dev",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npm run dev",
+   "out": [
+    "",
+    "> trainer-app@0.1.0 dev",
+    "> next dev",
+    "",
+    "▲ Next.js 16.4.3 (Turbopack)",
+    "- Local:         http://localhost:3000",
+    "- Network:       http://192.0.2.2:3000",
+    "- Environments: .env.local",
+    "✓ Ready in 482ms"
+   ],
+   "code": null
+  },
+  {
+   "id": "proto-view",
+   "kind": "browser",
+   "url": "http://localhost:3000/coach",
+   "title": "Подопечные",
+   "fields": [],
+   "buttons": [
+    "Совет ИИ",
+    "Совет ИИ",
+    "Совет ИИ",
+    "Совет ИИ",
+    "Совет ИИ",
+    "Совет ИИ"
+   ],
+   "before": [
+    "Подопечные",
+    "Тренер: Марина. Прототип, данные выдуманные",
+    "Анна",
+    "последняя тренировка: 4 дн. назад",
+    "Совет ИИ",
+    "Денис",
+    "последняя тренировка: 9 дн. назад",
+    "Совет ИИ",
+    "Ксения",
+    "последняя тренировка: 1 дн. назад",
+    "Совет ИИ",
+    "Олег",
+    "последняя тренировка: 3 дн. назад",
+    "Совет ИИ",
+    "Павел",
+    "последняя тренировка: 12 дн. назад",
+    "Совет ИИ",
+    "Татьяна",
+    "последняя тренировка: 2 дн. назад",
+    "Совет ИИ"
+   ],
+   "after": [
+    "Подопечные",
+    "Тренер: Марина. Прототип, данные выдуманные",
+    "Анна",
+    "последняя тренировка: 4 дн. назад",
+    "Совет ИИ",
+    "Денис",
+    "последняя тренировка: 9 дн. назад",
+    "Совет ИИ",
+    "Ксения",
+    "последняя тренировка: 1 дн. назад",
+    "Совет ИИ",
+    "Олег",
+    "последняя тренировка: 3 дн. назад",
+    "Совет ИИ",
+    "Павел",
+    "последняя тренировка: 12 дн. назад",
+    "Совет ИИ",
+    "Татьяна",
+    "последняя тренировка: 2 дн. назад",
+    "Совет ИИ"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    }
+   ],
+   "network": [],
+   "server": [
+    "- Cache Components enabled",
+    "- Partial Prefetching enabled",
+    "",
+    " GET /coach 200 in 401ms (next.js: 204ms, application-code: 197ms)"
+   ]
+  },
+  {
+   "id": "ask-iter",
+   "kind": "agent",
+   "prompt": "Отзыв Марины после показа: сверху — те, кто не тренировался больше 7 дней, с пометкой «Пора написать»",
+   "reply": "Поправил app/coach/page.tsx: сверху теперь подопечные, у которых последняя тренировка была больше 7 дней назад, и у них пометка «Пора написать». Остальные идут в прежнем порядке.",
+   "steps": [
+    "iter-page"
+   ]
+  },
+  {
+   "id": "iter-page",
+   "kind": "file",
+   "path": "app/coach/page.tsx",
+   "before": "import type { Metadata } from \"next\";\nimport { AdviceButton } from \"./advice-button\";\nimport { FAKE_CLIENTS, daysSince } from \"@/lib/fake-clients\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\nexport default function CoachPage() {\n  // Сколько дней назад была последняя тренировка у каждого\n  const clients = FAKE_CLIENTS.map((client) => ({ ...client, days: daysSince(client.lastWorkout) }));\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      <p className=\"mt-1 text-zinc-500\">Тренер: Марина. Прототип, данные выдуманные</p>\n\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id} className=\"rounded border border-zinc-300 p-4\">\n            <h2 className=\"text-xl font-semibold\">{client.name}</h2>\n            <p className=\"text-zinc-500\">последняя тренировка: {client.days} дн. назад</p>\n            <AdviceButton name={client.name} days={client.days} />\n          </li>\n        ))}\n      </ul>\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport { AdviceButton } from \"./advice-button\";\nimport { FAKE_CLIENTS, daysSince } from \"@/lib/fake-clients\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\n// Больше стольких дней без тренировки — пора написать\nconst OVERDUE_DAYS = 7;\n\nexport default function CoachPage() {\n  // Сколько дней назад была последняя тренировка у каждого. Сверху те, кому пора написать, остальные в прежнем порядке.\n  const clients = FAKE_CLIENTS.map((client) => {\n    const days = daysSince(client.lastWorkout);\n    return { ...client, days, overdue: days > OVERDUE_DAYS };\n  }).sort((a, b) => Number(b.overdue) - Number(a.overdue));\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      <p className=\"mt-1 text-zinc-500\">Тренер: Марина. Прототип, данные выдуманные</p>\n\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id} className=\"rounded border border-zinc-300 p-4\">\n            <div className=\"flex items-center justify-between gap-2\">\n              <h2 className=\"text-xl font-semibold\">{client.name}</h2>\n              {client.overdue && (\n                <span className=\"rounded bg-amber-100 px-2 py-0.5 text-sm font-medium text-amber-900\">Пора написать</span>\n              )}\n            </div>\n            <p className=\"text-zinc-500\">последняя тренировка: {client.days} дн. назад</p>\n            <AdviceButton name={client.name} days={client.days} />\n          </li>\n        ))}\n      </ul>\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/coach/page.tsx b/app/coach/page.tsx",
+    "index e1ec8df..a1503d7 100644",
+    "--- a/app/coach/page.tsx",
+    "+++ b/app/coach/page.tsx",
+    "@@ -4,9 +4,15 @@ import { FAKE_CLIENTS, daysSince } from \"@/lib/fake-clients\";",
+    " ",
+    " export const metadata: Metadata = { title: \"Подопечные\" };",
+    " ",
+    "+// Больше стольких дней без тренировки — пора написать",
+    "+const OVERDUE_DAYS = 7;",
+    "+",
+    " export default function CoachPage() {",
+    "-  // Сколько дней назад была последняя тренировка у каждого",
+    "-  const clients = FAKE_CLIENTS.map((client) => ({ ...client, days: daysSince(client.lastWorkout) }));",
+    "+  // Сколько дней назад была последняя тренировка у каждого. Сверху те, кому пора написать, остальные в прежнем порядке.",
+    "+  const clients = FAKE_CLIENTS.map((client) => {",
+    "+    const days = daysSince(client.lastWorkout);",
+    "+    return { ...client, days, overdue: days > OVERDUE_DAYS };",
+    "+  }).sort((a, b) => Number(b.overdue) - Number(a.overdue));",
+    " ",
+    "   return (",
+    "     <main className=\"mx-auto w-full max-w-md p-8\">",
+    "@@ -16,7 +22,12 @@ export default function CoachPage() {",
+    "       <ul className=\"mt-6 flex flex-col gap-3\">",
+    "         {clients.map((client) => (",
+    "           <li key={client.id} className=\"rounded border border-zinc-300 p-4\">",
+    "-            <h2 className=\"text-xl font-semibold\">{client.name}</h2>",
+    "+            <div className=\"flex items-center justify-between gap-2\">",
+    "+              <h2 className=\"text-xl font-semibold\">{client.name}</h2>",
+    "+              {client.overdue && (",
+    "+                <span className=\"rounded bg-amber-100 px-2 py-0.5 text-sm font-medium text-amber-900\">Пора написать</span>",
+    "+              )}",
+    "+            </div>",
+    "             <p className=\"text-zinc-500\">последняя тренировка: {client.days} дн. назад</p>",
+    "             <AdviceButton name={client.name} days={client.days} />",
+    "           </li>"
+   ],
+   "blob": "a1503d774e7d16330bb57f5519df1e691295112b",
+   "by": "agent"
+  },
+  {
+   "id": "proto-view2",
+   "kind": "browser",
+   "url": "http://localhost:3000/coach",
+   "title": "Подопечные",
+   "fields": [],
+   "buttons": [
+    "Совет ИИ",
+    "Совет ИИ",
+    "Совет ИИ",
+    "Совет ИИ",
+    "Совет ИИ",
+    "Совет ИИ"
+   ],
+   "before": [
+    "Подопечные",
+    "Тренер: Марина. Прототип, данные выдуманные",
+    "Денис",
+    "Пора написать",
+    "последняя тренировка: 9 дн. назад",
+    "Совет ИИ",
+    "Павел",
+    "Пора написать",
+    "последняя тренировка: 12 дн. назад",
+    "Совет ИИ",
+    "Анна",
+    "последняя тренировка: 4 дн. назад",
+    "Совет ИИ",
+    "Ксения",
+    "последняя тренировка: 1 дн. назад",
+    "Совет ИИ",
+    "Олег",
+    "последняя тренировка: 3 дн. назад",
+    "Совет ИИ",
+    "Татьяна",
+    "последняя тренировка: 2 дн. назад",
+    "Совет ИИ"
+   ],
+   "after": [
+    "Подопечные",
+    "Тренер: Марина. Прототип, данные выдуманные",
+    "Денис",
+    "Пора написать",
+    "последняя тренировка: 9 дн. назад",
+    "Совет ИИ",
+    "Павел",
+    "Пора написать",
+    "последняя тренировка: 12 дн. назад",
+    "Совет ИИ",
+    "Анна",
+    "последняя тренировка: 4 дн. назад",
+    "Совет ИИ",
+    "Ксения",
+    "последняя тренировка: 1 дн. назад",
+    "Совет ИИ",
+    "Олег",
+    "последняя тренировка: 3 дн. назад",
+    "Совет ИИ",
+    "Татьяна",
+    "последняя тренировка: 2 дн. назад",
+    "Совет ИИ"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    }
+   ],
+   "network": [],
+   "server": [
+    "✓ Compiled in 18ms",
+    " GET /coach 200 in 62ms (next.js: 3ms, application-code: 60ms)"
+   ]
+  },
+  {
+   "id": "journal",
+   "kind": "file",
+   "path": "docs/prototype.md",
+   "before": "# Прототип: экран «Подопечные»\n\nВетка `proto/coach`. Это прототип, а не продукт: его не жалко выбросить.\n\n## Вопрос\n\nПоймёт ли тренер с первого взгляда, кому пора написать?\n\n## Таймбокс\n\nДва часа. Когда время выйдет, остановиться и оценить результат, а не дорабатывать.\n\n## Тонкий срез\n\nОдин экран «Подопечные» (`/coach`): имя подопечного и «последняя тренировка: N дн. назад». Больше ничего: ни входа, ни тренировок, ни графиков.\n\n## Данные\n\nВыдуманные: шесть подопечных Марины лежат в `lib/fake-clients.ts`, в памяти. Базы нет.\n\n## Готова выбросить\n\nЯ готова выбросить этот код: ценен ответ на вопрос, а не код. Ветка `proto/coach` в `main` не вливается: если ответ «да», настоящий экран строится заново.\n\n## Упрощения\n\n- нет входа: тренер всегда Марина;\n- нет базы: подопечные записаны прямо в код;\n- «сегодня» зашито в данные, а не берётся из часов;\n- нет тестов и обработки ошибок;\n- дизайн простой, на телефоне не проверен.\n\n## Журнал решений\n\nПока пусто: показ Марине ещё впереди.\n",
+   "after": "# Прототип: экран «Подопечные»\n\nВетка `proto/coach`. Это прототип, а не продукт: его не жалко выбросить.\n\n## Вопрос\n\nПоймёт ли тренер с первого взгляда, кому пора написать?\n\n## Таймбокс\n\nДва часа. Когда время выйдет, остановиться и оценить результат, а не дорабатывать.\n\n## Тонкий срез\n\nОдин экран «Подопечные» (`/coach`): имя подопечного и «последняя тренировка: N дн. назад». Больше ничего: ни входа, ни тренировок, ни графиков.\n\n## Данные\n\nВыдуманные: шесть подопечных Марины лежат в `lib/fake-clients.ts`, в памяти. Базы нет.\n\n## Готова выбросить\n\nЯ готова выбросить этот код: ценен ответ на вопрос, а не код. Ветка `proto/coach` в `main` не вливается: если ответ «да», настоящий экран строится заново.\n\n## Упрощения\n\n- нет входа: тренер всегда Марина;\n- нет базы: подопечные записаны прямо в код;\n- «сегодня» зашито в данные, а не берётся из часов;\n- нет тестов и обработки ошибок;\n- дизайн простой, на телефоне не проверен.\n\n## Журнал решений\n\n**30 октября, показ Марине.** Открыла ей `/coach`. Она сказала: «Кому писать, не видно — дни считаю сама». Список шёл по алфавиту, и те, кто не тренировался больше недели, затерялись в нём.\n\n**Что изменили.** Сверху те, кто не тренировался больше 7 дней, с пометкой «Пора написать». Остальные идут в прежнем порядке.\n\n**Вывод.** Ответ на вопрос прототипа: да, если выделить тех, кому пора написать. Решение — развивать: строить по-настоящему на базе в день 4. Ветку `proto/coach` в `main` не вливаем.\n",
+   "diff": [
+    "diff --git a/docs/prototype.md b/docs/prototype.md",
+    "index 32afcc8..a68a65d 100644",
+    "--- a/docs/prototype.md",
+    "+++ b/docs/prototype.md",
+    "@@ -32,4 +32,8 @@",
+    " ",
+    " ## Журнал решений",
+    " ",
+    "-Пока пусто: показ Марине ещё впереди.",
+    "+**30 октября, показ Марине.** Открыла ей `/coach`. Она сказала: «Кому писать, не видно — дни считаю сама». Список шёл по алфавиту, и те, кто не тренировался больше недели, затерялись в нём.",
+    "+",
+    "+**Что изменили.** Сверху те, кто не тренировался больше 7 дней, с пометкой «Пора написать». Остальные идут в прежнем порядке.",
+    "+",
+    "+**Вывод.** Ответ на вопрос прототипа: да, если выделить тех, кому пора написать. Решение — развивать: строить по-настоящему на базе в день 4. Ветку `proto/coach` в `main` не вливаем."
+   ],
+   "blob": "a68a65dcc7de2ab6ce0948ef4eb4cc176f991ab3"
+  },
+  {
+   "id": "c-proto2",
+   "kind": "commit",
+   "cmd": "git add -A && git commit -m \"Прототип: сверху те, кому пора написать\"",
+   "hash": "a083671",
+   "message": "Прототип: сверху те, кому пора написать",
+   "branch": "proto/coach",
+   "parents": [
+    "5ab3d14"
+   ],
+   "out": [
+    "[proto/coach a083671] Прототип: сверху те, кому пора написать",
+    " 2 files changed, 19 insertions(+), 4 deletions(-)"
+   ],
+   "files": [
+    {
+     "path": ".gitignore",
+     "blob": "5ef6a520780202a1d6addd833d800ccb1ecac0bb"
+    },
+    {
+     "path": "CLAUDE.md",
+     "blob": "eddd7ec69c49be4d9b10d0c43803834ac4ab4293"
+    },
+    {
+     "path": "README.md",
+     "blob": "e215bc4ccf138bbc38ad58ad57e92135484b3c0f"
+    },
+    {
+     "path": "app/api/advice/route.ts",
+     "blob": "94eebb3e8c3a929210a4c1ec667ce70b733bc9fd"
+    },
+    {
+     "path": "app/api/sets/route.ts",
+     "blob": "86d7c8e5b7f6716c088e4661438b2ab14cbe31bc"
+    },
+    {
+     "path": "app/coach/advice-button.tsx",
+     "blob": "bcd088c8d8834817ba1fd36608c8e0bc21a324aa"
+    },
+    {
+     "path": "app/coach/page.tsx",
+     "blob": "a1503d774e7d16330bb57f5519df1e691295112b"
+    },
+    {
+     "path": "app/favicon.ico",
+     "blob": "af98450595e8b8efd9e505cddc5ed705b665a4d8"
+    },
+    {
+     "path": "app/globals.css",
+     "blob": "bb4f7dd716191366da8ab882e4194b8157a504dd"
+    },
+    {
+     "path": "app/layout.tsx",
+     "blob": "8515cad45d81c7b1929badb5a9da485bd379b523"
+    },
+    {
+     "path": "app/page.tsx",
+     "blob": "58c27d1e76bd2f9f7e7763f3d6256ea6a157749d"
+    },
+    {
+     "path": "app/workouts/page.tsx",
+     "blob": "5a7eda66a244f6781ea267aabd6cf42a454e27eb"
+    },
+    {
+     "path": "docs/etalons.md",
+     "blob": "fdfe7da9d3ffc22d6f656c0f62158b898645c1d2"
+    },
+    {
+     "path": "docs/idea.md",
+     "blob": "df36eb1f1505a363fadd7ad7fdb3975ccfdd2ffb"
+    },
+    {
+     "path": "docs/mini-set.md",
+     "blob": "423696ff8c914a7cd24f5e11a3c0d1855c251c6a"
+    },
+    {
+     "path": "docs/prototype.md",
+     "blob": "a68a65dcc7de2ab6ce0948ef4eb4cc176f991ab3"
+    },
+    {
+     "path": "docs/spec.md",
+     "blob": "491b7a53d9b628346315e33365aefd7fc7e3a8cf"
+    },
+    {
+     "path": "eslint.config.mjs",
+     "blob": "05e726d1b4201bc8c7716d2b058279676582e8c0"
+    },
+    {
+     "path": "lib/fake-clients.ts",
+     "blob": "015ad900c545aa51ebdf8b4e92611fd669e591fc"
+    },
+    {
+     "path": "lib/weight.test.ts",
+     "blob": "eb7b55ea11479f8d43d61a53e08af9b780a27179"
+    },
+    {
+     "path": "lib/weight.ts",
+     "blob": "5534e4676b0358eaf2665bfa0f498d168ad7705b"
+    },
+    {
+     "path": "lib/workouts.ts",
+     "blob": "2a75b556cceb49b5cb143d7c860a9b451acc195c"
+    },
+    {
+     "path": "next.config.ts",
+     "blob": "a0cf0c7313a86b713eb9d9bcac6539bc5d0bd1a9"
+    },
+    {
+     "path": "package-lock.json",
+     "blob": "dfadb7d75ae11bc6061d5425f577963b22efbef0"
+    },
+    {
+     "path": "package.json",
+     "blob": "9a1cd2931b6322cca017b66691292d74af928fb0"
+    },
+    {
+     "path": "public/file.svg",
+     "blob": "004145cddf3f9db91b57b9cb596683c8eb420862"
+    },
+    {
+     "path": "public/globe.svg",
+     "blob": "567f17b0d7c7fb662c16d4357dd74830caf2dccb"
+    },
+    {
+     "path": "public/next.svg",
+     "blob": "5174b28c565c285e3e312ec5178be64fbeca8398"
+    },
+    {
+     "path": "public/vercel.svg",
+     "blob": "77053960334e2e34dc584dea8019925c3b4ccca9"
+    },
+    {
+     "path": "public/window.svg",
+     "blob": "b2b2a44f6ebc70c450043c05a002e7a93ba5d651"
+    },
+    {
+     "path": "tsconfig.json",
+     "blob": "3a13f90a773b0facb675bf5b1a8239c8f33d36f5"
+    }
+   ]
+  },
+  {
+   "id": "main",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "git switch main",
+   "out": [
+    "Switched to branch 'main'"
+   ],
+   "code": 0,
+   "files": [
+    {
+     "path": "app/api/advice/route.ts",
+     "blob": null
+    },
+    {
+     "path": "app/coach/advice-button.tsx",
+     "blob": null
+    },
+    {
+     "path": "app/coach/page.tsx",
+     "blob": null
+    },
+    {
+     "path": "docs/prototype.md",
+     "blob": null
+    },
+    {
+     "path": "lib/fake-clients.ts",
+     "blob": null
+    }
+   ]
+  },
+  {
+   "id": "branches",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "git log --oneline --graph --all --decorate -8",
+   "out": [
+    "* a083671 (proto/coach) Прототип: сверху те, кому пора написать",
+    "* 5ab3d14 Совет ИИ: ключ только на сервере",
+    "* de69064 Прототип: список подопечных",
+    "* 918d46b (HEAD -> main) Разбор веса в lib/weight.ts с тестами",
+    "* f1e71c4 Revert \"Вес больше нуля\"",
+    "* e2e0d05 Вес больше нуля",
+    "* 9a8e0d1 Системные шрифты: сборка без загрузки из сети",
+    "* e1822ea Экран «Мои тренировки» по спецификации"
+   ],
+   "code": 0
+  }
+ ]
+}

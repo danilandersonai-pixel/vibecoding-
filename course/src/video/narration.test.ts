@@ -57,6 +57,14 @@ describe('spokenText', () => {
     expect(spokenText('Анна сохранила подход.')).toBe('Анна сохранила подход.')
     expect(spokenText('Planner и APIs')).toBe('Planner и APIs')
   })
+  it('SAY: «test» и «git» внутри обычных слов и путей не переозвучиваются', () => {
+    const path = spokenText('e2e/first-run.spec.ts')
+    expect(path).not.toContain('тест')
+    expect(path).not.toContain('гит')
+    expect(spokenText('github')).not.toContain('гит')
+    expect(spokenText('latest tests digit')).not.toMatch(/тест|гит/)
+    expect(spokenText('git log')).toBe('гит лог')
+  })
   it('в репликах всех роликов каталога не остаётся латиницы — у каждого слова есть произношение', () => {
     const left = Object.entries(catalog).flatMap(([id, e]) =>
       e.script.cues.flatMap((c) => (spokenText(c.text).match(/[A-Za-z]+/g) ?? []).map((w) => `${id}: ${w}`)),

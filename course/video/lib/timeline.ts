@@ -25,5 +25,16 @@ export function validateScript(s: VideoScript): string[] {
     if (h.to <= h.from) errors.push(`Зона «${h.title}»: конец (${h.to}) не позже начала (${h.from})`)
     else if (h.to > end) errors.push(`Зона «${h.title}» выходит за конец ролика (${h.to} > ${end})`)
   }
+  // Главы: первая с кадра 0, дальше по возрастанию, каждая начинается до конца ролика
+  const chapters = s.chapters ?? []
+  chapters.forEach((c, i) => {
+    const prev = chapters[i - 1]
+    if (i === 0 && c.from !== 0) errors.push(`Первая глава «${c.title}» начинается с кадра ${c.from}, а должна — с кадра 0`)
+    if (prev && c.from <= prev.from) errors.push(`Глава «${c.title}» (кадр ${c.from}) начинается не позже предыдущей «${prev.title}» (кадр ${prev.from})`)
+    if (c.from >= end) errors.push(`Глава «${c.title}» начинается за концом ролика (${c.from} ≥ ${end})`)
+  })
+  if (s.poster !== undefined && !(Number.isInteger(s.poster) && s.poster >= 0 && s.poster < end)) {
+    errors.push(`Обложка — кадр ${s.poster}, а в ролике кадры 0…${end - 1}`)
+  }
   return errors
 }

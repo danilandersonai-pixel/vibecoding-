@@ -1,0 +1,1748 @@
+{
+ "id": "s17-invite",
+ "from": "s16-comments",
+ "recorded": "2026-11-08",
+ "events": [
+  {
+   "id": "ask-join",
+   "kind": "agent",
+   "prompt": "Приглашение по ссылке: тренер даёт ссылку /join/…, человек вводит имя, почту и пароль и становится его подопечным",
+   "reply": "Ссылка /join/<id тренера> — на странице подопечных. По ней человек регистрируется: пароль — только хешем, занятая почта — ошибкой; он становится подопечным этого тренера и сразу входит.",
+   "steps": [
+    "join-page",
+    "join-action",
+    "invite-link"
+   ]
+  },
+  {
+   "id": "join-page",
+   "kind": "file",
+   "path": "app/join/[coach]/page.tsx",
+   "before": null,
+   "after": "import type { Metadata } from \"next\";\nimport { notFound } from \"next/navigation\";\nimport { pool } from \"@/lib/db\";\nimport { join } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Приглашение\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Приглашение по ссылке /join/<id тренера>: кто приглашает и форма регистрации — имя, почта и пароль.\n// Человек по ссылке ещё не вошёл, поэтому имя тренера читаем от владельца базы, как вход (app/api/login)\nexport default async function JoinPage({ params, searchParams }: PageProps<\"/join/[coach]\">) {\n  const { coach } = await params;\n  const { error } = await searchParams;\n  // id тренера — uuid: другой адрес в базу не отправляем\n  if (!/^[0-9a-f-]{36}$/.test(coach)) notFound();\n  const { rows } = await pool.query<{ name: string }>(\"select name from profiles where id = $1 and role = 'coach'\", [coach]);\n  if (rows.length === 0) notFound();\n  // поля приходят из формы, а тренера действие получает отсюда\n  const register = join.bind(null, coach);\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Приглашение</h1>\n      <p className=\"mt-2\">Тренер {rows[0].name} приглашает вас в дневник тренировок.</p>\n\n      <form action={register} className=\"mt-6 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"name\">Имя</label>\n          <input id=\"name\" name=\"name\" required autoComplete=\"name\" className=\"rounded border border-zinc-300 px-3 py-2\" />\n        </div>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"email\">Почта</label>\n          <input\n            id=\"email\"\n            name=\"email\"\n            type=\"email\"\n            required\n            autoComplete=\"email\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"password\">Пароль</label>\n          <input\n            id=\"password\"\n            name=\"password\"\n            type=\"password\"\n            required\n            minLength={8}\n            autoComplete=\"new-password\"\n            className=\"rounded border border-zinc-300 px-3 py-2\"\n          />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Присоединиться\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/join/[coach]/page.tsx b/app/join/[coach]/page.tsx",
+    "new file mode 100644",
+    "index 0000000..fcce7eb",
+    "--- /dev/null",
+    "+++ b/app/join/[coach]/page.tsx",
+    "@@ -0,0 +1,68 @@",
+    "+import type { Metadata } from \"next\";",
+    "+import { notFound } from \"next/navigation\";",
+    "+import { pool } from \"@/lib/db\";",
+    "+import { join } from \"./actions\";",
+    "+",
+    "+export const metadata: Metadata = { title: \"Приглашение\" };",
+    "+",
+    "+// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки",
+    "+export const instant = false;",
+    "+",
+    "+// Приглашение по ссылке /join/<id тренера>: кто приглашает и форма регистрации — имя, почта и пароль.",
+    "+// Человек по ссылке ещё не вошёл, поэтому имя тренера читаем от владельца базы, как вход (app/api/login)",
+    "+export default async function JoinPage({ params, searchParams }: PageProps<\"/join/[coach]\">) {",
+    "+  const { coach } = await params;",
+    "+  const { error } = await searchParams;",
+    "+  // id тренера — uuid: другой адрес в базу не отправляем",
+    "+  if (!/^[0-9a-f-]{36}$/.test(coach)) notFound();",
+    "+  const { rows } = await pool.query<{ name: string }>(\"select name from profiles where id = $1 and role = 'coach'\", [coach]);",
+    "+  if (rows.length === 0) notFound();",
+    "+  // поля приходят из формы, а тренера действие получает отсюда",
+    "+  const register = join.bind(null, coach);",
+    "+",
+    "+  return (",
+    "+    <main className=\"mx-auto w-full max-w-md p-8\">",
+    "+      <h1 className=\"text-3xl font-semibold\">Приглашение</h1>",
+    "+      <p className=\"mt-2\">Тренер {rows[0].name} приглашает вас в дневник тренировок.</p>",
+    "+",
+    "+      <form action={register} className=\"mt-6 flex flex-col gap-4\">",
+    "+        <div className=\"flex flex-col gap-1\">",
+    "+          <label htmlFor=\"name\">Имя</label>",
+    "+          <input id=\"name\" name=\"name\" required autoComplete=\"name\" className=\"rounded border border-zinc-300 px-3 py-2\" />",
+    "+        </div>",
+    "+        <div className=\"flex flex-col gap-1\">",
+    "+          <label htmlFor=\"email\">Почта</label>",
+    "+          <input",
+    "+            id=\"email\"",
+    "+            name=\"email\"",
+    "+            type=\"email\"",
+    "+            required",
+    "+            autoComplete=\"email\"",
+    "+            className=\"rounded border border-zinc-300 px-3 py-2\"",
+    "+          />",
+    "+        </div>",
+    "+        <div className=\"flex flex-col gap-1\">",
+    "+          <label htmlFor=\"password\">Пароль</label>",
+    "+          <input",
+    "+            id=\"password\"",
+    "+            name=\"password\"",
+    "+            type=\"password\"",
+    "+            required",
+    "+            minLength={8}",
+    "+            autoComplete=\"new-password\"",
+    "+            className=\"rounded border border-zinc-300 px-3 py-2\"",
+    "+          />",
+    "+        </div>",
+    "+        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">",
+    "+          Присоединиться",
+    "+        </button>",
+    "+      </form>",
+    "+",
+    "+      {typeof error === \"string\" && (",
+    "+        <p role=\"alert\" className=\"mt-4 text-red-600\">",
+    "+          {error}",
+    "+        </p>",
+    "+      )}",
+    "+    </main>",
+    "+  );",
+    "+}"
+   ],
+   "blob": "fcce7eb0b646f9cf4951ffb7aca4ec90b3a415d5",
+   "by": "agent"
+  },
+  {
+   "id": "join-action",
+   "kind": "file",
+   "path": "app/join/[coach]/actions.ts",
+   "before": null,
+   "after": "\"use server\";\n\nimport { redirect } from \"next/navigation\";\nimport { pool } from \"@/lib/db\";\nimport { checkName } from \"@/lib/names\";\nimport { startSession } from \"@/lib/session\";\n\n// Ответ на занятую почту: та же почта другими буквами или повтор, который поймал unique в auth.users\nconst TAKEN = \"Эта почта уже зарегистрирована — войдите\";\n\n// Регистрация по ссылке /join/<id тренера>: новый пользователь в auth.users, профиль подопечного и подопечный этого тренера,\n// затем вход. Запросы — от владельца базы одной транзакцией, как вход (app/api/login): пользователям таблица auth.users\n// закрыта, а при ошибке в базе не остаётся половины регистрации.\nexport async function join(coach: string, form: FormData) {\n  const name = String(form.get(\"name\") ?? \"\").trim();\n  // почта — без пробелов по краям, буквы как ввели: так её ищет вход (app/api/login)\n  const email = String(form.get(\"email\") ?? \"\").trim();\n  const password = String(form.get(\"password\") ?? \"\");\n  // ошибку страница покажет под формой\n  const back = (error: string): never =>\n    redirect(`/join/${encodeURIComponent(coach)}?error=${encodeURIComponent(error)}`);\n  const invalid = checkName(name) ?? checkAccount(email, password);\n  if (invalid) back(invalid);\n  // та же почта другими буквами — тоже занята: unique в auth.users различает заглавные и строчные\n  const taken = await pool.query(\"select 1 from auth.users where lower(email) = lower($1)\", [email]);\n  if (taken.rows.length > 0) back(TAKEN);\n\n  const db = await pool.connect();\n  let uid: string;\n  try {\n    await db.query(\"begin\");\n    // пароль в базе — только хешем: crypt() с солью bcrypt, как у пользователей seed.sql\n    const user = await db.query<{ id: string }>(\n      \"insert into auth.users (email, encrypted_password) values ($1, crypt($2, gen_salt('bf'))) returning id\",\n      [email, password],\n    );\n    uid = user.rows[0].id;\n    await db.query(\"insert into profiles (id, role, name) values ($1, 'client', $2)\", [uid, name]);\n    await db.query(\"insert into clients (coach_id, user_id, name) values ($1, $2, $3)\", [coach, uid, name]);\n    await db.query(\"commit\");\n  } catch (err) {\n    await db.query(\"rollback\");\n    // такая почта уже есть (unique в auth.users) — понятная ошибка, а не 500\n    if ((err as { code?: string }).code === \"23505\") back(TAKEN);\n    throw err;\n  } finally {\n    db.release();\n  }\n  // вход — та же cookie сессии, что после /api/login\n  await startSession(uid);\n  redirect(\"/workouts\");\n}\n\n// Почта и пароль из формы: null — годятся, иначе текст ошибки для страницы\nfunction checkAccount(email: string, password: string): string | null {\n  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return \"Проверьте почту\";\n  if (password.length < 8) return \"Пароль — не короче 8 знаков\";\n  return null;\n}\n",
+   "diff": [
+    "diff --git a/app/join/[coach]/actions.ts b/app/join/[coach]/actions.ts",
+    "new file mode 100644",
+    "index 0000000..d5946b1",
+    "--- /dev/null",
+    "+++ b/app/join/[coach]/actions.ts",
+    "@@ -0,0 +1,59 @@",
+    "+\"use server\";",
+    "+",
+    "+import { redirect } from \"next/navigation\";",
+    "+import { pool } from \"@/lib/db\";",
+    "+import { checkName } from \"@/lib/names\";",
+    "+import { startSession } from \"@/lib/session\";",
+    "+",
+    "+// Ответ на занятую почту: та же почта другими буквами или повтор, который поймал unique в auth.users",
+    "+const TAKEN = \"Эта почта уже зарегистрирована — войдите\";",
+    "+",
+    "+// Регистрация по ссылке /join/<id тренера>: новый пользователь в auth.users, профиль подопечного и подопечный этого тренера,",
+    "+// затем вход. Запросы — от владельца базы одной транзакцией, как вход (app/api/login): пользователям таблица auth.users",
+    "+// закрыта, а при ошибке в базе не остаётся половины регистрации.",
+    "+export async function join(coach: string, form: FormData) {",
+    "+  const name = String(form.get(\"name\") ?? \"\").trim();",
+    "+  // почта — без пробелов по краям, буквы как ввели: так её ищет вход (app/api/login)",
+    "+  const email = String(form.get(\"email\") ?? \"\").trim();",
+    "+  const password = String(form.get(\"password\") ?? \"\");",
+    "+  // ошибку страница покажет под формой",
+    "+  const back = (error: string): never =>",
+    "+    redirect(`/join/${encodeURIComponent(coach)}?error=${encodeURIComponent(error)}`);",
+    "+  const invalid = checkName(name) ?? checkAccount(email, password);",
+    "+  if (invalid) back(invalid);",
+    "+  // та же почта другими буквами — тоже занята: unique в auth.users различает заглавные и строчные",
+    "+  const taken = await pool.query(\"select 1 from auth.users where lower(email) = lower($1)\", [email]);",
+    "+  if (taken.rows.length > 0) back(TAKEN);",
+    "+",
+    "+  const db = await pool.connect();",
+    "+  let uid: string;",
+    "+  try {",
+    "+    await db.query(\"begin\");",
+    "+    // пароль в базе — только хешем: crypt() с солью bcrypt, как у пользователей seed.sql",
+    "+    const user = await db.query<{ id: string }>(",
+    "+      \"insert into auth.users (email, encrypted_password) values ($1, crypt($2, gen_salt('bf'))) returning id\",",
+    "+      [email, password],",
+    "+    );",
+    "+    uid = user.rows[0].id;",
+    "+    await db.query(\"insert into profiles (id, role, name) values ($1, 'client', $2)\", [uid, name]);",
+    "+    await db.query(\"insert into clients (coach_id, user_id, name) values ($1, $2, $3)\", [coach, uid, name]);",
+    "+    await db.query(\"commit\");",
+    "+  } catch (err) {",
+    "+    await db.query(\"rollback\");",
+    "+    // такая почта уже есть (unique в auth.users) — понятная ошибка, а не 500",
+    "+    if ((err as { code?: string }).code === \"23505\") back(TAKEN);",
+    "+    throw err;",
+    "+  } finally {",
+    "+    db.release();",
+    "+  }",
+    "+  // вход — та же cookie сессии, что после /api/login",
+    "+  await startSession(uid);",
+    "+  redirect(\"/workouts\");",
+    "+}",
+    "+",
+    "+// Почта и пароль из формы: null — годятся, иначе текст ошибки для страницы",
+    "+function checkAccount(email: string, password: string): string | null {",
+    "+  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return \"Проверьте почту\";",
+    "+  if (password.length < 8) return \"Пароль — не короче 8 знаков\";",
+    "+  return null;",
+    "+}"
+   ],
+   "blob": "d5946b1d1af75f3f710a99e668633e1d6acbbc8e",
+   "by": "agent"
+  },
+  {
+   "id": "invite-link",
+   "kind": "file",
+   "path": "app/clients/page.tsx",
+   "before": "import type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { addClient } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Подопечный тренера с датой последней тренировки\ntype Client = { id: string; name: string; last: Date | null };\n\n// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного\nexport default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { error } = await searchParams;\n  const clients = await asUser(uid, async (db) => {\n    // подопечные и дата последней тренировки — одним запросом: left join и max(day)\n    const { rows } = await db.query<Client>(\n      `select c.id, c.name, max(w.day) as last\n         from clients c\n         left join workouts w on w.client_id = c.id\n        where c.coach_id = $1\n        group by c.id\n        order by c.id`,\n      [uid],\n    );\n    return rows;\n  });\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id}>\n            <Link\n              href={`/clients/${client.id}`}\n              className=\"block rounded border border-zinc-300 p-4 text-xl font-semibold\"\n            >\n              {client.name}\n              <span className=\"block text-sm font-normal text-zinc-500\">\n                {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : \"Тренировок пока нет\"}\n              </span>\n            </Link>\n          </li>\n        ))}\n      </ul>\n\n      <form action={addClient} className=\"mt-8 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"name\">Имя</label>\n          <input id=\"name\" name=\"name\" required className=\"rounded border border-zinc-300 px-3 py-2\" />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Добавить\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport { headers } from \"next/headers\";\nimport Link from \"next/link\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { addClient } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Подопечный тренера с датой последней тренировки\ntype Client = { id: string; name: string; last: Date | null };\n\n// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного и ссылка-приглашение\nexport default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { error } = await searchParams;\n  const clients = await asUser(uid, async (db) => {\n    // подопечные и дата последней тренировки — одним запросом: left join и max(day)\n    const { rows } = await db.query<Client>(\n      `select c.id, c.name, max(w.day) as last\n         from clients c\n         left join workouts w on w.client_id = c.id\n        where c.coach_id = $1\n        group by c.id\n        order by c.id`,\n      [uid],\n    );\n    return rows;\n  });\n  // адрес сайта для ссылки — из запроса: localhost:3000 при разработке, свой домен на сервере\n  const head = await headers();\n  const origin = `${head.get(\"x-forwarded-proto\") ?? \"http\"}://${head.get(\"host\")}`;\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id}>\n            <Link\n              href={`/clients/${client.id}`}\n              className=\"block rounded border border-zinc-300 p-4 text-xl font-semibold\"\n            >\n              {client.name}\n              <span className=\"block text-sm font-normal text-zinc-500\">\n                {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : \"Тренировок пока нет\"}\n              </span>\n            </Link>\n          </li>\n        ))}\n      </ul>\n\n      <form action={addClient} className=\"mt-8 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"name\">Имя</label>\n          <input id=\"name\" name=\"name\" required className=\"rounded border border-zinc-300 px-3 py-2\" />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Добавить\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Ссылка-приглашение</h2>\n      <p className=\"mt-2 text-zinc-500\">Отправьте её подопечному: по ней он зарегистрируется и попадёт к вам.</p>\n      <p className=\"mt-2 break-all font-mono text-sm\">{`${origin}/join/${uid}`}</p>\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/clients/page.tsx b/app/clients/page.tsx",
+    "index ca5d268..dbaf9d8 100644",
+    "--- a/app/clients/page.tsx",
+    "+++ b/app/clients/page.tsx",
+    "@@ -1,4 +1,5 @@",
+    " import type { Metadata } from \"next\";",
+    "+import { headers } from \"next/headers\";",
+    " import Link from \"next/link\";",
+    " import { redirect } from \"next/navigation\";",
+    " import { formatDay } from \"@/lib/dates\";",
+    "@@ -14,7 +15,7 @@ export const instant = false;",
+    " // Подопечный тренера с датой последней тренировки",
+    " type Client = { id: string; name: string; last: Date | null };",
+    " ",
+    "-// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного",
+    "+// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного и ссылка-приглашение",
+    " export default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {",
+    "   const uid = await currentUser();",
+    "   if (!uid) redirect(\"/login\");",
+    "@@ -32,6 +33,9 @@ export default async function ClientsPage({ searchParams }: PageProps<\"/clients\"",
+    "     );",
+    "     return rows;",
+    "   });",
+    "+  // адрес сайта для ссылки — из запроса: localhost:3000 при разработке, свой домен на сервере",
+    "+  const head = await headers();",
+    "+  const origin = `${head.get(\"x-forwarded-proto\") ?? \"http\"}://${head.get(\"host\")}`;",
+    " ",
+    "   return (",
+    "     <main className=\"mx-auto w-full max-w-md p-8\">",
+    "@@ -67,6 +71,10 @@ export default async function ClientsPage({ searchParams }: PageProps<\"/clients\"",
+    "           {error}",
+    "         </p>",
+    "       )}",
+    "+",
+    "+      <h2 className=\"mt-8 text-xl font-semibold\">Ссылка-приглашение</h2>",
+    "+      <p className=\"mt-2 text-zinc-500\">Отправьте её подопечному: по ней он зарегистрируется и попадёт к вам.</p>",
+    "+      <p className=\"mt-2 break-all font-mono text-sm\">{`${origin}/join/${uid}`}</p>",
+    "     </main>",
+    "   );",
+    " }"
+   ],
+   "blob": "dbaf9d8b86d09d8263ef1108a47a3d3017eb3a9c",
+   "by": "agent"
+  },
+  {
+   "id": "dev",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npm run dev",
+   "out": [
+    "",
+    "> trainer-app@0.1.0 dev",
+    "> next dev",
+    "",
+    "▲ Next.js 16.4.3 (Turbopack)",
+    "- Local:         http://localhost:3000",
+    "- Network:       http://192.0.2.2:3000",
+    "- Environments: .env.local",
+    "✓ Ready in 423ms"
+   ],
+   "code": null
+  },
+  {
+   "id": "login-marina",
+   "kind": "browser",
+   "url": "http://localhost:3000/login",
+   "urlAfter": "http://localhost:3000/clients",
+   "title": "Тренировка",
+   "fields": [
+    {
+     "label": "Почта",
+     "value": "marina@example.com"
+    },
+    {
+     "label": "Пароль",
+     "value": "demo-password"
+    }
+   ],
+   "buttons": [
+    "Войти"
+   ],
+   "before": [
+    "Вход",
+    "Почта",
+    "Пароль",
+    "Войти"
+   ],
+   "after": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Имя",
+    "Добавить",
+    "Ссылка-приглашение",
+    "Отправьте её подопечному: по ней он зарегистрируется и попадёт к вам.",
+    "http://localhost:3000/join/11111111-1111-1111-1111-111111111111"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] rebuilding"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] done in 303ms"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] rebuilding"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] done in 441ms"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    "- Cache Components enabled",
+    "- Partial Prefetching enabled",
+    "",
+    " GET /login 200 in 355ms (next.js: 167ms, application-code: 187ms)",
+    " POST /api/login 200 in 109ms (next.js: 52ms, application-code: 56ms)",
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    " GET /clients 200 in 89ms (next.js: 16ms, application-code: 73ms)"
+   ]
+  },
+  {
+   "id": "marina-link",
+   "kind": "browser",
+   "url": "http://localhost:3000/clients",
+   "title": "Подопечные",
+   "fields": [],
+   "buttons": [
+    "Добавить"
+   ],
+   "before": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Имя",
+    "Добавить",
+    "Ссылка-приглашение",
+    "Отправьте её подопечному: по ней он зарегистрируется и попадёт к вам.",
+    "http://localhost:3000/join/11111111-1111-1111-1111-111111111111"
+   ],
+   "after": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Имя",
+    "Добавить",
+    "Ссылка-приглашение",
+    "Отправьте её подопечному: по ней он зарегистрируется и попадёт к вам.",
+    "http://localhost:3000/join/11111111-1111-1111-1111-111111111111"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    " GET /clients 200 in 98ms (next.js: 1.7ms, application-code: 96ms)"
+   ]
+  },
+  {
+   "id": "olga-join",
+   "kind": "browser",
+   "url": "http://localhost:3000/join/11111111-1111-1111-1111-111111111111",
+   "urlAfter": "http://localhost:3000/workouts",
+   "title": "Приглашение",
+   "fields": [
+    {
+     "label": "Имя",
+     "value": "Ольга"
+    },
+    {
+     "label": "Почта",
+     "value": "olga@example.com"
+    },
+    {
+     "label": "Пароль",
+     "value": "demo-password"
+    }
+   ],
+   "buttons": [
+    "Присоединиться"
+   ],
+   "before": [
+    "Приглашение",
+    "Тренер Марина приглашает вас в дневник тренировок.",
+    "Имя",
+    "Почта",
+    "Пароль",
+    "Присоединиться"
+   ],
+   "after": [
+    "Мои тренировки",
+    "Тренировок пока нет"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] rebuilding"
+    },
+    {
+     "type": "log",
+     "text": "[Fast Refresh] done in 327ms"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    " GET /join/11111111-1111-1111-1111-111111111111 200 in 564ms (next.js: 12ms, generate-params: 494ms, application-code: 58ms)",
+    "[sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day",
+    " GET /workouts 200 in 49ms (next.js: 9ms, application-code: 40ms)",
+    " POST /join/11111111-1111-1111-1111-111111111111 200 in 559ms (next.js: 1.9ms, generate-params: 23ms, application-code: 534ms)",
+    "  └─ ƒ join(\"11111111-1111-1111-1111-111111111111\", {}) in 18ms app/join/[coach]/actions.ts"
+   ]
+  },
+  {
+   "id": "kirill-join",
+   "kind": "browser",
+   "url": "http://localhost:3000/join/11111111-1111-1111-1111-111111111111",
+   "urlAfter": "http://localhost:3000/workouts",
+   "title": "Приглашение",
+   "fields": [
+    {
+     "label": "Имя",
+     "value": "Кирилл"
+    },
+    {
+     "label": "Почта",
+     "value": "kirill@example.com"
+    },
+    {
+     "label": "Пароль",
+     "value": "demo-password"
+    }
+   ],
+   "buttons": [
+    "Присоединиться"
+   ],
+   "before": [
+    "Приглашение",
+    "Тренер Марина приглашает вас в дневник тренировок.",
+    "Имя",
+    "Почта",
+    "Пароль",
+    "Присоединиться"
+   ],
+   "after": [
+    "Мои тренировки",
+    "Тренировок пока нет"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    " GET /join/11111111-1111-1111-1111-111111111111 200 in 88ms (next.js: 1.8ms, generate-params: 17ms, application-code: 70ms)",
+    "[sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day",
+    " GET /workouts 200 in 39ms (next.js: 1.6ms, application-code: 37ms)",
+    " POST /join/11111111-1111-1111-1111-111111111111 200 in 125ms (next.js: 1.9ms, generate-params: 42ms, application-code: 82ms)",
+    "  └─ ƒ join(\"11111111-1111-1111-1111-111111111111\", {}) in 12ms app/join/[coach]/actions.ts"
+   ]
+  },
+  {
+   "id": "clients-db",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "psql -c \"select name from clients where coach_id = '11111111-1111-1111-1111-111111111111' order by id\"",
+   "out": [
+    "  name  ",
+    "--------",
+    " Анна",
+    " Олег",
+    " Ольга",
+    " Кирилл",
+    "(4 rows)"
+   ],
+   "code": 0
+  },
+  {
+   "id": "ask-invite",
+   "kind": "agent",
+   "prompt": "Ссылка вечная и многоразовая: её переслали — и Кирилл стал подопечным Марины. Сделай приглашение одноразовым: длинный случайный код, срок 48 часов, тренер — из записи приглашения, отзыв. Сначала тесты",
+   "reply": "Приглашение — строка invites: случайный код, срок 48 часов, отзыв; тренера база берёт из записи приглашения (accept_invite). Ольга и Кирилл остались у Марины: прошлые регистрации я не трогал.",
+   "steps": [
+    "inv-test",
+    "inv-sql",
+    "inv-apply",
+    "inv-old",
+    "inv-page",
+    "inv-action",
+    "inv-link",
+    "inv-run"
+   ]
+  },
+  {
+   "id": "inv-test",
+   "kind": "file",
+   "path": "test/invites.test.ts",
+   "before": null,
+   "after": "// @vitest-environment node\n// Одноразовое приглашение по ссылке: принятое — подопечный тренера из записи приглашения; второй раз — «уже использовано»;\n// отозванное и просроченное — отказ. Принимает приглашение функция базы accept_invite (supabase/migrations/0008_invites.sql),\n// её же вызывает регистрация app/join/[code]/actions.ts. Срок сверяют часы базы, поэтому просроченное приглашение тест вставляет\n// сразу «из прошлого», а не ждёт двое суток. Данные тест создаёт сам в одной транзакции и в конце откатывает (rollback).\n// Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения, как у test/rls.test.ts.\nimport type { PoolClient } from \"pg\";\nimport { afterAll, expect, test } from \"vitest\";\nimport { pool } from \"../lib/db\";\n\n// id из supabase/seed.sql: Марина и Игорь — тренеры, Анна — подопечная Марины\nconst MARINA = \"11111111-1111-1111-1111-111111111111\";\nconst IGOR = \"22222222-2222-2222-2222-222222222222\";\nconst ANNA = \"33333333-3333-3333-3333-333333333333\";\n\nafterAll(() => pool.end());\n\n// Запросы fn в одной транзакции с откатом — от владельца базы, как регистрация\nasync function rolledBack<T>(fn: (db: PoolClient) => Promise<T>): Promise<T> {\n  const db = await pool.connect();\n  try {\n    await db.query(\"begin\");\n    return await fn(db);\n  } finally {\n    await db.query(\"rollback\");\n    db.release();\n  }\n}\n\n// Новый пользователь, как при регистрации: строка в auth.users и профиль подопечного; возвращает его id\nasync function newUser(db: PoolClient, email: string): Promise<string> {\n  const { rows } = await db.query<{ id: string }>(\n    \"insert into auth.users (email, encrypted_password) values ($1, crypt('demo-password', gen_salt('bf'))) returning id\",\n    [email],\n  );\n  await db.query(\"insert into profiles (id, role, name) values ($1, 'client', 'Новичок')\", [rows[0].id]);\n  return rows[0].id;\n}\n\n// Приглашение тренера coach, код и срок ставит база; insert — другая вставка, например «из прошлого». Возвращает код\nasync function newInvite(db: PoolClient, coach: string, insert = \"insert into invites (coach_id) values ($1) returning code\") {\n  return (await db.query<{ code: string }>(insert, [coach])).rows[0].code;\n}\n\n// Тренер подопечного user\nasync function coachOf(db: PoolClient, user: string): Promise<string> {\n  return (await db.query<{ coach_id: string }>(\"select coach_id from clients where user_id = $1\", [user])).rows[0].coach_id;\n}\n\nconst accept = (db: PoolClient, code: string, user: string) =>\n  db.query(\"select accept_invite($1, $2, 'Новичок')\", [code, user]);\n\n// Дальше в транзакции — от имени uid, как asUser в lib/db.ts: роль authenticated и sub в request.jwt.claims\nasync function as(db: PoolClient, uid: string) {\n  await db.query(\"set local role authenticated\");\n  await db.query(\"select set_config('request.jwt.claims', $1, true)\", [JSON.stringify({ sub: uid, role: \"authenticated\" })]);\n}\n\ntest(\"код — 32 шестнадцатеричных знака, срок — 48 часов\", async () => {\n  const insert = \"insert into invites (coach_id) values ($1) returning code, expires_at - created_at = interval '48 hours' as two_days\";\n  const invite = await rolledBack(async (db) => (await db.query<{ code: string; two_days: boolean }>(insert, [MARINA])).rows[0]);\n  expect(invite.code).toMatch(/^[0-9a-f]{32}$/);\n  expect(invite.two_days).toBe(true);\n});\n\ntest(\"принятое приглашение — подопечный тренера из записи приглашения\", async () => {\n  // приглашения двух тренеров: принявший — подопечный того, чьё приглашение принял, а не первого попавшегося\n  const coaches = await rolledBack(async (db) => {\n    const fromMarina = await newInvite(db, MARINA);\n    const fromIgor = await newInvite(db, IGOR);\n    const toIgor = await newUser(db, \"to-igor@example.com\");\n    const toMarina = await newUser(db, \"to-marina@example.com\");\n    await accept(db, fromIgor, toIgor);\n    await accept(db, fromMarina, toMarina);\n    return [await coachOf(db, toIgor), await coachOf(db, toMarina)];\n  });\n  expect(coaches).toEqual([IGOR, MARINA]);\n});\n\ntest(\"второй раз — «уже использовано»\", async () => {\n  const twice = rolledBack(async (db) => {\n    const code = await newInvite(db, MARINA);\n    await accept(db, code, await newUser(db, \"first@example.com\"));\n    await accept(db, code, await newUser(db, \"second@example.com\"));\n  });\n  await expect(twice).rejects.toThrow(\"Приглашение уже использовано\");\n});\n\ntest(\"отозванное приглашение — отказ\", async () => {\n  const revoked = rolledBack(async (db) => {\n    const code = await newInvite(db, MARINA);\n    await db.query(\"update invites set revoked_at = now() where code = $1\", [code]);\n    await accept(db, code, await newUser(db, \"new@example.com\"));\n  });\n  await expect(revoked).rejects.toThrow(\"Приглашение отозвано\");\n});\n\ntest(\"созданное 49 часов назад — «срок истёк»\", async () => {\n  // срок — 48 часов от создания: приглашение «из прошлого» истекло час назад\n  const old =\n    \"insert into invites (coach_id, created_at, expires_at) values ($1, now() - interval '49 hours', now() - interval '1 hour') returning code\";\n  const expired = rolledBack(async (db) => {\n    const code = await newInvite(db, MARINA, old);\n    await accept(db, code, await newUser(db, \"new@example.com\"));\n  });\n  await expect(expired).rejects.toThrow(\"Срок приглашения истёк\");\n});\n\ntest(\"подопечный приглашений не создаёт\", async () => {\n  const insert = rolledBack(async (db) => {\n    await as(db, ANNA);\n    await db.query(\"insert into invites (coach_id) values ($1)\", [ANNA]);\n  });\n  await expect(insert).rejects.toThrow(\"row-level security\");\n});\n",
+   "diff": [
+    "diff --git a/test/invites.test.ts b/test/invites.test.ts",
+    "new file mode 100644",
+    "index 0000000..ebb453a",
+    "--- /dev/null",
+    "+++ b/test/invites.test.ts",
+    "@@ -0,0 +1,115 @@",
+    "+// @vitest-environment node",
+    "+// Одноразовое приглашение по ссылке: принятое — подопечный тренера из записи приглашения; второй раз — «уже использовано»;",
+    "+// отозванное и просроченное — отказ. Принимает приглашение функция базы accept_invite (supabase/migrations/0008_invites.sql),",
+    "+// её же вызывает регистрация app/join/[code]/actions.ts. Срок сверяют часы базы, поэтому просроченное приглашение тест вставляет",
+    "+// сразу «из прошлого», а не ждёт двое суток. Данные тест создаёт сам в одной транзакции и в конце откатывает (rollback).",
+    "+// Нужна база с миграциями и seed из supabase/, адрес — DATABASE_URL из окружения, как у test/rls.test.ts.",
+    "+import type { PoolClient } from \"pg\";",
+    "+import { afterAll, expect, test } from \"vitest\";",
+    "+import { pool } from \"../lib/db\";",
+    "+",
+    "+// id из supabase/seed.sql: Марина и Игорь — тренеры, Анна — подопечная Марины",
+    "+const MARINA = \"11111111-1111-1111-1111-111111111111\";",
+    "+const IGOR = \"22222222-2222-2222-2222-222222222222\";",
+    "+const ANNA = \"33333333-3333-3333-3333-333333333333\";",
+    "+",
+    "+afterAll(() => pool.end());",
+    "+",
+    "+// Запросы fn в одной транзакции с откатом — от владельца базы, как регистрация",
+    "+async function rolledBack<T>(fn: (db: PoolClient) => Promise<T>): Promise<T> {",
+    "+  const db = await pool.connect();",
+    "+  try {",
+    "+    await db.query(\"begin\");",
+    "+    return await fn(db);",
+    "+  } finally {",
+    "+    await db.query(\"rollback\");",
+    "+    db.release();",
+    "+  }",
+    "+}",
+    "+",
+    "+// Новый пользователь, как при регистрации: строка в auth.users и профиль подопечного; возвращает его id",
+    "+async function newUser(db: PoolClient, email: string): Promise<string> {",
+    "+  const { rows } = await db.query<{ id: string }>(",
+    "+    \"insert into auth.users (email, encrypted_password) values ($1, crypt('demo-password', gen_salt('bf'))) returning id\",",
+    "+    [email],",
+    "+  );",
+    "+  await db.query(\"insert into profiles (id, role, name) values ($1, 'client', 'Новичок')\", [rows[0].id]);",
+    "+  return rows[0].id;",
+    "+}",
+    "+",
+    "+// Приглашение тренера coach, код и срок ставит база; insert — другая вставка, например «из прошлого». Возвращает код",
+    "+async function newInvite(db: PoolClient, coach: string, insert = \"insert into invites (coach_id) values ($1) returning code\") {",
+    "+  return (await db.query<{ code: string }>(insert, [coach])).rows[0].code;",
+    "+}",
+    "+",
+    "+// Тренер подопечного user",
+    "+async function coachOf(db: PoolClient, user: string): Promise<string> {",
+    "+  return (await db.query<{ coach_id: string }>(\"select coach_id from clients where user_id = $1\", [user])).rows[0].coach_id;",
+    "+}",
+    "+",
+    "+const accept = (db: PoolClient, code: string, user: string) =>",
+    "+  db.query(\"select accept_invite($1, $2, 'Новичок')\", [code, user]);",
+    "+",
+    "+// Дальше в транзакции — от имени uid, как asUser в lib/db.ts: роль authenticated и sub в request.jwt.claims",
+    "+async function as(db: PoolClient, uid: string) {",
+    "+  await db.query(\"set local role authenticated\");",
+    "+  await db.query(\"select set_config('request.jwt.claims', $1, true)\", [JSON.stringify({ sub: uid, role: \"authenticated\" })]);",
+    "+}",
+    "+",
+    "+test(\"код — 32 шестнадцатеричных знака, срок — 48 часов\", async () => {",
+    "+  const insert = \"insert into invites (coach_id) values ($1) returning code, expires_at - created_at = interval '48 hours' as two_days\";",
+    "+  const invite = await rolledBack(async (db) => (await db.query<{ code: string; two_days: boolean }>(insert, [MARINA])).rows[0]);",
+    "+  expect(invite.code).toMatch(/^[0-9a-f]{32}$/);",
+    "+  expect(invite.two_days).toBe(true);",
+    "+});",
+    "+",
+    "+test(\"принятое приглашение — подопечный тренера из записи приглашения\", async () => {",
+    "+  // приглашения двух тренеров: принявший — подопечный того, чьё приглашение принял, а не первого попавшегося",
+    "+  const coaches = await rolledBack(async (db) => {",
+    "+    const fromMarina = await newInvite(db, MARINA);",
+    "+    const fromIgor = await newInvite(db, IGOR);",
+    "+    const toIgor = await newUser(db, \"to-igor@example.com\");",
+    "+    const toMarina = await newUser(db, \"to-marina@example.com\");",
+    "+    await accept(db, fromIgor, toIgor);",
+    "+    await accept(db, fromMarina, toMarina);",
+    "+    return [await coachOf(db, toIgor), await coachOf(db, toMarina)];",
+    "+  });",
+    "+  expect(coaches).toEqual([IGOR, MARINA]);",
+    "+});",
+    "+",
+    "+test(\"второй раз — «уже использовано»\", async () => {",
+    "+  const twice = rolledBack(async (db) => {",
+    "+    const code = await newInvite(db, MARINA);",
+    "+    await accept(db, code, await newUser(db, \"first@example.com\"));",
+    "+    await accept(db, code, await newUser(db, \"second@example.com\"));",
+    "+  });",
+    "+  await expect(twice).rejects.toThrow(\"Приглашение уже использовано\");",
+    "+});",
+    "+",
+    "+test(\"отозванное приглашение — отказ\", async () => {",
+    "+  const revoked = rolledBack(async (db) => {",
+    "+    const code = await newInvite(db, MARINA);",
+    "+    await db.query(\"update invites set revoked_at = now() where code = $1\", [code]);",
+    "+    await accept(db, code, await newUser(db, \"new@example.com\"));",
+    "+  });",
+    "+  await expect(revoked).rejects.toThrow(\"Приглашение отозвано\");",
+    "+});",
+    "+",
+    "+test(\"созданное 49 часов назад — «срок истёк»\", async () => {",
+    "+  // срок — 48 часов от создания: приглашение «из прошлого» истекло час назад",
+    "+  const old =",
+    "+    \"insert into invites (coach_id, created_at, expires_at) values ($1, now() - interval '49 hours', now() - interval '1 hour') returning code\";",
+    "+  const expired = rolledBack(async (db) => {",
+    "+    const code = await newInvite(db, MARINA, old);",
+    "+    await accept(db, code, await newUser(db, \"new@example.com\"));",
+    "+  });",
+    "+  await expect(expired).rejects.toThrow(\"Срок приглашения истёк\");",
+    "+});",
+    "+",
+    "+test(\"подопечный приглашений не создаёт\", async () => {",
+    "+  const insert = rolledBack(async (db) => {",
+    "+    await as(db, ANNA);",
+    "+    await db.query(\"insert into invites (coach_id) values ($1)\", [ANNA]);",
+    "+  });",
+    "+  await expect(insert).rejects.toThrow(\"row-level security\");",
+    "+});"
+   ],
+   "blob": "ebb453a9d2a65c185d2967a8029585aeb42b34d9",
+   "by": "agent"
+  },
+  {
+   "id": "inv-sql",
+   "kind": "file",
+   "path": "supabase/migrations/0008_invites.sql",
+   "before": null,
+   "after": "-- Приглашение по ссылке: одноразовый код вместо вечной ссылки /join/<id тренера> — её переслали, и по ней зарегистрировался чужой.\n-- Код — 16 случайных байт (32 шестнадцатеричных знака): не угадать и не перебрать. Тренер — из этой записи, а не из адреса.\n-- Приглашение действует 48 часов и один раз; тренер может его отозвать.\ncreate table invites (\n  id bigint generated by default as identity primary key,\n  code text not null unique default encode(gen_random_bytes(16), 'hex'),\n  coach_id uuid not null references profiles (id),\n  created_at timestamptz not null default now(),\n  expires_at timestamptz not null default now() + interval '48 hours',\n  -- кто зарегистрировался по приглашению: после этого оно не действует\n  accepted_by uuid references profiles (id),\n  -- когда тренер отозвал приглашение\n  revoked_at timestamptz\n);\n\n-- RLS: тренер видит свои приглашения, создаёт их на себя и отзывает свои; подопечный приглашений не создаёт\nalter table invites enable row level security;\n\ncreate policy \"тренер видит свои приглашения\" on invites\n  for select to authenticated using (coach_id = auth.uid());\ncreate policy \"тренер создаёт приглашения\" on invites\n  for insert to authenticated with check (\n    coach_id = auth.uid() and auth.uid() in (select id from profiles where role = 'coach'));\ncreate policy \"тренер отзывает приглашения\" on invites\n  for update to authenticated using (coach_id = auth.uid());\n\n-- Права по столбцам: код, срок и «кто принял» ставит только база; тренер пишет лишь coach_id и revoked_at\nrevoke all on invites from anon, authenticated;\ngrant select, insert (coach_id), update (revoked_at) on invites to authenticated;\n\n-- Принять приглашение: новый пользователь new_user становится подопечным тренера из записи приглашения.\n-- Строка приглашения — под замком (for update): по одному коду не зарегистрируются двое. Срок сверяют часы базы.\n-- Вызывает регистрация (app/join/[code]/actions.ts) от владельца базы; anon и authenticated функцию не вызовут.\ncreate function accept_invite(invite_code text, new_user uuid, client_name text) returns void\nlanguage plpgsql\nset search_path = public\nas $$\ndeclare\n  invite invites;\nbegin\n  select * into invite from invites where code = invite_code for update;\n  if not found then\n    raise exception 'Приглашение не найдено';\n  elsif invite.accepted_by is not null then\n    raise exception 'Приглашение уже использовано';\n  elsif invite.revoked_at is not null then\n    raise exception 'Приглашение отозвано';\n  elsif invite.expires_at <= now() then\n    raise exception 'Срок приглашения истёк';\n  end if;\n  update invites set accepted_by = new_user where id = invite.id;\n  insert into clients (coach_id, user_id, name) values (invite.coach_id, new_user, client_name);\nend;\n$$;\n\nrevoke execute on function accept_invite(text, uuid, text) from public, anon, authenticated;\n",
+   "diff": [
+    "diff --git a/supabase/migrations/0008_invites.sql b/supabase/migrations/0008_invites.sql",
+    "new file mode 100644",
+    "index 0000000..6671c51",
+    "--- /dev/null",
+    "+++ b/supabase/migrations/0008_invites.sql",
+    "@@ -0,0 +1,56 @@",
+    "+-- Приглашение по ссылке: одноразовый код вместо вечной ссылки /join/<id тренера> — её переслали, и по ней зарегистрировался чужой.",
+    "+-- Код — 16 случайных байт (32 шестнадцатеричных знака): не угадать и не перебрать. Тренер — из этой записи, а не из адреса.",
+    "+-- Приглашение действует 48 часов и один раз; тренер может его отозвать.",
+    "+create table invites (",
+    "+  id bigint generated by default as identity primary key,",
+    "+  code text not null unique default encode(gen_random_bytes(16), 'hex'),",
+    "+  coach_id uuid not null references profiles (id),",
+    "+  created_at timestamptz not null default now(),",
+    "+  expires_at timestamptz not null default now() + interval '48 hours',",
+    "+  -- кто зарегистрировался по приглашению: после этого оно не действует",
+    "+  accepted_by uuid references profiles (id),",
+    "+  -- когда тренер отозвал приглашение",
+    "+  revoked_at timestamptz",
+    "+);",
+    "+",
+    "+-- RLS: тренер видит свои приглашения, создаёт их на себя и отзывает свои; подопечный приглашений не создаёт",
+    "+alter table invites enable row level security;",
+    "+",
+    "+create policy \"тренер видит свои приглашения\" on invites",
+    "+  for select to authenticated using (coach_id = auth.uid());",
+    "+create policy \"тренер создаёт приглашения\" on invites",
+    "+  for insert to authenticated with check (",
+    "+    coach_id = auth.uid() and auth.uid() in (select id from profiles where role = 'coach'));",
+    "+create policy \"тренер отзывает приглашения\" on invites",
+    "+  for update to authenticated using (coach_id = auth.uid());",
+    "+",
+    "+-- Права по столбцам: код, срок и «кто принял» ставит только база; тренер пишет лишь coach_id и revoked_at",
+    "+revoke all on invites from anon, authenticated;",
+    "+grant select, insert (coach_id), update (revoked_at) on invites to authenticated;",
+    "+",
+    "+-- Принять приглашение: новый пользователь new_user становится подопечным тренера из записи приглашения.",
+    "+-- Строка приглашения — под замком (for update): по одному коду не зарегистрируются двое. Срок сверяют часы базы.",
+    "+-- Вызывает регистрация (app/join/[code]/actions.ts) от владельца базы; anon и authenticated функцию не вызовут.",
+    "+create function accept_invite(invite_code text, new_user uuid, client_name text) returns void",
+    "+language plpgsql",
+    "+set search_path = public",
+    "+as $$",
+    "+declare",
+    "+  invite invites;",
+    "+begin",
+    "+  select * into invite from invites where code = invite_code for update;",
+    "+  if not found then",
+    "+    raise exception 'Приглашение не найдено';",
+    "+  elsif invite.accepted_by is not null then",
+    "+    raise exception 'Приглашение уже использовано';",
+    "+  elsif invite.revoked_at is not null then",
+    "+    raise exception 'Приглашение отозвано';",
+    "+  elsif invite.expires_at <= now() then",
+    "+    raise exception 'Срок приглашения истёк';",
+    "+  end if;",
+    "+  update invites set accepted_by = new_user where id = invite.id;",
+    "+  insert into clients (coach_id, user_id, name) values (invite.coach_id, new_user, client_name);",
+    "+end;",
+    "+$$;",
+    "+",
+    "+revoke execute on function accept_invite(text, uuid, text) from public, anon, authenticated;"
+   ],
+   "blob": "6671c51bbb8e9b56bfe5764398594fa85c78b4a7",
+   "by": "agent"
+  },
+  {
+   "id": "inv-apply",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "psql -q -f supabase/migrations/0008_invites.sql",
+   "out": [],
+   "code": 0,
+   "by": "agent"
+  },
+  {
+   "id": "inv-old",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "rm -r 'app/join/[coach]'",
+   "out": [],
+   "code": 0,
+   "files": [
+    {
+     "path": "app/join/[coach]/actions.ts",
+     "blob": null
+    },
+    {
+     "path": "app/join/[coach]/page.tsx",
+     "blob": null
+    }
+   ],
+   "by": "agent"
+  },
+  {
+   "id": "inv-page",
+   "kind": "file",
+   "path": "app/join/[code]/page.tsx",
+   "before": null,
+   "after": "import type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport { notFound } from \"next/navigation\";\nimport { pool } from \"@/lib/db\";\nimport { join } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Приглашение\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Приглашение из базы: от какого тренера и действует ли ещё\ntype Invite = { coach: string; used: boolean; revoked: boolean; expired: boolean };\n\n// Почему приглашение не действует — те же слова, что у accept_invite в базе; null — действует\nfunction refusal(invite: Invite): string | null {\n  if (invite.used) return \"Приглашение уже использовано\";\n  if (invite.revoked) return \"Приглашение отозвано\";\n  if (invite.expired) return \"Срок приглашения истёк\";\n  return null;\n}\n\n// Приглашение по коду из адреса /join/<код>: тренер — из записи приглашения. Использованное, отозванное и просроченное — отказ\n// без формы; срок сверяют часы базы, на странице дат нет. Человек по ссылке ещё не вошёл, поэтому приглашение читаем\n// от владельца базы, как вход (app/api/login)\nexport default async function JoinPage({ params, searchParams }: PageProps<\"/join/[code]\">) {\n  const { code } = await params;\n  const { error } = await searchParams;\n  const { rows } = await pool.query<Invite>(\n    `select p.name as coach, i.accepted_by is not null as used, i.revoked_at is not null as revoked, i.expires_at <= now() as expired\n       from invites i join profiles p on p.id = i.coach_id\n      where i.code = $1`,\n    [code],\n  );\n  if (rows.length === 0) notFound();\n  const refused = refusal(rows[0]);\n  // поля приходят из формы, а код действие получает отсюда и проверяет заново в базе\n  const register = join.bind(null, code);\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Приглашение</h1>\n      {refused ? (\n        <>\n          <p role=\"alert\" className=\"mt-4 text-red-600\">\n            {refused}\n          </p>\n          <Link href=\"/login\" className=\"mt-6 inline-block underline\">\n            Войти\n          </Link>\n        </>\n      ) : (\n        <>\n          <p className=\"mt-2\">Тренер {rows[0].coach} приглашает вас в дневник тренировок. Ссылка одноразовая.</p>\n\n          <form action={register} className=\"mt-6 flex flex-col gap-4\">\n            <div className=\"flex flex-col gap-1\">\n              <label htmlFor=\"name\">Имя</label>\n              <input id=\"name\" name=\"name\" required autoComplete=\"name\" className=\"rounded border border-zinc-300 px-3 py-2\" />\n            </div>\n            <div className=\"flex flex-col gap-1\">\n              <label htmlFor=\"email\">Почта</label>\n              <input\n                id=\"email\"\n                name=\"email\"\n                type=\"email\"\n                required\n                autoComplete=\"email\"\n                className=\"rounded border border-zinc-300 px-3 py-2\"\n              />\n            </div>\n            <div className=\"flex flex-col gap-1\">\n              <label htmlFor=\"password\">Пароль</label>\n              <input\n                id=\"password\"\n                name=\"password\"\n                type=\"password\"\n                required\n                minLength={8}\n                autoComplete=\"new-password\"\n                className=\"rounded border border-zinc-300 px-3 py-2\"\n              />\n            </div>\n            <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n              Присоединиться\n            </button>\n          </form>\n\n          {typeof error === \"string\" && (\n            <p role=\"alert\" className=\"mt-4 text-red-600\">\n              {error}\n            </p>\n          )}\n        </>\n      )}\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/join/[code]/page.tsx b/app/join/[code]/page.tsx",
+    "new file mode 100644",
+    "index 0000000..7e9481c",
+    "--- /dev/null",
+    "+++ b/app/join/[code]/page.tsx",
+    "@@ -0,0 +1,98 @@",
+    "+import type { Metadata } from \"next\";",
+    "+import Link from \"next/link\";",
+    "+import { notFound } from \"next/navigation\";",
+    "+import { pool } from \"@/lib/db\";",
+    "+import { join } from \"./actions\";",
+    "+",
+    "+export const metadata: Metadata = { title: \"Приглашение\" };",
+    "+",
+    "+// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки",
+    "+export const instant = false;",
+    "+",
+    "+// Приглашение из базы: от какого тренера и действует ли ещё",
+    "+type Invite = { coach: string; used: boolean; revoked: boolean; expired: boolean };",
+    "+",
+    "+// Почему приглашение не действует — те же слова, что у accept_invite в базе; null — действует",
+    "+function refusal(invite: Invite): string | null {",
+    "+  if (invite.used) return \"Приглашение уже использовано\";",
+    "+  if (invite.revoked) return \"Приглашение отозвано\";",
+    "+  if (invite.expired) return \"Срок приглашения истёк\";",
+    "+  return null;",
+    "+}",
+    "+",
+    "+// Приглашение по коду из адреса /join/<код>: тренер — из записи приглашения. Использованное, отозванное и просроченное — отказ",
+    "+// без формы; срок сверяют часы базы, на странице дат нет. Человек по ссылке ещё не вошёл, поэтому приглашение читаем",
+    "+// от владельца базы, как вход (app/api/login)",
+    "+export default async function JoinPage({ params, searchParams }: PageProps<\"/join/[code]\">) {",
+    "+  const { code } = await params;",
+    "+  const { error } = await searchParams;",
+    "+  const { rows } = await pool.query<Invite>(",
+    "+    `select p.name as coach, i.accepted_by is not null as used, i.revoked_at is not null as revoked, i.expires_at <= now() as expired",
+    "+       from invites i join profiles p on p.id = i.coach_id",
+    "+      where i.code = $1`,",
+    "+    [code],",
+    "+  );",
+    "+  if (rows.length === 0) notFound();",
+    "+  const refused = refusal(rows[0]);",
+    "+  // поля приходят из формы, а код действие получает отсюда и проверяет заново в базе",
+    "+  const register = join.bind(null, code);",
+    "+",
+    "+  return (",
+    "+    <main className=\"mx-auto w-full max-w-md p-8\">",
+    "+      <h1 className=\"text-3xl font-semibold\">Приглашение</h1>",
+    "+      {refused ? (",
+    "+        <>",
+    "+          <p role=\"alert\" className=\"mt-4 text-red-600\">",
+    "+            {refused}",
+    "+          </p>",
+    "+          <Link href=\"/login\" className=\"mt-6 inline-block underline\">",
+    "+            Войти",
+    "+          </Link>",
+    "+        </>",
+    "+      ) : (",
+    "+        <>",
+    "+          <p className=\"mt-2\">Тренер {rows[0].coach} приглашает вас в дневник тренировок. Ссылка одноразовая.</p>",
+    "+",
+    "+          <form action={register} className=\"mt-6 flex flex-col gap-4\">",
+    "+            <div className=\"flex flex-col gap-1\">",
+    "+              <label htmlFor=\"name\">Имя</label>",
+    "+              <input id=\"name\" name=\"name\" required autoComplete=\"name\" className=\"rounded border border-zinc-300 px-3 py-2\" />",
+    "+            </div>",
+    "+            <div className=\"flex flex-col gap-1\">",
+    "+              <label htmlFor=\"email\">Почта</label>",
+    "+              <input",
+    "+                id=\"email\"",
+    "+                name=\"email\"",
+    "+                type=\"email\"",
+    "+                required",
+    "+                autoComplete=\"email\"",
+    "+                className=\"rounded border border-zinc-300 px-3 py-2\"",
+    "+              />",
+    "+            </div>",
+    "+            <div className=\"flex flex-col gap-1\">",
+    "+              <label htmlFor=\"password\">Пароль</label>",
+    "+              <input",
+    "+                id=\"password\"",
+    "+                name=\"password\"",
+    "+                type=\"password\"",
+    "+                required",
+    "+                minLength={8}",
+    "+                autoComplete=\"new-password\"",
+    "+                className=\"rounded border border-zinc-300 px-3 py-2\"",
+    "+              />",
+    "+            </div>",
+    "+            <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">",
+    "+              Присоединиться",
+    "+            </button>",
+    "+          </form>",
+    "+",
+    "+          {typeof error === \"string\" && (",
+    "+            <p role=\"alert\" className=\"mt-4 text-red-600\">",
+    "+              {error}",
+    "+            </p>",
+    "+          )}",
+    "+        </>",
+    "+      )}",
+    "+    </main>",
+    "+  );",
+    "+}"
+   ],
+   "blob": "7e9481cd7b7de7dcc7530b32de7546d455b6eab6",
+   "by": "agent"
+  },
+  {
+   "id": "inv-action",
+   "kind": "file",
+   "path": "app/join/[code]/actions.ts",
+   "before": null,
+   "after": "\"use server\";\n\nimport { redirect } from \"next/navigation\";\nimport { pool } from \"@/lib/db\";\nimport { checkName } from \"@/lib/names\";\nimport { startSession } from \"@/lib/session\";\n\n// Ответ на занятую почту: та же почта другими буквами или повтор, который поймал unique в auth.users\nconst TAKEN = \"Эта почта уже зарегистрирована — войдите\";\n\n// Регистрация по приглашению /join/<код>: новый пользователь в auth.users и профиль подопечного, затем база принимает приглашение\n// (accept_invite, 0008_invites.sql): тренер — из записи приглашения, а не из адреса; использованное, отозванное и просроченное — отказ.\n// Потом вход. Запросы — от владельца базы одной транзакцией, как вход (app/api/login): пользователям таблица auth.users закрыта,\n// а отказ откатывает и нового пользователя.\nexport async function join(code: string, form: FormData) {\n  const name = String(form.get(\"name\") ?? \"\").trim();\n  // почта — без пробелов по краям, буквы как ввели: так её ищет вход (app/api/login)\n  const email = String(form.get(\"email\") ?? \"\").trim();\n  const password = String(form.get(\"password\") ?? \"\");\n  // ошибку страница покажет под формой\n  const back = (error: string): never =>\n    redirect(`/join/${encodeURIComponent(code)}?error=${encodeURIComponent(error)}`);\n  const invalid = checkName(name) ?? checkAccount(email, password);\n  if (invalid) back(invalid);\n  // та же почта другими буквами — тоже занята: unique в auth.users различает заглавные и строчные\n  const taken = await pool.query(\"select 1 from auth.users where lower(email) = lower($1)\", [email]);\n  if (taken.rows.length > 0) back(TAKEN);\n\n  const db = await pool.connect();\n  let uid: string;\n  try {\n    await db.query(\"begin\");\n    // пароль в базе — только хешем: crypt() с солью bcrypt, как у пользователей seed.sql\n    const user = await db.query<{ id: string }>(\n      \"insert into auth.users (email, encrypted_password) values ($1, crypt($2, gen_salt('bf'))) returning id\",\n      [email, password],\n    );\n    uid = user.rows[0].id;\n    await db.query(\"insert into profiles (id, role, name) values ($1, 'client', $2)\", [uid, name]);\n    await db.query(\"select accept_invite($1, $2, $3)\", [code, uid, name]);\n    await db.query(\"commit\");\n  } catch (err) {\n    await db.query(\"rollback\");\n    const refused = refusal(err);\n    if (refused) back(refused);\n    throw err;\n  } finally {\n    db.release();\n  }\n  // вход — та же cookie сессии, что после /api/login\n  await startSession(uid);\n  redirect(\"/workouts\");\n}\n\n// Понятная ошибка вместо 500: такая почта уже есть (unique в auth.users) или приглашение не принято (raise exception в accept_invite)\nfunction refusal(err: unknown): string | null {\n  const { code, message } = err as { code?: string; message?: string };\n  if (code === \"23505\") return TAKEN;\n  if (code === \"P0001\" && message) return message;\n  return null;\n}\n\n// Почта и пароль из формы: null — годятся, иначе текст ошибки для страницы\nfunction checkAccount(email: string, password: string): string | null {\n  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return \"Проверьте почту\";\n  if (password.length < 8) return \"Пароль — не короче 8 знаков\";\n  return null;\n}\n",
+   "diff": [
+    "diff --git a/app/join/[code]/actions.ts b/app/join/[code]/actions.ts",
+    "new file mode 100644",
+    "index 0000000..706def0",
+    "--- /dev/null",
+    "+++ b/app/join/[code]/actions.ts",
+    "@@ -0,0 +1,68 @@",
+    "+\"use server\";",
+    "+",
+    "+import { redirect } from \"next/navigation\";",
+    "+import { pool } from \"@/lib/db\";",
+    "+import { checkName } from \"@/lib/names\";",
+    "+import { startSession } from \"@/lib/session\";",
+    "+",
+    "+// Ответ на занятую почту: та же почта другими буквами или повтор, который поймал unique в auth.users",
+    "+const TAKEN = \"Эта почта уже зарегистрирована — войдите\";",
+    "+",
+    "+// Регистрация по приглашению /join/<код>: новый пользователь в auth.users и профиль подопечного, затем база принимает приглашение",
+    "+// (accept_invite, 0008_invites.sql): тренер — из записи приглашения, а не из адреса; использованное, отозванное и просроченное — отказ.",
+    "+// Потом вход. Запросы — от владельца базы одной транзакцией, как вход (app/api/login): пользователям таблица auth.users закрыта,",
+    "+// а отказ откатывает и нового пользователя.",
+    "+export async function join(code: string, form: FormData) {",
+    "+  const name = String(form.get(\"name\") ?? \"\").trim();",
+    "+  // почта — без пробелов по краям, буквы как ввели: так её ищет вход (app/api/login)",
+    "+  const email = String(form.get(\"email\") ?? \"\").trim();",
+    "+  const password = String(form.get(\"password\") ?? \"\");",
+    "+  // ошибку страница покажет под формой",
+    "+  const back = (error: string): never =>",
+    "+    redirect(`/join/${encodeURIComponent(code)}?error=${encodeURIComponent(error)}`);",
+    "+  const invalid = checkName(name) ?? checkAccount(email, password);",
+    "+  if (invalid) back(invalid);",
+    "+  // та же почта другими буквами — тоже занята: unique в auth.users различает заглавные и строчные",
+    "+  const taken = await pool.query(\"select 1 from auth.users where lower(email) = lower($1)\", [email]);",
+    "+  if (taken.rows.length > 0) back(TAKEN);",
+    "+",
+    "+  const db = await pool.connect();",
+    "+  let uid: string;",
+    "+  try {",
+    "+    await db.query(\"begin\");",
+    "+    // пароль в базе — только хешем: crypt() с солью bcrypt, как у пользователей seed.sql",
+    "+    const user = await db.query<{ id: string }>(",
+    "+      \"insert into auth.users (email, encrypted_password) values ($1, crypt($2, gen_salt('bf'))) returning id\",",
+    "+      [email, password],",
+    "+    );",
+    "+    uid = user.rows[0].id;",
+    "+    await db.query(\"insert into profiles (id, role, name) values ($1, 'client', $2)\", [uid, name]);",
+    "+    await db.query(\"select accept_invite($1, $2, $3)\", [code, uid, name]);",
+    "+    await db.query(\"commit\");",
+    "+  } catch (err) {",
+    "+    await db.query(\"rollback\");",
+    "+    const refused = refusal(err);",
+    "+    if (refused) back(refused);",
+    "+    throw err;",
+    "+  } finally {",
+    "+    db.release();",
+    "+  }",
+    "+  // вход — та же cookie сессии, что после /api/login",
+    "+  await startSession(uid);",
+    "+  redirect(\"/workouts\");",
+    "+}",
+    "+",
+    "+// Понятная ошибка вместо 500: такая почта уже есть (unique в auth.users) или приглашение не принято (raise exception в accept_invite)",
+    "+function refusal(err: unknown): string | null {",
+    "+  const { code, message } = err as { code?: string; message?: string };",
+    "+  if (code === \"23505\") return TAKEN;",
+    "+  if (code === \"P0001\" && message) return message;",
+    "+  return null;",
+    "+}",
+    "+",
+    "+// Почта и пароль из формы: null — годятся, иначе текст ошибки для страницы",
+    "+function checkAccount(email: string, password: string): string | null {",
+    "+  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return \"Проверьте почту\";",
+    "+  if (password.length < 8) return \"Пароль — не короче 8 знаков\";",
+    "+  return null;",
+    "+}"
+   ],
+   "blob": "706def01ab2c040e1bb2ce51b76d4424694c50b7",
+   "by": "agent"
+  },
+  {
+   "id": "inv-link",
+   "kind": "file",
+   "path": "app/clients/page.tsx",
+   "before": "import type { Metadata } from \"next\";\nimport { headers } from \"next/headers\";\nimport Link from \"next/link\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { addClient } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Подопечный тренера с датой последней тренировки\ntype Client = { id: string; name: string; last: Date | null };\n\n// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного и ссылка-приглашение\nexport default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { error } = await searchParams;\n  const clients = await asUser(uid, async (db) => {\n    // подопечные и дата последней тренировки — одним запросом: left join и max(day)\n    const { rows } = await db.query<Client>(\n      `select c.id, c.name, max(w.day) as last\n         from clients c\n         left join workouts w on w.client_id = c.id\n        where c.coach_id = $1\n        group by c.id\n        order by c.id`,\n      [uid],\n    );\n    return rows;\n  });\n  // адрес сайта для ссылки — из запроса: localhost:3000 при разработке, свой домен на сервере\n  const head = await headers();\n  const origin = `${head.get(\"x-forwarded-proto\") ?? \"http\"}://${head.get(\"host\")}`;\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id}>\n            <Link\n              href={`/clients/${client.id}`}\n              className=\"block rounded border border-zinc-300 p-4 text-xl font-semibold\"\n            >\n              {client.name}\n              <span className=\"block text-sm font-normal text-zinc-500\">\n                {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : \"Тренировок пока нет\"}\n              </span>\n            </Link>\n          </li>\n        ))}\n      </ul>\n\n      <form action={addClient} className=\"mt-8 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"name\">Имя</label>\n          <input id=\"name\" name=\"name\" required className=\"rounded border border-zinc-300 px-3 py-2\" />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Добавить\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Ссылка-приглашение</h2>\n      <p className=\"mt-2 text-zinc-500\">Отправьте её подопечному: по ней он зарегистрируется и попадёт к вам.</p>\n      <p className=\"mt-2 break-all font-mono text-sm\">{`${origin}/join/${uid}`}</p>\n    </main>\n  );\n}\n",
+   "after": "import type { Metadata } from \"next\";\nimport { headers } from \"next/headers\";\nimport Link from \"next/link\";\nimport { redirect } from \"next/navigation\";\nimport { formatDay } from \"@/lib/dates\";\nimport { asUser } from \"@/lib/db\";\nimport { currentUser } from \"@/lib/session\";\nimport { addClient } from \"./actions\";\n\nexport const metadata: Metadata = { title: \"Подопечные\" };\n\n// Страница ждёт ответа базы и отдаётся целиком, без заглушки загрузки\nexport const instant = false;\n\n// Подопечный тренера с датой последней тренировки\ntype Client = { id: string; name: string; last: Date | null };\n// Действующее приглашение тренера: не принято, не отозвано, срок не вышел\ntype Invite = { id: string; code: string };\n\n// Тренер создаёт приглашение на себя: код и срок ставит база (0008_invites.sql), записать приглашение чужому не даст RLS\nasync function createInvite() {\n  \"use server\";\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  await asUser(uid, (db) => db.query(\"insert into invites (coach_id) values ($1)\", [uid]));\n  redirect(\"/clients\");\n}\n\n// Тренер отзывает приглашение: по ссылке больше не зарегистрироваться. Чужое приглашение отозвать не даст RLS\nasync function revokeInvite(id: string) {\n  \"use server\";\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  await asUser(uid, (db) => db.query(\"update invites set revoked_at = now() where id = $1\", [id]));\n  redirect(\"/clients\");\n}\n\n// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного и приглашения\nexport default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {\n  const uid = await currentUser();\n  if (!uid) redirect(\"/login\");\n  const { error } = await searchParams;\n  const { clients, invites } = await asUser(uid, async (db) => {\n    // подопечные и дата последней тренировки — одним запросом: left join и max(day)\n    const found = await db.query<Client>(\n      `select c.id, c.name, max(w.day) as last\n         from clients c\n         left join workouts w on w.client_id = c.id\n        where c.coach_id = $1\n        group by c.id\n        order by c.id`,\n      [uid],\n    );\n    // действующие приглашения: срок сверяют часы базы, на странице дат нет\n    const active = await db.query<Invite>(\n      `select id, code from invites\n        where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now()\n        order by id`,\n      [uid],\n    );\n    return { clients: found.rows, invites: active.rows };\n  });\n  // адрес сайта для ссылки — из запроса: localhost:3000 при разработке, свой домен на сервере\n  const head = await headers();\n  const origin = `${head.get(\"x-forwarded-proto\") ?? \"http\"}://${head.get(\"host\")}`;\n\n  return (\n    <main className=\"mx-auto w-full max-w-md p-8\">\n      <h1 className=\"text-3xl font-semibold\">Подопечные</h1>\n      <ul className=\"mt-6 flex flex-col gap-3\">\n        {clients.map((client) => (\n          <li key={client.id}>\n            <Link\n              href={`/clients/${client.id}`}\n              className=\"block rounded border border-zinc-300 p-4 text-xl font-semibold\"\n            >\n              {client.name}\n              <span className=\"block text-sm font-normal text-zinc-500\">\n                {client.last ? `Последняя тренировка: ${formatDay(client.last)}` : \"Тренировок пока нет\"}\n              </span>\n            </Link>\n          </li>\n        ))}\n      </ul>\n\n      <form action={addClient} className=\"mt-8 flex flex-col gap-4\">\n        <div className=\"flex flex-col gap-1\">\n          <label htmlFor=\"name\">Имя</label>\n          <input id=\"name\" name=\"name\" required className=\"rounded border border-zinc-300 px-3 py-2\" />\n        </div>\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Добавить\n        </button>\n      </form>\n\n      {typeof error === \"string\" && (\n        <p role=\"alert\" className=\"mt-4 text-red-600\">\n          {error}\n        </p>\n      )}\n\n      <h2 className=\"mt-8 text-xl font-semibold\">Приглашения</h2>\n      <p className=\"mt-2 text-zinc-500\">Ссылка действует 48 часов, по ней регистрируются один раз.</p>\n      {invites.length === 0 ? (\n        <p className=\"mt-2 text-zinc-500\">Приглашений пока нет</p>\n      ) : (\n        <ul className=\"mt-2 flex flex-col gap-2\">\n          {invites.map((invite) => (\n            <li key={invite.id} className=\"flex items-center gap-2\">\n              <span className=\"break-all font-mono text-sm\">{`${origin}/join/${invite.code}`}</span>\n              <form action={revokeInvite.bind(null, invite.id)}>\n                <button type=\"submit\" className=\"rounded border border-zinc-300 px-3 py-1 text-sm\">\n                  Отозвать\n                </button>\n              </form>\n            </li>\n          ))}\n        </ul>\n      )}\n      <form action={createInvite} className=\"mt-4\">\n        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">\n          Создать приглашение\n        </button>\n      </form>\n    </main>\n  );\n}\n",
+   "diff": [
+    "diff --git a/app/clients/page.tsx b/app/clients/page.tsx",
+    "index dbaf9d8..0d937b0 100644",
+    "--- a/app/clients/page.tsx",
+    "+++ b/app/clients/page.tsx",
+    "@@ -14,15 +14,35 @@ export const instant = false;",
+    " ",
+    " // Подопечный тренера с датой последней тренировки",
+    " type Client = { id: string; name: string; last: Date | null };",
+    "+// Действующее приглашение тренера: не принято, не отозвано, срок не вышел",
+    "+type Invite = { id: string; code: string };",
+    " ",
+    "-// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного и ссылка-приглашение",
+    "+// Тренер создаёт приглашение на себя: код и срок ставит база (0008_invites.sql), записать приглашение чужому не даст RLS",
+    "+async function createInvite() {",
+    "+  \"use server\";",
+    "+  const uid = await currentUser();",
+    "+  if (!uid) redirect(\"/login\");",
+    "+  await asUser(uid, (db) => db.query(\"insert into invites (coach_id) values ($1)\", [uid]));",
+    "+  redirect(\"/clients\");",
+    "+}",
+    "+",
+    "+// Тренер отзывает приглашение: по ссылке больше не зарегистрироваться. Чужое приглашение отозвать не даст RLS",
+    "+async function revokeInvite(id: string) {",
+    "+  \"use server\";",
+    "+  const uid = await currentUser();",
+    "+  if (!uid) redirect(\"/login\");",
+    "+  await asUser(uid, (db) => db.query(\"update invites set revoked_at = now() where id = $1\", [id]));",
+    "+  redirect(\"/clients\");",
+    "+}",
+    "+",
+    "+// Подопечные вошедшего тренера, у каждого — дата последней тренировки; под списком форма нового подопечного и приглашения",
+    " export default async function ClientsPage({ searchParams }: PageProps<\"/clients\">) {",
+    "   const uid = await currentUser();",
+    "   if (!uid) redirect(\"/login\");",
+    "   const { error } = await searchParams;",
+    "-  const clients = await asUser(uid, async (db) => {",
+    "+  const { clients, invites } = await asUser(uid, async (db) => {",
+    "     // подопечные и дата последней тренировки — одним запросом: left join и max(day)",
+    "-    const { rows } = await db.query<Client>(",
+    "+    const found = await db.query<Client>(",
+    "       `select c.id, c.name, max(w.day) as last",
+    "          from clients c",
+    "          left join workouts w on w.client_id = c.id",
+    "@@ -31,7 +51,14 @@ export default async function ClientsPage({ searchParams }: PageProps<\"/clients\"",
+    "         order by c.id`,",
+    "       [uid],",
+    "     );",
+    "-    return rows;",
+    "+    // действующие приглашения: срок сверяют часы базы, на странице дат нет",
+    "+    const active = await db.query<Invite>(",
+    "+      `select id, code from invites",
+    "+        where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now()",
+    "+        order by id`,",
+    "+      [uid],",
+    "+    );",
+    "+    return { clients: found.rows, invites: active.rows };",
+    "   });",
+    "   // адрес сайта для ссылки — из запроса: localhost:3000 при разработке, свой домен на сервере",
+    "   const head = await headers();",
+    "@@ -72,9 +99,29 @@ export default async function ClientsPage({ searchParams }: PageProps<\"/clients\"",
+    "         </p>",
+    "       )}",
+    " ",
+    "-      <h2 className=\"mt-8 text-xl font-semibold\">Ссылка-приглашение</h2>",
+    "-      <p className=\"mt-2 text-zinc-500\">Отправьте её подопечному: по ней он зарегистрируется и попадёт к вам.</p>",
+    "-      <p className=\"mt-2 break-all font-mono text-sm\">{`${origin}/join/${uid}`}</p>",
+    "+      <h2 className=\"mt-8 text-xl font-semibold\">Приглашения</h2>",
+    "+      <p className=\"mt-2 text-zinc-500\">Ссылка действует 48 часов, по ней регистрируются один раз.</p>",
+    "+      {invites.length === 0 ? (",
+    "+        <p className=\"mt-2 text-zinc-500\">Приглашений пока нет</p>",
+    "+      ) : (",
+    "+        <ul className=\"mt-2 flex flex-col gap-2\">",
+    "+          {invites.map((invite) => (",
+    "+            <li key={invite.id} className=\"flex items-center gap-2\">",
+    "+              <span className=\"break-all font-mono text-sm\">{`${origin}/join/${invite.code}`}</span>",
+    "+              <form action={revokeInvite.bind(null, invite.id)}>",
+    "+                <button type=\"submit\" className=\"rounded border border-zinc-300 px-3 py-1 text-sm\">",
+    "+                  Отозвать",
+    "+                </button>",
+    "+              </form>",
+    "+            </li>",
+    "+          ))}",
+    "+        </ul>",
+    "+      )}",
+    "+      <form action={createInvite} className=\"mt-4\">",
+    "+        <button type=\"submit\" className=\"rounded bg-zinc-900 px-4 py-2 text-white\">",
+    "+          Создать приглашение",
+    "+        </button>",
+    "+      </form>",
+    "     </main>",
+    "   );",
+    " }"
+   ],
+   "blob": "0d937b027c0b8b2fe0807463ec1b9758cf6d98f3",
+   "by": "agent"
+  },
+  {
+   "id": "inv-run",
+   "kind": "run",
+   "cwd": "~/trainer-app",
+   "cmd": "npx vitest run test/invites.test.ts",
+   "out": [
+    "",
+    " RUN  v5.0.5 ~/trainer-app",
+    "",
+    " ✓ test/invites.test.ts (6 tests) 87ms",
+    "",
+    " Test Files  1 passed (1)",
+    "      Tests  6 passed (6)",
+    "   Start at  13:19:20",
+    "   Duration  371ms (tests 40%, transform 36%, import 22%, worker 2%)"
+   ],
+   "code": 0,
+   "by": "agent"
+  },
+  {
+   "id": "login-marina2",
+   "kind": "browser",
+   "url": "http://localhost:3000/login",
+   "urlAfter": "http://localhost:3000/clients",
+   "title": "Тренировка",
+   "fields": [
+    {
+     "label": "Почта",
+     "value": "marina@example.com"
+    },
+    {
+     "label": "Пароль",
+     "value": "demo-password"
+    }
+   ],
+   "buttons": [
+    "Войти"
+   ],
+   "before": [
+    "Вход",
+    "Почта",
+    "Пароль",
+    "Войти"
+   ],
+   "after": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Ольга",
+    "Тренировок пока нет",
+    "Кирилл",
+    "Тренировок пока нет",
+    "Имя",
+    "Добавить",
+    "Приглашения",
+    "Ссылка действует 48 часов, по ней регистрируются один раз.",
+    "Приглашений пока нет",
+    "Создать приглашение"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    " GET /login 200 in 35ms (next.js: 1.5ms, application-code: 34ms)",
+    " POST /api/login 200 in 18ms (next.js: 1.1ms, application-code: 17ms)",
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
+    " GET /clients 200 in 57ms (next.js: 12ms, application-code: 45ms)"
+   ]
+  },
+  {
+   "id": "invite-new",
+   "kind": "browser",
+   "url": "http://localhost:3000/clients",
+   "title": "Подопечные",
+   "fields": [],
+   "buttons": [
+    "Добавить",
+    "Создать приглашение"
+   ],
+   "before": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Ольга",
+    "Тренировок пока нет",
+    "Кирилл",
+    "Тренировок пока нет",
+    "Имя",
+    "Добавить",
+    "Приглашения",
+    "Ссылка действует 48 часов, по ней регистрируются один раз.",
+    "Приглашений пока нет",
+    "Создать приглашение"
+   ],
+   "after": [
+    "Подопечные",
+    "Анна",
+    "Последняя тренировка: 26 октября",
+    "Олег",
+    "Последняя тренировка: 27 октября",
+    "Ольга",
+    "Тренировок пока нет",
+    "Кирилл",
+    "Тренировок пока нет",
+    "Имя",
+    "Добавить",
+    "Приглашения",
+    "Ссылка действует 48 часов, по ней регистрируются один раз.",
+    "http://localhost:3000/join/cd4901ad7ef6d57651dd83378e55ea26",
+    "Отозвать",
+    "Создать приглашение"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
+    " GET /clients 200 in 107ms (next.js: 1.6ms, application-code: 106ms)",
+    "[sql] insert into invites (coach_id) values ($1)",
+    "[sql] select c.id, c.name, max(w.day) as last from clients c left join workouts w on w.client_id = c.id where c.coach_id = $1 group by c.id order by c.id",
+    "[sql] select id, code from invites where coach_id = $1 and accepted_by is null and revoked_at is null and expires_at > now() order by id",
+    " GET /clients 200 in 61ms (next.js: 1.3ms, application-code: 60ms)",
+    " POST /clients 200 in 101ms (next.js: 1.1ms, application-code: 100ms)",
+    "  └─ ƒ <inline action>() in 7ms app/clients/page.tsx"
+   ]
+  },
+  {
+   "id": "vera-join",
+   "kind": "browser",
+   "url": "http://localhost:3000/join/cd4901ad7ef6d57651dd83378e55ea26",
+   "urlAfter": "http://localhost:3000/workouts",
+   "title": "Приглашение",
+   "fields": [
+    {
+     "label": "Имя",
+     "value": "Вера"
+    },
+    {
+     "label": "Почта",
+     "value": "vera@example.com"
+    },
+    {
+     "label": "Пароль",
+     "value": "demo-password"
+    }
+   ],
+   "buttons": [
+    "Присоединиться"
+   ],
+   "before": [
+    "Приглашение",
+    "Тренер Марина приглашает вас в дневник тренировок. Ссылка одноразовая.",
+    "Имя",
+    "Почта",
+    "Пароль",
+    "Присоединиться"
+   ],
+   "after": [
+    "Мои тренировки",
+    "Тренировок пока нет"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    },
+    {
+     "type": "log",
+     "text": "%c%s%c [sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server  "
+    }
+   ],
+   "network": [],
+   "server": [
+    " GET /join/cd4901ad7ef6d57651dd83378e55ea26 200 in 647ms (next.js: 13ms, generate-params: 539ms, application-code: 95ms)",
+    "[sql] select w.id, w.title, w.day from workouts w join clients c on c.id = w.client_id where c.user_id = $1 order by w.day",
+    " GET /workouts 200 in 51ms (next.js: 1.3ms, application-code: 50ms)",
+    " POST /join/cd4901ad7ef6d57651dd83378e55ea26 200 in 131ms (next.js: 3ms, generate-params: 32ms, application-code: 96ms)",
+    "  └─ ƒ join(\"cd4901ad7ef6d57651dd83378e55ea26\", {}) in 21ms app/join/[code]/actions.ts"
+   ]
+  },
+  {
+   "id": "invite-reuse",
+   "kind": "browser",
+   "url": "http://localhost:3000/join/cd4901ad7ef6d57651dd83378e55ea26",
+   "title": "Приглашение",
+   "fields": [],
+   "buttons": [],
+   "before": [
+    "Приглашение",
+    "Приглашение уже использовано",
+    "Войти"
+   ],
+   "after": [
+    "Приглашение",
+    "Приглашение уже использовано",
+    "Войти"
+   ],
+   "console": [
+    {
+     "type": "info",
+     "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+     "type": "log",
+     "text": "[HMR] connected"
+    }
+   ],
+   "network": [],
+   "server": [
+    " GET /join/cd4901ad7ef6d57651dd83378e55ea26 200 in 79ms (next.js: 1.3ms, generate-params: 20ms, application-code: 58ms)"
+   ]
+  },
+  {
+   "id": "ask-audit",
+   "kind": "agent",
+   "prompt": "Проверь приглашения по шести вопросам главы 8: откуда данные, кто может вызвать, что сделает злоумышленник, что в журналах, какие права у процесса, что изменилось вне задачи. Код не меняй — только отчёт и места, где не уверен",
+   "reply": "1. Данные: код из адреса, имя, почта и пароль из формы — недоверенные; в SQL идут только параметрами, имя и почта проверены. 2. Зарегистрироваться может любой по ссылке, без входа; тренер — из записи приглашения, создаёт её только тренер. 3. Злоумышленник: 32 знака не угадать; повтор, отзыв и срок отсекает accept_invite, строка — под замком; но лимита попыток на /join нет — регистрациями можно заваливать. 4. Журналы: код — в адресе, значит, и в журнале запросов сервера; пароль не печатается, в базе — только хеш. 5. Права: регистрация — от владельца базы, мимо RLS, как вход; тренер пишет только coach_id и revoked_at, accept_invite пользователям закрыта. 6. Вне задачи: пакетов нет, проверки не ослаблены; мимо RLS через pool теперь ходит и /join — стоит сверить, что об этом сказано в lib/db.ts. Не уверен, важно ли: почту проверяем раньше приглашения — по ответу «почта уже зарегистрирована» можно узнать, есть ли чужая почта.",
+   "steps": [
+    "a-action",
+    "a-sql"
+   ]
+  },
+  {
+   "id": "a-action",
+   "kind": "read",
+   "path": "app/join/[code]/actions.ts",
+   "text": "\"use server\";\n\nimport { redirect } from \"next/navigation\";\nimport { pool } from \"@/lib/db\";\nimport { checkName } from \"@/lib/names\";\nimport { startSession } from \"@/lib/session\";\n\n// Ответ на занятую почту: та же почта другими буквами или повтор, который поймал unique в auth.users\nconst TAKEN = \"Эта почта уже зарегистрирована — войдите\";\n\n// Регистрация по приглашению /join/<код>: новый пользователь в auth.users и профиль подопечного, затем база принимает приглашение\n// (accept_invite, 0008_invites.sql): тренер — из записи приглашения, а не из адреса; использованное, отозванное и просроченное — отказ.\n// Потом вход. Запросы — от владельца базы одной транзакцией, как вход (app/api/login): пользователям таблица auth.users закрыта,\n// а отказ откатывает и нового пользователя.\nexport async function join(code: string, form: FormData) {\n  const name = String(form.get(\"name\") ?? \"\").trim();\n  // почта — без пробелов по краям, буквы как ввели: так её ищет вход (app/api/login)\n  const email = String(form.get(\"email\") ?? \"\").trim();\n  const password = String(form.get(\"password\") ?? \"\");\n  // ошибку страница покажет под формой\n  const back = (error: string): never =>\n    redirect(`/join/${encodeURIComponent(code)}?error=${encodeURIComponent(error)}`);\n  const invalid = checkName(name) ?? checkAccount(email, password);\n  if (invalid) back(invalid);\n  // та же почта другими буквами — тоже занята: unique в auth.users различает заглавные и строчные\n  const taken = await pool.query(\"select 1 from auth.users where lower(email) = lower($1)\", [email]);\n  if (taken.rows.length > 0) back(TAKEN);\n\n  const db = await pool.connect();\n  let uid: string;\n  try {\n    await db.query(\"begin\");\n    // пароль в базе — только хешем: crypt() с солью bcrypt, как у пользователей seed.sql\n    const user = await db.query<{ id: string }>(\n      \"insert into auth.users (email, encrypted_password) values ($1, crypt($2, gen_salt('bf'))) returning id\",\n      [email, password],\n    );\n    uid = user.rows[0].id;\n    await db.query(\"insert into profiles (id, role, name) values ($1, 'client', $2)\", [uid, name]);\n    await db.query(\"select accept_invite($1, $2, $3)\", [code, uid, name]);\n    await db.query(\"commit\");\n  } catch (err) {\n    await db.query(\"rollback\");\n    const refused = refusal(err);\n    if (refused) back(refused);\n    throw err;\n  } finally {\n    db.release();\n  }\n  // вход — та же cookie сессии, что после /api/login\n  await startSession(uid);\n  redirect(\"/workouts\");\n}\n\n// Понятная ошибка вместо 500: такая почта уже есть (unique в auth.users) или приглашение не принято (raise exception в accept_invite)\nfunction refusal(err: unknown): string | null {\n  const { code, message } = err as { code?: string; message?: string };\n  if (code === \"23505\") return TAKEN;\n  if (code === \"P0001\" && message) return message;\n  return null;\n}\n\n// Почта и пароль из формы: null — годятся, иначе текст ошибки для страницы\nfunction checkAccount(email: string, password: string): string | null {\n  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return \"Проверьте почту\";\n  if (password.length < 8) return \"Пароль — не короче 8 знаков\";\n  return null;\n}\n",
+   "blob": "706def01ab2c040e1bb2ce51b76d4424694c50b7",
+   "by": "agent"
+  },
+  {
+   "id": "a-sql",
+   "kind": "read",
+   "path": "supabase/migrations/0008_invites.sql",
+   "text": "-- Приглашение по ссылке: одноразовый код вместо вечной ссылки /join/<id тренера> — её переслали, и по ней зарегистрировался чужой.\n-- Код — 16 случайных байт (32 шестнадцатеричных знака): не угадать и не перебрать. Тренер — из этой записи, а не из адреса.\n-- Приглашение действует 48 часов и один раз; тренер может его отозвать.\ncreate table invites (\n  id bigint generated by default as identity primary key,\n  code text not null unique default encode(gen_random_bytes(16), 'hex'),\n  coach_id uuid not null references profiles (id),\n  created_at timestamptz not null default now(),\n  expires_at timestamptz not null default now() + interval '48 hours',\n  -- кто зарегистрировался по приглашению: после этого оно не действует\n  accepted_by uuid references profiles (id),\n  -- когда тренер отозвал приглашение\n  revoked_at timestamptz\n);\n\n-- RLS: тренер видит свои приглашения, создаёт их на себя и отзывает свои; подопечный приглашений не создаёт\nalter table invites enable row level security;\n\ncreate policy \"тренер видит свои приглашения\" on invites\n  for select to authenticated using (coach_id = auth.uid());\ncreate policy \"тренер создаёт приглашения\" on invites\n  for insert to authenticated with check (\n    coach_id = auth.uid() and auth.uid() in (select id from profiles where role = 'coach'));\ncreate policy \"тренер отзывает приглашения\" on invites\n  for update to authenticated using (coach_id = auth.uid());\n\n-- Права по столбцам: код, срок и «кто принял» ставит только база; тренер пишет лишь coach_id и revoked_at\nrevoke all on invites from anon, authenticated;\ngrant select, insert (coach_id), update (revoked_at) on invites to authenticated;\n\n-- Принять приглашение: новый пользователь new_user становится подопечным тренера из записи приглашения.\n-- Строка приглашения — под замком (for update): по одному коду не зарегистрируются двое. Срок сверяют часы базы.\n-- Вызывает регистрация (app/join/[code]/actions.ts) от владельца базы; anon и authenticated функцию не вызовут.\ncreate function accept_invite(invite_code text, new_user uuid, client_name text) returns void\nlanguage plpgsql\nset search_path = public\nas $$\ndeclare\n  invite invites;\nbegin\n  select * into invite from invites where code = invite_code for update;\n  if not found then\n    raise exception 'Приглашение не найдено';\n  elsif invite.accepted_by is not null then\n    raise exception 'Приглашение уже использовано';\n  elsif invite.revoked_at is not null then\n    raise exception 'Приглашение отозвано';\n  elsif invite.expires_at <= now() then\n    raise exception 'Срок приглашения истёк';\n  end if;\n  update invites set accepted_by = new_user where id = invite.id;\n  insert into clients (coach_id, user_id, name) values (invite.coach_id, new_user, client_name);\nend;\n$$;\n\nrevoke execute on function accept_invite(text, uuid, text) from public, anon, authenticated;\n",
+   "blob": "6671c51bbb8e9b56bfe5764398594fa85c78b4a7",
+   "by": "agent"
+  },
+  {
+   "id": "c-invite",
+   "kind": "commit",
+   "cmd": "git add -A && git commit -m \"Приглашение по одноразовой ссылке\"",
+   "hash": "fc13709",
+   "message": "Приглашение по одноразовой ссылке",
+   "branch": "main",
+   "parents": [
+    "820f7a9"
+   ],
+   "out": [
+    "[main fc13709] Приглашение по одноразовой ссылке",
+    " 5 files changed, 396 insertions(+), 4 deletions(-)",
+    " create mode 100644 app/join/[code]/actions.ts",
+    " create mode 100644 app/join/[code]/page.tsx",
+    " create mode 100644 supabase/migrations/0008_invites.sql",
+    " create mode 100644 test/invites.test.ts"
+   ],
+   "files": [
+    {
+     "path": ".githooks/pre-commit",
+     "blob": "4fe231258086611cd45d79cbd7d7e319e68b76f9"
+    },
+    {
+     "path": ".gitignore",
+     "blob": "9babaf7a7576684d1e6f19db4afa2cefd91640d3"
+    },
+    {
+     "path": "CLAUDE.md",
+     "blob": "eddd7ec69c49be4d9b10d0c43803834ac4ab4293"
+    },
+    {
+     "path": "README.md",
+     "blob": "e215bc4ccf138bbc38ad58ad57e92135484b3c0f"
+    },
+    {
+     "path": "app/api/clients/search/route.ts",
+     "blob": "780c06f4f652de71a19f4181be66c86857fcd5d5"
+    },
+    {
+     "path": "app/api/login/route.ts",
+     "blob": "427b6448156be34ccb617c8c35a5e16282a8fea4"
+    },
+    {
+     "path": "app/api/sets/route.ts",
+     "blob": "86d7c8e5b7f6716c088e4661438b2ab14cbe31bc"
+    },
+    {
+     "path": "app/clients/[id]/actions.ts",
+     "blob": "5eec7d6a8dc7a7d35ddf493f54d12c44c36a524d"
+    },
+    {
+     "path": "app/clients/[id]/not-found.tsx",
+     "blob": "d3ecd96388b66eaa569bd8895275f5200bb3a85a"
+    },
+    {
+     "path": "app/clients/[id]/page.tsx",
+     "blob": "9c8a80abed61c077137ec92210315b7cca6454f0"
+    },
+    {
+     "path": "app/clients/actions.ts",
+     "blob": "ab5d0e77f906f6dcf618cb398a172a67390ea7fe"
+    },
+    {
+     "path": "app/clients/page.tsx",
+     "blob": "0d937b027c0b8b2fe0807463ec1b9758cf6d98f3"
+    },
+    {
+     "path": "app/favicon.ico",
+     "blob": "af98450595e8b8efd9e505cddc5ed705b665a4d8"
+    },
+    {
+     "path": "app/globals.css",
+     "blob": "eed3b35f34ff5c8f6d0dfb90aaae81581dbe798c"
+    },
+    {
+     "path": "app/icon.tsx",
+     "blob": "17f2f42e653179751c4644305031303484fb9eea"
+    },
+    {
+     "path": "app/join/[code]/actions.ts",
+     "blob": "706def01ab2c040e1bb2ce51b76d4424694c50b7"
+    },
+    {
+     "path": "app/join/[code]/page.tsx",
+     "blob": "7e9481cd7b7de7dcc7530b32de7546d455b6eab6"
+    },
+    {
+     "path": "app/layout.tsx",
+     "blob": "8515cad45d81c7b1929badb5a9da485bd379b523"
+    },
+    {
+     "path": "app/login/page.tsx",
+     "blob": "57a869356b632ea695f249ccf7802a0942141ab6"
+    },
+    {
+     "path": "app/manifest.ts",
+     "blob": "9dbb36a2f2fe2ec302d3dd0e1d8c80ccb41ca71c"
+    },
+    {
+     "path": "app/page.tsx",
+     "blob": "58c27d1e76bd2f9f7e7763f3d6256ea6a157749d"
+    },
+    {
+     "path": "app/programs/actions.ts",
+     "blob": "dcd541fe06f5492687a0ea1cf620c192b6bc64d4"
+    },
+    {
+     "path": "app/programs/page.tsx",
+     "blob": "afac09dd15a93bb1775b65096db6bfff25dbeb70"
+    },
+    {
+     "path": "app/report/page.tsx",
+     "blob": "f10ded0acd8bd2ac60b7f3c31449bfb298aaf94d"
+    },
+    {
+     "path": "app/workouts/[id]/actions.ts",
+     "blob": "a849a809da0ad95aee01b95383d51138d629d035"
+    },
+    {
+     "path": "app/workouts/[id]/comments.ts",
+     "blob": "5cf9a284eb26545757c2c104919fe593425887e2"
+    },
+    {
+     "path": "app/workouts/[id]/page.tsx",
+     "blob": "9a1d156bfdf8074a9af53aa09e6d34604f13906d"
+    },
+    {
+     "path": "app/workouts/page.tsx",
+     "blob": "728769dd02c5244cccfca97dfcbff45fe901d8df"
+    },
+    {
+     "path": "components/Comments.tsx",
+     "blob": "3d337b64d15a4667a38c040559b8f498f2c1318a"
+    },
+    {
+     "path": "components/ProgressChart.tsx",
+     "blob": "77e64ac8860f1a46c395ffe50848c38423679a04"
+    },
+    {
+     "path": "components/SetList.tsx",
+     "blob": "2c715947f996c357c227fb7f2d88d8f689bbd6bb"
+    },
+    {
+     "path": "docs/design.md",
+     "blob": "d4f7691cb131c13ea47a613c9d17e8e02b0aed9a"
+    },
+    {
+     "path": "docs/etalons.md",
+     "blob": "fdfe7da9d3ffc22d6f656c0f62158b898645c1d2"
+    },
+    {
+     "path": "docs/feedback.md",
+     "blob": "a7460f95f2740430a7216a333ab57eb79b887050"
+    },
+    {
+     "path": "docs/idea.md",
+     "blob": "df36eb1f1505a363fadd7ad7fdb3975ccfdd2ffb"
+    },
+    {
+     "path": "docs/mini-set.md",
+     "blob": "423696ff8c914a7cd24f5e11a3c0d1855c251c6a"
+    },
+    {
+     "path": "docs/parity.md",
+     "blob": "a8c3a569ad92667412b210fc1a84fda926dcaf1b"
+    },
+    {
+     "path": "docs/plan-weeks-2-3.md",
+     "blob": "94eb8518bed0420f3fe7434edc9ccb896eb04096"
+    },
+    {
+     "path": "docs/prompts.md",
+     "blob": "bc4298e80af8ab9afbccd1b77985bd312f00b26c"
+    },
+    {
+     "path": "docs/report.md",
+     "blob": "a6562754e58b0e8fbeb0ed59013c66c9b8e541e2"
+    },
+    {
+     "path": "docs/spec.md",
+     "blob": "491b7a53d9b628346315e33365aefd7fc7e3a8cf"
+    },
+    {
+     "path": "docs/tasks/notes.md",
+     "blob": "cb71ccb1a0bf09ae4ebba4f14aa214be10729bae"
+    },
+    {
+     "path": "docs/tasks/records.md",
+     "blob": "db9abf41775b6851fb35442a8204275b9a669e04"
+    },
+    {
+     "path": "e2e/cycle.spec.ts",
+     "blob": "d199de9ce7b3315a7a18c40005dbc6dd27a03f93"
+    },
+    {
+     "path": "eslint.config.mjs",
+     "blob": "05e726d1b4201bc8c7716d2b058279676582e8c0"
+    },
+    {
+     "path": "lib/dates.ts",
+     "blob": "604f906e3dc4c58d9489abf84950ae071ceafed5"
+    },
+    {
+     "path": "lib/db.ts",
+     "blob": "bea1677f27da982934d297189b74b60017148c33"
+    },
+    {
+     "path": "lib/names.test.ts",
+     "blob": "d6890ca72d4e9cf0dcfe414e472266a38881a512"
+    },
+    {
+     "path": "lib/names.ts",
+     "blob": "e805924b33930951cfc371393ca87c8a0f8995fb"
+    },
+    {
+     "path": "lib/notify.test.ts",
+     "blob": "d74f2fee04f22ac2ccb60f91831ab8db86b9eb8e"
+    },
+    {
+     "path": "lib/notify.ts",
+     "blob": "4a0e8d5c643239ea470cf2d1c158d05b2525f4b5"
+    },
+    {
+     "path": "lib/payments.ts",
+     "blob": "510e71445c634695ed1430647ec1f6f95e46368a"
+    },
+    {
+     "path": "lib/progress.test.ts",
+     "blob": "c83c2100822d3f81e8ef67a2d807957ef83a3b4a"
+    },
+    {
+     "path": "lib/progress.ts",
+     "blob": "473f33d0e627b4627df5cb776d2ebb3f26f6c4fd"
+    },
+    {
+     "path": "lib/rate-limit.ts",
+     "blob": "1173b80e31f5a1aed29826b2c7bb8b90f1973871"
+    },
+    {
+     "path": "lib/records.test.ts",
+     "blob": "43b4ad5e54a06df184118b4a8945d53326d77f03"
+    },
+    {
+     "path": "lib/records.ts",
+     "blob": "7c0fabdcea67e71f837798fc5013f74db68f6a02"
+    },
+    {
+     "path": "lib/report.test.ts",
+     "blob": "d13a57d9455db9a518b5419cff96167b85a95d66"
+    },
+    {
+     "path": "lib/report.ts",
+     "blob": "c2fc54105f1531b1f304e5f69958e6c3bb5ce36b"
+    },
+    {
+     "path": "lib/session.ts",
+     "blob": "ced1148dc6236d6801f8931198ea2feb6a5d6b87"
+    },
+    {
+     "path": "lib/volume.test.ts",
+     "blob": "4e9f9a42b6b37446b8cab4c83062c2135c4b20e4"
+    },
+    {
+     "path": "lib/volume.ts",
+     "blob": "00d8286c3020ec0800698c190f02c8edcbf151ab"
+    },
+    {
+     "path": "lib/weight.test.ts",
+     "blob": "eb7b55ea11479f8d43d61a53e08af9b780a27179"
+    },
+    {
+     "path": "lib/weight.ts",
+     "blob": "5534e4676b0358eaf2665bfa0f498d168ad7705b"
+    },
+    {
+     "path": "next.config.ts",
+     "blob": "a0cf0c7313a86b713eb9d9bcac6539bc5d0bd1a9"
+    },
+    {
+     "path": "package-lock.json",
+     "blob": "71dc629fde4984efe6bfc757b2116700222d44c2"
+    },
+    {
+     "path": "package.json",
+     "blob": "6ab56583cc817522e1595c6f6770bd01510a1cfa"
+    },
+    {
+     "path": "playwright.config.ts",
+     "blob": "595220c1a2b5022019ab262c9f15b538f80ce466"
+    },
+    {
+     "path": "public/file.svg",
+     "blob": "004145cddf3f9db91b57b9cb596683c8eb420862"
+    },
+    {
+     "path": "public/globe.svg",
+     "blob": "567f17b0d7c7fb662c16d4357dd74830caf2dccb"
+    },
+    {
+     "path": "public/next.svg",
+     "blob": "5174b28c565c285e3e312ec5178be64fbeca8398"
+    },
+    {
+     "path": "public/vercel.svg",
+     "blob": "77053960334e2e34dc584dea8019925c3b4ccca9"
+    },
+    {
+     "path": "public/window.svg",
+     "blob": "b2b2a44f6ebc70c450043c05a002e7a93ba5d651"
+    },
+    {
+     "path": "supabase/migrations/0001_init.sql",
+     "blob": "ca60aa2319df6786876d0481231f2d7d8f24650f"
+    },
+    {
+     "path": "supabase/migrations/0002_rls.sql",
+     "blob": "9f3c19c1164504275cbfc78368afbe6ab5090f49"
+    },
+    {
+     "path": "supabase/migrations/0003_set_note.sql",
+     "blob": "88f05938526d33b6e393e5db1132ecc4aaae304f"
+    },
+    {
+     "path": "supabase/migrations/0004_programs.sql",
+     "blob": "6e31f64935c0792ed04414fde9cf2473dddb2971"
+    },
+    {
+     "path": "supabase/migrations/0005_programs_copy.sql",
+     "blob": "606da9ade911fa66a50d5705122590f6a71c3621"
+    },
+    {
+     "path": "supabase/migrations/0006_comments.sql",
+     "blob": "70db2a965660677fe1d3ffecf2be764d2bdbe5fb"
+    },
+    {
+     "path": "supabase/migrations/0007_comments_rls.sql",
+     "blob": "904c10716be7844bbf0cebb577a70b06a4ca77ad"
+    },
+    {
+     "path": "supabase/migrations/0008_invites.sql",
+     "blob": "6671c51bbb8e9b56bfe5764398594fa85c78b4a7"
+    },
+    {
+     "path": "supabase/seed-load.sql",
+     "blob": "d1da7ddb2ae113d9be8de99917d110b18748e85a"
+    },
+    {
+     "path": "supabase/seed.sql",
+     "blob": "e9921b84a8400b48b89436d0ec1888f8d1bb6985"
+    },
+    {
+     "path": "supabase/tests/as-marina.sql",
+     "blob": "99304779f4762abc87793067ecd67c50a22946a0"
+    },
+    {
+     "path": "supabase/tests/as-sveta-write.sql",
+     "blob": "b0e5f9fa329449360016bc91bd7d3210a2b79e00"
+    },
+    {
+     "path": "supabase/tests/as-sveta.sql",
+     "blob": "d9c23ae84ff0acb4b52c5bd00598782e8c99c77a"
+    },
+    {
+     "path": "test/comments.test.ts",
+     "blob": "294e59b3081a8e6d73346af01a7e428a8eb9b7ed"
+    },
+    {
+     "path": "test/invites.test.ts",
+     "blob": "ebb453a9d2a65c185d2967a8029585aeb42b34d9"
+    },
+    {
+     "path": "test/programs.test.ts",
+     "blob": "cbfc8ab60a5683131a2bf6731c29d773d95eba3c"
+    },
+    {
+     "path": "test/rls.test.ts",
+     "blob": "3ad9cbba9d59ab1bdcebb1d1bafc0fa25436a7f5"
+    },
+    {
+     "path": "tsconfig.json",
+     "blob": "3a13f90a773b0facb675bf5b1a8239c8f33d36f5"
+    },
+    {
+     "path": "vitest.config.mts",
+     "blob": "0562200385d5e8064e0abd6a21b33bc24c48ba2c"
+    }
+   ]
+  }
+ ]
+}

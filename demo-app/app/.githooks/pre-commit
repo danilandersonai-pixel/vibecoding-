@@ -1,0 +1,15 @@
+#!/bin/bash
+# Простой сканер секретов перед коммитом. Смотрит, что уходит в коммит (git diff --cached):
+# присвоение переменной, в имени которой KEY или SECRET, строкой в кавычках от 12 знаков,
+# и начало закрытого ключа (-----BEGIN ... PRIVATE KEY). Нашёл — печатает «Похоже на секрет: файл:строка» и не пускает коммит.
+# Настоящие секреты держим в .env.local (он не коммитится), а в коде читаем из process.env.
+secret='(KEY|SECRET)[A-Za-z0-9_]*[[:space:]]*=[[:space:]]*"[^"]{12,}"'
+begin='-----BEGIN[A-Z ]*PRIVATE KEY'
+found=0
+while IFS= read -r file; do
+  while IFS=: read -r num _; do
+    echo "Похоже на секрет: $file:$num"
+    found=1
+  done < <(git show ":$file" | grep -nE "$secret|$begin")
+done < <(git diff --cached --name-only --diff-filter=AM)
+exit "$found"
