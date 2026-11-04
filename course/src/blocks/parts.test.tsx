@@ -2,24 +2,43 @@
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { render, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDay } from '../content/load'
 import { DayPage } from '../pages/DayPage'
+import { useCourseProgress } from '../progress/courseProgress'
 import { ProgressProvider } from '../progress/ProgressContext'
+
+// Итоговый тест недели есть только у последнего дня недели, а день 7 пока черновик. Поэтому день 7 здесь подставной:
+// тест, практика и наставник — дня 1, номер и неделя — дня 7, плюс 10 вопросов теста недели. Остальные дни — настоящие
+vi.mock('../content/load', async (importOriginal) => {
+  const load = await importOriginal<typeof import('../content/load')>()
+  const { DaySchema } = await import('../content/schema')
+  const weekTest = Array.from({ length: 10 }, (_, i) => ({ id: `week-q${i + 1}`, question: `Вопрос недели ${i + 1}`, options: ['а', 'б', 'в'], correct: i % 3, explanation: 'Глава 1' }))
+  const day7 = DaySchema.parse({ ...load.getDay(1), id: 'day-07', number: 7, week: 1, weekTest })
+  return { ...load, getDay: (n: number) => (n === 7 ? day7 : load.getDay(n)), getDays: () => load.getDays().map((d) => (d.number === 7 ? day7 : d)) }
+})
 
 // Части дня 1 после теории: тест, практика, наставник и итог дня. Прогресс настоящий — отметки меняют счёт
 const day = getDay(1)!
 const part = (id: string) => within(document.getElementById(`part-${id}`)!)
 
-function renderDay() {
+function renderDay(n = 1) {
   return render(
     <ProgressProvider>
-      <DayPage n={1} />
+      <DayPage n={n} />
+      <ProgressProbe />
     </ProgressProvider>,
   )
 }
+
+// Прогресс по дням как есть — чтобы видеть, под каким ключом записан тест
+function ProgressProbe() {
+  const { progress } = useCourseProgress()
+  return <output data-testid="progress">{JSON.stringify(progress.days)}</output>
+}
+const savedDays = () => JSON.parse(screen.getByTestId('progress').textContent!)
 
 // Стили jsdom не загружает: правила читаем из самого blocks.css (как tokens.test.ts — tokens.css).
 // Объявления всех правил, где селектор стоит отдельным пунктом списка: свойство → значение; пробелы и комментарии не мешают
@@ -172,5 +191,66 @@ describe('части дня', () => {
     await user.click(card.getByRole('button', { name: 'Знаю' }))
     expect(card.getByRole('button', { name: 'Знаю' })).toHaveAttribute('aria-pressed', 'true')
     expect(card.getByRole('button', { name: 'Повторить' })).toHaveAttribute('aria-pressed', 'false')
+  })
+})
+
+describe('итоговый тест недели', () => {
+  const day7 = getDay(7)!
+  const WEEK = 'Итоговый тест недели 1'
+  // Тест недели — область с заголовком; вопросы теста дня — все остальные в части
+  const quizzes = () => {
+    const quiz = part('quiz')
+    const week = quiz.getByRole('region', { name: WEEK })
+    const own = quiz.getAllByTestId('quiz-question').filter((q) => !week.contains(q))
+    return { quiz, week, own, weekQuestions: within(week).getAllByTestId('quiz-question') }
+  }
+
+  it('в «Проверке понимания» после теста дня — заголовок «Итоговый тест недели 1» и второй тест по weekTest', () => {
+    renderDay(7)
+    const { week, own, weekQuestions } = quizzes()
+    const heading = within(week).getByRole('heading', { level: 3, name: WEEK })
+    expect(own).toHaveLength(day7.quiz.length)
+    expect(within(own[0]).getByText(`Вопрос 1 из ${day7.quiz.length}`)).toBeInTheDocument()
+    expect(own[own.length - 1].compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    expect(weekQuestions).toHaveLength(10)
+    expect(within(weekQuestions[0]).getByText('Вопрос 1 из 10')).toBeInTheDocument()
+    expect(within(weekQuestions[9]).getByText('Вопрос 10 из 10')).toBeInTheDocument()
+    weekQuestions.forEach((q, i) => expect(within(q).getByText(day7.weekTest[i].question)).toBeInTheDocument())
+    expect(within(week).getByText('Верно: 0')).toBeInTheDocument()
+  })
+
+  it('ответы теста недели пишутся в progress.days["week-1"] и не меняют тест дня 7', async () => {
+    const user = userEvent.setup()
+    renderDay(7)
+    const { quiz, week, own, weekQuestions } = quizzes()
+    for (const [i, q] of day7.quiz.entries()) await user.click(within(own[i]).getAllByRole('button')[q.correct])
+    const dayQuiz = savedDays()['day-07'].quiz
+    expect(dayQuiz).toMatchObject({ best: day7.quiz.length, total: day7.quiz.length })
+
+    // в тесте недели верны 7 ответов из 10
+    const answers: Record<string, number> = {}
+    for (const [i, q] of day7.weekTest.entries()) {
+      answers[q.id] = i < 7 ? q.correct : (q.correct + 1) % q.options.length
+      await user.click(within(weekQuestions[i]).getAllByRole('button')[answers[q.id]])
+    }
+    const days = savedDays()
+    expect(days['week-1'].quiz).toEqual({ best: 7, total: 10, answers })
+    expect(days['day-07'].quiz).toEqual(dayQuiz)
+    expect(within(week).getByTestId('quiz-result')).toHaveTextContent('Результат: 7 из 10 — для зачёта нужно 80 %.')
+    expect(within(week).getByTestId('quiz-best')).toHaveTextContent('Лучший результат: 7 из 10')
+    const ownBest = quiz.getAllByTestId('quiz-best').filter((el) => !week.contains(el))
+    expect(ownBest).toHaveLength(1)
+    expect(ownBest[0]).toHaveTextContent(`Лучший результат: ${day7.quiz.length} из ${day7.quiz.length}`)
+  })
+
+  it('день без теста недели — как прежде: один тест, без заголовка и второго теста', () => {
+    renderDay(1)
+    const quiz = part('quiz')
+    expect(day.weekTest).toEqual([])
+    expect(quiz.queryByRole('region')).toBeNull()
+    expect(quiz.queryByRole('heading', { level: 3 })).toBeNull()
+    expect(document.querySelectorAll('#part-quiz .quiz')).toHaveLength(1)
+    expect(quiz.getAllByTestId('quiz-question')).toHaveLength(day.quiz.length)
   })
 })

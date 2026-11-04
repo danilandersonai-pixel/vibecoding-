@@ -489,6 +489,8 @@ describe('courseEntries (тренажёры и схемы с разными по
 describe('termEntries и поиск терминов', () => {
   const days = getDays()
   const terms = termEntries(glossary, days)
+  const mk = (number: number, cards: string[]): Day =>
+    DaySchema.parse({ id: `day-${String(number).padStart(2, '0')}`, number, week: 1, status: 'draft', title: 'Т', goal: 'Ц', cards })
 
   it('по записи на термин словаря', () => {
     expect(terms).toHaveLength(glossary.length)
@@ -504,15 +506,15 @@ describe('termEntries и поиск терминов', () => {
   })
 
   it('термин вне карточек дней — без day', () => {
-    expect(days.some((d) => d.cards.includes('Агент фонового программирования'))).toBe(false)
-    const t = terms.find((x) => x.term === 'Агент фонового программирования')
+    // Дни подставные: у настоящих карточки меняются, «Агент фонового программирования» встанет в день 7
+    const listed = termEntries(glossary, [mk(1, ['Агент']), mk(2, ['Агентный цикл'])])
+    expect(listed.find((x) => x.term === 'Агент')?.day).toBe(1)
+    const t = listed.find((x) => x.term === 'Агент фонового программирования')
     expect(t?.day).toBeUndefined()
     expect(t?.bookRef).toBe('ch10')
   })
 
   it('day — наименьший номер из дней с карточкой; без refs нет bookRef', () => {
-    const mk = (number: number, cards: string[]): Day =>
-      DaySchema.parse({ id: `day-${String(number).padStart(2, '0')}`, number, week: 1, status: 'draft', title: 'Т', goal: 'Ц', cards })
     const result = termEntries(
       [
         { term: 'Икс', definition: 'Определение', refs: [] },

@@ -53,7 +53,13 @@ function PartBody({ id, day }: { id: PartId; day: Day }) {
       )
     }
     case 'quiz':
-      return <Quiz day={day} />
+      // У последнего дня недели под тестом дня — итоговый тест недели; его прогресс — под ключом week-<неделя>
+      return (
+        <>
+          <Quiz day={day} />
+          {day.weekTest.length > 0 && <Quiz day={day} test={{ key: `week-${day.week}`, title: `Итоговый тест недели ${day.week}`, questions: day.weekTest }} />}
+        </>
+      )
     case 'practice':
       return <Practice dayId={day.id} steps={day.practice} />
     case 'mentor':

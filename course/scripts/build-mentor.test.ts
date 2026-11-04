@@ -18,8 +18,9 @@ describe('build-mentor', () => {
     expect(md).toContain('[auto: file]')
   })
 
+  // Дни 2–7 наполняются один за другим, поэтому черновики здесь — из недели 2
   it('для черновиков файлы не создаёт', () => {
-    expect(existsSync(join(out, 'day-02.md'))).toBe(false)
-    expect(existsSync(join(out, 'day-04.md'))).toBe(false)
+    expect(existsSync(join(out, 'day-08.md'))).toBe(false)
+    expect(existsSync(join(out, 'day-10.md'))).toBe(false)
   })
 })

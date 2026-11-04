@@ -103,4 +103,32 @@ describe('разбор сохранённого прогресса', () => {
     const p = markStep(emptyProgress(), 'day-01', 's1', true)
     expect(parseProgress(JSON.parse(JSON.stringify(p)))).toEqual(p)
   })
+  it('итоговый тест недели под ключом week-1 читается вместе с днями, без потерь', () => {
+    const p = recordQuiz(recordQuiz(markStep(emptyProgress(), 'day-01', 's1', true), 'day-01', { q1: 0 }, 5, 6), 'week-1', { w1: 2, w2: 0 }, 9, 10)
+    const back = parseProgress(JSON.parse(JSON.stringify(p)))
+    expect(back).toEqual(p)
+    expect(Object.keys(back.days).sort()).toEqual(['day-01', 'week-1'])
+    expect(back.days['week-1'].quiz).toEqual({ best: 9, total: 10, answers: { w1: 2, w2: 0 } })
+  })
+})
+
+describe('итоговый тест недели', () => {
+  // Последний день недели 1 с тестом недели: зачёт дня — шаги, свой тест и наставник, тест недели не нужен
+  const day7 = DaySchema.parse({
+    ...fixture,
+    id: 'day-07',
+    number: 7,
+    week: 1,
+    weekTest: [{ id: 'w1', question: 'Вопрос недели', options: ['а', 'б'], correct: 0, explanation: 'Глава 1' }],
+  })
+  const finished = () => setMentorAccepted(recordQuiz(day7.practice.reduce((acc, s) => markStep(acc, day7.id, s.id, true), emptyProgress()), day7.id, {}, 5, 5), day7.id, true)
+
+  it('день 7 пройден без теста недели', () => {
+    expect(dayStatus(finished(), day7)).toBe('done')
+  })
+  it('результат теста недели не трогает тест дня 7', () => {
+    const p = recordQuiz(finished(), 'week-1', { w1: 1 }, 0, 1)
+    expect(p.days['day-07']).toEqual(finished().days['day-07'])
+    expect(dayStatus(p, day7)).toBe('done')
+  })
 })
