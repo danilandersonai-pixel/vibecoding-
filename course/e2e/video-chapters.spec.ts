@@ -28,6 +28,7 @@ import day16Data from '../video/lessons/day-16/script.gen.json' with { type: 'js
 import day17Data from '../video/lessons/day-17/script.gen.json' with { type: 'json' }
 import day18Data from '../video/lessons/day-18/script.gen.json' with { type: 'json' }
 import day19Data from '../video/lessons/day-19/script.gen.json' with { type: 'json' }
+import day20Data from '../video/lessons/day-20/script.gen.json' with { type: 'json' }
 import pilotRlsData from '../video/lessons/pilot-rls/script.gen.json' with { type: 'json' }
 import day02 from '../content/days/day-02.json' with { type: 'json' }
 import day03 from '../content/days/day-03.json' with { type: 'json' }
@@ -47,9 +48,10 @@ import day16 from '../content/days/day-16.json' with { type: 'json' }
 import day17 from '../content/days/day-17.json' with { type: 'json' }
 import day18 from '../content/days/day-18.json' with { type: 'json' }
 import day19 from '../content/days/day-19.json' with { type: 'json' }
+import day20 from '../content/days/day-20.json' with { type: 'json' }
 import day21 from '../content/days/day-21.json' with { type: 'json' }
 
-// Главы новых роликов в плеере: список «Главы ролика», подпись текущей главы, переход по кнопке, телефон (дни 1–19 и 21),
+// Главы новых роликов в плеере: список «Главы ролика», подпись текущей главы, переход по кнопке, телефон (дни 1–21),
 // светлая тема страницы, пояснения на паузе тёмного ролика, два новых ролика на одной странице (дни 1 и 2)
 // и ролик дня (день 8): четыре главы дня и план «Что строим сегодня».
 
@@ -68,7 +70,7 @@ const chAbcScript = chAbcData as VideoScript
 const ch01Script = ch01Data as VideoScript
 const chapters = chAbcScript.chapters!
 
-// Сценарии роликов дней 2–19 и 21 по id ролика (как в video/catalog.ts): новые — снимки script.gen.json, старый день 21 — его script.ts
+// Сценарии роликов дней 2–21 по id ролика (как в video/catalog.ts): новые — снимки script.gen.json, старый день 21 — его script.ts
 const SCRIPTS: Record<string, VideoScript> = {
   'ch-02': ch02Data as VideoScript,
   'ch-12': ch12Data as VideoScript,
@@ -93,6 +95,7 @@ const SCRIPTS: Record<string, VideoScript> = {
   'day-17': day17Data as VideoScript,
   'day-18': day18Data as VideoScript,
   'day-19': day19Data as VideoScript,
+  'day-20': day20Data as VideoScript,
   'day-21': day21Script,
 }
 type DayJson = { blocks: { type: string; videoId?: string; title?: string }[] }
@@ -115,6 +118,7 @@ const DAYS: Record<number, DayJson> = {
   17: day17,
   18: day18,
   19: day19,
+  20: day20,
   21: day21,
 } as unknown as Record<number, DayJson>
 
@@ -669,12 +673,12 @@ function agendaParts(figure: Locator) {
   })
 }
 
-// Review Focus 5 недели 1 и Review Focus 3 недели 2: дни 2–19 и 21 на телефоне. Дни 2–7 — ролики глав, дни 8–19 — ролики дня,
-// день 21 — старый ролик 1280 × 720 (глав у него нет, списка тоже; урок дня 20 добавляет свой день в цикл). Страница не шире
+// Review Focus 5 недели 1 и Review Focus 3 недели 2: дни 2–21 на телефоне. Дни 2–7 — ролики глав, дни 8–20 — ролики дня,
+// день 21 — старый ролик 1280 × 720 (глав у него нет, списка тоже). Страница не шире
 // экрана, списки «Главы ролика» видны и переносятся (длинное название — в несколько строк внутри пункта, а не за край), а первое пояснение первого ролика дня открывается
 // по нажатию на паузе и встаёт под кадром, не закрывая его (как у дня 1 выше). У ролика дня план «Что строим сегодня» перечисляет
 // пункты из lesson.ts, и каждый пункт (перенесённый — обеими строками) стоит в SAFE кадра
-for (const day of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21]) {
+for (const day of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]) {
   test(`день ${day} на телефоне 390 px — без горизонтальной прокрутки, пояснение под кадром`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto(`/#/day/${day}`)
@@ -739,7 +743,7 @@ for (const day of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 1
 
     // ролик дня: план в конце своей сцены — пункты из lesson.ts по порядку, все видны и в SAFE кадра (длинный — переносом)
     const dayLesson = script.chapters?.[0]?.title === DAY_TITLES[0]
-    expect(dayLesson).toBe(day >= 8 && day <= 19)
+    expect(dayLesson).toBe(day >= 8 && day <= 20)
     if (dayLesson) {
       const items = agendaItems(script.id)
       await seekAgendaEnd(figure, script)
