@@ -37,6 +37,8 @@ test('с главной: «RLS» — в терминах, в курсе и в к
   await button.click()
   await expect(field(page)).toHaveValue('RLS')
 
+  // У дня 4 (RLS) слово стоит в названиях — они выше шага дня 1, где «RLS» только в тексте: шаг — за «Показать все»
+  await group(page, 'В курсе').getByRole('button', { name: /^Показать все \d+$/ }).click()
   await group(page, 'В курсе').getByRole('button', { name: /Запустить \/init/ }).click()
   await expect(dialog(page)).toBeHidden()
   await expect(page).toHaveURL(/#\/day\/1$/)
