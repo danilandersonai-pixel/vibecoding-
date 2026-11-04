@@ -53,8 +53,9 @@ function dayFacts(day: Day): [string, string][] {
   if (theory > 0) facts.push(['теория', `≈ ${theory} мин`])
   if (practice > 0) facts.push(['практика', `≈ ${practice} мин`])
   if (day.quiz.length > 0) {
-    const own = `${day.quiz.length} ${plural(day.quiz.length, 'вопрос', 'вопроса', 'вопросов')}`
-    facts.push(['тест', day.weekTest.length > 0 ? `${own} + итоговый тест недели: ${day.weekTest.length}` : own])
+    const questions = (n: number) => `${n} ${plural(n, 'вопрос', 'вопроса', 'вопросов')}`
+    const own = questions(day.quiz.length)
+    facts.push(['тест', day.weekTest.length > 0 ? `${own} + итоговый тест недели: ${questions(day.weekTest.length)}` : own])
   }
   return facts
 }

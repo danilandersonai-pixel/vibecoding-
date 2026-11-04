@@ -511,7 +511,8 @@ describe('courseEntries: итоговый тест недели', () => {
   it('настоящие дни: каждый вопрос теста недели — запись своего дня', () => {
     const real = courseEntries(getDays())
     const withWeek = getDays().filter((d) => d.weekTest.length > 0)
-    expect(withWeek.map((d) => d.number)).toEqual([7])
+    // тест недели есть у последних дней недель; день 7 — первый из них
+    expect(withWeek.map((d) => d.number)).toContain(7)
     for (const d of withWeek) {
       const week = real.filter((e) => e.target.day === d.number && e.label === `День ${d.number} · Тест недели`)
       expect(week.map((e) => e.title)).toEqual(d.weekTest.map((q) => q.question))

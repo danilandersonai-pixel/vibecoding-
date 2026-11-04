@@ -92,7 +92,7 @@ describe('страница дня', () => {
     const hero = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
     const terms = hero.getAllByRole('term').map((dt) => dt.textContent)
     const values = hero.getAllByRole('definition').map((dd) => dd.textContent)
-    expect(values[terms.indexOf('тест')]).toBe(`${day1.quiz.length} вопросов + итоговый тест недели: 3`)
+    expect(values[terms.indexOf('тест')]).toBe(`${day1.quiz.length} вопросов + итоговый тест недели: 3 вопроса`)
     cleanup()
 
     // настоящий день 7: столько вопросов, сколько в его тесте и в тесте недели
@@ -101,7 +101,7 @@ describe('страница дня', () => {
     const hero7 = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
     const terms7 = hero7.getAllByRole('term').map((dt) => dt.textContent)
     expect(hero7.getAllByRole('definition')[terms7.indexOf('тест')]).toHaveTextContent(
-      `${day7.quiz.length} вопросов + итоговый тест недели: ${day7.weekTest.length}`,
+      new RegExp(`^${day7.quiz.length} вопрос(а|ов)? \\+ итоговый тест недели: ${day7.weekTest.length} вопрос(а|ов)?$`),
     )
     expect(day7.weekTest.length).toBeGreaterThan(0)
   })

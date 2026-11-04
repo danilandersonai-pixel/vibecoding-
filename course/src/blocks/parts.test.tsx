@@ -184,9 +184,10 @@ describe('части дня', () => {
   })
 })
 
-// Итоговый тест недели — у последнего дня недели: день 7 настоящий, 10 вопросов weekTest
+// Итоговый тест недели — у последнего дня недели: день 7 настоящий, число вопросов берётся из его weekTest
 describe('итоговый тест недели', () => {
   const day7 = getDay(7)!
+  const N = day7.weekTest.length
   const WEEK = 'Итоговый тест недели 1'
   // Тест недели — область с заголовком; вопросы теста дня — все остальные в части
   const quizzes = () => {
@@ -204,9 +205,10 @@ describe('итоговый тест недели', () => {
     expect(within(own[0]).getByText(`Вопрос 1 из ${day7.quiz.length}`)).toBeInTheDocument()
     expect(own[own.length - 1].compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
-    expect(weekQuestions).toHaveLength(10)
-    expect(within(weekQuestions[0]).getByText('Вопрос 1 из 10')).toBeInTheDocument()
-    expect(within(weekQuestions[9]).getByText('Вопрос 10 из 10')).toBeInTheDocument()
+    expect(N).toBeGreaterThan(0)
+    expect(weekQuestions).toHaveLength(N)
+    expect(within(weekQuestions[0]).getByText(`Вопрос 1 из ${N}`)).toBeInTheDocument()
+    expect(within(weekQuestions[N - 1]).getByText(`Вопрос ${N} из ${N}`)).toBeInTheDocument()
     weekQuestions.forEach((q, i) => expect(within(q).getByText(day7.weekTest[i].question)).toBeInTheDocument())
     expect(within(week).getByText('Верно: 0')).toBeInTheDocument()
   })
@@ -219,17 +221,18 @@ describe('итоговый тест недели', () => {
     const dayQuiz = savedDays()['day-07'].quiz
     expect(dayQuiz).toMatchObject({ best: day7.quiz.length, total: day7.quiz.length })
 
-    // в тесте недели верны 7 ответов из 10
+    // в тесте недели неверны три последних ответа: при 8–12 вопросах это меньше 80 %
+    const right = N - 3
     const answers: Record<string, number> = {}
     for (const [i, q] of day7.weekTest.entries()) {
-      answers[q.id] = i < 7 ? q.correct : (q.correct + 1) % q.options.length
+      answers[q.id] = i < right ? q.correct : (q.correct + 1) % q.options.length
       await user.click(within(weekQuestions[i]).getAllByRole('button')[answers[q.id]])
     }
     const days = savedDays()
-    expect(days['week-1'].quiz).toEqual({ best: 7, total: 10, answers })
+    expect(days['week-1'].quiz).toEqual({ best: right, total: N, answers })
     expect(days['day-07'].quiz).toEqual(dayQuiz)
-    expect(within(week).getByTestId('quiz-result')).toHaveTextContent('Результат: 7 из 10 — для зачёта нужно 80 %.')
-    expect(within(week).getByTestId('quiz-best')).toHaveTextContent('Лучший результат: 7 из 10')
+    expect(within(week).getByTestId('quiz-result')).toHaveTextContent(`Результат: ${right} из ${N} — для зачёта нужно 80 %.`)
+    expect(within(week).getByTestId('quiz-best')).toHaveTextContent(`Лучший результат: ${right} из ${N}`)
     const ownBest = quiz.getAllByTestId('quiz-best').filter((el) => !week.contains(el))
     expect(ownBest).toHaveLength(1)
     expect(ownBest[0]).toHaveTextContent(`Лучший результат: ${day7.quiz.length} из ${day7.quiz.length}`)
