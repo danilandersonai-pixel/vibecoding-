@@ -7,6 +7,7 @@ import { DayPage } from '../pages/DayPage'
 import { CourseProgressContext } from '../progress/courseProgress'
 import { emptyProgress, type Progress } from '../progress/model'
 import { finishDay } from '../test/progress'
+import { DayHeader } from './DayHeader'
 import { DraftNotice } from './DraftNotice'
 
 function renderDay(n: number, progress: Progress = emptyProgress()) {
@@ -81,6 +82,28 @@ describe('страница дня', () => {
     expect(within(result).getByText('+', { exact: false })).toHaveAttribute('aria-hidden', 'true')
     // ни героев, ни значков в шапке дня
     expect(section.querySelectorAll('svg')).toHaveLength(0)
+  })
+
+  it('шапка дня с итоговым тестом недели: в строке «тест» — вопросы дня и вопросы теста недели', () => {
+    // День подставной: тест дня 1 и три вопроса недели — шапка считает оба теста, а не только тест дня
+    const day1 = getDay(1)!
+    const day = { ...day1, id: 'day-07', number: 7, weekTest: day1.quiz.slice(0, 3) }
+    render(<DayHeader day={day} />)
+    const hero = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
+    const terms = hero.getAllByRole('term').map((dt) => dt.textContent)
+    const values = hero.getAllByRole('definition').map((dd) => dd.textContent)
+    expect(values[terms.indexOf('тест')]).toBe(`${day1.quiz.length} вопросов + итоговый тест недели: 3`)
+    cleanup()
+
+    // настоящий день 7: столько вопросов, сколько в его тесте и в тесте недели
+    const day7 = getDay(7)!
+    renderDay(7)
+    const hero7 = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
+    const terms7 = hero7.getAllByRole('term').map((dt) => dt.textContent)
+    expect(hero7.getAllByRole('definition')[terms7.indexOf('тест')]).toHaveTextContent(
+      `${day7.quiz.length} вопросов + итоговый тест недели: ${day7.weekTest.length}`,
+    )
+    expect(day7.weekTest.length).toBeGreaterThan(0)
   })
 
   it('строка «Дни курса»: путь, стрелки и счёт «День 1 из 21»; «Карта курса» — одна, в боковой панели', () => {

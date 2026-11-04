@@ -4,21 +4,11 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { getDay } from '../content/load'
 import { DayPage } from '../pages/DayPage'
 import { useCourseProgress } from '../progress/courseProgress'
 import { ProgressProvider } from '../progress/ProgressContext'
-
-// Итоговый тест недели есть только у последнего дня недели, а день 7 пока черновик. Поэтому день 7 здесь подставной:
-// тест, практика и наставник — дня 1, номер и неделя — дня 7, плюс 10 вопросов теста недели. Остальные дни — настоящие
-vi.mock('../content/load', async (importOriginal) => {
-  const load = await importOriginal<typeof import('../content/load')>()
-  const { DaySchema } = await import('../content/schema')
-  const weekTest = Array.from({ length: 10 }, (_, i) => ({ id: `week-q${i + 1}`, question: `Вопрос недели ${i + 1}`, options: ['а', 'б', 'в'], correct: i % 3, explanation: 'Глава 1' }))
-  const day7 = DaySchema.parse({ ...load.getDay(1), id: 'day-07', number: 7, week: 1, weekTest })
-  return { ...load, getDay: (n: number) => (n === 7 ? day7 : load.getDay(n)), getDays: () => load.getDays().map((d) => (d.number === 7 ? day7 : d)) }
-})
 
 // Части дня 1 после теории: тест, практика, наставник и итог дня. Прогресс настоящий — отметки меняют счёт
 const day = getDay(1)!
@@ -194,6 +184,7 @@ describe('части дня', () => {
   })
 })
 
+// Итоговый тест недели — у последнего дня недели: день 7 настоящий, 10 вопросов weekTest
 describe('итоговый тест недели', () => {
   const day7 = getDay(7)!
   const WEEK = 'Итоговый тест недели 1'

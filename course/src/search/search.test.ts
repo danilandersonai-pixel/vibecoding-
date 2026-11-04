@@ -486,6 +486,40 @@ describe('courseEntries (тренажёры и схемы с разными по
   })
 })
 
+describe('courseEntries: итоговый тест недели', () => {
+  // День подставной: тест, практика и наставник дня 1, номер дня 7 и один вопрос теста недели
+  const weekQuestion = { id: 'week-q1', question: 'Вопрос недели про коммит', options: ['Сохранение с подписью', 'Параллельная копия'], correct: 0, explanation: 'Пояснение недели' }
+  const day = DaySchema.parse({ ...getDays()[0], id: 'day-07', number: 7, week: 1, weekTest: [weekQuestion] })
+  const entries = courseEntries([day])
+
+  it('вопрос теста недели — запись «Тест недели»: вопрос в заголовке, варианты в тексте, цель — «Проверка понимания»', () => {
+    const week = entries.filter((e) => e.label === 'День 7 · Тест недели')
+    expect(week).toEqual([
+      { kind: 'quiz', label: 'День 7 · Тест недели', title: 'Вопрос недели про коммит', text: 'Сохранение с подписью · Параллельная копия', target: { day: 7, anchor: 'part-quiz' } },
+    ])
+    // как на странице: после теста дня, перед практикой
+    const at = entries.indexOf(week[0])
+    const lastQuiz = entries.findLastIndex((e) => e.label === 'День 7 · Тест')
+    expect(lastQuiz).toBeGreaterThanOrEqual(0)
+    expect(lastQuiz).toBeLessThan(at)
+    expect(entries.findIndex((e) => e.kind === 'practice')).toBeGreaterThan(at)
+    // пояснение видно только после ответа — поиск его не знает
+    expect(searchCourse('Пояснение недели', entries)).toEqual([])
+    expect(searchCourse('вопрос недели', entries).map((h) => h.entry.title)).toContain('Вопрос недели про коммит')
+  })
+
+  it('настоящие дни: каждый вопрос теста недели — запись своего дня', () => {
+    const real = courseEntries(getDays())
+    const withWeek = getDays().filter((d) => d.weekTest.length > 0)
+    expect(withWeek.map((d) => d.number)).toEqual([7])
+    for (const d of withWeek) {
+      const week = real.filter((e) => e.target.day === d.number && e.label === `День ${d.number} · Тест недели`)
+      expect(week.map((e) => e.title)).toEqual(d.weekTest.map((q) => q.question))
+      for (const e of week) expect(e.target.anchor).toBe('part-quiz')
+    }
+  })
+})
+
 describe('termEntries и поиск терминов', () => {
   const days = getDays()
   const terms = termEntries(glossary, days)

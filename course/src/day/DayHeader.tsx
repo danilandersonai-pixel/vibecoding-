@@ -43,7 +43,8 @@ export function DayBar({ day }: { day: Day }) {
   )
 }
 
-// Состав дня — только то, что в дне есть: подпись и значение, как столбцы ls
+// Состав дня — только то, что в дне есть: подпись и значение, как столбцы ls.
+// У последнего дня недели к тесту дня добавляется итоговый тест недели: он стоит в той же части, что и тест дня
 function dayFacts(day: Day): [string, string][] {
   const video = dayVideoSummary(day)
   const { theory, practice } = day.minutes
@@ -51,7 +52,10 @@ function dayFacts(day: Day): [string, string][] {
   if (video.count > 0) facts.push(['видеоуроки', `${video.count} (${formatDuration(video.seconds)})`])
   if (theory > 0) facts.push(['теория', `≈ ${theory} мин`])
   if (practice > 0) facts.push(['практика', `≈ ${practice} мин`])
-  if (day.quiz.length > 0) facts.push(['тест', `${day.quiz.length} ${plural(day.quiz.length, 'вопрос', 'вопроса', 'вопросов')}`])
+  if (day.quiz.length > 0) {
+    const own = `${day.quiz.length} ${plural(day.quiz.length, 'вопрос', 'вопроса', 'вопросов')}`
+    facts.push(['тест', day.weekTest.length > 0 ? `${own} + итоговый тест недели: ${day.weekTest.length}` : own])
+  }
   return facts
 }
 
