@@ -15,7 +15,7 @@ import {
 import { dayParts, partsDone, PART_TITLES, type Part, type PartId } from './dayParts'
 
 const [day1] = getDays()
-// Черновой день подставной — цель и один ролик: настоящие черновики кончатся, когда наполнится день 21
+// Черновой день подставной — цель и один ролик: настоящих черновиков в курсе больше нет (день 21 готов)
 const draft = DaySchema.parse({ id: 'day-21', number: 21, week: 3, status: 'draft', title: 'Т', goal: 'Ц', blocks: [{ type: 'video', videoId: 'day-21', title: 'Запуск' }] })
 const ORDER: PartId[] = ['why', 'theory', 'quiz', 'practice', 'mentor', 'summary']
 

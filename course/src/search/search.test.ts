@@ -510,7 +510,7 @@ describe('courseEntries: итоговый тест недели', () => {
   })
 
   it('у дня 21 вопрос итогового теста — запись «Тест курса», не «Тест недели»', () => {
-    // День подставной: в настоящем дне 21 теста курса пока нет
+    // День подставной: один вопрос — запись видна целиком; настоящий день 21 — в следующем тесте
     const day21 = DaySchema.parse({ ...getDays()[0], id: 'day-21', number: 21, week: 3, weekTest: [weekQuestion] })
     const course21 = courseEntries([day21]).filter((e) => e.title === weekQuestion.question)
     expect(course21).toEqual([
@@ -521,8 +521,8 @@ describe('courseEntries: итоговый тест недели', () => {
   it('настоящие дни: каждый вопрос теста недели — запись своего дня', () => {
     const real = courseEntries(getDays())
     const withWeek = getDays().filter((d) => d.weekTest.length > 0)
-    // тест недели есть у последних дней недель; день 7 — первый из них
-    expect(withWeek.map((d) => d.number)).toContain(7)
+    // тест недели есть у последних дней недель — 7 и 14, а у дня 21 это тест курса (подпись «Тест курса»)
+    expect(withWeek.map((d) => d.number)).toEqual([7, 14, 21])
     for (const d of withWeek) {
       const week = real.filter((e) => e.target.day === d.number && e.label === `День ${d.number} · ${weekTestName(d).search}`)
       expect(week.map((e) => e.title)).toEqual(d.weekTest.map((q) => q.question))

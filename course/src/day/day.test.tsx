@@ -1,7 +1,7 @@
 import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getDay } from '../content/load'
+import { getDay, getDays } from '../content/load'
 import { daySummaryLine } from '../course/summary'
 import { DayPage } from '../pages/DayPage'
 import { CourseProgressContext } from '../progress/courseProgress'
@@ -18,8 +18,8 @@ function renderDay(n: number, progress: Progress = emptyProgress()) {
   )
 }
 
-// День 21 — подставной черновик: цель и один ролик «Запуск». Настоящие черновики кончатся, когда наполнится день 21,
-// а вид чернового дня проверять нужно и тогда. Остальные дни — настоящие
+// День 21 — подставной черновик: цель и один ролик «Запуск». Настоящих черновиков в курсе больше нет (день 21 готов),
+// а вид чернового дня проверять всё равно нужно. Остальные дни — настоящие
 vi.mock('../content/load', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../content/load')>()
   const { DaySchema } = await import('../content/schema')
@@ -117,13 +117,25 @@ describe('страница дня', () => {
   })
 
   it('шапка дня 21: итоговый тест — курса, а не недели 3', () => {
-    // День подставной: тест дня 1 и три вопроса теста курса — в настоящем дне 21 его пока нет
+    // День подставной: тест дня 1 и три вопроса теста курса — шапка считает оба теста
     const day1 = getDay(1)!
     render(<DayHeader day={{ ...day1, id: 'day-21', number: 21, week: 3, weekTest: day1.quiz.slice(0, 3) }} />)
     const hero = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
     const terms = hero.getAllByRole('term').map((dt) => dt.textContent)
     const values = hero.getAllByRole('definition').map((dd) => dd.textContent)
     expect(values[terms.indexOf('тест')]).toBe(`${day1.quiz.length} вопросов + итоговый тест курса: 3 вопроса`)
+    cleanup()
+
+    // настоящий день 21 (getDay здесь отдаёт подставной черновик, поэтому день — из getDays): его тест и тест курса
+    const day21 = getDays().find((d) => d.number === 21)!
+    expect(day21.status).toBe('ready')
+    expect(day21.weekTest.length).toBeGreaterThan(0)
+    render(<DayHeader day={day21} />)
+    const hero21 = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
+    const terms21 = hero21.getAllByRole('term').map((dt) => dt.textContent)
+    expect(hero21.getAllByRole('definition')[terms21.indexOf('тест')]).toHaveTextContent(
+      new RegExp(`^${day21.quiz.length} вопрос(а|ов)? \\+ итоговый тест курса: ${day21.weekTest.length} вопрос(а|ов)?$`),
+    )
   })
 
   it('строка «Дни курса»: путь, стрелки и счёт «День 1 из 21»; «Карта курса» — одна, в боковой панели', () => {
