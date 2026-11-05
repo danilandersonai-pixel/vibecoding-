@@ -4,6 +4,7 @@ import glossary from '../../content/glossary.json'
 import graph from '../../content/graph.json'
 import { getDays } from '../content/load'
 import { DaySchema, type Day } from '../content/schema'
+import { weekTestName } from '../course/weekTest'
 import { courseEntries, termEntries, type CourseEntry, type TermEntry } from './courseIndex'
 import { fold, normalize, queryWords } from './normalize'
 import { makeSnippet, searchBook, searchCourse, searchTerms, type BookEntry } from './search'
@@ -508,13 +509,22 @@ describe('courseEntries: итоговый тест недели', () => {
     expect(searchCourse('вопрос недели', entries).map((h) => h.entry.title)).toContain('Вопрос недели про коммит')
   })
 
+  it('у дня 21 вопрос итогового теста — запись «Тест курса», не «Тест недели»', () => {
+    // День подставной: в настоящем дне 21 теста курса пока нет
+    const day21 = DaySchema.parse({ ...getDays()[0], id: 'day-21', number: 21, week: 3, weekTest: [weekQuestion] })
+    const course21 = courseEntries([day21]).filter((e) => e.title === weekQuestion.question)
+    expect(course21).toEqual([
+      { kind: 'quiz', label: 'День 21 · Тест курса', title: 'Вопрос недели про коммит', text: 'Сохранение с подписью · Параллельная копия', target: { day: 21, anchor: 'part-quiz' } },
+    ])
+  })
+
   it('настоящие дни: каждый вопрос теста недели — запись своего дня', () => {
     const real = courseEntries(getDays())
     const withWeek = getDays().filter((d) => d.weekTest.length > 0)
     // тест недели есть у последних дней недель; день 7 — первый из них
     expect(withWeek.map((d) => d.number)).toContain(7)
     for (const d of withWeek) {
-      const week = real.filter((e) => e.target.day === d.number && e.label === `День ${d.number} · Тест недели`)
+      const week = real.filter((e) => e.target.day === d.number && e.label === `День ${d.number} · ${weekTestName(d).search}`)
       expect(week.map((e) => e.title)).toEqual(d.weekTest.map((q) => q.question))
       for (const e of week) expect(e.target.anchor).toBe('part-quiz')
     }

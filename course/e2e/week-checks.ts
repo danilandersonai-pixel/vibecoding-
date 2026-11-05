@@ -1,6 +1,7 @@
-import { expect, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import bookIndex from '../content/book-index.json' with { type: 'json' }
 import { PART_TITLES, type PartId } from '../src/course/dayParts'
+import { weekTestName } from '../src/course/weekTest'
 
 // Общие проверки e2e недели (week-1.spec.ts, week-2.spec.ts): полный день — теория, тест, практика, наставник, карточки,
 // у последнего дня недели — итоговый тест недели. Содержание — из файлов дней: проверка сверяет страницу с content/days
@@ -126,7 +127,8 @@ export async function expectQuizPersists(page: Page, day: DayJson) {
   await expect(toc.getByRole('button', { name: new RegExp(`^${PART_TITLES.quiz}\\s*, сделано$`) })).toBeVisible()
 }
 
-// Итоговый тест недели — отдельный тест последнего дня недели: свой ключ week-<неделя>, тест дня он не меняет, и наоборот
+// Итоговый тест недели — отдельный тест последнего дня недели: свой ключ week-<неделя>, тест дня он не меняет, и наоборот.
+// Область теста — по его названию на странице: у дня 21 это тест курса
 export async function expectWeekTestSeparate(page: Page, day: DayJson, week: number) {
   expect(day.week, `день ${day.number} — не из недели ${week}`).toBe(week)
   expect(day.weekTest?.length, `у дня ${day.number} нет итогового теста недели`).toBeGreaterThan(0)
@@ -136,7 +138,7 @@ export async function expectWeekTestSeparate(page: Page, day: DayJson, week: num
   const total = weekTest.length
   await page.goto(`/#/day/${day.number}`)
   const part = page.getByRole('region', { name: PART_TITLES.quiz, exact: true })
-  const weekQuiz = part.getByRole('region', { name: `Итоговый тест недели ${week}` })
+  const weekQuiz = part.getByRole('region', { name: weekTestName(day).title })
   const dayQuiz = part.locator('.quiz:not(.quiz-week)')
   const toc = page.getByRole('navigation', { name: 'План дня' })
   await expect(dayQuiz.getByTestId('quiz-question')).toHaveCount(own)
@@ -204,4 +206,19 @@ export async function expectFitsNarrow(page: Page, day: DayJson): Promise<number
   }
   expect(await fits()).toBe(true)
   return codeBlocks
+}
+
+// Неделя на узком экране: каждый день — expectFitsNarrow. Дни с «Найди ошибку» — из файлов дней, а не списком:
+// строки кода проверены ровно в них, и такой день в неделе есть — проверка строк кода не пустая
+export async function expectWeekFitsNarrow(page: Page, days: DayJson[]) {
+  await page.setViewportSize(NARROW)
+  const codeDays: number[] = []
+  for (const day of days) {
+    await test.step(`день ${day.number}`, async () => {
+      if ((await expectFitsNarrow(page, day)) > 0) codeDays.push(day.number)
+    })
+  }
+  const withCode = days.filter((d) => d.blocks.some((b) => b.kind === 'find-the-bug')).map((d) => d.number)
+  expect(withCode.length, `в ${daysLabel(days)} нет «Найди ошибку»`).toBeGreaterThan(0)
+  expect(codeDays).toEqual(withCode)
 }

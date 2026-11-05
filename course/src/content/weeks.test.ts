@@ -8,6 +8,11 @@ describe('недели курса', () => {
     expect(getWeeks()[0].result).toBe('Приложение на телефоне у первого тренера.')
   })
 
+  it('итог недели 3 не обещает свой домен: по книге он по желанию', () => {
+    expect(getWeeks()[2].result).toBe('Бета-тест с тренерами и запуск.')
+    expect(getWeeks()[2].result).not.toMatch(/домен/)
+  })
+
   it('схема отвергает неделю без итога', () => {
     expect(WeekSchema.safeParse({ number: 1, title: 'x', result: '' }).success).toBe(false)
   })

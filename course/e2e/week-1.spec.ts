@@ -1,11 +1,11 @@
-import { expect, test } from '@playwright/test'
+import { test } from '@playwright/test'
 import day02 from '../content/days/day-02.json' with { type: 'json' }
 import day03 from '../content/days/day-03.json' with { type: 'json' }
 import day04 from '../content/days/day-04.json' with { type: 'json' }
 import day05 from '../content/days/day-05.json' with { type: 'json' }
 import day06 from '../content/days/day-06.json' with { type: 'json' }
 import day07 from '../content/days/day-07.json' with { type: 'json' }
-import { daysLabel, expectBookLinkOpens, expectFitsNarrow, expectFullDay, expectQuizPersists, expectWeekTestSeparate, NARROW, type DayJson } from './week-checks'
+import { daysLabel, expectBookLinkOpens, expectFullDay, expectQuizPersists, expectWeekFitsNarrow, expectWeekTestSeparate, type DayJson } from './week-checks'
 
 // Неделя 1 целиком: дни 2–7 — полные дни, как день 1 (теория, тест, практика, наставник, карточки), у дня 7 — итоговый тест недели.
 // Проверки — общие с неделей 2 (week-checks.ts); содержание — из файлов дней, как в day-01.spec.ts
@@ -25,13 +25,6 @@ test('день 7: итоговый тест недели 1 — отдельны�
 
 test(`${daysLabel(DAYS)} на 390 px — без горизонтальной прокрутки`, async ({ page }) => {
   test.slow()
-  await page.setViewportSize(NARROW)
-  let codeBlocks = 0
-  for (const day of DAYS) {
-    await test.step(`день ${day.number}`, async () => {
-      codeBlocks += await expectFitsNarrow(page, day)
-    })
-  }
-  // тренажёр с кодом в неделе есть — проверка строк кода не пустая
-  expect(codeBlocks).toBeGreaterThan(0)
+  // строки кода «Найди ошибку» — в тех днях, где тренажёр есть по файлам дней
+  await expectWeekFitsNarrow(page, DAYS)
 })

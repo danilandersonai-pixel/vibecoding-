@@ -2,6 +2,7 @@ import { RouteLink } from '../components/RouteLink'
 import { getWeeks } from '../content/load'
 import type { Day } from '../content/schema'
 import { dayVideoSummary, formatDuration, plural } from '../course/summary'
+import { weekTestName } from '../course/weekTest'
 import { typeLine, useReveal } from '../motion'
 import { DAY_COUNT } from '../router'
 
@@ -44,7 +45,7 @@ export function DayBar({ day }: { day: Day }) {
 }
 
 // Состав дня — только то, что в дне есть: подпись и значение, как столбцы ls.
-// У последнего дня недели к тесту дня добавляется итоговый тест недели: он стоит в той же части, что и тест дня
+// У последнего дня недели к тесту дня добавляется итоговый тест недели (у дня 21 — курса): он стоит в той же части, что и тест дня
 function dayFacts(day: Day): [string, string][] {
   const video = dayVideoSummary(day)
   const { theory, practice } = day.minutes
@@ -55,7 +56,7 @@ function dayFacts(day: Day): [string, string][] {
   if (day.quiz.length > 0) {
     const questions = (n: number) => `${n} ${plural(n, 'вопрос', 'вопроса', 'вопросов')}`
     const own = questions(day.quiz.length)
-    facts.push(['тест', day.weekTest.length > 0 ? `${own} + итоговый тест недели: ${questions(day.weekTest.length)}` : own])
+    facts.push(['тест', day.weekTest.length > 0 ? `${own} + ${weekTestName(day).header}: ${questions(day.weekTest.length)}` : own])
   }
   return facts
 }

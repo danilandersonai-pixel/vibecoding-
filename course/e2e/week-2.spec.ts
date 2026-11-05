@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { test } from '@playwright/test'
 import day08 from '../content/days/day-08.json' with { type: 'json' }
 import day09 from '../content/days/day-09.json' with { type: 'json' }
 import day10 from '../content/days/day-10.json' with { type: 'json' }
@@ -6,7 +6,7 @@ import day11 from '../content/days/day-11.json' with { type: 'json' }
 import day12 from '../content/days/day-12.json' with { type: 'json' }
 import day13 from '../content/days/day-13.json' with { type: 'json' }
 import day14 from '../content/days/day-14.json' with { type: 'json' }
-import { daysLabel, expectBookLinkOpens, expectFitsNarrow, expectFullDay, expectQuizPersists, expectWeekTestSeparate, NARROW, type DayJson } from './week-checks'
+import { daysLabel, expectBookLinkOpens, expectFullDay, expectQuizPersists, expectWeekFitsNarrow, expectWeekTestSeparate, type DayJson } from './week-checks'
 
 // Неделя 2 целиком: дни 8–14 — готовые дни с короткой теорией (2–3 мысли, один тренажёр или ситуация, ИИ на странице),
 // тест, практика, наставник и карточки; у дня 14 — итоговый тест недели 2 (ключ прогресса week-2).
@@ -27,13 +27,6 @@ test('день 14: итоговый тест недели 2 — отдельны
 
 test(`${daysLabel(DAYS)} на 390 px — без горизонтальной прокрутки`, async ({ page }) => {
   test.slow()
-  await page.setViewportSize(NARROW)
-  const codeDays: number[] = []
-  for (const day of DAYS) {
-    await test.step(`день ${day.number}`, async () => {
-      if ((await expectFitsNarrow(page, day)) > 0) codeDays.push(day.number)
-    })
-  }
-  // «Найди ошибку» с кодом — в днях 10 и 11: проверка строк кода не пустая
-  expect(codeDays).toEqual(expect.arrayContaining([10, 11]))
+  // строки кода «Найди ошибку» — в тех днях, где тренажёр есть по файлам дней
+  await expectWeekFitsNarrow(page, DAYS)
 })
