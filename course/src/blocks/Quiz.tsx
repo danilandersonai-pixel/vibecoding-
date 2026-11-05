@@ -1,31 +1,43 @@
-import { useState } from 'react'
-import type { Day } from '../content/schema'
+import { useId, useState } from 'react'
+import type { Day, QuizQuestion } from '../content/schema'
 import { useCourseProgress } from '../progress/courseProgress'
 import { recordQuiz } from '../progress/model'
 import { scoreQuiz } from './quiz'
 
 // Тест дня: ответ проверяется сразу, после последнего вопроса результат записывается в прогресс.
 // Над вопросами — «Верно: k» по текущим ответам; вопрос — карточка, варианты — строки с кружком.
-// После ответа верный вариант отмечен ✓, выбранный неверный — ✗; для чтения с экрана — подписью
-export function Quiz({ day }: { day: Day }) {
+// После ответа верный вариант отмечен ✓, выбранный неверный — ✗; для чтения с экрана — подписью.
+// С test — другой тест того же дня (итоговый тест недели): свои вопросы, заголовок и ключ прогресса вместо id дня
+export function Quiz({ day, test }: { day: Day; test?: { key: string; title: string; questions: QuizQuestion[] } }) {
   const { progress, update } = useCourseProgress()
   const [answers, setAnswers] = useState<Record<string, number>>({})
-  const saved = progress.days[day.id]?.quiz
-  const finished = day.quiz.every((q) => q.id in answers)
-  const { score, total } = scoreQuiz(day.quiz, answers)
+  const titleId = useId()
+  const key = test?.key ?? day.id
+  const questions = test?.questions ?? day.quiz
+  const saved = progress.days[key]?.quiz
+  const finished = questions.every((q) => q.id in answers)
+  const { score, total } = scoreQuiz(questions, answers)
 
   function answer(questionId: string, option: number) {
     if (questionId in answers) return
     const next = { ...answers, [questionId]: option }
     setAnswers(next)
-    if (day.quiz.every((q) => q.id in next)) {
-      const result = scoreQuiz(day.quiz, next)
-      update((p) => recordQuiz(p, day.id, next, result.score, result.total))
+    if (questions.every((q) => q.id in next)) {
+      const result = scoreQuiz(questions, next)
+      update((p) => recordQuiz(p, key, next, result.score, result.total))
     }
   }
 
+  // Тест дня — без своего заголовка (он в заголовке части), тест недели — область со своим заголовком
+  const Root = test ? 'section' : 'div'
+
   return (
-    <div className="quiz">
+    <Root className={test ? 'quiz quiz-week' : 'quiz'} aria-labelledby={test ? titleId : undefined}>
+      {test && (
+        <h3 id={titleId} className="quiz-title">
+          {test.title}
+        </h3>
+      )}
       <div className="quiz-head">
         <p className="quiz-score">Верно: {score}</p>
         {saved && saved.total > 0 && (
@@ -35,7 +47,7 @@ export function Quiz({ day }: { day: Day }) {
         )}
       </div>
       <ol className="quiz-list">
-        {day.quiz.map((q, n) => {
+        {questions.map((q, n) => {
           const chosen = answers[q.id]
           const answered = chosen !== undefined
           return (
@@ -78,6 +90,6 @@ export function Quiz({ day }: { day: Day }) {
           </button>
         </div>
       )}
-    </div>
+    </Root>
   )
 }

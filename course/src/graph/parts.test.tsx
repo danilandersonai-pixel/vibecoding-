@@ -95,9 +95,8 @@ describe('карточка узла', () => {
     expect(group('Встречается в тексте').getAllByText('упоминаний:')[0]).toHaveClass('visually-hidden')
 
     const book = card().getByRole('link', { name: 'Открыть в книге' })
-    expect(book).toHaveAttribute('href', 'book.html#abc')
-    expect(book).toHaveAttribute('target', '_blank')
-    expect(book).toHaveAttribute('rel', 'noopener')
+    expect(book).toHaveAttribute('href', '#/book/abc')
+    expect(book).not.toHaveAttribute('target')
     expect(card().queryByRole('link', { name: 'Открыть день' })).toBeNull()
     expect(card().queryByRole('link', { name: 'Смотреть ролик' })).toBeNull()
     // ключ группы — вид и подпись: две группы term-term не дают предупреждения React о повторе ключа
@@ -169,12 +168,18 @@ describe('карточка узла', () => {
     expect(card().queryByRole('link', { name: 'Открыть день' })).toBeNull()
   })
 
-  it('схема: миниатюра и место в книге', () => {
+  it('схема: миниатюра и место в книге — экран книги в курсе', async () => {
     const { container } = render(<NodeCard index={index} id="fig:f1" onSelect={() => {}} />)
     expect(card().getByText('Схема')).toHaveClass('kicker')
     expect(card().getByRole('heading', { level: 2 })).toHaveTextContent('Рис. 1.1 · ресторан')
     expect(container.querySelector('.figure svg')).not.toBeNull()
-    expect(card().getByRole('link', { name: 'Открыть в книге' })).toHaveAttribute('href', 'book.html#s1')
+    const book = card().getByRole('link', { name: 'Открыть в книге' })
+    expect(book).toHaveAttribute('href', '#/book/s1')
+    // с Ctrl — как обычная ссылка; обычный щелчок — переход внутри курса
+    expect(fireEvent.click(book, { ctrlKey: true })).toBe(true)
+    expect(navigate).not.toHaveBeenCalled()
+    await userEvent.setup().click(book)
+    expect(navigate).toHaveBeenCalledWith('#/book/s1')
   })
 
   it('пустая карточка — подсказка', () => {

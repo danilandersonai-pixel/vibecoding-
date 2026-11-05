@@ -35,10 +35,47 @@ test('план дня прокручивает к практике', async ({ pa
   await expect(page).toHaveURL(/#\/day\/1$/)
 })
 
-test('ссылка в книгу открывает нужный раздел', async ({ page, request }) => {
+// Книга — экран внутри курса: рамка srcdoc с читалкой, а не новая вкладка (её просмотрщик Claude открывает не книгой)
+const BOOK_FRAME = 'Книга «Вайб-кодинг на практике»'
+
+test('«В книге» дня открывает экран книги на разделе, «К курсу» возвращает в день', async ({ page }) => {
   await page.goto('/#/day/1')
-  const link = page.locator('a[href$="book.html#s77"]').first()
+  const link = page.locator('a[href="#/book/s77"]').first()
   await expect(link).toBeVisible()
-  await expect(link).toHaveAttribute('target', '_blank')
-  expect((await request.get('/book.html')).ok()).toBe(true)
+  expect(await link.getAttribute('target')).toBeNull()
+  await link.click()
+  await expect(page).toHaveURL(/#\/book\/s77$/)
+  await expect(page.getByTitle(BOOK_FRAME)).toBeVisible()
+  const book = page.frameLocator(`iframe[title="${BOOK_FRAME}"]`)
+  await expect(book.locator('#brandTitle')).toHaveText('Вайб-кодинг на практике')
+  // открыт нужный раздел: заголовок s77 — на видимой странице читалки (страницы — в #slotL и #slotR)
+  await expect(book.locator('#slotL, #slotR').getByRole('heading', { name: 'Как понять, что представляет собой модель' })).toBeVisible()
+  await page.getByRole('link', { name: 'К курсу' }).click()
+  await expect(page).toHaveURL(/#\/day\/1$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Азбука и знакомство с моделями' })).toBeVisible()
+})
+
+test('«Книга» в шапке главной открывает книгу; на 390 px нет прокрутки вбок', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+  const button = page.getByRole('banner').getByRole('link', { name: 'Книга' })
+  expect(await button.getAttribute('target')).toBeNull()
+  await button.click()
+  await expect(page).toHaveURL(/#\/book$/)
+  await expect(page.getByTitle(BOOK_FRAME)).toBeVisible()
+  const book = page.frameLocator(`iframe[title="${BOOK_FRAME}"]`)
+  await expect(book.locator('#brandTitle')).toBeVisible()
+  await expect(book.locator('#slotR .page')).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Вайб-кодинг на практике' })).toBeVisible()
+  // ни страница курса, ни читалка в рамке не шире экрана; рамка — до низа окна
+  const wide = (el: Element) => el.scrollWidth - el.clientWidth
+  expect(await page.locator('html').evaluate(wide)).toBe(0)
+  expect(await book.locator('html').evaluate(wide)).toBe(0)
+  const box = (await page.getByTitle(BOOK_FRAME).boundingBox())!
+  expect(box.width).toBe(390)
+  expect(Math.round(box.y + box.height)).toBe(844)
+  // открыли с главной — «К курсу» назад по истории, туда же (адрес главной — без якоря, как её открыли)
+  await page.getByRole('link', { name: 'К курсу' }).click()
+  await expect(page).toHaveURL(/:\d+\/(#\/)?$/)
+  await expect(page.getByTestId('day-card')).toHaveCount(21)
 })

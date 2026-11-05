@@ -1,4 +1,5 @@
 import type { Block, Day } from '../content/schema'
+import { weekTestName } from '../course/weekTest'
 
 // Записи для поиска: материалы курса и термины словаря. Чистые функции, без React и без загрузки данных —
 // дни и словарь приходят параметрами.
@@ -70,9 +71,10 @@ function blockFields(b: Block): { kind: CourseEntryKind; title: string; text: st
 // Записи курса в порядке источника: дни по порядку, внутри дня — как на странице (тема, теория, тест, практика, наставник)
 export function courseEntries(days: Day[]): CourseEntry[] {
   return days.flatMap((d) => {
-    const entry = (kind: CourseEntryKind, title: string, text: string, anchor: string): CourseEntry => ({
+    // label — подпись вместо обычной для вида записи: у вопросов теста недели — «Тест недели», у дня 21 — «Тест курса»
+    const entry = (kind: CourseEntryKind, title: string, text: string, anchor: string, label = KIND_LABEL[kind]): CourseEntry => ({
       kind,
-      label: `День ${d.number} · ${KIND_LABEL[kind]}`,
+      label: `День ${d.number} · ${label}`,
       title,
       text,
       target: { day: d.number, anchor },
@@ -86,6 +88,8 @@ export function courseEntries(days: Day[]): CourseEntry[] {
       }),
       // у вопроса теста — только варианты: пояснение на странице видно после ответа, поиск не должен выдавать его заранее
       ...d.quiz.map((q) => entry('quiz', q.question, list(q.options), 'part-quiz')),
+      // итоговый тест недели стоит в той же части, под тестом дня
+      ...d.weekTest.map((q) => entry('quiz', q.question, list(q.options), 'part-quiz', weekTestName(d).search)),
       ...d.practice.map((s) => entry('practice', s.title, sentences([s.prompt, `Готово, когда: ${s.done}`]), 'part-practice')),
       // у записей наставника текста нет: слов вроде «пункт проверки» на странице не написано
       ...d.mentor.checklist.map((c) => entry('mentor', c.text, '', 'part-mentor')),

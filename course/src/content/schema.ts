@@ -113,6 +113,8 @@ export const DaySchema = z
     minutes: z.object({ theory: z.number().min(0), practice: z.number().min(0) }).default({ theory: 0, practice: 0 }),
     blocks: z.array(BlockSchema).default([]),
     quiz: z.array(QuizQuestionSchema).default([]),
+    // Итоговый тест недели — только у последнего дня недели (7, 14, 21); прогресс у него свой, зачёт дня от него не зависит
+    weekTest: z.array(QuizQuestionSchema).default([]),
     practice: z.array(PracticeStepSchema).default([]),
     mentor: z
       .object({ command: z.string(), checklist: z.array(MentorCheckSchema), questions: z.array(z.string().min(1)) })
@@ -120,11 +122,16 @@ export const DaySchema = z
     cards: z.array(z.string().min(1)).default([]),
   })
   .superRefine((day, ctx) => {
-    day.quiz.forEach((q, i) => {
-      if (q.correct >= q.options.length) {
-        ctx.addIssue({ code: 'custom', path: ['quiz', i, 'correct'], message: 'Номер верного ответа вне списка вариантов' })
-      }
-    })
+    for (const field of ['quiz', 'weekTest'] as const) {
+      day[field].forEach((q, i) => {
+        if (q.correct >= q.options.length) {
+          ctx.addIssue({ code: 'custom', path: [field, i, 'correct'], message: 'Номер верного ответа вне списка вариантов' })
+        }
+      })
+    }
+    if (day.weekTest.length > 0 && day.number !== day.week * 7) {
+      ctx.addIssue({ code: 'custom', path: ['weekTest'], message: 'Итоговый тест недели — только в последнем дне недели' })
+    }
     day.blocks.forEach((b, i) => {
       if (b.type === 'trainer' && b.kind === 'sort') {
         const ids = new Set(b.buckets.map((x) => x.id))

@@ -1,0 +1,13 @@
+/* Экран книги: узкая шапка («← К курсу», название) и рамка с читалкой на всю оставшуюся высоту окна.
+   Цвета — только переменные темы. Читалка сама раскладывает страницы под размер рамки: прокрутки вбок нет и на телефоне.
+   Длинное название не раздвигает шапку — обрезается многоточием */
+.book-page{display:flex;flex-direction:column;height:100vh;height:100dvh;color:var(--ink);font-family:var(--font-ui)}
+.book-bar{flex:none;display:flex;align-items:center;gap:16px;min-width:0;padding:4px 16px;border-bottom:1px solid var(--rule)}
+.book-back{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;color:var(--ink);font:500 13px/1 var(--font-ui);text-decoration:none}
+.book-back:hover{text-decoration:underline}
+.book-title{min-width:0;margin:0;overflow:hidden;font-size:15px;white-space:nowrap;text-overflow:ellipsis}
+.book-main{flex:1;min-height:0;display:flex}
+.book-frame{flex:1;min-width:0;display:block;width:100%;height:100%;border:0;background:var(--desk)}
+/* Пока книга грузится или не загрузилась — строка и «Повторить» */
+.book-status{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:24px 16px}
+.book-note{margin:0;color:var(--ink-soft);font:400 16px/1.55 var(--font-body)}

@@ -241,12 +241,13 @@ describe('боковая панель', () => {
     expect(window.location.hash).toBe('#/graph')
   })
 
-  it('книга открывается в новой вкладке', () => {
+  it('«Книга» открывает экран книги внутри курса, не новую вкладку', async () => {
     render(withProgress(<SiteBar current="map" />, emptyProgress()))
     const book = nav().getByRole('link', { name: 'Книга' })
-    expect(book).toHaveAttribute('href', 'book.html')
-    expect(book).toHaveAttribute('target', '_blank')
-    expect(book).toHaveAttribute('rel', 'noopener')
+    expect(book).toHaveAttribute('href', '#/book')
+    expect(book).not.toHaveAttribute('target')
+    await userEvent.setup().click(book)
+    expect(window.location.hash).toBe('#/book')
   })
 
   it('прогресс: «Пройдено N из 21», 21 клетка (пройденные залиты, текущая в рамке), серия', () => {

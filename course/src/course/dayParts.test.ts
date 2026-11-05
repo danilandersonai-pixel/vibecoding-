@@ -15,7 +15,8 @@ import {
 import { dayParts, partsDone, PART_TITLES, type Part, type PartId } from './dayParts'
 
 const [day1] = getDays()
-const day10 = getDays()[9]
+// Черновой день подставной — цель и один ролик: настоящих черновиков в курсе больше нет (день 21 готов)
+const draft = DaySchema.parse({ id: 'day-21', number: 21, week: 3, status: 'draft', title: 'Т', goal: 'Ц', blocks: [{ type: 'video', videoId: 'day-21', title: 'Запуск' }] })
 const ORDER: PartId[] = ['why', 'theory', 'quiz', 'practice', 'mentor', 'summary']
 
 // День с тестом, но без практики и наставника
@@ -53,8 +54,8 @@ describe('dayParts', () => {
     })
   })
 
-  it('у чернового дня 10 тест, практика и наставник недоступны', () => {
-    const parts = dayParts(day10, emptyProgress())
+  it('у чернового дня тест, практика и наставник недоступны', () => {
+    const parts = dayParts(draft, emptyProgress())
     expect(parts.map((p) => p.id)).toEqual(ORDER)
     expect(part(parts, 'theory').available).toBe(true)
     expect(part(parts, 'summary').available).toBe(true)
@@ -73,8 +74,11 @@ describe('dayParts', () => {
   it('отслеживаются: why — никогда, теория — только с тренажёром или ситуацией, остальные — когда доступны', () => {
     const track = (parts: Part[]) => parts.filter((p) => p.trackable).map((p) => p.id)
     expect(track(dayParts(day1, emptyProgress()))).toEqual(['theory', 'quiz', 'practice', 'mentor', 'summary'])
-    expect(track(dayParts(day10, emptyProgress()))).toEqual(['summary'])
     expect(track(dayParts(quizOnly, emptyProgress()))).toEqual(['quiz', 'summary'])
+  })
+
+  it('у чернового дня отслеживается только итог', () => {
+    expect(dayParts(draft, emptyProgress()).filter((p) => p.trackable).map((p) => p.id)).toEqual(['summary'])
   })
 
   it('отметки: тест сдан на 5 из 6, практика сделана, наставник принял', () => {
@@ -95,7 +99,7 @@ describe('dayParts', () => {
   })
 
   it('пустой прогресс — ничего не сделано, даже у дня без практики', () => {
-    for (const day of [day1, day10, quizOnly]) {
+    for (const day of [day1, draft, quizOnly]) {
       expect(dayParts(day, emptyProgress()).some((p) => p.done)).toBe(false)
     }
   })
@@ -133,7 +137,8 @@ describe('dayParts', () => {
   })
 
   it('у дня без терминов итог не считается сделанным без заметок', () => {
-    expect(part(dayParts(day10, emptyProgress()), 'summary').done).toBe(false)
+    expect(quizOnly.cards).toEqual([])
+    expect(part(dayParts(quizOnly, emptyProgress()), 'summary').done).toBe(false)
   })
 
   it('не меняет прогресс другого дня', () => {
@@ -153,6 +158,6 @@ describe('partsDone', () => {
   })
 
   it('у чернового дня без тестов и практики отслеживается один итог', () => {
-    expect(partsDone(dayParts(day10, emptyProgress()))).toEqual({ done: 0, total: 1 })
+    expect(partsDone(dayParts(draft, emptyProgress()))).toEqual({ done: 0, total: 1 })
   })
 })

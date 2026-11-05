@@ -1,12 +1,13 @@
 import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getDay } from '../content/load'
+import { getDay, getDays } from '../content/load'
 import { daySummaryLine } from '../course/summary'
 import { DayPage } from '../pages/DayPage'
 import { CourseProgressContext } from '../progress/courseProgress'
 import { emptyProgress, type Progress } from '../progress/model'
 import { finishDay } from '../test/progress'
+import { DayHeader } from './DayHeader'
 import { DraftNotice } from './DraftNotice'
 
 function renderDay(n: number, progress: Progress = emptyProgress()) {
@@ -17,7 +18,17 @@ function renderDay(n: number, progress: Progress = emptyProgress()) {
   )
 }
 
+// День 21 — подставной черновик: цель и один ролик «Запуск». Настоящих черновиков в курсе больше нет (день 21 готов),
+// а вид чернового дня проверять всё равно нужно. Остальные дни — настоящие
+vi.mock('../content/load', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../content/load')>()
+  const { DaySchema } = await import('../content/schema')
+  const draft = DaySchema.parse({ id: 'day-21', number: 21, week: 3, status: 'draft', title: 'Т', goal: 'Ц', blocks: [{ type: 'video', videoId: 'day-21', title: 'Запуск' }] })
+  return { ...actual, getDay: (n: number) => (n === 21 ? draft : actual.getDay(n)) }
+})
+
 const plan = () => within(screen.getByRole('navigation', { name: 'План дня' }))
+const DRAFT = 21
 const partIds = () => Array.from(document.querySelectorAll('section[id^="part-"]'), (s) => s.id)
 
 // Подменённый IntersectionObserver: запоминает обработчик и наблюдаемые секции; отключение — шпион.
@@ -81,6 +92,50 @@ describe('страница дня', () => {
     expect(within(result).getByText('+', { exact: false })).toHaveAttribute('aria-hidden', 'true')
     // ни героев, ни значков в шапке дня
     expect(section.querySelectorAll('svg')).toHaveLength(0)
+  })
+
+  it('шапка дня с итоговым тестом недели: в строке «тест» — вопросы дня и вопросы теста недели', () => {
+    // День подставной: тест дня 1 и три вопроса недели — шапка считает оба теста, а не только тест дня
+    const day1 = getDay(1)!
+    const day = { ...day1, id: 'day-07', number: 7, weekTest: day1.quiz.slice(0, 3) }
+    render(<DayHeader day={day} />)
+    const hero = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
+    const terms = hero.getAllByRole('term').map((dt) => dt.textContent)
+    const values = hero.getAllByRole('definition').map((dd) => dd.textContent)
+    expect(values[terms.indexOf('тест')]).toBe(`${day1.quiz.length} вопросов + итоговый тест недели: 3 вопроса`)
+    cleanup()
+
+    // настоящий день 7: столько вопросов, сколько в его тесте и в тесте недели
+    const day7 = getDay(7)!
+    renderDay(7)
+    const hero7 = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
+    const terms7 = hero7.getAllByRole('term').map((dt) => dt.textContent)
+    expect(hero7.getAllByRole('definition')[terms7.indexOf('тест')]).toHaveTextContent(
+      new RegExp(`^${day7.quiz.length} вопрос(а|ов)? \\+ итоговый тест недели: ${day7.weekTest.length} вопрос(а|ов)?$`),
+    )
+    expect(day7.weekTest.length).toBeGreaterThan(0)
+  })
+
+  it('шапка дня 21: итоговый тест — курса, а не недели 3', () => {
+    // День подставной: тест дня 1 и три вопроса теста курса — шапка считает оба теста
+    const day1 = getDay(1)!
+    render(<DayHeader day={{ ...day1, id: 'day-21', number: 21, week: 3, weekTest: day1.quiz.slice(0, 3) }} />)
+    const hero = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
+    const terms = hero.getAllByRole('term').map((dt) => dt.textContent)
+    const values = hero.getAllByRole('definition').map((dd) => dd.textContent)
+    expect(values[terms.indexOf('тест')]).toBe(`${day1.quiz.length} вопросов + итоговый тест курса: 3 вопроса`)
+    cleanup()
+
+    // настоящий день 21 (getDay здесь отдаёт подставной черновик, поэтому день — из getDays): его тест и тест курса
+    const day21 = getDays().find((d) => d.number === 21)!
+    expect(day21.status).toBe('ready')
+    expect(day21.weekTest.length).toBeGreaterThan(0)
+    render(<DayHeader day={day21} />)
+    const hero21 = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
+    const terms21 = hero21.getAllByRole('term').map((dt) => dt.textContent)
+    expect(hero21.getAllByRole('definition')[terms21.indexOf('тест')]).toHaveTextContent(
+      new RegExp(`^${day21.quiz.length} вопрос(а|ов)? \\+ итоговый тест курса: ${day21.weekTest.length} вопрос(а|ов)?$`),
+    )
   })
 
   it('строка «Дни курса»: путь, стрелки и счёт «День 1 из 21»; «Карта курса» — одна, в боковой панели', () => {
@@ -182,8 +237,8 @@ describe('страница дня', () => {
     expect(plan().getAllByRole('button').map((b) => b.querySelector('.toc-num')!.textContent)).toEqual(['01', '02', '✓', '✓', '✓', '06'])
   })
 
-  it('черновой день 10: одна карточка «Остальное готовится», без «Скоро»', () => {
-    renderDay(10)
+  it('черновой день: одна карточка «Остальное готовится», без «Скоро»', () => {
+    renderDay(DRAFT)
     expect(screen.getAllByText(/Остальное готовится/)).toHaveLength(1)
     expect(screen.getByText('Остальное готовится: проверка понимания, практика и наставник появятся позже.')).toBeInTheDocument()
     expect(screen.queryByText('Скоро')).toBeNull()
@@ -197,7 +252,8 @@ describe('страница дня', () => {
     expect(screen.queryByText('Результат дня')).toBeNull()
     const hero = within(screen.getByRole('region', { name: 'Зачем сегодня' }))
     expect(hero.getAllByRole('term').map((dt) => dt.textContent)).toEqual(['видеоуроки'])
-    expect(hero.getAllByRole('definition').map((dd) => dd.textContent)).toEqual(['1 (2:48)'])
+    // один ролик «Запуск» идёт 2:57
+    expect(hero.getAllByRole('definition').map((dd) => dd.textContent)).toEqual(['1 (2:57)'])
     // строка в пунктирной рамке, без «бумаги» и без героя
     const notice = screen.getByText(/Остальное готовится/).closest('.draft-notice')!
     expect(notice).not.toBeNull()
@@ -206,7 +262,7 @@ describe('страница дня', () => {
   })
 
   it('у чернового дня в плане нет счёта «Сделано» и полосы — день ещё нельзя засчитать', () => {
-    renderDay(10)
+    renderDay(DRAFT)
     expect(plan().queryByText(/^Сделано/)).toBeNull()
     expect(document.querySelector('.toc-bar')).toBeNull()
     expect(plan().getByRole('button', { name: 'Итог дня' })).toBeEnabled()

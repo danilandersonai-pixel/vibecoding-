@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
 // Заголовок курса: неразрывные пробелы держат вместе «с ИИ» и «21 день»
@@ -67,6 +68,41 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Граф знаний' })).toBeInTheDocument()
     expect(document.querySelector('.shell')).toBeNull()
     expect(screen.queryByRole('navigation', { name: 'Разделы' })).toBeNull()
+  })
+
+  it('экран книги — без оболочки: пока грузится кусок и текст — «Открываем книгу…», затем книга на разделе', async () => {
+    const book = '<!doctype html><title>Книга</title><script>const h = (location.hash || "").slice(1);</script>'
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(book) })))
+    window.location.hash = '#/book/s77'
+    render(<App />)
+    expect(screen.getByText('Открываем книгу…')).toBeInTheDocument()
+    const frame = await screen.findByTitle('Книга «Вайб-кодинг на практике»')
+    expect(frame.getAttribute('srcdoc')).toContain('"s77"')
+    expect(document.querySelector('.shell')).toBeNull()
+    expect(screen.queryByRole('navigation', { name: 'Разделы' })).toBeNull()
+    // книгу открыли по адресу — «К курсу» на главную
+    await userEvent.setup().click(screen.getByRole('link', { name: 'К курсу' }))
+    expect(await screen.findByRole('heading', { level: 1, name: TITLE })).toBeInTheDocument()
+    vi.unstubAllGlobals()
+  })
+
+  it('кусок экрана книги не загрузился — «Книга сейчас недоступна» и «К курсу», а не пустая страница', async () => {
+    vi.resetModules()
+    vi.doMock('./book/BookPage', async () => {
+      throw new Error('обрыв куска')
+    })
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const { default: FreshApp } = await import('./App')
+      window.location.hash = '#/book'
+      render(<FreshApp />)
+      expect(await screen.findByText('Книга сейчас недоступна')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'К курсу' })).toHaveAttribute('href', '#/')
+      expect(screen.queryByRole('button', { name: 'Повторить' })).toBeNull()
+    } finally {
+      vi.doUnmock('./book/BookPage')
+      errors.mockRestore()
+    }
   })
 
   it('неизвестный адрес открывает главную', () => {

@@ -184,8 +184,8 @@ describe('окно поиска: выдача', () => {
     const first = within(group('Термины')).getAllByRole('listitem')[0]
     expect(first).toHaveTextContent(AGENT.term)
     expect(first).toHaveTextContent(AGENT.definition)
-    expect(within(first).getByRole('link', { name: 'В книге' })).toHaveAttribute('href', `book.html#${AGENT.refs[0]}`)
-    expect(within(first).getByRole('link', { name: 'В книге' })).toHaveAttribute('target', '_blank')
+    expect(within(first).getByRole('link', { name: 'В книге' })).toHaveAttribute('href', `#/book/${AGENT.refs[0]}`)
+    expect(within(first).getByRole('link', { name: 'В книге' })).not.toHaveAttribute('target')
     expect(within(first).getByRole('link', { name: 'День 1' })).toHaveAttribute('href', '#/day/1')
     expect(within(first).getByText('Агент', { selector: 'mark' })).toBeInTheDocument()
     expect(await screen.findByText(/^Найдено: \d+$/)).toHaveAttribute('aria-live', 'polite')
@@ -332,16 +332,15 @@ describe('цели переходов', () => {
 })
 
 describe('окно поиска: книга', () => {
-  it('книга загрузилась: ссылки на раздел в новой вкладке, подпись «Книга · глава → раздел», код — текстом', async () => {
+  it('книга загрузилась: ссылки на раздел — экран книги в курсе, подпись «Книга · глава → раздел», код — текстом', async () => {
     render(<App />)
     await search('RLS')
     const book = await within(dialog()).findByRole('region', { name: /^В книге/ })
     const links = within(book).getAllByRole('link')
     expect(links).toHaveLength(3)
     for (const link of links.slice(0, 2)) {
-      expect(link).toHaveAttribute('href', 'book.html#s77')
-      expect(link).toHaveAttribute('target', '_blank')
-      expect(link).toHaveAttribute('rel', 'noopener')
+      expect(link).toHaveAttribute('href', '#/book/s77')
+      expect(link).not.toHaveAttribute('target')
     }
     // Раздел и глава видны по одному разу. Запись-заголовок: подпись «Книга · глава» и название-раздел, фрагмент его не повторяет
     expect(links[0]).toHaveTextContent(/^Книга · Глава 4\. Данные\s*Политики RLS$/)
@@ -351,14 +350,40 @@ describe('окно поиска: книга', () => {
     expect(links[1].querySelector('.search-title')).toBeNull()
     expect(links[1].querySelector('b')).toBeNull()
     // абзац без раздела: подпись «Книга · глава» и фрагмент
-    expect(links[2]).toHaveAttribute('href', 'book.html#ch9')
+    expect(links[2]).toHaveAttribute('href', '#/book/ch9')
     expect(links[2]).toHaveTextContent(/^Книга · Глава 9\. Запуск\s*Перед запуском проверьте RLS\.$/)
     expect(links[2].querySelector('.search-title')).toBeNull()
-    // три группы в порядке спецификации; окно после ссылки в книгу остаётся открытым
+    // три группы в порядке спецификации
     expect(within(dialog()).getAllByRole('region').map((r) => r.querySelector('h2')!.firstChild!.textContent!.trim())).toEqual(['Термины', 'В курсе', 'В книге'])
     expect(screen.getByText(/^Найдено: \d+$/)).toBeInTheDocument()
-    await userEvent.setup().click(links[0])
+  })
+
+  it('ссылка в книгу закрывает окно и открывает экран книги на разделе, как переход в день; с Ctrl — обычная ссылка', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+    render(<App />)
+    const user = await search('RLS')
+    const book = await within(dialog()).findByRole('region', { name: /^В книге/ })
+    // Ctrl+щелчок — браузер откроет ссылку сам, окно остаётся
+    const click = createEvent.click(within(book).getAllByRole('link')[2], { ctrlKey: true })
+    fireEvent(within(book).getAllByRole('link')[2], click)
+    expect(click.defaultPrevented).toBe(false)
     expect(dialog()).toBeInTheDocument()
+    await user.click(within(book).getAllByRole('link')[0])
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(window.location.hash).toBe('#/book/s77')
+    expect(await screen.findByText('Открываем книгу…')).toBeInTheDocument()
+    // «В книге» у термина — так же. Поиск поверх книги (Ctrl+K): книга уже открыта — адрес заменяется,
+    // «Назад» и «К курсу» уводят из книги, а не по разделам
+    await user.keyboard('{Control>}k{/Control}')
+    await user.clear(field())
+    await user.type(field(), 'Агент')
+    const first = within(group('Термины')).getAllByRole('listitem')[0]
+    const length = window.history.length
+    await user.click(within(first).getByRole('link', { name: 'В книге' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(window.location.hash).toBe(`#/book/${AGENT.refs[0]}`)
+    expect(window.history.length).toBe(length)
+    vi.unstubAllGlobals()
   })
 
   it('книга не загрузилась: «Поиск по книге сейчас недоступен», термины и курс на месте', async () => {

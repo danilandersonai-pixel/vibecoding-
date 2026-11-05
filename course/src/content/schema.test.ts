@@ -52,7 +52,39 @@ describe('DaySchema', () => {
     const r = DaySchema.safeParse({ id: 'day-10', number: 10, week: 2, status: 'draft', title: 'Черновик', goal: 'Цель' })
     expect(r.success).toBe(true)
     expect(r.data!.quiz).toEqual([])
+    expect(r.data!.weekTest).toEqual([])
     expect(r.data!.minutes).toEqual({ theory: 0, practice: 0 })
+  })
+})
+
+describe('DaySchema: итоговый тест недели (weekTest)', () => {
+  // Последний день недели 1 — день 7; вопросы теста недели того же вида, что и вопросы теста дня
+  const question = (n: number) => ({ id: `w${n}`, question: `Вопрос недели ${n}`, options: ['а', 'б', 'в'], correct: n % 3, explanation: 'Глава 1' })
+  const lastDayOfWeek = (count: number) => ({ ...clone(validDay), id: 'day-07', number: 7, week: 1, weekTest: Array.from({ length: count }, (_, i) => question(i + 1)) })
+
+  it('у дня 7 тест недели из 8–12 вопросов проходит схему и сохраняется', () => {
+    for (const count of [8, 10, 12]) {
+      const r = DaySchema.safeParse(lastDayOfWeek(count))
+      expect(r.success, JSON.stringify(r.error?.issues)).toBe(true)
+      expect(r.data!.weekTest).toHaveLength(count)
+    }
+  })
+
+  it('отклоняет номер верного ответа, равный числу вариантов, и указывает путь weekTest', () => {
+    const day = lastDayOfWeek(10)
+    day.weekTest[3].correct = day.weekTest[3].options.length
+    const r = DaySchema.safeParse(day)
+    expect(r.success).toBe(false)
+    expect(r.error!.issues.map((i) => i.path)).toEqual([['weekTest', 3, 'correct']])
+  })
+
+  it('отклоняет тест недели не в последнем дне недели', () => {
+    // valid-day — день 9 недели 2: последний день недели 2 — 14
+    for (const day of [{ ...clone(validDay), weekTest: [question(1)] }, { ...lastDayOfWeek(10), id: 'day-06', number: 6 }]) {
+      const r = DaySchema.safeParse(day)
+      expect(r.success).toBe(false)
+      expect(r.error!.issues).toEqual([expect.objectContaining({ path: ['weekTest'], message: 'Итоговый тест недели — только в последнем дне недели' })])
+    }
   })
 })
 

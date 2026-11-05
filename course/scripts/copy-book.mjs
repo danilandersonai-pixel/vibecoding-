@@ -1,4 +1,4 @@
-// Кладёт книгу рядом с курсом (public/book.html), чтобы ссылки book.html#… работали в dev и в сборке.
+// Кладёт книгу рядом с курсом (public/book.html): экран книги грузит её fetch('book.html') в dev и в сборке.
 import { copyFileSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'

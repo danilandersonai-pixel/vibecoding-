@@ -10,6 +10,7 @@ import { getDay } from '../content/load'
 import type { Block, Day } from '../content/schema'
 import { dayParts, type PartId } from '../course/dayParts'
 import { plural } from '../course/summary'
+import { weekTestName } from '../course/weekTest'
 import { DayBar, DayHeader } from '../day/DayHeader'
 import { DayToc } from '../day/DayToc'
 import { DraftNotice } from '../day/DraftNotice'
@@ -53,7 +54,13 @@ function PartBody({ id, day }: { id: PartId; day: Day }) {
       )
     }
     case 'quiz':
-      return <Quiz day={day} />
+      // У последнего дня недели под тестом дня — итоговый тест недели (у дня 21 — курса); его прогресс — под ключом week-<неделя>
+      return (
+        <>
+          <Quiz day={day} />
+          {day.weekTest.length > 0 && <Quiz day={day} test={{ key: `week-${day.week}`, title: weekTestName(day).title, questions: day.weekTest }} />}
+        </>
+      )
     case 'practice':
       return <Practice dayId={day.id} steps={day.practice} />
     case 'mentor':

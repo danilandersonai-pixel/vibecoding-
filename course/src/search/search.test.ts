@@ -4,6 +4,7 @@ import glossary from '../../content/glossary.json'
 import graph from '../../content/graph.json'
 import { getDays } from '../content/load'
 import { DaySchema, type Day } from '../content/schema'
+import { weekTestName } from '../course/weekTest'
 import { courseEntries, termEntries, type CourseEntry, type TermEntry } from './courseIndex'
 import { fold, normalize, queryWords } from './normalize'
 import { makeSnippet, searchBook, searchCourse, searchTerms, type BookEntry } from './search'
@@ -486,9 +487,55 @@ describe('courseEntries (тренажёры и схемы с разными по
   })
 })
 
+describe('courseEntries: итоговый тест недели', () => {
+  // День подставной: тест, практика и наставник дня 1, номер дня 7 и один вопрос теста недели
+  const weekQuestion = { id: 'week-q1', question: 'Вопрос недели про коммит', options: ['Сохранение с подписью', 'Параллельная копия'], correct: 0, explanation: 'Пояснение недели' }
+  const day = DaySchema.parse({ ...getDays()[0], id: 'day-07', number: 7, week: 1, weekTest: [weekQuestion] })
+  const entries = courseEntries([day])
+
+  it('вопрос теста недели — запись «Тест недели»: вопрос в заголовке, варианты в тексте, цель — «Проверка понимания»', () => {
+    const week = entries.filter((e) => e.label === 'День 7 · Тест недели')
+    expect(week).toEqual([
+      { kind: 'quiz', label: 'День 7 · Тест недели', title: 'Вопрос недели про коммит', text: 'Сохранение с подписью · Параллельная копия', target: { day: 7, anchor: 'part-quiz' } },
+    ])
+    // как на странице: после теста дня, перед практикой
+    const at = entries.indexOf(week[0])
+    const lastQuiz = entries.findLastIndex((e) => e.label === 'День 7 · Тест')
+    expect(lastQuiz).toBeGreaterThanOrEqual(0)
+    expect(lastQuiz).toBeLessThan(at)
+    expect(entries.findIndex((e) => e.kind === 'practice')).toBeGreaterThan(at)
+    // пояснение видно только после ответа — поиск его не знает
+    expect(searchCourse('Пояснение недели', entries)).toEqual([])
+    expect(searchCourse('вопрос недели', entries).map((h) => h.entry.title)).toContain('Вопрос недели про коммит')
+  })
+
+  it('у дня 21 вопрос итогового теста — запись «Тест курса», не «Тест недели»', () => {
+    // День подставной: один вопрос — запись видна целиком; настоящий день 21 — в следующем тесте
+    const day21 = DaySchema.parse({ ...getDays()[0], id: 'day-21', number: 21, week: 3, weekTest: [weekQuestion] })
+    const course21 = courseEntries([day21]).filter((e) => e.title === weekQuestion.question)
+    expect(course21).toEqual([
+      { kind: 'quiz', label: 'День 21 · Тест курса', title: 'Вопрос недели про коммит', text: 'Сохранение с подписью · Параллельная копия', target: { day: 21, anchor: 'part-quiz' } },
+    ])
+  })
+
+  it('настоящие дни: каждый вопрос теста недели — запись своего дня', () => {
+    const real = courseEntries(getDays())
+    const withWeek = getDays().filter((d) => d.weekTest.length > 0)
+    // тест недели есть у последних дней недель — 7 и 14, а у дня 21 это тест курса (подпись «Тест курса»)
+    expect(withWeek.map((d) => d.number)).toEqual([7, 14, 21])
+    for (const d of withWeek) {
+      const week = real.filter((e) => e.target.day === d.number && e.label === `День ${d.number} · ${weekTestName(d).search}`)
+      expect(week.map((e) => e.title)).toEqual(d.weekTest.map((q) => q.question))
+      for (const e of week) expect(e.target.anchor).toBe('part-quiz')
+    }
+  })
+})
+
 describe('termEntries и поиск терминов', () => {
   const days = getDays()
   const terms = termEntries(glossary, days)
+  const mk = (number: number, cards: string[]): Day =>
+    DaySchema.parse({ id: `day-${String(number).padStart(2, '0')}`, number, week: 1, status: 'draft', title: 'Т', goal: 'Ц', cards })
 
   it('по записи на термин словаря', () => {
     expect(terms).toHaveLength(glossary.length)
@@ -504,15 +551,15 @@ describe('termEntries и поиск терминов', () => {
   })
 
   it('термин вне карточек дней — без day', () => {
-    expect(days.some((d) => d.cards.includes('Агент фонового программирования'))).toBe(false)
-    const t = terms.find((x) => x.term === 'Агент фонового программирования')
+    // Дни подставные: у настоящих карточки меняются, «Агент фонового программирования» встанет в день 7
+    const listed = termEntries(glossary, [mk(1, ['Агент']), mk(2, ['Агентный цикл'])])
+    expect(listed.find((x) => x.term === 'Агент')?.day).toBe(1)
+    const t = listed.find((x) => x.term === 'Агент фонового программирования')
     expect(t?.day).toBeUndefined()
     expect(t?.bookRef).toBe('ch10')
   })
 
   it('day — наименьший номер из дней с карточкой; без refs нет bookRef', () => {
-    const mk = (number: number, cards: string[]): Day =>
-      DaySchema.parse({ id: `day-${String(number).padStart(2, '0')}`, number, week: 1, status: 'draft', title: 'Т', goal: 'Ц', cards })
     const result = termEntries(
       [
         { term: 'Икс', definition: 'Определение', refs: [] },

@@ -9,6 +9,7 @@ import './styles/blocks.css'
 import './styles/video.css'
 import './styles/search.css'
 import './styles/graph.css'
+import './styles/book.css'
 import App from './App'
 
 createRoot(document.getElementById('root')!).render(
