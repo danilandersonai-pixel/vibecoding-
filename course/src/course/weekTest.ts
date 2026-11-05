@@ -1,4 +1,4 @@
-import { DAY_COUNT } from '../router'
+import { DAY_COUNT } from './dayCount'
 
 export type WeekTestName = { title: string; header: string; search: string }
 

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { transitionsAvailable, withViewTransition, type TransitionKind } from './motion'
+import { DAY_COUNT } from './course/dayCount'
 
 export type Route = { name: 'map' } | { name: 'day'; n: number } | { name: 'graph'; node?: string } | { name: 'book'; section?: string }
 
-export const DAY_COUNT = 21
+export { DAY_COUNT }
 
 const NAVIGATE_EVENT = 'vibecourse:navigate'
 
