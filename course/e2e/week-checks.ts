@@ -1,10 +1,11 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import bookIndex from '../content/book-index.json' with { type: 'json' }
+import { DAY_COUNT } from '../src/course/dayCount'
 import { PART_TITLES, type PartId } from '../src/course/dayParts'
 import { weekTestName } from '../src/course/weekTest'
 
-// Общие проверки e2e недели (week-1.spec.ts, week-2.spec.ts): полный день — теория, тест, практика, наставник, карточки,
-// у последнего дня недели — итоговый тест недели. Содержание — из файлов дней: проверка сверяет страницу с content/days
+// Общие проверки e2e недели (week-1.spec.ts, week-2.spec.ts, week-3.spec.ts): полный день — теория, тест, практика, наставник, карточки,
+// у последнего дня недели — итоговый тест недели (у дня 21 — курса). Содержание — из файлов дней: проверка сверяет страницу с content/days
 
 type BookRef = { section: string; label: string }
 type Block = { type: string; id?: string; kind?: string; bookRef?: BookRef }
@@ -128,7 +129,8 @@ export async function expectQuizPersists(page: Page, day: DayJson) {
 }
 
 // Итоговый тест недели — отдельный тест последнего дня недели: свой ключ week-<неделя>, тест дня он не меняет, и наоборот.
-// Область теста — по его названию на странице: у дня 21 это тест курса
+// Область теста и её заголовок — по названию из weekTestName: у дня 21 это тест курса.
+// В зачёт дня (практика, тест дня, наставник) итоговый тест не входит: тест дня он не заменяет, а без него день пройден
 export async function expectWeekTestSeparate(page: Page, day: DayJson, week: number) {
   expect(day.week, `день ${day.number} — не из недели ${week}`).toBe(week)
   expect(day.weekTest?.length, `у дня ${day.number} нет итогового теста недели`).toBeGreaterThan(0)
@@ -136,11 +138,15 @@ export async function expectWeekTestSeparate(page: Page, day: DayJson, week: num
   const weekKey = `week-${week}`
   const own = day.quiz.length
   const total = weekTest.length
+  const { title } = weekTestName(day)
   await page.goto(`/#/day/${day.number}`)
   const part = page.getByRole('region', { name: PART_TITLES.quiz, exact: true })
-  const weekQuiz = part.getByRole('region', { name: weekTestName(day).title })
+  const weekQuiz = part.getByRole('region', { name: title, exact: true })
   const dayQuiz = part.locator('.quiz:not(.quiz-week)')
   const toc = page.getByRole('navigation', { name: 'План дня' })
+  // «Пройдено N из 21» в боковой панели — сколько дней засчитано
+  const daysDone = page.getByRole('banner').getByRole('region', { name: 'Прогресс' }).locator('.sitebar-count')
+  await expect(weekQuiz.getByRole('heading', { level: 3, name: title, exact: true })).toBeVisible()
   await expect(dayQuiz.getByTestId('quiz-question')).toHaveCount(own)
 
   // тест дня не тронут: счёт 0, ни одного ответа, ни результата, ни лучшего результата
@@ -164,13 +170,41 @@ export async function expectWeekTestSeparate(page: Page, day: DayJson, week: num
   await expect(weekQuiz.getByTestId('quiz-best')).toHaveText(`Лучший результат: ${total} из ${total}`)
   await dayQuizUntouched()
 
-  // и наоборот: тест дня сдаётся сам, лучший результат недели остаётся прежним
+  // итоговый тест сдан, практика и наставник отмечены — без теста дня день не пройден
+  for (const [i, step] of day.practice.entries()) {
+    await page.locator('#part-practice').getByRole('checkbox', { name: `Шаг ${i + 1}. ${step.title}`, exact: true }).check()
+  }
+  await page.locator('#part-mentor').getByRole('checkbox', { name: 'Наставник принял день' }).check()
+  for (const id of ['practice', 'mentor'] as const) {
+    await expect(toc.getByRole('button', { name: new RegExp(`^${PART_TITLES[id]}\\s*, сделано$`) })).toBeVisible()
+  }
+  await expect(daysDone).toHaveText(`Пройдено 0 из ${DAY_COUNT}`)
+  await dayQuizUntouched()
+
+  // и наоборот: тест дня сдаётся сам, лучший результат недели остаётся прежним; теперь день пройден
   await answerAll(dayQuiz, day.quiz)
   await expect(dayQuiz.getByTestId('quiz-result')).toContainText(`Результат: ${own} из ${own} — тест сдан.`)
   await expect.poll(() => savedQuiz(page, day.id)).toEqual({ best: own, total: own })
   expect(await savedQuiz(page, weekKey)).toEqual({ best: total, total })
   await expect(weekQuiz.getByTestId('quiz-best')).toHaveText(`Лучший результат: ${total} из ${total}`)
   await expect(weekQuiz.getByTestId('quiz-result')).toHaveCount(0)
+  await expect(daysDone).toHaveText(`Пройдено 1 из ${DAY_COUNT}`)
+
+  // без итогового теста день тоже пройден: запись week-<неделя> убрана из прогресса (последняя запись уже сохранена — poll выше),
+  // после перезагрузки у итогового теста нет результата, у теста дня есть, день засчитан
+  await page.evaluate(
+    ([storageKey, k]) => {
+      const p = JSON.parse(localStorage.getItem(storageKey)!)
+      delete p.days[k]
+      localStorage.setItem(storageKey, JSON.stringify(p))
+    },
+    [STORAGE_KEY, weekKey] as const,
+  )
+  await page.reload()
+  await expect(weekQuiz.getByTestId('quiz-best')).toHaveCount(0)
+  await expect(dayQuiz.getByTestId('quiz-best')).toHaveText(`Лучший результат: ${own} из ${own}`)
+  expect(await savedQuiz(page, weekKey)).toBeNull()
+  await expect(daysDone).toHaveText(`Пройдено 1 из ${DAY_COUNT}`)
 }
 
 export const NARROW = { width: 390, height: 844 }
